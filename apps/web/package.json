@@ -1,0 +1,8 @@
+{
+  "name": "web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "echo 'Web tests not implemented yet' && exit 0"
+  }
+}
