@@ -93,6 +93,29 @@ demo-app/
 - `npm run test:e2e` - Run E2E tests
 - `npm run test:db` - Run database tests
 
+### Development Helper
+
+The project includes a development helper script to manage processes and port conflicts:
+
+- `npm run dev:check` - Check which ports are available
+- `npm run dev:clean` - Kill all development processes
+- `npm run dev:start` - Start all servers with automatic cleanup
+
+#### Mobile App Specific Commands
+
+- `npm run mobile` - Start mobile app on port 8082
+- `npm run mobile:ios` - Start mobile app in iOS simulator
+- `npm run mobile:android` - Start mobile app in Android emulator
+- `npm run mobile:clean` - Kill mobile-related processes
+
+#### Troubleshooting
+
+If you encounter port conflicts or processes that won't stop:
+
+1. Run `npm run dev:clean` to kill all development processes
+2. Run `npm run dev:check` to verify ports are available
+3. Use `./scripts/dev-helper.sh help` for more options
+
 ## Architecture
 
 This project uses a monorepo structure with:
