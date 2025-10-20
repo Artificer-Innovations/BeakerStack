@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { HOME_TITLE, HOME_SUBTITLE } from '@shared';
 
 export default function HomePage() {
   return (
@@ -6,10 +7,10 @@ export default function HomePage() {
       <div className="max-w-md w-full space-y-8 p-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Welcome to Demo App
+            {HOME_TITLE}
           </h1>
           <p className="text-gray-600 mb-8">
-            A modern full-stack application with React, React Native, and Supabase
+            {HOME_SUBTITLE}
           </p>
         </div>
         

@@ -7,6 +7,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { HOME_TITLE, HOME_SUBTITLE } from '@shared';
 
 type RootStackParamList = {
   Home: undefined;
@@ -25,9 +26,9 @@ export default function HomeScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Welcome to Demo App</Text>
+        <Text style={styles.title}>{HOME_TITLE}</Text>
         <Text style={styles.subtitle}>
-          A modern full-stack application with React Native and Supabase
+          {HOME_SUBTITLE}
         </Text>
         
         <View style={styles.buttonContainer}>

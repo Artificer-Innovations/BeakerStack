@@ -14,4 +14,4 @@ export {};
 export {};
 
 // Utils
-export {};
+export * from './utils/strings';
