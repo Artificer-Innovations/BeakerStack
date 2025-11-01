@@ -1,7 +1,34 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { HOME_TITLE, HOME_SUBTITLE } from '@shared/utils/strings';
+import { supabase } from '@/lib/supabase';
 
 export default function HomePage() {
+  const [testResult, setTestResult] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleTestDatabase = async () => {
+    setIsLoading(true);
+    setTestResult('');
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('id, username')
+        .limit(5);
+
+      if (error) {
+        setTestResult(`❌ Error: ${error.message}`);
+      } else {
+        setTestResult(`✅ Success! Found ${data.length} user profiles`);
+      }
+    } catch (err) {
+      setTestResult(`❌ Exception: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
       <div className="max-w-md w-full space-y-8 p-8">
@@ -28,6 +55,20 @@ export default function HomePage() {
           >
             Sign Up
           </Link>
+
+          <button
+            onClick={handleTestDatabase}
+            disabled={isLoading}
+            className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Testing...' : '🧪 Test Database'}
+          </button>
+
+          {testResult && (
+            <div className="mt-2 p-3 rounded-md bg-white border border-gray-200 text-sm text-gray-700">
+              {testResult}
+            </div>
+          )}
         </div>
       </div>
     </div>

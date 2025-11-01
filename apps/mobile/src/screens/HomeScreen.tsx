@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { HOME_TITLE, HOME_SUBTITLE } from '@shared/utils/strings';
+import { supabase } from '../lib/supabase';
 
 type RootStackParamList = {
   Home: undefined;
@@ -23,6 +25,37 @@ interface Props {
 }
 
 export default function HomeScreen({ navigation }: Props) {
+  const [testResult, setTestResult] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleTestDatabase = async () => {
+    setIsLoading(true);
+    setTestResult('');
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('id, username')
+        .limit(5);
+
+      if (error) {
+        const message = `❌ Error: ${error.message}`;
+        setTestResult(message);
+        Alert.alert('Database Test Failed', error.message);
+      } else {
+        const message = `✅ Success! Found ${data.length} user profiles`;
+        setTestResult(message);
+        Alert.alert('Database Test Passed', `Found ${data.length} user profiles`);
+      }
+    } catch (err) {
+      const message = `❌ Exception: ${err instanceof Error ? err.message : 'Unknown error'}`;
+      setTestResult(message);
+      Alert.alert('Database Test Failed', message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
@@ -45,6 +78,22 @@ export default function HomeScreen({ navigation }: Props) {
           >
             <Text style={styles.secondaryButtonText}>Sign Up</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.testButton, isLoading && styles.testButtonDisabled]}
+            onPress={handleTestDatabase}
+            disabled={isLoading}
+          >
+            <Text style={styles.testButtonText}>
+              {isLoading ? 'Testing...' : '🧪 Test Database'}
+            </Text>
+          </TouchableOpacity>
+
+          {testResult ? (
+            <View style={styles.resultContainer}>
+              <Text style={styles.resultText}>{testResult}</Text>
+            </View>
+          ) : null}
         </View>
       </View>
     </SafeAreaView>
@@ -101,10 +150,41 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#3b82f6',
     alignItems: 'center',
+    marginBottom: 12,
   },
   secondaryButtonText: {
     color: '#3b82f6',
     fontSize: 16,
     fontWeight: '600',
+  },
+  testButton: {
+    backgroundColor: '#f3f4f6',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    alignItems: 'center',
+  },
+  testButtonDisabled: {
+    opacity: 0.5,
+  },
+  testButtonText: {
+    color: '#374151',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  resultContainer: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+  },
+  resultText: {
+    fontSize: 14,
+    color: '#374151',
+    textAlign: 'center',
   },
 });
