@@ -22,3 +22,4 @@ export * from './types/database';
 // Auth types and hooks
 export * from './types/auth';
 export * from './hooks/useAuth';
+export * from './contexts/AuthContext';

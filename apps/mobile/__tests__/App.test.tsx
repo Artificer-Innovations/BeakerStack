@@ -13,6 +13,21 @@ jest.mock('../src/lib/supabase', () => ({
   },
 }));
 
+// Mock AuthContext to avoid needing the full provider setup in tests
+jest.mock('@shared/contexts/AuthContext', () => ({
+  AuthProvider: ({ children }: any) => children,
+  useAuthContext: () => ({
+    user: null,
+    session: null,
+    loading: false,
+    error: null,
+    signIn: jest.fn(),
+    signUp: jest.fn(),
+    signOut: jest.fn(),
+    signInWithOAuth: jest.fn(),
+  }),
+}));
+
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { describe, it, expect } from '@jest/globals';
