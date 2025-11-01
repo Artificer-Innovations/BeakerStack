@@ -19,7 +19,6 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./src",
     "removeComments": true,
     "noImplicitAny": true,
     "noImplicitReturns": true,
@@ -48,9 +47,6 @@
   "references": [
     {
       "path": "./apps/mobile"
-    },
-    {
-      "path": "./apps/web"
     },
     {
       "path": "./packages/shared"

@@ -168,7 +168,7 @@ git
 
 ---
 
-### Task 3.3: Implement Web Authentication
+### DONE - Task 3.3: Implement Web Authentication
 **Goal**: Add Google/Apple sign-in to web app
 **Scope**: OAuth integration, redirect handling, session management
 **Tests**:

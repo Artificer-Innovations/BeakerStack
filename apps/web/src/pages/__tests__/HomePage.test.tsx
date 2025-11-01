@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import HomePage from '../HomePage';
 import { AuthProvider } from '@shared/contexts/AuthContext';
@@ -12,7 +12,7 @@ describe('HomePage', () => {
     vi.clearAllMocks();
   });
 
-  const renderWithAuth = (ui: React.ReactElement, authenticated = false) => {
+  const renderWithAuth = async (ui: React.ReactElement, authenticated = false) => {
     mockSupabaseClient = {
       auth: {
         getSession: vi.fn().mockResolvedValue({
@@ -43,43 +43,49 @@ describe('HomePage', () => {
       }),
     } as any;
 
-    return render(
-      <BrowserRouter>
-        <AuthProvider supabaseClient={mockSupabaseClient as SupabaseClient}>
-          {ui}
-        </AuthProvider>
-      </BrowserRouter>
-    );
+    let result: ReturnType<typeof render>;
+    await act(async () => {
+      result = render(
+        <BrowserRouter>
+          <AuthProvider supabaseClient={mockSupabaseClient as SupabaseClient}>
+            {ui}
+          </AuthProvider>
+        </BrowserRouter>
+      );
+      // Wait for the getSession promise to resolve
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
+    return result!;
   };
 
   describe('when user is not authenticated', () => {
-    it('renders home page with title and subtitle', () => {
-      renderWithAuth(<HomePage />, false);
+    it('renders home page with title and subtitle', async () => {
+      await renderWithAuth(<HomePage />, false);
       
       expect(screen.getByText('Welcome to Demo App')).toBeInTheDocument();
       expect(screen.getByText(/A modern full-stack application/i)).toBeInTheDocument();
     });
 
-    it('shows sign in button', () => {
-      renderWithAuth(<HomePage />, false);
+    it('shows sign in button', async () => {
+      await renderWithAuth(<HomePage />, false);
       
       expect(screen.getByRole('link', { name: /sign in/i })).toBeInTheDocument();
     });
 
-    it('shows sign up button', () => {
-      renderWithAuth(<HomePage />, false);
+    it('shows sign up button', async () => {
+      await renderWithAuth(<HomePage />, false);
       
       expect(screen.getByRole('link', { name: /sign up/i })).toBeInTheDocument();
     });
 
-    it('does not show dashboard link', () => {
-      renderWithAuth(<HomePage />, false);
+    it('does not show dashboard link', async () => {
+      await renderWithAuth(<HomePage />, false);
       
       expect(screen.queryByRole('link', { name: /go to dashboard/i })).not.toBeInTheDocument();
     });
 
-    it('does not show signed in message', () => {
-      renderWithAuth(<HomePage />, false);
+    it('does not show signed in message', async () => {
+      await renderWithAuth(<HomePage />, false);
       
       expect(screen.queryByText(/signed in as/i)).not.toBeInTheDocument();
     });
@@ -87,7 +93,7 @@ describe('HomePage', () => {
 
   describe('when user is authenticated', () => {
     it('shows signed in message with user email', async () => {
-      renderWithAuth(<HomePage />, true);
+      await renderWithAuth(<HomePage />, true);
       
       await waitFor(() => {
         expect(screen.getByText(/signed in as test@example.com/i)).toBeInTheDocument();
@@ -95,7 +101,7 @@ describe('HomePage', () => {
     });
 
     it('shows dashboard link', async () => {
-      renderWithAuth(<HomePage />, true);
+      await renderWithAuth(<HomePage />, true);
       
       await waitFor(() => {
         expect(screen.getByRole('link', { name: /go to dashboard/i })).toBeInTheDocument();
@@ -103,7 +109,7 @@ describe('HomePage', () => {
     });
 
     it('does not show sign in button', async () => {
-      renderWithAuth(<HomePage />, true);
+      await renderWithAuth(<HomePage />, true);
       
       await waitFor(() => {
         expect(screen.queryByRole('link', { name: /^sign in$/i })).not.toBeInTheDocument();
@@ -111,7 +117,7 @@ describe('HomePage', () => {
     });
 
     it('does not show sign up button', async () => {
-      renderWithAuth(<HomePage />, true);
+      await renderWithAuth(<HomePage />, true);
       
       await waitFor(() => {
         expect(screen.queryByRole('link', { name: /sign up/i })).not.toBeInTheDocument();
@@ -119,7 +125,7 @@ describe('HomePage', () => {
     });
 
     it('dashboard link points to correct route', async () => {
-      renderWithAuth(<HomePage />, true);
+      await renderWithAuth(<HomePage />, true);
       
       await waitFor(() => {
         const dashboardLink = screen.getByRole('link', { name: /go to dashboard/i });
@@ -129,14 +135,14 @@ describe('HomePage', () => {
   });
 
   describe('test database button', () => {
-    it('shows test database button regardless of auth state', () => {
-      renderWithAuth(<HomePage />, false);
+    it('shows test database button regardless of auth state', async () => {
+      await renderWithAuth(<HomePage />, false);
       
       expect(screen.getByRole('button', { name: /test database/i })).toBeInTheDocument();
     });
 
     it('shows test database button when authenticated', async () => {
-      renderWithAuth(<HomePage />, true);
+      await renderWithAuth(<HomePage />, true);
       
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /test database/i })).toBeInTheDocument();
@@ -145,8 +151,8 @@ describe('HomePage', () => {
   });
 
   describe('auth context debug UI', () => {
-    it('displays auth context debug information', () => {
-      renderWithAuth(<HomePage />, false);
+    it('displays auth context debug information', async () => {
+      await renderWithAuth(<HomePage />, false);
       
       expect(screen.getByText('🧪 AuthContext Test')).toBeInTheDocument();
       expect(screen.getByText(/Loading:/)).toBeInTheDocument();
@@ -156,7 +162,7 @@ describe('HomePage', () => {
     });
 
     it('shows user email in debug UI when authenticated', async () => {
-      renderWithAuth(<HomePage />, true);
+      await renderWithAuth(<HomePage />, true);
       
       await waitFor(() => {
         const debugUI = screen.getByText(/User:/).parentElement;
@@ -165,7 +171,7 @@ describe('HomePage', () => {
     });
 
     it('shows null in debug UI when not authenticated', async () => {
-      renderWithAuth(<HomePage />, false);
+      await renderWithAuth(<HomePage />, false);
       
       await waitFor(() => {
         const debugUI = screen.getByText(/User:/).parentElement;

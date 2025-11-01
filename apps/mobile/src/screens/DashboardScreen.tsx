@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,10 @@ import {
   StyleSheet,
   SafeAreaView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useAuthContext } from '@shared/contexts/AuthContext';
 
 type RootStackParamList = {
   Home: undefined;
@@ -23,6 +25,9 @@ interface Props {
 }
 
 export default function DashboardScreen({ navigation }: Props) {
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const auth = useAuthContext();
+
   const handleSignOut = () => {
     Alert.alert(
       'Sign Out',
@@ -32,7 +37,20 @@ export default function DashboardScreen({ navigation }: Props) {
         { 
           text: 'Sign Out', 
           style: 'destructive',
-          onPress: () => navigation.navigate('Home')
+          onPress: async () => {
+            setIsSigningOut(true);
+            try {
+              await auth.signOut();
+              navigation.navigate('Home');
+            } catch (error) {
+              Alert.alert(
+                'Sign Out Failed',
+                error instanceof Error ? error.message : 'Failed to sign out'
+              );
+            } finally {
+              setIsSigningOut(false);
+            }
+          }
         },
       ]
     );
@@ -43,6 +61,9 @@ export default function DashboardScreen({ navigation }: Props) {
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.title}>Welcome to your Dashboard!</Text>
+          {auth.user && (
+            <Text style={styles.userEmail}>{auth.user.email}</Text>
+          )}
           <Text style={styles.subtitle}>
             This is where your main application content will go.
           </Text>
@@ -58,8 +79,16 @@ export default function DashboardScreen({ navigation }: Props) {
           <Text style={styles.cardText}>• Navigation to other features</Text>
         </View>
         
-        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-          <Text style={styles.signOutButtonText}>Sign Out</Text>
+        <TouchableOpacity 
+          style={[styles.signOutButton, isSigningOut && styles.signOutButtonDisabled]} 
+          onPress={handleSignOut}
+          disabled={isSigningOut}
+        >
+          {isSigningOut ? (
+            <ActivityIndicator color="#ffffff" />
+          ) : (
+            <Text style={styles.signOutButtonText}>Sign Out</Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -83,6 +112,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#1f2937',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  userEmail: {
+    fontSize: 14,
+    color: '#6b7280',
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -124,6 +159,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 'auto',
+  },
+  signOutButtonDisabled: {
+    opacity: 0.5,
   },
   signOutButtonText: {
     color: '#ffffff',

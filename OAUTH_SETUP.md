@@ -103,6 +103,9 @@ This guide walks you through setting up Google and Apple OAuth for your DemoApp 
    
    **Important**: Replace `your-project-ref` with your actual Supabase project reference ID (found in Supabase Dashboard → Settings → API)
 
+
+   
+
 7. Click "Create"
 8. **Save these credentials** (you'll need them for Supabase):
    - Client ID (looks like: `123456789-abc123.apps.googleusercontent.com`)

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SocialLoginButton } from '../SocialLoginButton';
 
@@ -39,7 +39,11 @@ describe('SocialLoginButton', () => {
     render(<SocialLoginButton provider="google" onPress={mockOnPress} />);
     
     const button = screen.getByRole('button');
-    await user.click(button);
+    await act(async () => {
+      await user.click(button);
+      // Wait for async state updates to complete
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
     
     expect(mockOnPress).toHaveBeenCalledWith('google');
     expect(mockOnPress).toHaveBeenCalledTimes(1);
@@ -54,7 +58,11 @@ describe('SocialLoginButton', () => {
     render(<SocialLoginButton provider="google" onPress={mockOnPress} />);
     
     const button = screen.getByRole('button');
-    await user.click(button);
+    await act(async () => {
+      await user.click(button);
+      // Wait for state update to show loading
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
     
     // Should show loading text immediately
     expect(screen.getByText('Connecting...')).toBeInTheDocument();
@@ -77,7 +85,11 @@ describe('SocialLoginButton', () => {
     render(<SocialLoginButton provider="google" onPress={mockOnPress} />);
     
     const button = screen.getByRole('button');
-    await user.click(button);
+    await act(async () => {
+      await user.click(button);
+      // Wait for state update
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
     
     expect(button).toBeDisabled();
     
@@ -94,7 +106,11 @@ describe('SocialLoginButton', () => {
     render(<SocialLoginButton provider="apple" onPress={mockOnPress} />);
     
     const button = screen.getByRole('button');
-    await user.click(button);
+    await act(async () => {
+      await user.click(button);
+      // Wait for state updates
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
     
     // Should log error
     await waitFor(() => {
@@ -144,10 +160,26 @@ describe('SocialLoginButton', () => {
     
     const button = screen.getByRole('button');
     
-    // Click multiple times rapidly
-    await user.click(button);
-    await user.click(button);
-    await user.click(button);
+    // First click - should trigger loading state
+    await act(async () => {
+      await user.click(button);
+      // Wait for state update to disable button
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
+    
+    // Wait for button to actually be disabled
+    await waitFor(() => {
+      expect(button).toBeDisabled();
+    });
+    
+    // Try clicking again (should be disabled now and not trigger another call)
+    await act(async () => {
+      // userEvent won't click disabled buttons, so we use fireEvent directly
+      const { fireEvent } = await import('@testing-library/react');
+      fireEvent.click(button);
+      fireEvent.click(button);
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
     
     // Should only call once because button is disabled after first click
     expect(mockOnPress).toHaveBeenCalledTimes(1);

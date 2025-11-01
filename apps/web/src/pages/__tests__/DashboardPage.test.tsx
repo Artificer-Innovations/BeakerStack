@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import DashboardPage from '../DashboardPage';
@@ -46,46 +46,52 @@ describe('DashboardPage', () => {
     } as any;
   });
 
-  const renderWithAuth = (ui: React.ReactElement) => {
-    return render(
-      <BrowserRouter>
-        <AuthProvider supabaseClient={mockSupabaseClient as SupabaseClient}>
-          {ui}
-        </AuthProvider>
-      </BrowserRouter>
-    );
+  const renderWithAuth = async (ui: React.ReactElement) => {
+    let result: ReturnType<typeof render>;
+    await act(async () => {
+      result = render(
+        <BrowserRouter>
+          <AuthProvider supabaseClient={mockSupabaseClient as SupabaseClient}>
+            {ui}
+          </AuthProvider>
+        </BrowserRouter>
+      );
+      // Wait for the getSession promise to resolve
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
+    return result!;
   };
 
-  it('renders dashboard page', () => {
-    renderWithAuth(<DashboardPage />);
+  it('renders dashboard page', async () => {
+    await renderWithAuth(<DashboardPage />);
     
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Welcome to your Dashboard!')).toBeInTheDocument();
   });
 
   it('displays user email when authenticated', async () => {
-    renderWithAuth(<DashboardPage />);
+    await renderWithAuth(<DashboardPage />);
     
     await waitFor(() => {
       expect(screen.getByText('test@example.com')).toBeInTheDocument();
     });
   });
 
-  it('shows sign out button', () => {
-    renderWithAuth(<DashboardPage />);
+  it('shows sign out button', async () => {
+    await renderWithAuth(<DashboardPage />);
     
     expect(screen.getByRole('button', { name: /sign out/i })).toBeInTheDocument();
   });
 
-  it('shows home link', () => {
-    renderWithAuth(<DashboardPage />);
+  it('shows home link', async () => {
+    await renderWithAuth(<DashboardPage />);
     
     expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument();
   });
 
   it('calls signOut and navigates to home when sign out button is clicked', async () => {
     const user = userEvent.setup();
-    renderWithAuth(<DashboardPage />);
+    await renderWithAuth(<DashboardPage />);
     
     const signOutButton = screen.getByRole('button', { name: /sign out/i });
     await user.click(signOutButton);
@@ -104,7 +110,7 @@ describe('DashboardPage', () => {
       () => new Promise(resolve => setTimeout(() => resolve({ error: null }), 100))
     );
     
-    renderWithAuth(<DashboardPage />);
+    await renderWithAuth(<DashboardPage />);
     
     const signOutButton = screen.getByRole('button', { name: /sign out/i });
     await user.click(signOutButton);
@@ -127,7 +133,7 @@ describe('DashboardPage', () => {
       error: { message: errorMessage },
     });
     
-    renderWithAuth(<DashboardPage />);
+    await renderWithAuth(<DashboardPage />);
     
     const signOutButton = screen.getByRole('button', { name: /sign out/i });
     await user.click(signOutButton);
@@ -147,7 +153,7 @@ describe('DashboardPage', () => {
       error: { message: 'Sign out failed' },
     });
     
-    renderWithAuth(<DashboardPage />);
+    await renderWithAuth(<DashboardPage />);
     
     const signOutButton = screen.getByRole('button', { name: /sign out/i });
     await user.click(signOutButton);

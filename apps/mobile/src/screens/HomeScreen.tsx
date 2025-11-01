@@ -69,19 +69,39 @@ export default function HomeScreen({ navigation }: Props) {
         </Text>
         
         <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={() => navigation.navigate('Login')}
-          >
-            <Text style={styles.primaryButtonText}>Sign In</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={() => navigation.navigate('Signup')}
-          >
-            <Text style={styles.secondaryButtonText}>Sign Up</Text>
-          </TouchableOpacity>
+          {auth.user ? (
+            // Signed in state
+            <>
+              <View style={styles.signedInContainer}>
+                <Text style={styles.signedInText}>✓ Signed in as</Text>
+                <Text style={styles.signedInEmail}>{auth.user.email}</Text>
+              </View>
+              
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={() => navigation.navigate('Dashboard')}
+              >
+                <Text style={styles.primaryButtonText}>Go to Dashboard</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            // Signed out state
+            <>
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={() => navigation.navigate('Login')}
+              >
+                <Text style={styles.primaryButtonText}>Sign In</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={() => navigation.navigate('Signup')}
+              >
+                <Text style={styles.secondaryButtonText}>Sign Up</Text>
+              </TouchableOpacity>
+            </>
+          )}
 
           <TouchableOpacity
             style={[styles.testButton, isLoading && styles.testButtonDisabled]}
@@ -154,6 +174,26 @@ const styles = StyleSheet.create({
   buttonContainer: {
     width: '100%',
     maxWidth: 300,
+  },
+  signedInContainer: {
+    backgroundColor: '#d1fae5',
+    borderColor: '#6ee7b7',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  signedInText: {
+    color: '#065f46',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  signedInEmail: {
+    color: '#065f46',
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 4,
   },
   primaryButton: {
     backgroundColor: '#3b82f6',

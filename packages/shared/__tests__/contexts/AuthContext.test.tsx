@@ -1,5 +1,5 @@
 import React from 'react';
-import { renderHook, render, screen, waitFor } from '@testing-library/react';
+import { renderHook, render, screen, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { AuthProvider, useAuthContext } from '../../src/contexts/AuthContext';
 import type { SupabaseClient, User, Session } from '@supabase/supabase-js';
@@ -97,7 +97,7 @@ describe('AuthContext', () => {
     // Initially should be loading
     expect(screen.getByTestId('loading')).toHaveTextContent('loading');
 
-    // Wait for auth state to load
+    // Wait for auth state to load - waitFor uses act() internally
     await waitFor(() => {
       expect(screen.getByTestId('loading')).toHaveTextContent('ready');
     });
@@ -129,8 +129,10 @@ describe('AuthContext', () => {
       </AuthProvider>
     );
 
-    expect(screen.getByText('Sign In')).toBeInTheDocument();
-    expect(screen.getByText('Sign Out')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Sign In')).toBeInTheDocument();
+      expect(screen.getByText('Sign Out')).toBeInTheDocument();
+    });
   });
 
   it('should allow multiple components to access the same auth state', async () => {
