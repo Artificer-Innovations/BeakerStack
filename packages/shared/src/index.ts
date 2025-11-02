@@ -23,3 +23,7 @@ export * from './types/database';
 export * from './types/auth';
 export * from './hooks/useAuth';
 export * from './contexts/AuthContext';
+
+// Profile types and hooks
+export * from './types/profile';
+export * from './hooks/useProfile';

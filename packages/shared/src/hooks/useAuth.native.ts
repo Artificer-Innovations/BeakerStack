@@ -6,8 +6,8 @@ import type { AuthHookReturn } from '../types/auth';
 // Export this function to be called on app startup
 export function configureGoogleSignIn() {
   GoogleSignin.configure({
-    webClientId: process.env['EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID'],
-    iosClientId: process.env['EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID'],
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
     offlineAccess: true,
   });
 }
@@ -159,5 +159,4 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
     signInWithGoogle,
   };
 }
-
 

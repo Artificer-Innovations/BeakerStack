@@ -32,16 +32,20 @@ describe('SocialLoginButton', () => {
 
     const button = screen.getByRole('button');
 
+    // Click the button and wait for loading state
     await act(async () => {
       await user.click(button);
-      await waitFor(() =>
-        expect(screen.getByText('Connecting...')).toBeInTheDocument()
-      );
+    });
+
+    // Wait for the loading state to appear (state update after click)
+    await waitFor(() => {
+      expect(screen.getByText('Connecting...')).toBeInTheDocument();
     });
 
     expect(mockOnPress).toHaveBeenCalledTimes(1);
     expect(button).toBeDisabled();
 
+    // Resolve the promise to complete the async operation
     await act(async () => {
       resolvePress!();
       await pressPromise;

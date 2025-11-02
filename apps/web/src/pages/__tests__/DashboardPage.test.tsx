@@ -8,6 +8,26 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 const mockNavigate = vi.fn();
 
+// Mock the supabase client import
+vi.mock('@/lib/supabase', () => {
+  const mockFrom = vi.fn(() => ({
+    select: vi.fn(() => ({
+      eq: vi.fn(() => ({
+        single: vi.fn().mockResolvedValue({
+          data: null,
+          error: { code: 'PGRST116', message: 'No rows returned' },
+        }),
+      })),
+    })),
+  }));
+  
+  return {
+    supabase: {
+      from: mockFrom,
+    },
+  };
+});
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
@@ -21,6 +41,18 @@ describe('DashboardPage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // Mock database query for useProfile hook (returns profile not found, which is valid)
+    const mockFrom = vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          single: vi.fn().mockResolvedValue({
+            data: null,
+            error: { code: 'PGRST116', message: 'No rows returned' }, // Profile not found is OK
+          }),
+        })),
+      })),
+    }));
     
     mockSupabaseClient = {
       auth: {
@@ -43,6 +75,7 @@ describe('DashboardPage', () => {
         }),
         signOut: vi.fn().mockResolvedValue({ error: null }),
       },
+      from: mockFrom,
     } as any;
   });
 

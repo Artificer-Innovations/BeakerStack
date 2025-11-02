@@ -220,17 +220,18 @@ git
 - Route protection logic
 - Loading and redirect states
 
-### Task 3.6: Verify proper OAUTH production settings
-**Goal**: Verify that if OAUTH settings for google and apple OAuth are properly configured 
-that the web and mobile apps are able to sign up and login with Google and Apple social signins
+### DONE - Task 3.6: Verify proper OAUTH production settings
+**Goal**: All web, ios, and android to use email AND google logins or signups
+**Status**: this is working for google after implementing native support because the expo-go web oauth approach 
+did not work. We did however remove the stubs for apple login; and will have to come back to support that.
 **Tests**:
-- Manual: Full signup and login flows with google and apple
+- Manual: Full signup and login flows with google
 
 ---
 
 ## Phase 4: User Profile Management
 
-### Task 4.1: Create Profile Hook
+### DONE - Task 4.1: Create Profile Hook
 **Goal**: Build useProfile hook for profile data management
 **Scope**: Profile CRUD operations, loading states, error handling
 **Tests**:
