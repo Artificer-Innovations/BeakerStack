@@ -152,6 +152,8 @@ local.properties
 .expo/
 dist/
 web-build/
+apps/mobile/android/
+apps/mobile/ios/
 
 # Expo CLI
 .expo-shared/

@@ -12,6 +12,7 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthContext } from '@shared/contexts/AuthContext';
 import { SocialLoginButton } from '../components/SocialLoginButton';
+import { useFeatureFlags } from '../config/featureFlags';
 
 type RootStackParamList = {
   Home: undefined;
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export default function LoginScreen({ navigation }: Props) {
+  const { oauthApple, oauthGoogle } = useFeatureFlags();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -73,25 +75,30 @@ export default function LoginScreen({ navigation }: Props) {
           
           {/* OAuth Buttons */}
           <View style={styles.oauthContainer}>
-            <SocialLoginButton
-              provider="google"
-              onPress={handleOAuthLogin}
-              mode="signin"
-            />
-            <SocialLoginButton
-              provider="apple"
-              onPress={handleOAuthLogin}
-              mode="signin"
-            />
+            {oauthGoogle && (
+              <SocialLoginButton
+                provider="google"
+                onPress={handleOAuthLogin}
+                mode="signin"
+              />
+            )}
+            {oauthApple && (
+              <SocialLoginButton
+                provider="apple"
+                onPress={handleOAuthLogin}
+                mode="signin"
+              />
+            )}
           </View>
 
           {/* Divider */}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>Or continue with email</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
+          {(oauthGoogle || oauthApple) && (
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>Or continue with email</Text>
+              <View style={styles.dividerLine} />
+            </View>
+          )}
           <TextInput
             style={styles.input}
             placeholder="Email address"

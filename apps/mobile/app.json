@@ -13,7 +13,8 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.demoapp"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +22,8 @@
       },
       "permissions": [
         "android.permission.DETECT_SCREEN_CAPTURE"
-      ]
+      ],
+      "package": "com.anonymous.demoapp"
     },
     "plugins": []
   }
