@@ -83,7 +83,6 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
         // Directly clear Supabase's localStorage entries
         // Supabase stores session data with keys based on the URL
         if (typeof window !== 'undefined' && window.localStorage) {
-          const supabaseUrl = supabaseClient.supabaseUrl;
           // Supabase uses a storage key format: sb-<project-ref>-auth-token
           // We'll clear all keys that start with 'sb-' to catch all Supabase storage
           const keysToRemove: string[] = [];
