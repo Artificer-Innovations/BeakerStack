@@ -20,15 +20,40 @@ async function getGoogleSignIn() {
 }
 
 // Export this function to be called on app startup
-export function configureGoogleSignIn() {
+// Client IDs must be provided from the app (via Constants.expoConfig.extra)
+export function configureGoogleSignIn(options?: {
+  webClientId?: string;
+  iosClientId?: string;
+  androidClientId?: string;
+}) {
+  // webClientId is required by Google Sign-In library
+  const webClientId = options?.webClientId;
+  if (!webClientId) {
+    console.warn('[useAuth] Google Sign-In not configured: webClientId is missing');
+    return;
+  }
+
   // Lazy configure - only import when actually called
   import('@react-native-google-signin/google-signin')
     .then((module) => {
-      module.GoogleSignin.configure({
-        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-        iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+      // Only pass defined values - don't pass undefined properties
+      const config: {
+        webClientId: string;
+        iosClientId?: string;
+        offlineAccess: boolean;
+      } = {
+        webClientId,
         offlineAccess: true,
-      });
+      };
+      
+      if (options?.iosClientId) {
+        config.iosClientId = options.iosClientId;
+      }
+      
+      // Note: Android typically uses webClientId, but we accept androidClientId
+      // for potential future use or custom configuration
+      
+      module.GoogleSignin.configure(config);
     })
     .catch((err) => {
       console.warn('[useAuth] Failed to configure Google Sign-In:', err);

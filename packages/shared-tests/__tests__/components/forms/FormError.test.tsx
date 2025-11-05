@@ -1,7 +1,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { FormError } from '../../../src/components/forms/FormError.web';
+import { FormError } from '@shared/src/components/forms/FormError.web';
 
 describe('FormError (Web)', () => {
   it('renders error message when message is provided', () => {

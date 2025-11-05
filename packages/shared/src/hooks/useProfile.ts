@@ -99,6 +99,7 @@ export function useProfile(supabaseClient: SupabaseClient, user: User | null): P
     setError(null);
 
     try {
+      console.log('[useProfile] updateProfile called with userId:', userId, 'data:', data);
       const { data: updatedProfile, error: updateError } = await supabaseClient
         .from('user_profiles')
         .update(data)
@@ -106,15 +107,27 @@ export function useProfile(supabaseClient: SupabaseClient, user: User | null): P
         .select()
         .single();
 
+      console.log('[useProfile] Update response - data:', updatedProfile, 'error:', updateError);
+
       if (updateError) {
+        console.error('[useProfile] Update error:', updateError);
         const errorObj = new Error(updateError.message);
         setError(errorObj);
         throw errorObj;
       }
 
+      if (!updatedProfile) {
+        console.error('[useProfile] Update returned null data');
+        const errorObj = new Error('Update succeeded but returned no profile data');
+        setError(errorObj);
+        throw errorObj;
+      }
+
+      console.log('[useProfile] Update successful, new profile:', updatedProfile);
       setProfile(updatedProfile);
       return updatedProfile;
     } catch (err) {
+      console.error('[useProfile] Update caught error:', err);
       const errorObj = err instanceof Error ? err : new Error(String(err));
       setError(errorObj);
       throw errorObj;

@@ -2,8 +2,8 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
-import { ProtectedRoute } from '../../../src/components/auth/ProtectedRoute.web';
-import { AuthProvider } from '../../../src/contexts/AuthContext';
+import { ProtectedRoute } from '@shared/src/components/auth/ProtectedRoute.web';
+import { AuthProvider } from '@shared/src/contexts/AuthContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Mock Supabase client

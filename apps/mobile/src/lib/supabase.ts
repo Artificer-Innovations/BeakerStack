@@ -5,8 +5,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@shared/types/database';
 
-let supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+import Constants from "expo-constants";
+const extra = (Constants.expoConfig?.extra ?? Constants.manifest?.extra) as {
+  supabaseUrl?: string; supabaseAnonKey?: string;
+};
+let supabaseUrl = extra?.supabaseUrl;
+const supabaseAnonKey = extra?.supabaseAnonKey;
 
 // Android emulator needs 10.0.2.2 instead of 127.0.0.1 to reach host machine
 if (supabaseUrl && __DEV__ && Platform.OS === 'android' && supabaseUrl.includes('127.0.0.1')) {

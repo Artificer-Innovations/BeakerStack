@@ -5,7 +5,7 @@ import {
   profileFormSchema,
   transformFormToInsert,
   transformFormToUpdate,
-} from '../../src/validation/profileSchema';
+} from '@shared/src/validation/profileSchema';
 
 describe('profileInsertSchema', () => {
   it('should accept valid profile data', () => {

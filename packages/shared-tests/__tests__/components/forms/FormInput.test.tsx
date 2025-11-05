@@ -1,7 +1,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { FormInput } from '../../../src/components/forms/FormInput.web';
+import { FormInput } from '@shared/src/components/forms/FormInput.web';
 
 describe('FormInput (Web)', () => {
   it('renders with label', () => {

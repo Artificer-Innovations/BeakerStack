@@ -16,9 +16,9 @@
   "dependencies": {
     "@shared/components": "file:../../packages/shared",
     "@supabase/supabase-js": "^2.38.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-router-dom": "6.26.2",
     "zod": "^3.22.0"
   },
   "devDependencies": {
@@ -26,8 +26,8 @@
     "@testing-library/jest-dom": "^6.1.0",
     "@testing-library/react": "^14.1.0",
     "@testing-library/user-event": "^14.6.1",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
+    "@types/react": "18.2.0",
+    "@types/react-dom": "18.2.0",
     "@vitejs/plugin-react": "^4.1.0",
     "autoprefixer": "^10.4.0",
     "jsdom": "^23.0.0",

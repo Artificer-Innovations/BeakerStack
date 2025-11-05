@@ -1,5 +1,5 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useAuth } from '../../src/hooks/useAuth';
+import { useAuth } from '@shared/src/hooks/useAuth';
 import type { SupabaseClient, User, Session } from '@supabase/supabase-js';
 
 // Mock Supabase client

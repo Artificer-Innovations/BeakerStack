@@ -1,3 +1,30 @@
+// Mock expo-constants (added in our auth changes)
+jest.mock('expo-constants', () => ({
+  default: {
+    expoConfig: {
+      extra: {
+        supabaseUrl: 'http://localhost:54321',
+        supabaseAnonKey: 'test-anon-key',
+        googleWebClientId: 'test-web-client-id',
+        googleIosClientId: 'test-ios-client-id',
+        googleAndroidClientId: 'test-android-client-id',
+      },
+    },
+    manifest: {
+      extra: {
+        supabaseUrl: 'http://localhost:54321',
+        supabaseAnonKey: 'test-anon-key',
+      },
+    },
+  },
+}));
+
+// Mock configureGoogleSignIn (added in our auth changes)
+jest.mock('@shared/hooks/useAuth', () => ({
+  configureGoogleSignIn: jest.fn(),
+  useAuth: jest.fn(),
+}));
+
 // Mock the Supabase client module entirely
 jest.mock('../src/lib/supabase', () => ({
   supabase: {

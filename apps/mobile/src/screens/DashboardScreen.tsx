@@ -18,6 +18,7 @@ import { ZodError } from 'zod';
 import { TextInput } from 'react-native';
 // Form components imported lazily to avoid StyleSheet.create() native bridge errors during app initialization
 // Import happens only when FormComponentsTestMobile is actually rendered
+// ProfileEditor imported lazily to avoid StyleSheet.create() native bridge errors
 
 type RootStackParamList = {
   Home: undefined;
@@ -184,6 +185,18 @@ function DashboardScreenContent({ navigation }: Props) {
           <ValidationTestFormMobile />
           <Text style={styles.validationTestNote}>
             ✓ Try: username too short, display name too long, invalid website URL, etc.
+          </Text>
+        </View>
+
+        {/* Manual test display for ProfileEditor - Task 4.4 */}
+        <View style={styles.testCard}>
+          <Text style={styles.testCardTitle}>🧪 Profile Editor Test (Task 4.4)</Text>
+          <Text style={styles.validationTestCardDescription}>
+            Test the ProfileEditor component - edit your profile and save changes.
+          </Text>
+          <ProfileEditorTestMobile supabase={supabase} user={auth.user} />
+          <Text style={styles.testNote}>
+            ✓ Edit profile fields and click "Update Profile" or "Create Profile"
           </Text>
         </View>
 
@@ -602,6 +615,55 @@ function FormComponentsTestMobile() {
           <FormError message="This error was triggered dynamically!" />
         )}
       </View>
+    </View>
+  );
+}
+
+// ProfileEditor test component for mobile
+// Uses lazy imports to avoid StyleSheet.create() native bridge errors during app initialization
+function ProfileEditorTestMobile({ supabase, user }: { supabase: any; user: any }) {
+  const [componentsLoaded, setComponentsLoaded] = useState(false);
+  const [ProfileEditor, setProfileEditor] = useState<any>(null);
+
+  // Lazy load ProfileEditor only when this component mounts
+  useEffect(() => {
+    if (!componentsLoaded) {
+      import('@shared/components/profile/ProfileEditor.native')
+        .then((module) => {
+          setProfileEditor(() => module.ProfileEditor);
+          setComponentsLoaded(true);
+        })
+        .catch((err) => {
+          console.warn('[ProfileEditorTest] Failed to load ProfileEditor:', err);
+        });
+    }
+  }, [componentsLoaded]);
+
+  // Show loading state while component is being loaded
+  if (!componentsLoaded || !ProfileEditor) {
+    return (
+      <View style={styles.formTestSection}>
+        <ActivityIndicator size="small" color="#166534" />
+        <Text style={styles.formTestSectionTitle}>Loading ProfileEditor...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View key="profile-editor-container" style={{ width: '100%' }}>
+      <ProfileEditor
+        key={`profile-editor-${user?.id || 'no-user'}`}
+        supabaseClient={supabase}
+        user={user}
+        onSuccess={() => {
+          console.log('[ProfileEditorTest] onSuccess callback fired');
+          Alert.alert('Success', 'Profile saved successfully!');
+        }}
+        onError={(error: Error) => {
+          console.error('[ProfileEditorTest] onError callback fired:', error.message, error.stack);
+          Alert.alert('Error', `Failed to save profile: ${error.message}`);
+        }}
+      />
     </View>
   );
 }

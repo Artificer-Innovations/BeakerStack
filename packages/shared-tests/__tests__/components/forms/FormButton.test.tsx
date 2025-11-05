@@ -1,7 +1,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { FormButton } from '../../../src/components/forms/FormButton.web';
+import { FormButton } from '@shared/src/components/forms/FormButton.web';
 
 describe('FormButton (Web)', () => {
   it('renders with title', () => {

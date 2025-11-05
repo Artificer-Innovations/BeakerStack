@@ -9,6 +9,8 @@ import { ZodError } from 'zod';
 import { FormInput } from '@shared/components/forms/FormInput.web';
 import { FormButton } from '@shared/components/forms/FormButton.web';
 import { FormError } from '@shared/components/forms/FormError.web';
+// Import ProfileEditor - Vite will automatically resolve .web.tsx file
+import { ProfileEditor } from '@shared/components/profile/ProfileEditor.web';
 
 export default function DashboardPage() {
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -110,6 +112,27 @@ export default function DashboardPage() {
             <ValidationTestForm />
             <div className="mt-3 text-xs text-blue-600 italic">
               ✓ Try: username too short, display name too long, invalid website URL, etc.
+            </div>
+          </div>
+
+          {/* Manual test display for ProfileEditor - Task 4.4 */}
+          <div className="p-6 rounded-md bg-orange-50 border border-orange-200">
+            <h3 className="text-lg font-semibold text-orange-900 mb-4">🧪 Profile Editor Test (Task 4.4)</h3>
+            <p className="text-sm text-orange-700 mb-4">
+              Test the ProfileEditor component - edit your profile and save changes.
+            </p>
+            <ProfileEditor
+              supabaseClient={supabase}
+              user={auth.user}
+              onSuccess={() => {
+                alert('Profile saved successfully!');
+              }}
+              onError={(error) => {
+                console.error('Profile save error:', error);
+              }}
+            />
+            <div className="mt-3 text-xs text-orange-600 italic">
+              ✓ Edit profile fields and click "Update Profile" or "Create Profile"
             </div>
           </div>
 

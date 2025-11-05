@@ -2,10 +2,21 @@
   "name": "mobile-app",
   "version": "1.0.0",
   "main": "index.js",
+  "overrides": {
+    "react": "18.2.0",
+    "react-native": "0.73.6",
+    "react-test-renderer": "18.2.0"
+  },
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
+    "prebuild": "expo prebuild",
+    "prebuild:clean": "expo prebuild --clean",
+    "android:clean": "expo run:android --clean",
+    "ios:clean": "expo run:ios --clean",
+    "rebuild": "../../scripts/clean-rebuild.sh && npx expo run:ios",
+    "rebuild:android": "../../scripts/clean-rebuild.sh && npx expo run:android",
     "test": "jest",
     "postinstall": "patch-package"
   },
@@ -32,8 +43,10 @@
     "@testing-library/jest-native": "^5.4.3",
     "@testing-library/react-native": "^12.9.0",
     "@types/react": "~18.2.45",
+    "dotenv": "^16.4.7",
     "jest-expo": "~50.0.4",
     "patch-package": "^8.0.0",
+    "react-test-renderer": "18.2.0",
     "typescript": "^5.3.0"
   },
   "jest": {
@@ -41,6 +54,9 @@
     "transformIgnorePatterns": [
       "node_modules/(?!(react-native|@react-native|@react-navigation|expo|@expo|expo-status-bar|react-native-safe-area-context|react-native-screens)/)"
     ],
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@shared/(.*)$": "<rootDir>/../../packages/shared/src/$1"
+    }
   }
 }

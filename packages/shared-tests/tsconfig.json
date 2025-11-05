@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["jest", "@testing-library/jest-dom"]
+  },
+  "include": ["__tests__/**/*", "jest.setup.web.ts"]
+}
+

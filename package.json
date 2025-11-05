@@ -3,21 +3,7 @@
   "version": "1.0.0",
   "description": "Full-stack monorepo with React Native mobile app, React web app, and Supabase backend",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "overrides": {
-    "expo": "50.0.21",
-    "expo-constants": "15.4.6",
-    "expo-modules-core": "1.11.14",
-    "expo-asset": "9.0.2",
-    "react": "18.2.0",
-    "react-dom": "18.2.0"
-  },
-  "resolutions": {
-    "@babel/runtime": "^7.23.0"
-  },
+  "workspaces": ["packages/*", "apps/*"],
   "scripts": {
     "mobile": "cd apps/mobile && npm start",
     "mobile:ios": "cd apps/mobile && npx expo start --ios --port 8082",
@@ -36,13 +22,13 @@
     "test:unit": "npm run test:unit:mobile && npm run test:unit:web && npm run test:unit:shared",
     "test:unit:mobile": "cd apps/mobile && npm test",
     "test:unit:web": "cd apps/web && npm test",
-    "test:unit:shared": "cd packages/shared && npm test",
+    "test:unit:shared": "cd packages/shared-tests && npm run test",
     "test:integration": "jest --config tests/jest.config.js --testMatch='**/tests/integration/**/*.test.ts'",
     "test:db": "supabase test db",
     "test:e2e": "npm run test:e2e:web && npm run test:e2e:mobile",
     "test:e2e:web": "maestro test tests/e2e/web/flows/",
     "test:e2e:mobile": "maestro test tests/e2e/mobile/flows/",
-    "test:watch": "concurrently \"cd apps/mobile && npm run test:watch\" \"cd apps/web && npm run test:watch\" \"cd packages/shared && npm run test:watch\"",
+    "test:watch": "concurrently \"cd apps/mobile && npm run test:watch\" \"cd apps/web && npm run test:watch\" \"cd packages/shared-tests && npm run test:web -- --watch\" \"cd packages/shared-tests && npm run test:native -- --watch\"",
     "test:coverage": "npm run test:unit -- --coverage",
     "lint": "npm run lint:mobile && npm run lint:web && npm run lint:shared",
     "lint:mobile": "cd apps/mobile && npm run lint",
@@ -69,9 +55,7 @@
     "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules apps/*/dist apps/*/build",
     "clean:all": "npm run clean && supabase stop && docker system prune -f"
   },
-  "dependencies": {
-    "expo": "50.0.21"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@babel/plugin-transform-runtime": "^7.28.3",
     "@types/jest": "^29.5.8",
@@ -82,6 +66,11 @@
     "prettier": "^3.1.0",
     "ts-jest": "^29.1.1",
     "typescript": "^5.3.0"
+  },
+  "overrides": {
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-test-renderer": "18.2.0"
   },
   "engines": {
     "node": ">=18.0.0",
@@ -100,6 +89,6 @@
     "mobile",
     "web"
   ],
-  "author": "Your Name",
+  "author": "Artificer Innovations, LLC",
   "license": "MIT"
 }
