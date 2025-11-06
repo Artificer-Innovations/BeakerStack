@@ -338,7 +338,7 @@ did not work. We did however remove the stubs for apple login; and will have to 
 
 ---
 
-### Task 5.3: Create Web Home Page
+### DONE - Task 5.3: Create Web Home Page
 **Goal**: Build home page for web app with navigation
 **Scope**: Page layout, navigation menu, basic content
 **Tests**:
@@ -353,7 +353,7 @@ did not work. We did however remove the stubs for apple login; and will have to 
 
 ---
 
-### Task 5.4: Create Mobile Home Screen
+### DONE - Task 5.4: Create Mobile Home Screen
 **Goal**: Build home screen for mobile app with navigation
 **Scope**: Screen layout, tab navigation, basic content
 **Tests**:

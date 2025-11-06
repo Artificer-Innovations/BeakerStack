@@ -29,6 +29,8 @@ const config = {
       LSApplicationQueriesSchemes: [
         "com.googleusercontent.apps.75693205997-6r5f5nvmjnjhhehsm5j9baqsh6lej1rf",
       ],
+      NSCameraUsageDescription: "This app needs access to your camera to upload profile pictures.",
+      NSPhotoLibraryUsageDescription: "This app needs access to your photo library to upload profile pictures.",
     },
   },
   android: {
@@ -36,7 +38,12 @@ const config = {
     adaptiveIcon: {
       backgroundColor: "#ffffff",
     },
-    permissions: ["android.permission.DETECT_SCREEN_CAPTURE"],
+    permissions: [
+      "android.permission.DETECT_SCREEN_CAPTURE",
+      "android.permission.CAMERA",
+      "android.permission.READ_MEDIA_IMAGES",
+      "android.permission.READ_EXTERNAL_STORAGE",
+    ],
     googleServicesFile: "./google-services.json",
   },
   plugins: [

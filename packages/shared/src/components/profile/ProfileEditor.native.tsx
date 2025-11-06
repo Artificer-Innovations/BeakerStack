@@ -8,6 +8,7 @@ import { profileFormSchema, transformFormToUpdate, transformFormToInsert, type P
 import { FormInput } from '../forms/FormInput.native';
 import { FormButton } from '../forms/FormButton.native';
 import { FormError } from '../forms/FormError.native';
+import { AvatarUpload } from './AvatarUpload.native';
 
 export interface ProfileEditorProps {
   supabaseClient: SupabaseClient;
@@ -129,18 +130,6 @@ export function ProfileEditor({
         placeholder="Enter your location (optional)"
         disabled={isSubmitting || profile.loading}
       />
-
-      <FormInput
-        key="avatar_url"
-        label="Avatar URL"
-        value={formData.avatar_url}
-        onChange={handleFieldChange.bind(null, 'avatar_url')}
-        error={fieldErrors.avatar_url}
-        placeholder="https://example.com/avatar.jpg (optional)"
-        keyboardType="url"
-        autoCapitalize="none"
-        disabled={isSubmitting || profile.loading}
-      />
     </>
   ), [formData, fieldErrors, isSubmitting, profile.loading, handleFieldChange]);
 
@@ -241,6 +230,26 @@ export function ProfileEditor({
 
       <View style={styles.formContainer} collapsable={false}>
         {formInputs}
+        
+        {user && (
+          <AvatarUpload
+            currentAvatarUrl={profile.profile?.avatar_url || null}
+            onUploadComplete={async (url) => {
+              // Update profile with new avatar URL
+              await profile.updateProfile(user.id, { avatar_url: url });
+              // Update form data
+              handleFieldChange('avatar_url', url);
+            }}
+            onRemove={async () => {
+              // Update profile to remove avatar URL
+              await profile.updateProfile(user.id, { avatar_url: null });
+              // Update form data
+              handleFieldChange('avatar_url', '');
+            }}
+            userId={user.id}
+            supabaseClient={supabaseClient}
+          />
+        )}
       </View>
 
       {generalError && <FormError message={generalError} />}

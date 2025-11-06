@@ -6,6 +6,7 @@ import { ZodError } from 'zod';
 import { FormInput } from '../forms/FormInput.web';
 import { FormButton } from '../forms/FormButton.web';
 import { FormError } from '../forms/FormError.web';
+import { AvatarUpload } from './AvatarUpload.web';
 
 export interface ProfileEditorProps {
   supabaseClient: SupabaseClient;
@@ -190,14 +191,26 @@ export function ProfileEditor({
           disabled={isSubmitting || profile.loading}
         />
 
-        <FormInput
-          label="Avatar URL"
-          value={formData.avatar_url}
-          onChange={(value) => handleFieldChange('avatar_url', value)}
-          error={fieldErrors.avatar_url}
-          placeholder="https://example.com/avatar.jpg (optional)"
-          type="url"
-          disabled={isSubmitting || profile.loading}
+        <AvatarUpload
+          currentAvatarUrl={profile.profile?.avatar_url || null}
+          onUploadComplete={async (url) => {
+            if (user) {
+              // Update profile with new avatar URL
+              await profile.updateProfile(user.id, { avatar_url: url });
+              // Update form data
+              handleFieldChange('avatar_url', url);
+            }
+          }}
+          onRemove={async () => {
+            if (user) {
+              // Update profile to remove avatar URL
+              await profile.updateProfile(user.id, { avatar_url: null });
+              // Update form data
+              handleFieldChange('avatar_url', '');
+            }
+          }}
+          userId={user?.id || ''}
+          supabaseClient={supabaseClient}
         />
       </div>
 

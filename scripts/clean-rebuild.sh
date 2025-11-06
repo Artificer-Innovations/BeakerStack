@@ -17,6 +17,12 @@ fi
 echo "🧹 Cleaning build artifacts and caches..."
 echo ""
 
+# Determine script location and navigate to project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
+
+# Navigate to mobile app directory
 cd apps/mobile
 
 # Package/bundle identifiers (from app.json)
@@ -154,7 +160,7 @@ fi
 # Apply patches (important for expo-dev-menu fix)
 echo ""
 echo "Step 8: Applying patches..."
-cd ../..
+cd "$PROJECT_ROOT"
 npx patch-package 2>/dev/null || {
   echo "  ⚠️  Could not apply patches (this may be OK if no patches exist)"
 }
