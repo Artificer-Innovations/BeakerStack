@@ -308,7 +308,7 @@ did not work. We did however remove the stubs for apple login; and will have to 
 
 ## Phase 5: Platform-Specific Screens/Pages
 
-### Task 5.1: Create Web Profile Page
+### DONE - Task 5.1: Create Web Profile Page
 **Goal**: Build profile page for web app using shared components
 **Scope**: Page layout, routing, component integration
 **Tests**:

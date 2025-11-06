@@ -25,6 +25,7 @@ type RootStackParamList = {
   Login: undefined;
   Signup: undefined;
   Dashboard: undefined;
+  Profile: undefined;
 };
 
 type DashboardScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Dashboard'>;
@@ -152,6 +153,12 @@ function DashboardScreenContent({ navigation }: Props) {
           <Text style={styles.subtitle}>
             This is where your main application content will go.
           </Text>
+          <TouchableOpacity
+            style={styles.navButton}
+            onPress={() => navigation.navigate('Profile')}
+          >
+            <Text style={styles.navButtonText}>View Profile</Text>
+          </TouchableOpacity>
         </View>
         
         <View style={styles.card}>
@@ -764,6 +771,18 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 30,
+  },
+  navButton: {
+    marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: '#4F46E5',
+    borderRadius: 8,
+  },
+  navButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   title: {
     fontSize: 24,
