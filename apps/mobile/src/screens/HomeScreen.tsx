@@ -17,6 +17,7 @@ type RootStackParamList = {
   Login: undefined;
   Signup: undefined;
   Dashboard: undefined;
+  Profile: undefined;
 };
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -71,11 +72,55 @@ export default function HomeScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Navigation Header */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>{HOME_TITLE}</Text>
+          <View style={styles.headerActions}>
+            {auth.user ? (
+              <>
+                <Text style={styles.userEmail}>{auth.user.email}</Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Dashboard')}
+                  style={styles.headerButton}
+                >
+                  <Text style={styles.headerButtonText}>Dashboard</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Profile')}
+                  style={styles.headerButton}
+                >
+                  <Text style={styles.headerButtonText}>Profile</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Login')}
+                  style={styles.headerButton}
+                >
+                  <Text style={styles.headerButtonText}>Sign In</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Signup')}
+                  style={styles.headerButtonPrimary}
+                >
+                  <Text style={styles.headerButtonPrimaryText}>Sign Up</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </View>
+
+      {/* Main Content */}
       <View style={styles.content}>
-        <Text style={styles.title}>{HOME_TITLE}</Text>
-        <Text style={styles.subtitle}>
-          {HOME_SUBTITLE}
-        </Text>
+        <View style={styles.titleSection}>
+          <Text style={styles.title}>{HOME_TITLE}</Text>
+          <Text style={styles.subtitle}>
+            {HOME_SUBTITLE}
+          </Text>
+        </View>
         
         <View style={styles.buttonContainer}>
           {auth.user ? (
@@ -91,6 +136,13 @@ export default function HomeScreen({ navigation }: Props) {
                 onPress={() => navigation.navigate('Dashboard')}
               >
                 <Text style={styles.primaryButtonText}>Go to Dashboard</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={() => navigation.navigate('Profile')}
+              >
+                <Text style={styles.secondaryButtonText}>View Profile</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -112,31 +164,25 @@ export default function HomeScreen({ navigation }: Props) {
             </>
           )}
 
-          <TouchableOpacity
-            style={[styles.testButton, isLoading && styles.testButtonDisabled]}
-            onPress={handleTestDatabase}
-            disabled={isLoading}
-          >
-            <Text style={styles.testButtonText}>
-              {isLoading ? 'Testing...' : '🧪 Test Database'}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Dev-only: Test Dashboard Navigation (for testing protected routes) */}
-          {__DEV__ && (
+          {/* Database Test Section */}
+          <View style={styles.testSection}>
+            <Text style={styles.testSectionTitle}>Database Connection Test</Text>
             <TouchableOpacity
-              style={styles.testButton}
-              onPress={() => navigation.navigate('Dashboard')}
+              style={[styles.testButton, isLoading && styles.testButtonDisabled]}
+              onPress={handleTestDatabase}
+              disabled={isLoading}
             >
-              <Text style={styles.testButtonText}>🔒 Test Dashboard (Force Nav)</Text>
+              <Text style={styles.testButtonText}>
+                {isLoading ? 'Testing...' : '🧪 Test Database'}
+              </Text>
             </TouchableOpacity>
-          )}
 
-          {testResult ? (
-            <View style={styles.resultContainer}>
-              <Text style={styles.resultText}>{testResult}</Text>
-            </View>
-          ) : null}
+            {testResult ? (
+              <View style={styles.resultContainer}>
+                <Text style={styles.resultText}>{testResult}</Text>
+              </View>
+            ) : null}
+          </View>
 
           {/* Manual test display for AuthContext */}
           <View style={styles.authContextContainer}>
@@ -168,13 +214,67 @@ export default function HomeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f9ff',
+    backgroundColor: '#f9fafb',
+  },
+  header: {
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minHeight: 56,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  userEmail: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  headerButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  headerButtonText: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  headerButtonPrimary: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#4F46E5',
+    borderRadius: 6,
+  },
+  headerButtonPrimaryText: {
+    fontSize: 14,
+    color: '#ffffff',
+    fontWeight: '500',
   },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+  },
+  titleSection: {
+    alignItems: 'center',
+    marginBottom: 40,
   },
   title: {
     fontSize: 28,
@@ -187,8 +287,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6b7280',
     textAlign: 'center',
-    marginBottom: 40,
     lineHeight: 24,
+    maxWidth: 300,
   },
   buttonContainer: {
     width: '100%',
@@ -301,5 +401,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#2563eb',
     fontStyle: 'italic',
+  },
+  testSection: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  testSectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12,
   },
 });

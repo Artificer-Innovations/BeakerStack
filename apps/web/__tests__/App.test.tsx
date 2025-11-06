@@ -28,7 +28,9 @@ describe('App', () => {
     );
     
     // Check if the home page content is rendered
-    expect(screen.getByText('Welcome to Demo App')).toBeInTheDocument();
+    // Title appears in both header and main content
+    const titles = screen.getAllByText('Welcome to Demo App');
+    expect(titles.length).toBeGreaterThan(0);
   });
 
   it('renders navigation links', () => {
@@ -41,7 +43,10 @@ describe('App', () => {
     );
     
     // Check if sign in and sign up links are present
-    expect(screen.getByText('Sign In')).toBeInTheDocument();
-    expect(screen.getByText('Sign Up')).toBeInTheDocument();
+    // These appear in both header and main content
+    const signInLinks = screen.getAllByText('Sign In');
+    const signUpLinks = screen.getAllByText('Sign Up');
+    expect(signInLinks.length).toBeGreaterThan(0);
+    expect(signUpLinks.length).toBeGreaterThan(0);
   });
 });

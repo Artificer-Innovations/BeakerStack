@@ -132,10 +132,12 @@ import App from '../App';
 
 describe('Mobile App', () => {
   it('renders without crashing', () => {
-    const { getByText } = render(<App />);
+    const { getAllByText } = render(<App />);
     
     // Check if the app content is rendered
-    expect(getByText('Welcome to Demo App')).toBeTruthy();
+    // Title appears in both header and main content
+    const titles = getAllByText('Welcome to Demo App');
+    expect(titles.length).toBeGreaterThan(0);
   });
 
   it('renders subtitle text', () => {
