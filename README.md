@@ -108,6 +108,34 @@ The project includes a development helper script to manage processes and port co
 - `npm run mobile:android` - Start mobile app in Android emulator
 - `npm run mobile:clean` - Kill mobile-related processes
 
+#### iOS Build Commands (from `apps/mobile` directory)
+
+- `npm run ios` - Build and run on iOS (uses existing native folders)
+- `npm run ios:clean` - Clean build artifacts and rebuild (handles missing ios folder, uninstalls app from booted simulators)
+- `npm run rebuild` or `npm run rebuild:ios` - Full clean rebuild: runs clean-rebuild.sh script then builds (recommended after deleting apps from simulator)
+- `npm run ios:uninstall` - Uninstall app from booted iOS simulators
+- `npm run prebuild:clean` - Regenerate native Android/iOS folders with clean slate
+
+**When to use each command:**
+- **`ios`**: Normal development builds
+- **`ios:clean`**: Quick clean when build artifacts are stale
+- **`rebuild` / `rebuild:ios`**: After deleting apps from simulator, when native code changes, or when experiencing build issues
+- **`ios:uninstall`**: Manually remove app from booted simulator before rebuild
+
+#### Android Build Commands (from `apps/mobile` directory)
+
+- `npm run android` - Build and run on Android (uses existing native folders)
+- `npm run android:clean` - Clean build artifacts and rebuild (handles missing android folder, uninstalls app from device)
+- `npm run rebuild:android` - Full clean rebuild: runs clean-rebuild.sh script then builds (recommended after deleting apps from simulator)
+- `npm run android:uninstall` - Uninstall app from connected Android devices/emulators
+- `npm run prebuild:clean` - Regenerate native Android/iOS folders with clean slate
+
+**When to use each command:**
+- **`android`**: Normal development builds
+- **`android:clean`**: Quick clean when build artifacts are stale
+- **`rebuild:android`**: After deleting apps from simulator, when native code changes, or when experiencing build issues
+- **`android:uninstall`**: Manually remove app from device before rebuild
+
 #### Troubleshooting
 
 If you encounter port conflicts or processes that won't stop:

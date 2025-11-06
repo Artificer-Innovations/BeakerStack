@@ -276,7 +276,7 @@ did not work. We did however remove the stubs for apple login; and will have to 
 
 ---
 
-### Task 4.4: Create Profile Editor Component
+### DONE - Task 4.4: Create Profile Editor Component
 **Goal**: Build profile editing form that works on both platforms
 **Scope**: Form logic, validation, submission, error handling
 **Tests**:
@@ -291,7 +291,7 @@ did not work. We did however remove the stubs for apple login; and will have to 
 
 ---
 
-### Task 4.5: Create Profile Display Components
+### DONE - Task 4.5: Create Profile Display Components
 **Goal**: Build components to display user profile information
 **Scope**: Profile header, stats, avatar display
 **Tests**:

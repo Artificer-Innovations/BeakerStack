@@ -36,6 +36,11 @@ export * from './validation/profileSchema';
 // Do not export here - apps should import directly from './components/forms/FormInput' etc.
 // Exporting both would cause conflicts, so let the bundlers handle platform resolution
 
+// Profile components - platform-specific files
+// Metro (mobile) and Vite (web) will automatically resolve to .native.tsx or .web.tsx
+// Apps should import directly from './components/profile/ProfileAvatar' etc.
+// Exporting both would cause conflicts, so let the bundlers handle platform resolution
+
 // OPTIONAL: also log from a shared module to compare
 // packages/shared/src/index.ts
 console.log("[shared sees react at]", require.resolve("react"));

@@ -200,6 +200,18 @@ function DashboardScreenContent({ navigation }: Props) {
           </Text>
         </View>
 
+        {/* Manual test display for Profile Display Components - Task 4.5 */}
+        <View style={styles.testCard}>
+          <Text style={styles.testCardTitle}>🧪 Profile Display Components Test (Task 4.5)</Text>
+          <Text style={styles.validationTestCardDescription}>
+            Test the profile display components (ProfileAvatar, ProfileHeader, ProfileStats) to verify they display user data correctly.
+          </Text>
+          <ProfileDisplayTestMobile profile={profile.profile} />
+          <Text style={styles.testNote}>
+            ✓ Verify: Avatar shows image or initials, Header displays all profile info, Stats show member since and completion %
+          </Text>
+        </View>
+
         {/* Manual test display for useProfile hook - Task 4.1 */}
         <View style={styles.testCard}>
           <Text style={styles.testCardTitle}>🧪 useProfile Hook Test (Task 4.1)</Text>
@@ -664,6 +676,75 @@ function ProfileEditorTestMobile({ supabase, user }: { supabase: any; user: any 
           Alert.alert('Error', `Failed to save profile: ${error.message}`);
         }}
       />
+    </View>
+  );
+}
+
+// Profile Display Components test component for mobile
+// Uses lazy imports to avoid StyleSheet.create() native bridge errors during app initialization
+function ProfileDisplayTestMobile({ profile }: { profile: any }) {
+  const [componentsLoaded, setComponentsLoaded] = useState(false);
+  const [ProfileAvatar, setProfileAvatar] = useState<any>(null);
+  const [ProfileHeader, setProfileHeader] = useState<any>(null);
+  const [ProfileStats, setProfileStats] = useState<any>(null);
+
+  // Lazy load components only when this component mounts
+  useEffect(() => {
+    if (!componentsLoaded) {
+      Promise.all([
+        import('@shared/components/profile/ProfileAvatar.native'),
+        import('@shared/components/profile/ProfileHeader.native'),
+        import('@shared/components/profile/ProfileStats.native'),
+      ])
+        .then(([avatarModule, headerModule, statsModule]) => {
+          setProfileAvatar(() => avatarModule.ProfileAvatar);
+          setProfileHeader(() => headerModule.ProfileHeader);
+          setProfileStats(() => statsModule.ProfileStats);
+          setComponentsLoaded(true);
+        })
+        .catch((err) => {
+          console.warn('[ProfileDisplayTest] Failed to load components:', err);
+        });
+    }
+  }, [componentsLoaded]);
+
+  // Show loading state while components are being loaded
+  if (!componentsLoaded || !ProfileAvatar || !ProfileHeader || !ProfileStats) {
+    return (
+      <View style={styles.formTestSection}>
+        <ActivityIndicator size="small" color="#4f46e5" />
+        <Text style={styles.formTestSectionTitle}>Loading Profile Display Components...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ width: '100%' }}>
+      <View style={[styles.testCard, { marginBottom: 16, padding: 12 }]}>
+        <Text style={[styles.testCardTitle, { fontSize: 14, marginBottom: 8 }]}>ProfileHeader:</Text>
+        <ProfileHeader profile={profile} />
+      </View>
+      <View style={[styles.testCard, { marginBottom: 16, padding: 12 }]}>
+        <Text style={[styles.testCardTitle, { fontSize: 14, marginBottom: 8 }]}>ProfileAvatar (different sizes):</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 8 }}>
+          <View style={{ alignItems: 'center' }}>
+            <ProfileAvatar profile={profile} size="small" />
+            <Text style={[styles.testNote, { fontSize: 10, marginTop: 4 }]}>Small</Text>
+          </View>
+          <View style={{ alignItems: 'center' }}>
+            <ProfileAvatar profile={profile} size="medium" />
+            <Text style={[styles.testNote, { fontSize: 10, marginTop: 4 }]}>Medium</Text>
+          </View>
+          <View style={{ alignItems: 'center' }}>
+            <ProfileAvatar profile={profile} size="large" />
+            <Text style={[styles.testNote, { fontSize: 10, marginTop: 4 }]}>Large</Text>
+          </View>
+        </View>
+      </View>
+      <View style={[styles.testCard, { padding: 12 }]}>
+        <Text style={[styles.testCardTitle, { fontSize: 14, marginBottom: 8 }]}>ProfileStats:</Text>
+        <ProfileStats profile={profile} />
+      </View>
     </View>
   );
 }

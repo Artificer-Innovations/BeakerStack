@@ -12,15 +12,9 @@ if (envResult.error) {
   dotenv.config({ path: envFallbackPath, override: false });
 }
 
-// Debug: Log what we're reading (only in development)
-if (process.env.NODE_ENV !== "production") {
-  console.log("[app.config.ts] Environment variables loaded:", {
-    hasWebClientId: !!process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    hasIosClientId: !!process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    hasAndroidClientId: !!process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    webClientIdLength: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.length || 0,
-  });
-}
+// Debug: Log what we're reading (only in development, and not during Gradle builds)
+// Gradle captures stdout during builds, so we avoid console.log here
+// Use console.warn instead if needed, or check in the app runtime
 
 const config = {
   name: "demo-app",
@@ -28,6 +22,32 @@ const config = {
   version: "1.0.0",
   orientation: "portrait",
   platforms: ["ios", "android"],
+  ios: {
+    supportsTablet: true,
+    bundleIdentifier: "com.anonymous.demoapp",
+    infoPlist: {
+      LSApplicationQueriesSchemes: [
+        "com.googleusercontent.apps.75693205997-6r5f5nvmjnjhhehsm5j9baqsh6lej1rf",
+      ],
+    },
+  },
+  android: {
+    package: "com.anonymous.demoapp",
+    adaptiveIcon: {
+      backgroundColor: "#ffffff",
+    },
+    permissions: ["android.permission.DETECT_SCREEN_CAPTURE"],
+    googleServicesFile: "./google-services.json",
+  },
+  plugins: [
+    [
+      "@react-native-google-signin/google-signin",
+      {
+        iosUrlScheme:
+          "com.googleusercontent.apps.75693205997-6r5f5nvmjnjhhehsm5j9baqsh6lej1rf",
+      },
+    ],
+  ],
   extra: {
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,

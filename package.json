@@ -53,7 +53,8 @@
     "migration:list": "supabase migration list",
     "setup": "./scripts/setup-local.sh",
     "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules apps/*/dist apps/*/build",
-    "clean:all": "npm run clean && supabase stop && docker system prune -f"
+    "clean:all": "npm run clean && supabase stop && docker system prune -f",
+    "postinstall": "patch-package"
   },
   "dependencies": {},
   "devDependencies": {

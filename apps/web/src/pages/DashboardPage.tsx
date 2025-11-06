@@ -11,6 +11,10 @@ import { FormButton } from '@shared/components/forms/FormButton.web';
 import { FormError } from '@shared/components/forms/FormError.web';
 // Import ProfileEditor - Vite will automatically resolve .web.tsx file
 import { ProfileEditor } from '@shared/components/profile/ProfileEditor.web';
+// Import Profile Display Components - Vite will automatically resolve .web.tsx files
+import { ProfileAvatar } from '@shared/components/profile/ProfileAvatar.web';
+import { ProfileHeader } from '@shared/components/profile/ProfileHeader.web';
+import { ProfileStats } from '@shared/components/profile/ProfileStats.web';
 
 export default function DashboardPage() {
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -133,6 +137,44 @@ export default function DashboardPage() {
             />
             <div className="mt-3 text-xs text-orange-600 italic">
               ✓ Edit profile fields and click "Update Profile" or "Create Profile"
+            </div>
+          </div>
+
+          {/* Manual test display for Profile Display Components - Task 4.5 */}
+          <div className="p-6 rounded-md bg-indigo-50 border border-indigo-200">
+            <h3 className="text-lg font-semibold text-indigo-900 mb-4">🧪 Profile Display Components Test (Task 4.5)</h3>
+            <p className="text-sm text-indigo-700 mb-4">
+              Test the profile display components (ProfileAvatar, ProfileHeader, ProfileStats) to verify they display user data correctly.
+            </p>
+            <div className="space-y-6">
+              <div className="p-4 bg-white rounded border border-indigo-300">
+                <h4 className="text-sm font-semibold text-indigo-800 mb-3">ProfileHeader:</h4>
+                <ProfileHeader profile={profile.profile} />
+              </div>
+              <div className="p-4 bg-white rounded border border-indigo-300">
+                <h4 className="text-sm font-semibold text-indigo-800 mb-3">ProfileAvatar (different sizes):</h4>
+                <div className="flex items-center gap-4">
+                  <div className="text-center">
+                    <ProfileAvatar profile={profile.profile} size="small" />
+                    <p className="text-xs text-indigo-600 mt-1">Small</p>
+                  </div>
+                  <div className="text-center">
+                    <ProfileAvatar profile={profile.profile} size="medium" />
+                    <p className="text-xs text-indigo-600 mt-1">Medium</p>
+                  </div>
+                  <div className="text-center">
+                    <ProfileAvatar profile={profile.profile} size="large" />
+                    <p className="text-xs text-indigo-600 mt-1">Large</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 bg-white rounded border border-indigo-300">
+                <h4 className="text-sm font-semibold text-indigo-800 mb-3">ProfileStats:</h4>
+                <ProfileStats profile={profile.profile} />
+              </div>
+            </div>
+            <div className="mt-3 text-xs text-indigo-600 italic">
+              ✓ Verify: Avatar shows image or initials, Header displays all profile info, Stats show member since and completion %
             </div>
           </div>
 
