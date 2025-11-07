@@ -12,13 +12,25 @@ jest.mock('expo-constants', () => ({
 
 // Mock the supabase client import
 jest.mock('../../src/lib/supabase', () => {
+  const mockSingle = jest.fn().mockResolvedValue({
+    data: null,
+    error: null,
+  });
+  
+  const mockEq = jest.fn(() => ({
+    single: mockSingle,
+  }));
+  
+  const mockSelect = jest.fn(() => ({
+    eq: mockEq,
+    limit: jest.fn().mockResolvedValue({
+      data: [],
+      error: null,
+    }),
+  }));
+  
   const mockFrom = jest.fn(() => ({
-    select: jest.fn(() => ({
-      limit: jest.fn().mockResolvedValue({
-        data: [],
-        error: null,
-      }),
-    })),
+    select: mockSelect,
   }));
   
   return {
@@ -48,14 +60,26 @@ describe('HomeScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     
-    // Mock database query
+    // Mock database query with full chain support
+    const mockSingle = jest.fn().mockResolvedValue({
+      data: null,
+      error: null,
+    });
+    
+    const mockEq = jest.fn(() => ({
+      single: mockSingle,
+    }));
+    
+    const mockSelect = jest.fn(() => ({
+      eq: mockEq,
+      limit: jest.fn().mockResolvedValue({
+        data: [],
+        error: null,
+      }),
+    }));
+    
     const mockFrom = jest.fn(() => ({
-      select: jest.fn(() => ({
-        limit: jest.fn().mockResolvedValue({
-          data: [],
-          error: null,
-        }),
-      })),
+      select: mockSelect,
     }));
     
     mockSupabaseClient = {
@@ -205,26 +229,8 @@ describe('HomeScreen', () => {
     });
   });
 
-  it('shows test database button', () => {
-    const { getByText } = renderWithAuth(
-      <HomeScreen navigation={mockNavigation} />,
-      false
-    );
-    
-    expect(getByText(/test database/i)).toBeTruthy();
-  });
-
-  it('displays auth context debug information', () => {
-    const { getByText } = renderWithAuth(
-      <HomeScreen navigation={mockNavigation} />,
-      false
-    );
-    
-    expect(getByText('🧪 AuthContext Test')).toBeTruthy();
-    expect(getByText(/Loading:/)).toBeTruthy();
-    expect(getByText(/User:/)).toBeTruthy();
-    expect(getByText(/Session:/)).toBeTruthy();
-    expect(getByText(/Error:/)).toBeTruthy();
-  });
+  // Note: Debug tools (database test, auth context test) are now in DebugTools component
+  // which is hidden by default and activated via 4 clicks in bottom left corner.
+  // These tests have been removed as the debug components are no longer directly visible.
 });
 

@@ -51,6 +51,7 @@
     "dotenv": "^16.4.7",
     "jest-expo": "~50.0.4",
     "patch-package": "^8.0.0",
+    "react-refresh": "^0.18.0",
     "react-test-renderer": "18.2.0",
     "typescript": "^5.3.0"
   },
@@ -70,6 +71,11 @@
       "!src/**/__mocks__/**"
     ],
     "coverageDirectory": "coverage",
-    "coverageReporters": ["text", "lcov", "html", "json"]
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html",
+      "json"
+    ]
   }
 }

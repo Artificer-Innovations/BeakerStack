@@ -1,38 +1,11 @@
-import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { HOME_TITLE, HOME_SUBTITLE } from '@shared/utils/strings';
 import { useAuthContext } from '@shared/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { DebugTools } from '@/components/DebugTools';
 
 export default function HomePage() {
-  const [testResult, setTestResult] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  
-  // Manual test: useAuthContext hook should provide auth state from context
   const auth = useAuthContext();
-
-  const handleTestDatabase = async () => {
-    setIsLoading(true);
-    setTestResult('');
-    
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('id, username')
-        .limit(5);
-
-      if (error) {
-        setTestResult(`❌ Error: ${error.message}`);
-      } else {
-        setTestResult(`✅ Success! Found ${data.length} user profiles`);
-      }
-    } catch (err) {
-      setTestResult(`❌ Exception: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleSignOut = async () => {
     await auth.signOut();
@@ -159,40 +132,10 @@ export default function HomePage() {
               </div>
             </>
           )}
-
-          {/* Database Test Section */}
-          <div className="mt-8 p-6 bg-white rounded-lg shadow">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Database Connection Test</h2>
-            <button
-              onClick={handleTestDatabase}
-              disabled={isLoading}
-              className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Testing...' : '🧪 Test Database'}
-            </button>
-
-            {testResult && (
-              <div className="mt-4 p-3 rounded-md bg-gray-50 border border-gray-200 text-sm text-gray-700">
-                {testResult}
-              </div>
-            )}
-          </div>
-
-          {/* Manual test display for AuthContext */}
-          <div className="mt-6 p-4 rounded-md bg-blue-50 border border-blue-200">
-            <h3 className="text-sm font-semibold text-blue-900 mb-2">🧪 AuthContext Test</h3>
-            <div className="space-y-1 text-xs text-blue-800">
-              <div>Loading: <span className="font-mono">{auth.loading ? 'true' : 'false'}</span></div>
-              <div>User: <span className="font-mono">{auth.user ? auth.user.email : 'null'}</span></div>
-              <div>Session: <span className="font-mono">{auth.session ? 'active' : 'null'}</span></div>
-              <div>Error: <span className="font-mono">{auth.error ? auth.error.message : 'null'}</span></div>
-            </div>
-            <div className="mt-2 text-xs text-blue-600 italic">
-              ✓ Context provides auth state to components
-            </div>
-          </div>
         </div>
       </div>
+
+      <DebugTools />
     </div>
   );
 }

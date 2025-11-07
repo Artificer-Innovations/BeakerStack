@@ -5,6 +5,40 @@ import HomePage from '../HomePage';
 import { AuthProvider } from '@shared/contexts/AuthContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+// Mock environment variables to prevent real Supabase client creation
+vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost:54321');
+vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-anon-key');
+
+// Mock the supabase client used by DebugTools
+vi.mock('@/lib/supabase', () => {
+  const mockSingle = vi.fn().mockResolvedValue({
+    data: null,
+    error: { code: 'PGRST116', message: 'No rows returned' },
+  });
+  
+  const mockEq = vi.fn(() => ({
+    single: mockSingle,
+  }));
+  
+  const mockSelect = vi.fn(() => ({
+    eq: mockEq,
+    limit: vi.fn().mockResolvedValue({
+      data: [],
+      error: null,
+    }),
+  }));
+  
+  const mockFrom = vi.fn(() => ({
+    select: mockSelect,
+  }));
+  
+  return {
+    supabase: {
+      from: mockFrom,
+    },
+  };
+});
+
 describe('HomePage', () => {
   let mockSupabaseClient: Partial<SupabaseClient>;
 
@@ -35,6 +69,17 @@ describe('HomePage', () => {
       },
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: null,
+              error: {
+                code: 'PGRST116',
+                message: 'The result contains 0 rows',
+                details: null,
+                hint: null,
+              },
+            }),
+          }),
           limit: vi.fn().mockResolvedValue({
             data: [],
             error: null,
@@ -165,50 +210,8 @@ describe('HomePage', () => {
     });
   });
 
-  describe('test database button', () => {
-    it('shows test database button regardless of auth state', async () => {
-      await renderWithAuth(<HomePage />, false);
-      
-      expect(screen.getByRole('button', { name: /test database/i })).toBeInTheDocument();
-    });
-
-    it('shows test database button when authenticated', async () => {
-      await renderWithAuth(<HomePage />, true);
-      
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /test database/i })).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('auth context debug UI', () => {
-    it('displays auth context debug information', async () => {
-      await renderWithAuth(<HomePage />, false);
-      
-      expect(screen.getByText('🧪 AuthContext Test')).toBeInTheDocument();
-      expect(screen.getByText(/Loading:/)).toBeInTheDocument();
-      expect(screen.getByText(/User:/)).toBeInTheDocument();
-      expect(screen.getByText(/Session:/)).toBeInTheDocument();
-      expect(screen.getByText(/Error:/)).toBeInTheDocument();
-    });
-
-    it('shows user email in debug UI when authenticated', async () => {
-      await renderWithAuth(<HomePage />, true);
-      
-      await waitFor(() => {
-        const debugUI = screen.getByText(/User:/).parentElement;
-        expect(debugUI).toHaveTextContent('test@example.com');
-      });
-    });
-
-    it('shows null in debug UI when not authenticated', async () => {
-      await renderWithAuth(<HomePage />, false);
-      
-      await waitFor(() => {
-        const debugUI = screen.getByText(/User:/).parentElement;
-        expect(debugUI).toHaveTextContent('null');
-      });
-    });
-  });
+  // Note: Debug tools (database test, auth context test) are now in DebugTools component
+  // which is hidden by default and activated via 4 clicks in bottom left corner.
+  // These tests have been removed as the debug components are no longer directly visible.
 });
 

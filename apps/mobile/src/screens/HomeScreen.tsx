@@ -1,16 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
-  Alert,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { HOME_TITLE, HOME_SUBTITLE } from '@shared/utils/strings';
 import { useAuthContext } from '@shared/contexts/AuthContext';
-import { supabase } from '../lib/supabase';
+import { DebugTools } from '../components/DebugTools';
 
 type RootStackParamList = {
   Home: undefined;
@@ -27,10 +26,6 @@ interface Props {
 }
 
 export default function HomeScreen({ navigation }: Props) {
-  const [testResult, setTestResult] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
-  
-  // Manual test: useAuthContext hook should provide auth state from context
   const auth = useAuthContext();
 
   useEffect(() => {
@@ -41,34 +36,6 @@ export default function HomeScreen({ navigation }: Props) {
       });
     }
   }, [auth.loading, auth.user, navigation]);
-
-  const handleTestDatabase = async () => {
-    setIsLoading(true);
-    setTestResult('');
-    
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('id, username')
-        .limit(5);
-
-      if (error) {
-        const message = `❌ Error: ${error.message}`;
-        setTestResult(message);
-        Alert.alert('Database Test Failed', error.message);
-      } else {
-        const message = `✅ Success! Found ${data.length} user profiles`;
-        setTestResult(message);
-        Alert.alert('Database Test Passed', `Found ${data.length} user profiles`);
-      }
-    } catch (err) {
-      const message = `❌ Exception: ${err instanceof Error ? err.message : 'Unknown error'}`;
-      setTestResult(message);
-      Alert.alert('Database Test Failed', message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -163,50 +130,10 @@ export default function HomeScreen({ navigation }: Props) {
               </TouchableOpacity>
             </>
           )}
-
-          {/* Database Test Section */}
-          <View style={styles.testSection}>
-            <Text style={styles.testSectionTitle}>Database Connection Test</Text>
-            <TouchableOpacity
-              style={[styles.testButton, isLoading && styles.testButtonDisabled]}
-              onPress={handleTestDatabase}
-              disabled={isLoading}
-            >
-              <Text style={styles.testButtonText}>
-                {isLoading ? 'Testing...' : '🧪 Test Database'}
-              </Text>
-            </TouchableOpacity>
-
-            {testResult ? (
-              <View style={styles.resultContainer}>
-                <Text style={styles.resultText}>{testResult}</Text>
-              </View>
-            ) : null}
-          </View>
-
-          {/* Manual test display for AuthContext */}
-          <View style={styles.authContextContainer}>
-            <Text style={styles.authContextTitle}>🧪 AuthContext Test</Text>
-            <View style={styles.authContextContent}>
-              <Text style={styles.authContextItem}>
-                Loading: <Text style={styles.authContextValue}>{auth.loading ? 'true' : 'false'}</Text>
-              </Text>
-              <Text style={styles.authContextItem}>
-                User: <Text style={styles.authContextValue}>{auth.user ? auth.user.email : 'null'}</Text>
-              </Text>
-              <Text style={styles.authContextItem}>
-                Session: <Text style={styles.authContextValue}>{auth.session ? 'active' : 'null'}</Text>
-              </Text>
-              <Text style={styles.authContextItem}>
-                Error: <Text style={styles.authContextValue}>{auth.error ? auth.error.message : 'null'}</Text>
-              </Text>
-            </View>
-            <Text style={styles.authContextFooter}>
-              ✓ Context provides auth state to components
-            </Text>
-          </View>
         </View>
       </View>
+
+      <DebugTools />
     </SafeAreaView>
   );
 }
@@ -341,82 +268,5 @@ const styles = StyleSheet.create({
     color: '#3b82f6',
     fontSize: 16,
     fontWeight: '600',
-  },
-  testButton: {
-    backgroundColor: '#f3f4f6',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    alignItems: 'center',
-  },
-  testButtonDisabled: {
-    opacity: 0.5,
-  },
-  testButtonText: {
-    color: '#374151',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  resultContainer: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-  },
-  resultText: {
-    fontSize: 14,
-    color: '#374151',
-    textAlign: 'center',
-  },
-  authContextContainer: {
-    marginTop: 16,
-    padding: 16,
-    backgroundColor: '#eff6ff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#bfdbfe',
-  },
-  authContextTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1e3a8a',
-    marginBottom: 8,
-  },
-  authContextContent: {
-    gap: 4,
-  },
-  authContextItem: {
-    fontSize: 12,
-    color: '#1e40af',
-  },
-  authContextValue: {
-    fontFamily: 'monospace',
-  },
-  authContextFooter: {
-    marginTop: 8,
-    fontSize: 12,
-    color: '#2563eb',
-    fontStyle: 'italic',
-  },
-  testSection: {
-    marginTop: 16,
-    padding: 16,
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  testSectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 12,
   },
 });
