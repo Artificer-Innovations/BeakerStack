@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "description": "Full-stack monorepo with React Native mobile app, React web app, and Supabase backend",
   "private": true,
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "mobile": "cd apps/mobile && npm start",
     "mobile:ios": "cd apps/mobile && npx expo start --ios --port 8082",
@@ -26,10 +29,14 @@
     "test:integration": "jest --config tests/jest.config.js --testMatch='**/tests/integration/**/*.test.ts'",
     "test:db": "supabase test db",
     "test:e2e": "npm run test:e2e:web && npm run test:e2e:mobile",
-    "test:e2e:web": "maestro test tests/e2e/web/flows/",
-    "test:e2e:mobile": "maestro test tests/e2e/mobile/flows/",
+    "test:e2e:web": "export PATH=\"$PATH:$HOME/.maestro/bin\" && maestro test tests/e2e/web/flows/home.yaml --env WEB_URL=\"${WEB_URL:-http://localhost:5173}\" --env TEST_EMAIL=\"${TEST_EMAIL:-e2e-test-$(date +%s)@example.com}\" --env TEST_PASSWORD=\"${TEST_PASSWORD:-TestPassword123!}\"",
+    "test:e2e:mobile": "export PATH=\"$PATH:$HOME/.maestro/bin\" && maestro test tests/e2e/mobile/flows/home.yaml --env MOBILE_APP_ID=\"${MOBILE_APP_ID:-com.anonymous.demoapp}\" --env TEST_EMAIL=\"${TEST_EMAIL:-e2e-test-$(date +%s)@example.com}\" --env TEST_PASSWORD=\"${TEST_PASSWORD:-TestPassword123!}\"",
     "test:watch": "concurrently \"cd apps/mobile && npm run test:watch\" \"cd apps/web && npm run test:watch\" \"cd packages/shared-tests && npm run test:web -- --watch\" \"cd packages/shared-tests && npm run test:native -- --watch\"",
-    "test:coverage": "npm run test:unit -- --coverage",
+    "test:coverage": "npm run test:coverage:mobile && npm run test:coverage:web && npm run test:coverage:shared && npm run test:coverage:merge",
+    "test:coverage:mobile": "cd apps/mobile && npm test -- --coverage --passWithNoTests",
+    "test:coverage:web": "cd apps/web && npm run test:coverage",
+    "test:coverage:shared": "cd packages/shared-tests && npm run test:coverage",
+    "test:coverage:merge": "node scripts/merge-coverage.js",
     "lint": "npm run lint:mobile && npm run lint:web && npm run lint:shared",
     "lint:mobile": "cd apps/mobile && npm run lint",
     "lint:web": "cd apps/web && npm run lint",
@@ -56,7 +63,6 @@
     "clean:all": "npm run clean && supabase stop && docker system prune -f",
     "postinstall": "patch-package"
   },
-  "dependencies": {},
   "devDependencies": {
     "@babel/plugin-transform-runtime": "^7.28.3",
     "@types/jest": "^29.5.8",
@@ -64,6 +70,7 @@
     "babel-plugin-module-resolver": "^5.0.2",
     "concurrently": "^8.2.2",
     "jest": "^29.7.0",
+    "nyc": "^17.1.0",
     "prettier": "^3.1.0",
     "ts-jest": "^29.1.1",
     "typescript": "^5.3.0"

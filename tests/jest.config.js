@@ -9,5 +9,14 @@ module.exports = {
   collectCoverageFrom: [
     '**/*.ts',
     '!**/*.d.ts',
+    '!**/node_modules/**',
+    '!**/dist/**',
+    '!**/build/**',
   ],
+  moduleNameMapper: {
+    '^@/utils/(.*)$': '<rootDir>/utils/$1',
+  },
+  setupFilesAfterEnv: [],
+  testTimeout: 30000, // 30 seconds for integration tests
+  verbose: true,
 };

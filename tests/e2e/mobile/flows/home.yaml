@@ -1,0 +1,43 @@
+# Mobile E2E Test: Home Page and Sign Up Flow
+# Tests the home page and user signup flow on the mobile application
+
+appId: ${MOBILE_APP_ID}
+---
+# Test: Home page loads and user can sign up
+- launchApp
+
+# Wait for React Native app to render
+- waitForAnimationToEnd
+
+# Verify home page loaded
+- assertVisible: "Welcome to Demo App"
+
+# Verify Sign Up button exists
+- assertVisible: "Sign Up"
+
+# Click Sign Up button
+- tapOn: "Sign Up"
+
+# Wait for signup page to load
+- waitForAnimationToEnd
+
+# Verify signup page loaded
+- assertVisible: "Create your account"
+
+# Fill in signup form
+- tapOn: "Email address"
+- inputText: "${TEST_EMAIL}"
+- tapOn: "Password"
+- inputText: "${TEST_PASSWORD}"
+- tapOn: "Confirm password"
+- inputText: "${TEST_PASSWORD}"
+
+# Submit signup form
+- tapOn: "Create account"
+
+# Wait for navigation (user should be redirected after signup)
+- waitForAnimationToEnd
+
+# Take screenshot for verification
+- takeScreenshot: "after-signup"
+

@@ -8,7 +8,7 @@
     "preview": "vite preview",
     "test": "vitest --run",
     "test:watch": "vitest --watch",
-    "test:coverage": "vitest --coverage",
+    "test:coverage": "vitest --coverage --run",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src --ext ts,tsx --fix",
     "type-check": "tsc --noEmit"
@@ -29,6 +29,7 @@
     "@types/react": "18.2.0",
     "@types/react-dom": "18.2.0",
     "@vitejs/plugin-react": "^4.1.0",
+    "@vitest/coverage-v8": "^1.6.1",
     "autoprefixer": "^10.4.0",
     "jsdom": "^23.0.0",
     "postcss": "^8.4.0",

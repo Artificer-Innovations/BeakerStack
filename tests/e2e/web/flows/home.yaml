@@ -1,0 +1,47 @@
+# Web E2E Test: Home Page and Sign Up Flow
+# Tests the home page and user signup flow
+# Note: Maestro web testing is in beta and uses Chromium only
+
+url: ${WEB_URL}
+---
+# Test: Home page loads and user can sign up
+- launchApp
+
+# Wait for React app to render (give it time to load)
+- waitForAnimationToEnd
+
+# Verify home page loaded - wait up to 5 seconds for text to appear
+- assertVisible: "Welcome to Demo App"
+
+# Verify Sign Up button exists
+- assertVisible: "Sign Up"
+
+# Click Sign Up button
+- tapOn: "Sign Up"
+
+# Wait for signup page to load
+- waitForAnimationToEnd
+
+# Verify signup page loaded
+- assertVisible: "Create your account"
+
+# Fill in signup form
+- inputText:
+    id: "email"
+    text: "${TEST_EMAIL}"
+- inputText:
+    id: "password"
+    text: "${TEST_PASSWORD}"
+- inputText:
+    id: "confirm-password"
+    text: "${TEST_PASSWORD}"
+
+# Submit signup form
+- tapOn: "Create account"
+
+# Wait for navigation (user should be redirected after signup)
+- waitForAnimationToEnd
+
+# Take screenshot for verification
+- takeScreenshot: "after-signup"
+
