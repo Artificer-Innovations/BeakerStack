@@ -21,7 +21,8 @@ describe('ProfileAvatar', () => {
     render(<ProfileAvatar profile={mockProfile} />);
     const img = screen.getByAltText('Test User');
     expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute('src', 'https://example.com/avatar.jpg');
+    // Component adds cache-busting to displayed URLs, so check for base URL with query params
+    expect(img).toHaveAttribute('src', expect.stringMatching(/^https:\/\/example\.com\/avatar\.jpg\?t=/));
   });
 
   it('renders initials when avatar_url is not provided', () => {

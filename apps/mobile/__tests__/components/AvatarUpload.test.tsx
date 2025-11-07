@@ -213,7 +213,8 @@ describe('AvatarUpload.native', () => {
       expect(ImagePicker.requestMediaLibraryPermissionsAsync).toHaveBeenCalled();
       expect(alertSpy).toHaveBeenCalledWith(
         'Permission Denied',
-        'Permission to access camera roll is required!'
+        'Permission to access photos is required to upload an avatar. Please grant permission in Settings.',
+        [{ text: 'OK' }]
       );
     });
 

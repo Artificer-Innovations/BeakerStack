@@ -42,7 +42,8 @@ describe('AvatarUpload', () => {
 
     const img = screen.getByAltText('Avatar preview');
     expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute('src', 'https://example.com/avatar.jpg');
+    // Component adds cache-busting to displayed URLs, so check for base URL with query params
+    expect(img).toHaveAttribute('src', expect.stringMatching(/^https:\/\/example\.com\/avatar\.jpg(\?|$)/));
   });
 
   it('renders placeholder when no avatar URL', () => {
@@ -274,7 +275,8 @@ describe('AvatarUpload', () => {
     );
 
     let img = screen.getByAltText('Avatar preview');
-    expect(img).toHaveAttribute('src', firstAvatarUrl);
+    // Component adds cache-busting, so check for base URL
+    expect(img).toHaveAttribute('src', expect.stringMatching(/^https:\/\/example\.com\/avatar1\.jpg/));
 
     // Simulate second upload
     mockUploadAvatar.mockResolvedValueOnce(secondAvatarUrl);
@@ -298,9 +300,10 @@ describe('AvatarUpload', () => {
     );
 
     // Should show the new uploaded URL, not the old one
+    // Component adds cache-busting, so check for base URL
     img = screen.getByAltText('Avatar preview');
-    expect(img).toHaveAttribute('src', secondAvatarUrl);
-    expect(img).not.toHaveAttribute('src', firstAvatarUrl);
+    expect(img).toHaveAttribute('src', expect.stringMatching(/^https:\/\/example\.com\/avatar2\.jpg/));
+    expect(img).not.toHaveAttribute('src', expect.stringMatching(/avatar1\.jpg/));
   });
 
   it('should prioritize uploadedUrl over currentAvatarUrl for immediate display', () => {
@@ -358,7 +361,8 @@ describe('AvatarUpload', () => {
     );
 
     let img = screen.getByAltText('Avatar preview');
-    expect(img).toHaveAttribute('src', firstUrl);
+    // Component adds cache-busting, so check for base URL
+    expect(img).toHaveAttribute('src', expect.stringMatching(/^https:\/\/example\.com\/avatar1\.jpg/));
 
     // Update to second URL
     useAvatarUpload.mockReturnValue({
@@ -382,9 +386,99 @@ describe('AvatarUpload', () => {
 
     // Src should change to the new URL, which will force browser to fetch new image
     // (The key prop in the component ensures React creates a new img element)
+    // Component adds cache-busting, so check for base URL
     img = screen.getByAltText('Avatar preview');
-    expect(img).toHaveAttribute('src', secondUrl);
-    expect(img).not.toHaveAttribute('src', firstUrl);
+    expect(img).toHaveAttribute('src', expect.stringMatching(/avatar2\.jpg/));
+    expect(img).not.toHaveAttribute('src', expect.stringMatching(/avatar1\.jpg/));
+  });
+
+  it('should add cache-busting to currentAvatarUrl to prevent stale image display', () => {
+    const { useAvatarUpload } = require('@shared/src/hooks/useAvatarUpload');
+    const currentAvatarUrl = 'https://example.com/avatar.jpg';
+
+    useAvatarUpload.mockReturnValue({
+      uploading: false,
+      progress: 0,
+      error: null,
+      uploadAvatar: mockUploadAvatar,
+      removeAvatar: mockRemoveAvatar,
+      uploadedUrl: null,
+    });
+
+    const { rerender } = render(
+      <AvatarUpload
+        currentAvatarUrl={currentAvatarUrl}
+        onUploadComplete={mockOnUploadComplete}
+        onRemove={mockOnRemove}
+        userId="user-id-1"
+        supabaseClient={mockSupabaseClient}
+      />
+    );
+
+    let img = screen.getByAltText('Avatar preview');
+    // Component should add cache-busting params to prevent browser caching
+    expect(img).toHaveAttribute('src', expect.stringMatching(/\?t=\d+/));
+
+    // When URL changes, cache-busting should update
+    const newAvatarUrl = 'https://example.com/new-avatar.jpg';
+    rerender(
+      <AvatarUpload
+        currentAvatarUrl={newAvatarUrl}
+        onUploadComplete={mockOnUploadComplete}
+        onRemove={mockOnRemove}
+        userId="user-id-1"
+        supabaseClient={mockSupabaseClient}
+      />
+    );
+
+    img = screen.getByAltText('Avatar preview');
+    // Should show new URL with cache-busting
+    expect(img).toHaveAttribute('src', expect.stringMatching(/new-avatar\.jpg/));
+    expect(img).toHaveAttribute('src', expect.stringMatching(/\?t=\d+/));
+  });
+
+  it('should update image src when currentAvatarUrl changes to force reload', () => {
+    const { useAvatarUpload } = require('@shared/src/hooks/useAvatarUpload');
+    const firstUrl = 'https://example.com/avatar1.jpg';
+    const secondUrl = 'https://example.com/avatar2.jpg';
+
+    useAvatarUpload.mockReturnValue({
+      uploading: false,
+      progress: 0,
+      error: null,
+      uploadAvatar: mockUploadAvatar,
+      removeAvatar: mockRemoveAvatar,
+      uploadedUrl: null,
+    });
+
+    const { rerender } = render(
+      <AvatarUpload
+        currentAvatarUrl={firstUrl}
+        onUploadComplete={mockOnUploadComplete}
+        onRemove={mockOnRemove}
+        userId="user-id-1"
+        supabaseClient={mockSupabaseClient}
+      />
+    );
+
+    let img = screen.getByAltText('Avatar preview');
+    expect(img).toHaveAttribute('src', expect.stringMatching(/avatar1\.jpg/));
+
+    // Update URL - component should update src with new cache-busting
+    rerender(
+      <AvatarUpload
+        currentAvatarUrl={secondUrl}
+        onUploadComplete={mockOnUploadComplete}
+        onRemove={mockOnRemove}
+        userId="user-id-1"
+        supabaseClient={mockSupabaseClient}
+      />
+    );
+
+    img = screen.getByAltText('Avatar preview');
+    // Should show new URL with cache-busting (different timestamp)
+    expect(img).toHaveAttribute('src', expect.stringMatching(/avatar2\.jpg/));
+    expect(img).toHaveAttribute('src', expect.stringMatching(/\?t=\d+/));
   });
 });
 
