@@ -83,6 +83,35 @@ The icon is referenced in:
 
 **Note**: The web app reads from `apps/web/public/demo-flask-icon.svg`, which is a copy of the source. Always update the source at `assets/demo-flask-icon.svg` and run `npm run sync-icons` to propagate changes.
 
+### Web Favicons
+
+The app includes favicon support for all major browsers. Favicons are generated from the source SVG icon:
+
+- **Standard favicons**: `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`
+- **Apple touch icon**: `apple-touch-icon.png` (180x180) for iOS Safari
+- **Android Chrome icons**: `android-chrome-192x192.png`, `android-chrome-512x512.png`
+
+#### Generating Favicons
+
+To generate all favicon files from the source icon:
+
+```bash
+npm run generate-favicons
+```
+
+This will create all required favicon files in `apps/web/public/` from the source SVG at `assets/demo-flask-icon.svg`.
+
+#### Updating Favicons
+
+When you update the source icon:
+
+1. **Update the source SVG**: Edit `assets/demo-flask-icon.svg`
+2. **Sync icons**: Run `npm run sync-icons` to copy to web and mobile
+3. **Regenerate favicons**: Run `npm run generate-favicons` to create new favicon files
+4. **Refresh browser**: Clear browser cache or hard refresh to see new favicons
+
+The favicon files are referenced in `apps/web/index.html` with appropriate link tags for all browsers.
+
 ## App Name and Title
 
 ### Display Name
