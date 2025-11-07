@@ -136,18 +136,32 @@ export function useAvatarUpload(
           throw new Error('Upload succeeded but returned no data');
         }
 
-        // Get public URL with cache-busting query parameter
+        // Get public URL (clean URL without cache-busting params)
+        // We store the clean URL in the database, and add cache-busting only for display
         const {
           data: { publicUrl },
         } = supabaseClient.storage.from(BUCKET_NAME).getPublicUrl(filePath);
         
-        // Add timestamp and random value to URL to bust browser cache
-        // This ensures each upload gets a unique URL, forcing the browser to fetch the new image
-        const cacheBustedUrl = `${publicUrl}?t=${Date.now()}&v=${Math.random().toString(36).substring(7)}`;
+        // Normalize URL: Replace Android emulator-specific IP (10.0.2.2) with 127.0.0.1
+        // This ensures the URL works across all platforms (web, iOS, Android)
+        // The Android emulator uses 10.0.2.2 to reach the host, but we store 127.0.0.1
+        // so all platforms can access the image
+        let cleanUrl = publicUrl;
+        if (cleanUrl.includes('10.0.2.2')) {
+          cleanUrl = cleanUrl.replace('10.0.2.2', '127.0.0.1');
+        }
+        // Also handle localhost variations
+        if (cleanUrl.includes('localhost')) {
+          cleanUrl = cleanUrl.replace('localhost', '127.0.0.1');
+        }
+        
+        // For immediate display, add cache-busting to uploadedUrl state
+        // This ensures the new image shows immediately in the upload component
+        const cacheBustedUrl = `${cleanUrl}?t=${Date.now()}&v=${Math.random().toString(36).substring(7)}`;
 
         setProgress(100);
-        setUploadedUrl(cacheBustedUrl);
-        return cacheBustedUrl;
+        setUploadedUrl(cacheBustedUrl); // For component display
+        return cleanUrl; // Return normalized clean URL for database storage
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));
         setError(error);

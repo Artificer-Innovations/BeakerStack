@@ -1,9 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, Image, TouchableOpacity, ActivityIndicator, Alert, StyleSheet, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { useAvatarUpload } from '../../hooks/useAvatarUpload';
+
+// Helper function to fix URLs for Android emulator
+const fixUrlForAndroid = (url: string | null): string | null => {
+  if (!url) return null;
+  if (Platform.OS === 'android' && __DEV__) {
+    // Replace localhost with Android emulator's host machine IP
+    // Preserve query params (including cache-busting) for proper image refresh
+    let fixedUrl = url.replace('http://127.0.0.1:', 'http://10.0.2.2:');
+    fixedUrl = fixedUrl.replace('http://localhost:', 'http://10.0.2.2:');
+    return fixedUrl; // Keep query params for cache-busting
+  }
+  return url;
+};
 
 export interface AvatarUploadProps {
   currentAvatarUrl: string | null;
@@ -30,33 +43,106 @@ export function AvatarUpload({
   style,
 }: AvatarUploadProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const { uploading, progress, error, uploadAvatar, removeAvatar } = useAvatarUpload(
+  const [imageKey, setImageKey] = useState(0); // Force image reload on upload
+  const cacheBusterRef = useRef<string>(''); // Store cache-buster to avoid regenerating on every render
+  const { uploading, progress, error, uploadAvatar, removeAvatar, uploadedUrl } = useAvatarUpload(
     supabaseClient,
     userId
   );
+  
+  // Update cache-buster only when imageKey changes (on upload)
+  useEffect(() => {
+    if (imageKey > 0) {
+      cacheBusterRef.current = `cb=${Date.now()}&k=${imageKey}&r=${Math.random().toString(36).substring(7)}`;
+    }
+  }, [imageKey]);
+  
+  // Increment imageKey when currentAvatarUrl changes to force reload of profile image
+  // This ensures we show the updated image even if the base URL is the same
+  const prevAvatarUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (currentAvatarUrl && currentAvatarUrl !== prevAvatarUrlRef.current && prevAvatarUrlRef.current !== null) {
+      // URL changed (not initial mount), increment key to force reload
+      setImageKey(prev => prev + 1);
+    }
+    prevAvatarUrlRef.current = currentAvatarUrl;
+  }, [currentAvatarUrl]);
 
   const handlePickImage = async () => {
     try {
-      // Request permissions
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Permission to access camera roll is required!');
-        return;
+      console.log('[AvatarUpload] Button pressed, platform:', Platform.OS);
+      
+      // Handle permissions based on platform
+      if (Platform.OS === 'ios') {
+        // iOS: Always request permissions first
+        console.log('[AvatarUpload] iOS: Requesting media library permissions...');
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        console.log('[AvatarUpload] iOS Permission status:', status);
+        
+        if (status !== 'granted') {
+          Alert.alert(
+            'Permission Denied',
+            'Permission to access photos is required to upload an avatar. Please grant permission in Settings.',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+      }
+      // Android: On Android 13+, the system picker handles permissions automatically
+      // We can skip permission requests and let the picker handle it
+      // For older Android versions, we'll try to request but won't block if it fails
+      else if (Platform.OS === 'android') {
+        console.log('[AvatarUpload] Android: Skipping explicit permission request - system picker will handle it');
+        // On Android 13+, the system image picker handles permissions via scoped access
+        // We can launch the picker directly and the system will handle permissions
       }
 
-      // Launch image picker
-      const result = await ImagePicker.launchImageLibraryAsync({
+      console.log('[AvatarUpload] Launching image picker...');
+      
+      // Launch image picker with timeout to prevent hanging
+      // On Android 13+, the system picker handles permissions automatically
+      const pickerPromise = ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
+        // Android-specific options
+        allowsMultipleSelection: false,
+        // Ensure we can cancel
+        presentationStyle: 'pageSheet', // iOS only, but helps with cancel behavior
       });
 
-      if (result.canceled || !result.assets[0]) {
+      // Add timeout to prevent hanging (30 seconds should be enough)
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Image picker timeout - please try again')), 30000)
+      );
+
+      const result = await Promise.race([pickerPromise, timeoutPromise]) as any;
+      
+      console.log('[AvatarUpload] Image picker result:', result.canceled ? 'canceled' : 'selected', result);
+
+      if (result.canceled || !result.assets || !result.assets.length || !result.assets[0]) {
+        console.log('[AvatarUpload] No image selected or picker was canceled');
+        if (result.canceled) {
+          console.log('[AvatarUpload] User canceled the picker');
+        } else if (!result.assets || !result.assets.length) {
+          console.log('[AvatarUpload] No assets returned from picker');
+          Alert.alert(
+            'No Image Selected',
+            'Please select an image from your gallery. If you don\'t have any photos, you can add some to your device first.',
+            [{ text: 'OK' }]
+          );
+        }
         return;
       }
 
       const asset = result.assets[0];
+      console.log('[AvatarUpload] Selected asset:', {
+        uri: asset.uri?.substring(0, 50) + '...',
+        mimeType: asset.mimeType,
+        width: asset.width,
+        height: asset.height,
+      });
       
       // Create preview
       setPreviewUrl(asset.uri);
@@ -133,6 +219,19 @@ export function AvatarUpload({
           size: uint8Array.length 
         }) as any;
         const url = await uploadAvatar(fileWithType);
+        console.log('[AvatarUpload] Upload complete, received URL from hook:', url);
+        console.log('[AvatarUpload] URL contains 10.0.2.2:', url.includes('10.0.2.2'));
+        console.log('[AvatarUpload] URL contains 127.0.0.1:', url.includes('127.0.0.1'));
+        console.log('[AvatarUpload] URL contains localhost:', url.includes('localhost'));
+        
+        // Increment imageKey BEFORE calling onUploadComplete to ensure the new key is used
+        // This forces the Image component to reload with the new URL
+        setImageKey(prev => {
+          const newKey = prev + 1;
+          console.log('[AvatarUpload] Incrementing imageKey to:', newKey);
+          return newKey;
+        });
+        
         onUploadComplete(url);
         setPreviewUrl(null); // Clear preview after successful upload
       } catch (fileError) {
@@ -172,7 +271,28 @@ export function AvatarUpload({
     );
   };
 
-  const displayUrl = previewUrl || currentAvatarUrl;
+  // Fix URLs for Android emulator and handle display priority
+  // Priority: preview > uploaded URL > current avatar URL
+  // This ensures we show the new image immediately after upload, even before profile updates
+  const fixedPreviewUrl = fixUrlForAndroid(previewUrl);
+  const fixedUploadedUrl = fixUrlForAndroid(uploadedUrl);
+  const fixedCurrentUrl = fixUrlForAndroid(currentAvatarUrl);
+  
+  // Simple priority: always prefer uploadedUrl over currentAvatarUrl for immediate display
+  let displayUrl = fixedPreviewUrl || fixedUploadedUrl || fixedCurrentUrl;
+  
+  // Add aggressive cache-busting to ALL URLs to force React Native Image to reload
+  // This is critical because React Native Image caches aggressively by base URL
+  // Only add cache-busting if we have a URL and imageKey has been set (upload has happened)
+  if (displayUrl && imageKey > 0) {
+    const separator = displayUrl.includes('?') ? '&' : '?';
+    // Use the ref value which only updates when imageKey changes
+    displayUrl = `${displayUrl}${separator}${cacheBusterRef.current}`;
+  } else if (displayUrl) {
+    // For initial display or when no upload has happened yet, add a simple cache-buster
+    const separator = displayUrl.includes('?') ? '&' : '?';
+    displayUrl = `${displayUrl}${separator}t=${Date.now()}`;
+  }
 
   return (
     <View style={[styles.container, style]}>
@@ -183,7 +303,20 @@ export function AvatarUpload({
         <View style={styles.avatarContainer}>
           <View style={styles.avatarWrapper}>
             {displayUrl ? (
-              <Image source={{ uri: displayUrl }} style={styles.avatar} />
+              <Image
+                key={`${displayUrl}-${imageKey}`} // Force re-render when URL or upload key changes
+                source={{ 
+                  uri: displayUrl,
+                }}
+                style={styles.avatar}
+                resizeMode="cover"
+                onError={(error) => {
+                  console.warn('[AvatarUpload] Failed to load preview image:', displayUrl, error.nativeEvent?.error || error);
+                }}
+                onLoad={() => {
+                  console.log('[AvatarUpload] Preview image loaded successfully:', displayUrl);
+                }}
+              />
             ) : (
               <View style={styles.placeholder}>
                 <Text style={styles.placeholderText}>?</Text>
@@ -204,11 +337,18 @@ export function AvatarUpload({
         <View style={styles.controls}>
           <TouchableOpacity
             style={[styles.button, styles.primaryButton, uploading && styles.buttonDisabled]}
-            onPress={handlePickImage}
-            disabled={uploading}
-          >
-            <Text style={styles.buttonText}>{uploading ? 'Uploading...' : 'Choose File'}</Text>
-          </TouchableOpacity>
+        onPress={() => {
+          console.log('[AvatarUpload] Choose File button pressed');
+          handlePickImage().catch((err) => {
+            console.error('[AvatarUpload] Error in handlePickImage:', err);
+            Alert.alert('Error', `Failed to pick image: ${err instanceof Error ? err.message : String(err)}`);
+          });
+        }}
+        disabled={uploading}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.buttonText}>{uploading ? 'Uploading...' : 'Choose File'}</Text>
+      </TouchableOpacity>
 
           {currentAvatarUrl && (
             <TouchableOpacity

@@ -235,10 +235,18 @@ export function ProfileEditor({
           <AvatarUpload
             currentAvatarUrl={profile.profile?.avatar_url || null}
             onUploadComplete={async (url) => {
+              console.log('[ProfileEditor] Avatar upload complete, URL:', url);
+              // Ensure we're saving the clean URL (without Android-specific modifications)
+              // The URL from useAvatarUpload should already be clean, but let's verify
+              const cleanUrl = url.split('?')[0]; // Remove any query params just in case
+              console.log('[ProfileEditor] Saving clean URL to database:', cleanUrl);
+              
               // Update profile with new avatar URL
-              await profile.updateProfile(user.id, { avatar_url: url });
+              await profile.updateProfile(user.id, { avatar_url: cleanUrl });
               // Update form data
-              handleFieldChange('avatar_url', url);
+              handleFieldChange('avatar_url', cleanUrl);
+              
+              console.log('[ProfileEditor] Profile updated with avatar URL');
             }}
             onRemove={async () => {
               // Update profile to remove avatar URL

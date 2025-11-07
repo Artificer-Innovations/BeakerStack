@@ -195,10 +195,17 @@ export function ProfileEditor({
           currentAvatarUrl={profile.profile?.avatar_url || null}
           onUploadComplete={async (url) => {
             if (user) {
+              console.log('[ProfileEditor.web] Avatar upload complete, URL:', url);
+              // Ensure we're saving the clean URL (without cache-busting params)
+              const cleanUrl = url.split('?')[0]; // Remove any query params
+              console.log('[ProfileEditor.web] Saving clean URL to database:', cleanUrl);
+              
               // Update profile with new avatar URL
-              await profile.updateProfile(user.id, { avatar_url: url });
+              await profile.updateProfile(user.id, { avatar_url: cleanUrl });
               // Update form data
-              handleFieldChange('avatar_url', url);
+              handleFieldChange('avatar_url', cleanUrl);
+              
+              console.log('[ProfileEditor.web] Profile updated with avatar URL');
             }
           }}
           onRemove={async () => {

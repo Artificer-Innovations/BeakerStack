@@ -25,10 +25,30 @@ export function AvatarUpload({
 }: AvatarUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [imageKey, setImageKey] = useState(0); // Force image reload on upload
+  const prevAvatarUrlRef = useRef<string | null>(null);
+  const cacheBusterRef = useRef<string>(''); // Store cache-buster to avoid regenerating on every render
+  const initialCacheBusterRef = useRef<string>(`t=${Date.now()}`); // Store initial cache-buster
   const { uploading, progress, error, uploadAvatar, removeAvatar, uploadedUrl } = useAvatarUpload(
     supabaseClient,
     userId
   );
+  
+  // Update cache-buster when imageKey changes
+  useEffect(() => {
+    if (imageKey > 0) {
+      cacheBusterRef.current = `t=${Date.now()}&k=${imageKey}`;
+    }
+  }, [imageKey]);
+  
+  // Increment imageKey when currentAvatarUrl changes to force reload of profile image
+  useEffect(() => {
+    if (currentAvatarUrl && currentAvatarUrl !== prevAvatarUrlRef.current && prevAvatarUrlRef.current !== null) {
+      // URL changed (not initial mount), increment key to force reload
+      setImageKey(prev => prev + 1);
+    }
+    prevAvatarUrlRef.current = currentAvatarUrl;
+  }, [currentAvatarUrl]);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -43,6 +63,8 @@ export function AvatarUpload({
 
     try {
       const url = await uploadAvatar(file);
+      // Increment imageKey to force image reload
+      setImageKey(prev => prev + 1);
       // Clear preview - the uploadedUrl from the hook will be used now
       setPreviewUrl(null);
       // Update profile with new URL
@@ -85,7 +107,20 @@ export function AvatarUpload({
 
   // Priority: preview > uploaded URL > current avatar URL
   // This ensures we show the new image immediately after upload, even before profile updates
-  const displayUrl = previewUrl || uploadedUrl || currentAvatarUrl;
+  let displayUrl = previewUrl || uploadedUrl || currentAvatarUrl;
+  
+  // Add cache-busting to currentAvatarUrl to force browser to reload when it changes
+  // uploadedUrl already has cache-busting from the hook
+  if (displayUrl === currentAvatarUrl && currentAvatarUrl) {
+    const separator = currentAvatarUrl.includes('?') ? '&' : '?';
+    if (imageKey > 0 && cacheBusterRef.current) {
+      // Use the ref value which only updates when imageKey changes
+      displayUrl = `${currentAvatarUrl}${separator}${cacheBusterRef.current}`;
+    } else {
+      // Fallback: use initial cache-buster (calculated once on mount)
+      displayUrl = `${currentAvatarUrl}${separator}${initialCacheBusterRef.current}`;
+    }
+  }
 
   return (
     <div className={`space-y-2 ${className}`}>
@@ -97,7 +132,7 @@ export function AvatarUpload({
           <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 border-2 border-gray-300">
             {displayUrl ? (
               <img
-                key={displayUrl}
+                key={`${displayUrl}-${imageKey}`} // Include imageKey to force re-render
                 src={displayUrl}
                 alt="Avatar preview"
                 className="w-full h-full object-cover"

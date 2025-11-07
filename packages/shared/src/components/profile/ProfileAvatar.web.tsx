@@ -34,9 +34,16 @@ export function ProfileAvatar({ profile, size = 'medium', className = '' }: Prof
   const avatarUrl = profile?.avatar_url;
 
   if (avatarUrl) {
+    // Add cache-busting parameter for display to prevent browser caching issues
+    // The database stores the clean URL, we add cache-busting only when displaying
+    const displayUrl = avatarUrl.includes('?') 
+      ? avatarUrl // Already has params, use as-is
+      : `${avatarUrl}?t=${Date.now()}`; // Add timestamp for cache-busting
+    
     return (
       <img
-        src={avatarUrl}
+        key={avatarUrl} // Key ensures React re-renders when URL changes
+        src={displayUrl}
         alt={profile?.display_name || profile?.username || 'User avatar'}
         className={`${sizeClasses[size]} rounded-full object-cover ${className}`}
         onError={(e) => {
