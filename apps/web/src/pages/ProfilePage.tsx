@@ -51,7 +51,10 @@ export default function ProfilePage() {
             <div className='space-y-6'>
               {/* Profile Header Section */}
               <div className='bg-white shadow rounded-lg p-6'>
-                <ProfileHeader profile={profile.profile} />
+                <ProfileHeader
+                  profile={profile.profile}
+                  email={auth.user?.email}
+                />
               </div>
 
               {/* Profile Stats Section */}

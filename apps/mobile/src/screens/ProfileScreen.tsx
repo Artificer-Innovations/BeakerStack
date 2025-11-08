@@ -132,7 +132,10 @@ function ProfileScreenContent({ navigation: _navigation }: Props) {
           <View style={styles.profileContent}>
             {/* Profile Header Section */}
             <View style={styles.card}>
-              <ProfileHeader profile={profile.profile} />
+              <ProfileHeader
+                profile={profile.profile}
+                email={auth.user?.email}
+              />
             </View>
 
             {/* Profile Stats Section */}
