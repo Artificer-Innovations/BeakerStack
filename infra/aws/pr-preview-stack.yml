@@ -1,0 +1,393 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  PR preview infrastructure stack. Provisions S3 storage, CloudFront distribution,
+  logging, DNS records, and CloudFront Function routing pr-{number}.domain requests
+  to matching S3 prefixes for ephemeral preview environments.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Domain Configuration
+        Parameters:
+          - DomainName
+          - HostedZoneId
+          - CertificateArn
+      - Label:
+          default: S3 Configuration
+        Parameters:
+          - WebsiteBucketName
+          - LogsBucketName
+          - EnableS3BucketEncryption
+          - LogRetentionInDays
+      - Label:
+          default: Preview Settings
+        Parameters:
+          - PreviewPrefix
+          - ProductionPrefix
+    ParameterLabels:
+      DomainName:
+        default: Root domain (e.g. example.com)
+      HostedZoneId:
+        default: Route53 hosted zone ID for the domain
+      CertificateArn:
+        default: ACM certificate ARN (us-east-1) for domain and wildcard
+      WebsiteBucketName:
+        default: S3 bucket name (leave blank to autogenerate)
+      LogsBucketName:
+        default: S3 logs bucket name (leave blank to autogenerate)
+      EnableS3BucketEncryption:
+        default: Enable S3 bucket encryption
+      LogRetentionInDays:
+        default: CloudFront log retention (days)
+      PreviewPrefix:
+        default: Prefix for preview deployments
+      ProductionPrefix:
+        default: Prefix for production deployment
+
+Parameters:
+  DomainName:
+    Type: String
+    Description: Apex domain used for previews (e.g. beakerstack.com)
+  HostedZoneId:
+    Type: String
+    Description: Route53 hosted zone ID that manages the domain
+  CertificateArn:
+    Type: String
+    Description: ACM certificate ARN in us-east-1 that covers DomainName and *.DomainName
+  WebsiteBucketName:
+    Type: String
+    Description: Explicit S3 bucket name. Leave blank to let CloudFormation generate one.
+    Default: ''
+  LogsBucketName:
+    Type: String
+    Description: Explicit S3 bucket name for logs. Leave blank to generate.
+    Default: ''
+  EnableS3BucketEncryption:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'true'
+    Description: Enable SSE-S3 encryption on buckets.
+  LogRetentionInDays:
+    Type: Number
+    Default: 90
+    MinValue: 7
+    MaxValue: 3650
+    Description: Number of days to retain access logs.
+  PreviewPrefix:
+    Type: String
+    Default: pr-
+    Description: Prefix used for preview folders (e.g. pr-123)
+  ProductionPrefix:
+    Type: String
+    Default: production
+    Description: Folder name hosting production assets.
+
+Conditions:
+  UseProvidedWebsiteBucketName: !Not [!Equals [!Ref WebsiteBucketName, '']]
+  UseProvidedLogsBucketName: !Not [!Equals [!Ref LogsBucketName, '']]
+  EncryptBuckets: !Equals [!Ref EnableS3BucketEncryption, 'true']
+
+Resources:
+  WebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !If [UseProvidedWebsiteBucketName, !Ref WebsiteBucketName, !Ref AWS::NoValue]
+      AccessControl: Private
+      VersioningConfiguration:
+        Status: Enabled
+      LoggingConfiguration:
+        DestinationBucketName: !Ref LogsBucket
+        LogFilePrefix: website/
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption: !If
+        - EncryptBuckets
+        -
+            ServerSideEncryptionConfiguration:
+              - ServerSideEncryptionByDefault:
+                  SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+        - !Ref AWS::NoValue
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteIncompleteMultipartUploads
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+            Status: Enabled
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+
+  LogsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !If [UseProvidedLogsBucketName, !Ref LogsBucketName, !Ref AWS::NoValue]
+      AccessControl: LogDeliveryWrite
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerPreferred
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireLogs
+            Status: Enabled
+            ExpirationInDays: !Ref LogRetentionInDays
+      BucketEncryption: !If
+        - EncryptBuckets
+        -
+            ServerSideEncryptionConfiguration:
+              - ServerSideEncryptionByDefault:
+                  SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+        - !Ref AWS::NoValue
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+
+  LogsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref LogsBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AWSLogDeliveryWrite
+            Effect: Allow
+            Principal:
+              Service: delivery.logs.amazonaws.com
+            Action:
+              - s3:PutObject
+            Resource:
+              Fn::Sub:
+                - '${BucketArn}/*'
+                - BucketArn: !GetAtt LogsBucket.Arn
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: bucket-owner-full-control
+          - Sid: AWSLogDeliveryAclCheck
+            Effect: Allow
+            Principal:
+              Service: delivery.logs.amazonaws.com
+            Action:
+              - s3:GetBucketAcl
+            Resource: !GetAtt LogsBucket.Arn
+
+  WebsiteOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      Name: !Sub '${AWS::StackName}-oac'
+      OriginAccessControlConfig:
+        Description: Access control for PR preview website bucket
+        Name: !Sub '${AWS::StackName}-oac'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  WebsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebsiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipalRead
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action:
+              - s3:GetObject
+            Resource:
+              Fn::Sub:
+                - '${BucketArn}/*'
+                - BucketArn: !GetAtt WebsiteBucket.Arn
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${WebsiteDistribution}'
+
+  SubdomainRoutingFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub '${AWS::StackName}-SubdomainRouter'
+      AutoPublish: true
+      FunctionConfig:
+        Comment: Maps subdomains to S3 prefixes for previews and production
+        Runtime: cloudfront-js-2.0
+      FunctionCode: !Sub |
+        function handler(event) {
+          var request = event.request;
+          var headers = request.headers || {};
+          var hostHeader = headers.host && headers.host.value ? headers.host.value : '';
+          var uri = request.uri || '/';
+
+          var domain = '${DomainName}';
+          var previewPrefix = '${PreviewPrefix}';
+          var productionPrefix = '${ProductionPrefix}';
+
+          function ensureLeadingSlash(path) {
+            if (!path.startsWith('/')) {
+              return '/' + path;
+            }
+            return path;
+          }
+
+          function isFilePath(path) {
+            return /\.[a-zA-Z0-9]+$/.test(path);
+          }
+
+          function buildS3Path(prefix, path) {
+            var trimmed = path.replace(/^\/+/, '');
+            if (trimmed === '') {
+              return '/' + prefix + '/index.html';
+            }
+            if (!isFilePath(trimmed)) {
+              return '/' + prefix + '/index.html';
+            }
+            return '/' + prefix + '/' + trimmed;
+          }
+
+          function normalizeHost(host) {
+            return host.toLowerCase();
+          }
+
+          var normalizedHost = normalizeHost(hostHeader);
+
+          if (normalizedHost === domain || normalizedHost === 'www.' + domain) {
+            request.uri = buildS3Path(productionPrefix, uri);
+            return request;
+          }
+
+          if (normalizedHost.endsWith('.' + domain)) {
+            var subdomain = normalizedHost.slice(0, normalizedHost.length - domain.length - 1);
+            if (subdomain.startsWith(previewPrefix)) {
+              request.uri = buildS3Path(subdomain, uri);
+              return request;
+            }
+            request.uri = buildS3Path(subdomain, uri);
+            return request;
+          }
+
+          request.uri = buildS3Path(productionPrefix, uri);
+          return request;
+        }
+
+  WebsiteDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub 'PR preview distribution for ${DomainName}'
+        DefaultRootObject: index.html
+        Aliases:
+          - !Ref DomainName
+          - !Sub 'www.${DomainName}'
+          - !Sub '*.${DomainName}'
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertificateArn
+          MinimumProtocolVersion: TLSv1.2_2021
+          SslSupportMethod: sni-only
+        Logging:
+          Bucket: !GetAtt LogsBucket.DomainName
+          Prefix: cloudfront/
+          IncludeCookies: false
+        DefaultCacheBehavior:
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD]
+          TargetOriginId: WebsiteOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized
+          ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03 # SecurityHeadersPolicy
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt SubdomainRoutingFunction.FunctionMetadata.FunctionARN
+        Origins:
+          - Id: WebsiteOrigin
+            DomainName: !GetAtt WebsiteBucket.RegionalDomainName
+            S3OriginConfig: {}
+            OriginAccessControlId: !Ref WebsiteOriginAccessControl
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /error.html
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /error.html
+            ErrorCachingMinTTL: 0
+
+  ApexRecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub '${DomainName}.'
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt WebsiteDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2 # CloudFront hosted zone ID
+        EvaluateTargetHealth: false
+
+  WwwRecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub 'www.${DomainName}.'
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt WebsiteDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+        EvaluateTargetHealth: false
+
+  WildcardRecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub '*.${DomainName}.'
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt WebsiteDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+        EvaluateTargetHealth: false
+
+Outputs:
+  WebsiteBucketName:
+    Description: Name of the S3 bucket that stores preview assets.
+    Value: !Ref WebsiteBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-WebsiteBucketName'
+  LogsBucketName:
+    Description: Name of the S3 bucket that stores CloudFront access logs.
+    Value: !Ref LogsBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-LogsBucketName'
+  CloudFrontDistributionId:
+    Description: CloudFront distribution identifier for invalidations.
+    Value: !Ref WebsiteDistribution
+    Export:
+      Name: !Sub '${AWS::StackName}-DistributionId'
+  CloudFrontDomainName:
+    Description: CloudFront distribution domain URL.
+    Value: !GetAtt WebsiteDistribution.DomainName
+    Export:
+      Name: !Sub '${AWS::StackName}-DistributionDomain'
+  CloudFrontFunctionArn:
+    Description: Arn of the subdomain routing CloudFront function.
+    Value: !GetAtt SubdomainRoutingFunction.FunctionMetadata.FunctionARN
+    Export:
+      Name: !Sub '${AWS::StackName}-FunctionArn'
+  PreviewPrefixOutput:
+    Description: Prefix used for PR preview deployments.
+    Value: !Ref PreviewPrefix
+    Export:
+      Name: !Sub '${AWS::StackName}-PreviewPrefix'
+  ProductionPrefixOutput:
+    Description: Prefix used for production assets.
+    Value: !Ref ProductionPrefix
+    Export:
+      Name: !Sub '${AWS::StackName}-ProductionPrefix'
+
