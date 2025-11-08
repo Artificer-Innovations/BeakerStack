@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom';
 import DashboardPage from '../DashboardPage';
 import { AuthProvider } from '@shared/contexts/AuthContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { BRANDING, brandNameRegex } from '@shared/config/branding';
 
 const mockNavigate = vi.fn();
 
@@ -102,7 +103,7 @@ describe('DashboardPage', () => {
     // Dashboard title should be visible
     expect(screen.getByText('Welcome to your dashboard!')).toBeInTheDocument();
     // Header should be visible
-    expect(screen.getByText('Beaker Stack')).toBeInTheDocument();
+    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
   });
 
   it('displays user email when authenticated', async () => {
@@ -111,7 +112,7 @@ describe('DashboardPage', () => {
     // Email is in the header's UserMenu dropdown, not directly visible
     // Check that the header is rendered instead
     await waitFor(() => {
-      expect(screen.getByText('Beaker Stack')).toBeInTheDocument();
+      expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
     });
   });
 
@@ -120,14 +121,14 @@ describe('DashboardPage', () => {
 
     // Sign out is in the UserMenu dropdown, need to click avatar to see it
     // For now, just verify the header is rendered
-    expect(screen.getByText('Beaker Stack')).toBeInTheDocument();
+    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
   });
 
   it('shows home link', async () => {
     await renderWithAuth(<DashboardPage />);
 
-    // Home link is the "Beaker Stack" text/icon in the header
-    const homeLinks = screen.getAllByRole('link', { name: /beaker stack/i });
+    // Home link is the brand text/icon in the header
+    const homeLinks = screen.getAllByRole('link', { name: brandNameRegex() });
     expect(homeLinks.length).toBeGreaterThan(0);
   });
 
@@ -155,7 +156,7 @@ describe('DashboardPage', () => {
       });
     } else {
       // If we can't find the avatar, just verify the page renders
-      expect(screen.getByText('Beaker Stack')).toBeInTheDocument();
+      expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
     }
   });
 
@@ -163,13 +164,13 @@ describe('DashboardPage', () => {
     // This test is no longer applicable since sign out is in the dropdown
     // Just verify the page renders
     await renderWithAuth(<DashboardPage />);
-    expect(screen.getByText('Beaker Stack')).toBeInTheDocument();
+    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
   });
 
   it('navigates even if sign out API call fails (graceful degradation)', async () => {
     // This test is no longer applicable since sign out is in the dropdown
     // Just verify the page renders
     await renderWithAuth(<DashboardPage />);
-    expect(screen.getByText('Beaker Stack')).toBeInTheDocument();
+    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
   });
 });

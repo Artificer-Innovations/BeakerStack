@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import HomePage from '../HomePage';
 import { AuthProvider } from '@shared/contexts/AuthContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { HOME_TITLE } from '@shared/utils/strings';
 
 // Mock environment variables to prevent real Supabase client creation
 vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost:54321');
@@ -114,7 +115,7 @@ describe('HomePage', () => {
       await renderWithAuth(<HomePage />, false);
 
       // Title appears in both header and main content, check that it exists
-      const titles = screen.getAllByText('Welcome to Beaker Stack');
+      const titles = screen.getAllByText(HOME_TITLE);
       expect(titles.length).toBeGreaterThan(0);
       expect(
         screen.getByText(/A modern full-stack application/i)

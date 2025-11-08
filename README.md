@@ -23,7 +23,8 @@ A full-stack monorepo with React Native mobile app, React web app, and Supabase 
 
 - [Branding Guide](docs/BRANDING.md) - How to customize app icon, colors, and display strings
 - [Testing Guide](docs/TESTING.md) - Testing strategies and best practices
-- [Architecture](ARCHITECTURE.md) - System architecture and design decisions
+- [Architecture](ARCHITECTURE.md) - Collective system architecture and design decisions
+- [Renaming Guide](docs/renaming.md) - Automate project name and identifier replacements
 
 ## Quick Start
 
@@ -64,6 +65,16 @@ A full-stack monorepo with React Native mobile app, React web app, and Supabase 
    npm run web      # Web app on http://localhost:5173
    npm run mobile   # Mobile app (Expo)
    ```
+
+## Renaming the Template
+
+Use the automated script to rebrand the stack before starting development:
+
+```bash
+npm run rename -- --from "Beaker Stack" --to "Your New Name" --dry-run
+```
+
+Add `--strict` to fail if any legacy identifiers remain, then rerun without `--dry-run` to apply the changes. See the [Renaming Guide](docs/renaming.md) for post-rename steps and troubleshooting tips.
 
 ## Project Structure
 

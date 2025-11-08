@@ -13,6 +13,7 @@ import Svg, { Circle, Path, Rect, Line } from 'react-native-svg';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
 import { UserMenu } from './UserMenu.native';
+import { BRANDING } from '../../config/branding';
 
 export interface AppHeaderProps {
   supabaseClient: SupabaseClient;
@@ -119,7 +120,7 @@ export function AppHeader({ supabaseClient }: AppHeaderProps) {
               />
             </Svg>
           </View>
-          <Text style={styles.title}>Beaker Stack</Text>
+          <Text style={styles.title}>{BRANDING.displayName}</Text>
         </TouchableOpacity>
 
         {/* Right side: Auth buttons or user menu */}

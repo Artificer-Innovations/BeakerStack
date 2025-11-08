@@ -131,6 +131,7 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { describe, it, expect } from '@jest/globals';
 import App from '../App';
+import { HOME_TITLE } from '@shared/utils/strings';
 
 describe('Mobile App', () => {
   it('renders without crashing', () => {
@@ -138,7 +139,7 @@ describe('Mobile App', () => {
 
     // Check if the app content is rendered
     // Title appears in both header and main content
-    const titles = getAllByText('Welcome to Beaker Stack');
+    const titles = getAllByText(HOME_TITLE);
     expect(titles.length).toBeGreaterThan(0);
   });
 

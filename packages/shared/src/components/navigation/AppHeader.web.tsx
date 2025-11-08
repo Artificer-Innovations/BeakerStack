@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useProfile } from '../../hooks/useProfile';
 import { UserMenu } from './UserMenu.web';
+import { BRANDING } from '../../config/branding';
 
 export interface AppHeaderProps {
   supabaseClient: SupabaseClient;
@@ -25,7 +26,7 @@ export function AppHeader({ supabaseClient }: AppHeaderProps) {
             <Link to='/' className='flex items-center'>
               <img
                 src='/demo-flask-icon.svg'
-                alt='Beaker Stack'
+                alt={BRANDING.displayName}
                 className='w-8 h-8'
               />
             </Link>
@@ -33,7 +34,7 @@ export function AppHeader({ supabaseClient }: AppHeaderProps) {
               to='/'
               className='text-xl font-semibold text-gray-900 hover:text-gray-700'
             >
-              Beaker Stack
+              {BRANDING.displayName}
             </Link>
           </div>
 

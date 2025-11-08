@@ -1,7 +1,8 @@
 // Shared string constants for consistent messaging across platforms
+import { BRANDING } from '../config/branding';
 
 export const HOME_STRINGS = {
-  title: 'Welcome to Beaker Stack',
+  title: `Welcome to ${BRANDING.displayName}`,
   subtitle:
     'A modern full-stack application with React, React Native, and Supabase',
 } as const;

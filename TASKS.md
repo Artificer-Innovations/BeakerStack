@@ -663,10 +663,12 @@ did not work. We did however remove the stubs for apple login; and will have to 
 
 ### Task 9.1b: Support Renaming the Project
 
-**Goal**: We started this project as "Demo App", "DemoApp", "demoapp" - but we want to rename it Beaker Stack.
-And we would like to make it easy to rename this project to anything else, so it can be easily reused. The goal
-of this task os to create tools to allow "renaming" the stack, updating any public strings or app IDs that are
-string based. And to confirm that when renamed the app cleanly builds.
+**Goal**: This project is released as a GitHub Template repo named BeakerStack, with the various identifiers like:
+"Beaker Stack", "BeakerStack", "beakerstack", and "beaker-stack". We would like to make it easy to rename this
+project to anything else, so it can be easily reused. The goal of this task os to create tools to allow "renaming"
+the stack, updating any public strings or app IDs that are string based. And to confirm that when renamed the app
+cleanly builds.
+
 **Scope**:
 
 - Audit all packages (`apps/web`, `apps/mobile`, `packages/*`) and configuration files for hard-coded project names, bundle IDs, display names, URLs, Supabase project references, and GitHub identifiers.
@@ -680,8 +682,9 @@ string based. And to confirm that when renamed the app cleanly builds.
 **Deliverables**:
 
 - A Node script (e.g. `scripts/rename-project.mjs`) plus an accompanying npm script (`npm run rename -- --from "Demo App" --to "Beaker Stack"`).
-- Updated configuration files reflecting the new project name defaults.
-- Documentation in `TASKS.md` or a dedicated `docs/renaming.md` describing supported cases, required follow-up steps, and any limitations.
+- Unit tests that validate casing transforms, dry-run/strict behaviours, and detection of missed replacements.
+- Updated configuration files reflecting the new project name defaults and automation coverage.
+- Documentation in `docs/renaming.md` describing supported cases, required follow-up steps, and any limitations.
 
 ### Task 9.2: Create PR Preview Workflow
 

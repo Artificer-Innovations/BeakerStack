@@ -1,10 +1,18 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { BRANDING } from '../../packages/shared/src/config/branding';
 
 // https://vitejs.dev/config/
+const htmlBrandingPlugin: Plugin = {
+  name: 'html-branding-transform',
+  transformIndexHtml(html: string) {
+    return html.replace(/%APP_TITLE%/g, BRANDING.displayName);
+  },
+};
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), htmlBrandingPlugin],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

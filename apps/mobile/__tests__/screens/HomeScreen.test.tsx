@@ -54,6 +54,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import HomeScreen from '../../src/screens/HomeScreen';
 import { AuthProvider } from '@shared/contexts/AuthContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { HOME_TITLE } from '@shared/utils/strings';
+import { BRANDING } from '@shared/config/branding';
 
 describe('HomeScreen', () => {
   let mockSupabaseClient: Partial<SupabaseClient>;
@@ -133,7 +135,7 @@ describe('HomeScreen', () => {
     );
 
     // Title appears in both header and main content
-    const titles = getAllByText('Welcome to Beaker Stack');
+    const titles = getAllByText(HOME_TITLE);
     expect(titles.length).toBeGreaterThan(0);
     expect(getByText(/A modern full-stack application/i)).toBeTruthy();
   });
@@ -191,7 +193,7 @@ describe('HomeScreen', () => {
     // The header should be visible with "Beaker Stack" text
     // Dashboard and Profile are in the user menu dropdown, not directly visible
     await waitFor(() => {
-      const beakerStackText = getAllByText('Beaker Stack');
+      const beakerStackText = getAllByText(BRANDING.displayName);
       expect(beakerStackText.length).toBeGreaterThan(0);
     });
   });

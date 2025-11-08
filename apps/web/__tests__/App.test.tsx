@@ -3,6 +3,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { describe, it, expect, vi } from 'vitest';
 import { AuthProvider } from '@shared/contexts/AuthContext';
 import App from '../src/App';
+import { HOME_TITLE } from '@shared/utils/strings';
 
 // Mock Supabase client
 const mockSupabaseClient = {
@@ -31,7 +32,7 @@ describe('App', () => {
 
     // Check if the home page content is rendered
     // Title appears in both header and main content
-    const titles = screen.getAllByText('Welcome to Beaker Stack');
+    const titles = screen.getAllByText(HOME_TITLE);
     expect(titles.length).toBeGreaterThan(0);
   });
 

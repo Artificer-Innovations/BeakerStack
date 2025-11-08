@@ -4,6 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import ProfileScreen from '../../src/screens/ProfileScreen';
 import { AuthProvider } from '@shared/contexts/AuthContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { BRANDING } from '@shared/config/branding';
 
 // Mock the supabase client import
 jest.mock('../../src/lib/supabase', () => {
@@ -136,7 +137,7 @@ describe('ProfileScreen', () => {
     await waitFor(
       () => {
         // The header should be visible with "Beaker Stack" text
-        const beakerStackText = getAllByText('Beaker Stack');
+        const beakerStackText = getAllByText(BRANDING.displayName);
         expect(beakerStackText.length).toBeGreaterThan(0);
       },
       { timeout: 3000 }
@@ -152,7 +153,7 @@ describe('ProfileScreen', () => {
     await waitFor(
       () => {
         // The header should be visible
-        const beakerStackText = getAllByText('Beaker Stack');
+        const beakerStackText = getAllByText(BRANDING.displayName);
         expect(beakerStackText.length).toBeGreaterThan(0);
       },
       { timeout: 3000 }
@@ -168,7 +169,7 @@ describe('ProfileScreen', () => {
     await waitFor(
       () => {
         // The header should be rendered with "Beaker Stack" text
-        const beakerStackText = getAllByText('Beaker Stack');
+        const beakerStackText = getAllByText(BRANDING.displayName);
         expect(beakerStackText.length).toBeGreaterThan(0);
       },
       { timeout: 3000 }

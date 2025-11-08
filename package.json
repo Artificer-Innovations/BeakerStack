@@ -24,7 +24,7 @@
     "gen:types:staging": "supabase gen types typescript --project-id $STAGING_PROJECT_REF > apps/mobile/src/types/database.ts && cp apps/mobile/src/types/database.ts apps/web/src/types/database.ts",
     "test": "npm run test:unit && npm run test:integration && npm run test:db",
     "test:all": "npm run test && npm run test:e2e",
-    "test:unit": "npm run test:unit:mobile && npm run test:unit:web && npm run test:unit:shared",
+    "test:unit": "npm run test:unit:mobile && npm run test:unit:web && npm run test:unit:shared && npm run test:unit:rename",
     "test:unit:mobile": "cd apps/mobile && npm test",
     "test:unit:web": "cd apps/web && npm test",
     "test:unit:shared": "cd packages/shared-tests && npm run test",
@@ -39,6 +39,7 @@
     "test:coverage:web": "cd apps/web && npm run test:coverage",
     "test:coverage:shared": "cd packages/shared-tests && npm run test:coverage",
     "test:coverage:merge": "node scripts/merge-coverage.js",
+    "test:unit:rename": "node --test scripts/__tests__/rename-project.test.mjs",
     "lint": "npm run lint:mobile; npm run lint:web; npm run lint:shared",
     "lint:mobile": "eslint apps/mobile/src --ext ts,tsx --report-unused-disable-directives",
     "lint:web": "eslint apps/web/src --ext ts,tsx --report-unused-disable-directives",
@@ -67,7 +68,8 @@
     "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules apps/*/dist apps/*/build",
     "clean:all": "npm run clean && supabase stop && docker system prune -f",
     "prepare": "husky install",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "rename": "node ./scripts/rename-project.mjs"
   },
   "devDependencies": {
     "@babel/plugin-transform-runtime": "^7.28.3",
