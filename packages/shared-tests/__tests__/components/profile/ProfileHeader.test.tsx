@@ -27,13 +27,16 @@ describe('ProfileHeader', () => {
   };
 
   it('renders profile header with all information', () => {
-    render(<ProfileHeader profile={mockProfile} />);
+    render(<ProfileHeader profile={mockProfile} email="test@example.com" />);
 
     expect(screen.getByText('Test User')).toBeInTheDocument();
     expect(screen.getByText('@testuser')).toBeInTheDocument();
+    expect(screen.getByText('test@example.com')).toBeInTheDocument();
     expect(screen.getByText('This is a test bio')).toBeInTheDocument();
     expect(screen.getByText('San Francisco, CA')).toBeInTheDocument();
-    expect(screen.getByText(/example\.com/)).toBeInTheDocument();
+    // Check for website link specifically (not just the text)
+    const websiteLink = screen.getByRole('link', { name: /example\.com/i });
+    expect(websiteLink).toBeInTheDocument();
   });
 
   it('renders message when profile is null', () => {
@@ -130,5 +133,25 @@ describe('ProfileHeader', () => {
     };
     render(<ProfileHeader profile={profileWithTrailingSlash} />);
     expect(screen.getByText(/^example\.com$/)).toBeInTheDocument();
+  });
+
+  it('renders email when provided', () => {
+    render(<ProfileHeader profile={mockProfile} email="user@example.com" />);
+    expect(screen.getByText('user@example.com')).toBeInTheDocument();
+  });
+
+  it('does not render email section when email is not provided', () => {
+    render(<ProfileHeader profile={mockProfile} email={null} />);
+    expect(screen.queryByText(/user@example.com/)).not.toBeInTheDocument();
+  });
+
+  it('renders email without other metadata', () => {
+    const profileWithoutMetadata = {
+      ...mockProfile,
+      location: null,
+      website: null,
+    };
+    render(<ProfileHeader profile={profileWithoutMetadata} email="solo@example.com" />);
+    expect(screen.getByText('solo@example.com')).toBeInTheDocument();
   });
 });

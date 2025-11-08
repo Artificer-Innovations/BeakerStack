@@ -3,14 +3,15 @@ import type { UserProfile } from '../../types/profile';
 
 export interface ProfileHeaderProps {
   profile: UserProfile | null;
+  email?: string | null;
   className?: string;
 }
 
 /**
  * ProfileHeader component for web
- * Displays user profile header with avatar, name, username, bio, location, and website
+ * Displays user profile header with avatar, name, username, email, bio, location, and website
  */
-export function ProfileHeader({ profile, className = '' }: ProfileHeaderProps) {
+export function ProfileHeader({ profile, email, className = '' }: ProfileHeaderProps) {
   if (!profile) {
     return (
       <div className={`rounded-md bg-gray-50 p-4 ${className}`}>
@@ -22,7 +23,7 @@ export function ProfileHeader({ profile, className = '' }: ProfileHeaderProps) {
   const displayName =
     profile.display_name || profile.username || 'Anonymous User';
   const username = profile.username ? `@${profile.username}` : null;
-  const hasLocationOrWebsite = profile.location || profile.website;
+  const hasMetadata = email || profile.location || profile.website;
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -33,8 +34,26 @@ export function ProfileHeader({ profile, className = '' }: ProfileHeaderProps) {
             {displayName}
           </h2>
           {username && <p className='text-sm text-gray-500 mt-1'>{username}</p>}
-          {hasLocationOrWebsite && (
+          {hasMetadata && (
             <div className='flex flex-wrap gap-4 mt-2 text-sm text-gray-600'>
+              {email && (
+                <span className='flex items-center'>
+                  <svg
+                    className='w-4 h-4 mr-1'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'
+                    />
+                  </svg>
+                  {email}
+                </span>
+              )}
               {profile.location && (
                 <span className='flex items-center'>
                   <svg

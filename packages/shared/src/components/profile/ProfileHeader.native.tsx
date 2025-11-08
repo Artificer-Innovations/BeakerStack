@@ -5,14 +5,15 @@ import { Logger } from '../../utils/logger';
 
 export interface ProfileHeaderProps {
   profile: UserProfile | null;
+  email?: string | null;
   style?: ViewStyle;
 }
 
 /**
  * ProfileHeader component for React Native
- * Displays user profile header with avatar, name, username, bio, location, and website
+ * Displays user profile header with avatar, name, username, email, bio, location, and website
  */
-export function ProfileHeader({ profile, style }: ProfileHeaderProps) {
+export function ProfileHeader({ profile, email, style }: ProfileHeaderProps) {
   if (!profile) {
     return (
       <View style={[styles.container, styles.emptyContainer, style]}>
@@ -24,7 +25,7 @@ export function ProfileHeader({ profile, style }: ProfileHeaderProps) {
   const displayName =
     profile.display_name || profile.username || 'Anonymous User';
   const username = profile.username ? `@${profile.username}` : null;
-  const hasLocationOrWebsite = profile.location || profile.website;
+  const hasMetadata = email || profile.location || profile.website;
 
   const handleWebsitePress = () => {
     if (profile.website) {
@@ -47,8 +48,16 @@ export function ProfileHeader({ profile, style }: ProfileHeaderProps) {
               {username}
             </Text>
           )}
-          {hasLocationOrWebsite && (
+          {hasMetadata && (
             <View style={styles.metaRow}>
+              {email && (
+                <View style={styles.metaItem}>
+                  <Text style={styles.metaIcon}>✉️</Text>
+                  <Text style={styles.metaText} numberOfLines={1}>
+                    {email}
+                  </Text>
+                </View>
+              )}
               {profile.location && (
                 <View style={styles.metaItem}>
                   <Text style={styles.metaIcon}>📍</Text>
