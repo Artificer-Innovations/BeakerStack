@@ -643,7 +643,7 @@ did not work. We did however remove the stubs for apple login; and will have to 
 
 ## Phase 9: CI/CD Pipeline
 
-### Task 9.1: Create Test Workflow
+### DONE - Task 9.1: Create Test Workflow
 
 **Goal**: Set up GitHub Actions for running tests on PRs
 **Scope**: Unit tests, integration tests, linting, type checking
@@ -661,21 +661,59 @@ did not work. We did however remove the stubs for apple login; and will have to 
 
 ---
 
+### Task 9.1b: Support Renaming the Project
+
+**Goal**: We started this project as "Demo App", "DemoApp", "demoapp" - but we want to rename it Beaker Stack.
+And we would like to make it easy to rename this project to anything else, so it can be easily reused. The goal
+of this task os to create tools to allow "renaming" the stack, updating any public strings or app IDs that are
+string based. And to confirm that when renamed the app cleanly builds.
+**Scope**:
+
+- Audit all packages (`apps/web`, `apps/mobile`, `packages/*`) and configuration files for hard-coded project names, bundle IDs, display names, URLs, Supabase project references, and GitHub identifiers.
+- Implement a reusable rename workflow (script + documentation) that accepts source and target names (e.g. camelCase, PascalCase, kebab-case) and applies consistent replacements.
+- Update Expo/EAS configs, iOS bundle identifiers, Android application IDs, web metadata, Supabase config, CI/CD workflow files, and any docs that surface the project name.
+- Provide guidance for regenerating platform-specific artifacts (e.g. `ios` and `android` directories if needed) after running the rename.
+  **Tests**:
+- Unit: Add coverage for rename utilities (e.g. casing transforms, dry-run validation, detection of missing replacements).
+- Manual: Use the rename command to switch the stack from “Beaker Stack” to a new sample name, rebuild all apps (`web`, `mobile`, backend services if applicable), and verify clean builds and correct naming in app metadata.
+
+**Deliverables**:
+
+- A Node script (e.g. `scripts/rename-project.mjs`) plus an accompanying npm script (`npm run rename -- --from "Demo App" --to "Beaker Stack"`).
+- Updated configuration files reflecting the new project name defaults.
+- Documentation in `TASKS.md` or a dedicated `docs/renaming.md` describing supported cases, required follow-up steps, and any limitations.
+
 ### Task 9.2: Create PR Preview Workflow
 
 **Goal**: Set up automated PR preview deployments
-**Scope**: Database reset, web deployment, mobile updates
+**Scope**:
+
+- Provision and configure all external infrastructure required for preview environments
+- Automate database reset/seeding and Supabase configuration for each preview
+- Build and publish web app previews to temporary S3/CloudFront targets
+- Build and publish mobile app previews via Expo EAS update channels
+- Document every manual prerequisite so future contributors can reproduce the setup
+
 **Tests**:
 
 - Unit: Workflow should deploy PR previews successfully
-- Manual: PR should create preview environment
+- Unit: AWS/Supabase automation scripts should pass dry-run validation (e.g. `--no-execute-changeset`, `--dry-run`)
+- Manual: PR should create preview environment end-to-end using fresh infrastructure
+- Manual: Documentation steps should enable a new maintainer to provision required external services
 
 **Deliverables**:
 
 - `.github/workflows/pr-preview-environment.yml`
-- Database reset logic
-- Web deployment to S3/CloudFront
-- Mobile EAS update deployment
+- `infra/aws/pr-preview-stack.yml` (CloudFormation or CDK synth output defining S3 bucket, CloudFront distribution, IAM roles, and supporting resources)
+- `scripts/pr-preview/bootstrap-aws-stack.sh` (idempotent CLI helper that deploys/updates the AWS stack and exports required secrets)
+- Database reset logic (`scripts/pr-preview/reset-preview-database.sh`) integrated with Supabase CLI or SQL migrations
+- Web deployment automation (`scripts/pr-preview/deploy-web.sh`) targeting the preview S3/CloudFront resources
+- Mobile EAS update automation (`scripts/pr-preview/deploy-mobile.sh`) including channel creation and cleanup routines
+- Documentation at `docs/pr-preview-setup.md` detailing:
+  - Required AWS, Supabase, Expo/EAS accounts and permissions
+  - One-time provisioning steps (with CLI commands) before the workflow runs
+  - Secrets/parameters that must be added to GitHub Actions, Supabase, and Expo
+  - Troubleshooting tips and teardown instructions for preview environments
 
 ---
 

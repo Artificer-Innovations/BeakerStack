@@ -11,6 +11,7 @@ const { spawnSync } = require('child_process');
 
 const mobileRoot = path.join(__dirname, '..');
 const patchesDir = path.join(mobileRoot, 'patches');
+const projectRoot = path.join(mobileRoot, '..', '..');
 
 if (!fs.existsSync(patchesDir)) {
   process.exit(0);
@@ -24,10 +25,17 @@ if (patchFiles.length === 0) {
   process.exit(0);
 }
 
+const candidateNodeModules = [
+  path.join(mobileRoot, 'node_modules'),
+  path.join(mobileRoot, '..', 'node_modules'),
+  path.join(mobileRoot, '..', '..', 'node_modules'),
+].map(dir => path.resolve(dir));
+
 const needsPatch = patchFiles.some(file => {
   const packageName = file.replace(/\.patch$/, '').replace(/\+[^+]+$/, '');
-  const moduleDir = path.join(mobileRoot, 'node_modules', packageName);
-  return fs.existsSync(moduleDir);
+  return candidateNodeModules.some(nodeModulesDir =>
+    fs.existsSync(path.join(nodeModulesDir, packageName))
+  );
 });
 
 if (!needsPatch) {
@@ -37,10 +45,16 @@ if (!needsPatch) {
   process.exit(0);
 }
 
-const result = spawnSync('npx', ['patch-package'], {
-  cwd: mobileRoot,
-  stdio: 'inherit',
-});
+const relativePatchDir = path.relative(projectRoot, patchesDir);
+
+const result = spawnSync(
+  'npx',
+  ['patch-package', '--patch-dir', relativePatchDir],
+  {
+    cwd: projectRoot,
+    stdio: 'inherit',
+  }
+);
 
 if (result.error) {
   console.error(result.error);
