@@ -161,7 +161,7 @@ fi
 echo ""
 echo "Step 8: Applying patches..."
 cd "$PROJECT_ROOT"
-npx patch-package 2>/dev/null || {
+node apps/mobile/scripts/apply-patches.js 2>/dev/null || {
   echo "  ⚠️  Could not apply patches (this may be OK if no patches exist)"
 }
 cd apps/mobile

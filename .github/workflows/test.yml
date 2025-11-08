@@ -1,0 +1,202 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      SUPABASE_URL: http://127.0.0.1:54321
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+      SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.3a1SuBbAPEU4S9r0iEmL4YI9P_HT8bjemN7Dz9f1hQ0
+      VITE_SUPABASE_URL: http://127.0.0.1:54321
+      VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+      TEST_EMAIL: ci-test@example.com
+      TEST_PASSWORD: TestPassword123!
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.54.11
+
+      - name: Start Supabase services
+        run: |
+          mkdir -p .supabase/logs
+          # Exclude non-essential services to speed up CI startup
+          supabase start -x studio,imgproxy,inbucket,edge-runtime,analytics > .supabase/logs/start.log 2>&1
+          supabase status > .supabase/logs/status.log 2>&1
+          cat .supabase/logs/status.log
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Run tests with coverage
+        id: run-tests
+        continue-on-error: true
+        run: |
+          mkdir -p ci
+          set -o pipefail
+          (
+            npm run test:integration &&
+            npm run test:db &&
+            npm run test:coverage
+          ) 2>&1 | tee ci/test-output.log
+
+      - name: Build coverage summary
+        id: build-summary
+        if: always()
+        run: |
+          mkdir -p ci
+          node scripts/format-ci-summary.mjs \
+            --coverage coverage/coverage-summary.json \
+            --test-log ci/test-output.log \
+            --json-output ci/summary.json \
+            --markdown-output ci/comment.md
+          {
+            printf 'comment<<EOF_COMMENT\n'
+            cat ci/comment.md
+            printf '\nEOF_COMMENT\n'
+          } >> "$GITHUB_OUTPUT"
+          tests_failed=$(node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync('ci/summary.json','utf8')); process.stdout.write(String(data.tests.suites.failed || 0));")
+          echo "tests_failed=$tests_failed" >> "$GITHUB_OUTPUT"
+
+      - name: Comment coverage summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- coverage-comment -->';
+            const body = process.env.COMMENT_BODY?.trim();
+            if (!body) {
+              core.info('No comment body provided; skipping.');
+              return;
+            }
+
+            const canWrite =
+              (context.eventName === 'pull_request' &&
+                context.payload.pull_request &&
+                context.payload.pull_request.head.repo.full_name ===
+                  context.repo.owner + '/' + context.repo.repo) ||
+              process.env.GITHUB_TOKEN_SCOPE?.includes('write');
+
+            if (!canWrite) {
+              core.warning(
+                'GITHUB_TOKEN lacks write permission (likely a fork PR); skipping comment.'
+              );
+              return;
+            }
+
+            try {
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                per_page: 100,
+              });
+
+              const existing = comments.find(comment =>
+                comment.body.includes(marker)
+              );
+
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existing.id,
+                  body,
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.payload.pull_request.number,
+                  body,
+                });
+              }
+            } catch (error) {
+              if (error.status === 403) {
+                core.warning(
+                  `Insufficient permissions to comment on PR: ${error.message}`
+                );
+                return;
+              }
+              throw error;
+            }
+        env:
+          COMMENT_BODY: ${{ steps.build-summary.outputs.comment }}
+
+      - name: Upload coverage summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-summary
+          path: coverage/
+          if-no-files-found: warn
+
+      - name: Upload package coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-packages
+          path: |
+            apps/web/coverage
+            apps/mobile/coverage
+            packages/shared-tests/coverage
+          if-no-files-found: warn
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            **/junit*.xml
+            **/test-results/**/*.xml
+            **/jest-stare/**/*.html
+          if-no-files-found: warn
+
+      - name: Upload Supabase logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-logs
+          path: .supabase/logs
+          if-no-files-found: warn
+
+      - name: Fail job if tests failed
+        if: steps.run-tests.outcome == 'failure'
+        run: exit 1
+
+      - name: Stop Supabase services
+        if: always()
+        run: supabase stop || true
+
