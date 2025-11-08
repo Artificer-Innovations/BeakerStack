@@ -1,6 +1,6 @@
 # OAuth Setup Guide for Production
 
-This guide walks you through setting up Google and Apple OAuth for your DemoApp in production. The OAuth implementation is already complete in the codebase - you just need to configure the OAuth providers.
+This guide walks you through setting up Google and Apple OAuth for your Beaker Stack in production. The OAuth implementation is already complete in the codebase - you just need to configure the OAuth providers.
 
 ---
 
@@ -52,7 +52,7 @@ This guide walks you through setting up Google and Apple OAuth for your DemoApp 
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Click "Select a project" → "New Project"
-3. Enter project name: `DemoApp` (or your preferred name)
+3. Enter project name: `Beaker Stack` (or your preferred name)
 4. Click "Create"
 5. Wait for project creation (usually ~30 seconds)
 
@@ -70,7 +70,7 @@ This guide walks you through setting up Google and Apple OAuth for your DemoApp 
 2. Select "External" user type
 3. Click "Create"
 4. Fill in required fields:
-   - **App name**: `DemoApp`
+   - **App name**: `Beaker Stack`
    - **User support email**: Your email
    - **Developer contact email**: Your email
 5. Click "Save and Continue"
@@ -89,7 +89,7 @@ This guide walks you through setting up Google and Apple OAuth for your DemoApp 
 1. Go to "APIs & Services" → "Credentials"
 2. Click "Create Credentials" → "OAuth client ID"
 3. Select "Web application"
-4. Enter name: `DemoApp Web Client`
+4. Enter name: `Beaker Stack Web Client`
 5. **Authorized JavaScript origins**:
    ```
    http://localhost:5173
@@ -135,8 +135,8 @@ If you want OAuth to work in the mobile app:
 4. Select "App IDs" → Click "Continue"
 5. Select "App" → Click "Continue"
 6. Fill in:
-   - **Description**: `DemoApp`
-   - **Bundle ID**: `com.yourcompany.demoapp` (must match your app)
+   - **Description**: `Beaker Stack`
+   - **Bundle ID**: `com.yourcompany.beakerstack` (must match your app)
 7. Under "Capabilities", check "Sign in with Apple"
 8. Click "Continue" → "Register"
 
@@ -145,14 +145,14 @@ If you want OAuth to work in the mobile app:
 1. Go back to "Identifiers" → "+" button
 2. Select "Services IDs" → Click "Continue"
 3. Fill in:
-   - **Description**: `DemoApp Web`
-   - **Identifier**: `com.yourcompany.demoapp.web`
+   - **Description**: `Beaker Stack Web`
+   - **Identifier**: `com.yourcompany.beakerstack.web`
 4. Check "Sign in with Apple"
 5. Click "Continue" → "Register"
 
 ### Step 3: Configure Sign in with Apple
 
-1. Click on your Services ID (`com.yourcompany.demoapp.web`)
+1. Click on your Services ID (`com.yourcompany.beakerstack.web`)
 2. Check "Sign in with Apple"
 3. Click "Configure"
 4. **Primary App ID**: Select your App ID from Step 1
@@ -174,7 +174,7 @@ If you want OAuth to work in the mobile app:
 ### Step 4: Create a Private Key
 
 1. Go to "Keys" → "+" button
-2. Enter **Key Name**: `DemoApp Sign in with Apple Key`
+2. Enter **Key Name**: `Beaker Stack Sign in with Apple Key`
 3. Check "Sign in with Apple"
 4. Click "Configure"
 5. Select your Primary App ID
@@ -192,7 +192,7 @@ If you want OAuth to work in the mobile app:
 
 You'll need these values:
 
-- **Services ID**: `com.yourcompany.demoapp.web`
+- **Services ID**: `com.yourcompany.beakerstack.web`
 - **Team ID**: From Step 5
 - **Key ID**: From Step 4
 - **Private Key**: Contents of the .p8 file from Step 4
@@ -220,7 +220,7 @@ You'll need these values:
 
 4. **Configure Apple**:
    - Toggle "Apple" to enabled
-   - Enter **Services ID** (e.g., `com.yourcompany.demoapp.web`)
+   - Enter **Services ID** (e.g., `com.yourcompany.beakerstack.web`)
    - Enter **Team ID**
    - Enter **Key ID**
    - Paste **Private Key** (entire contents of .p8 file)

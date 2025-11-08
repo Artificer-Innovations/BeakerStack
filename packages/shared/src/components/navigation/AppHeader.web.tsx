@@ -25,7 +25,7 @@ export function AppHeader({ supabaseClient }: AppHeaderProps) {
             <Link to='/' className='flex items-center'>
               <img
                 src='/demo-flask-icon.svg'
-                alt='Demo App'
+                alt='Beaker Stack'
                 className='w-8 h-8'
               />
             </Link>
@@ -33,7 +33,7 @@ export function AppHeader({ supabaseClient }: AppHeaderProps) {
               to='/'
               className='text-xl font-semibold text-gray-900 hover:text-gray-700'
             >
-              Demo App
+              Beaker Stack
             </Link>
           </div>
 

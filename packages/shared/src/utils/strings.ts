@@ -1,7 +1,7 @@
 // Shared string constants for consistent messaging across platforms
 
 export const HOME_STRINGS = {
-  title: 'Welcome to Demo App',
+  title: 'Welcome to Beaker Stack',
   subtitle:
     'A modern full-stack application with React, React Native, and Supabase',
 } as const;

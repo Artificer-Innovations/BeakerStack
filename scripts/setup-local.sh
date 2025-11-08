@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Setup Local Development Environment
-# This script sets up the local development environment for the Demo App
+# This script sets up the local development environment for the Beaker Stack
 
 set -e
 

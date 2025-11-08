@@ -114,7 +114,7 @@ describe('HomePage', () => {
       await renderWithAuth(<HomePage />, false);
 
       // Title appears in both header and main content, check that it exists
-      const titles = screen.getAllByText('Welcome to Demo App');
+      const titles = screen.getAllByText('Welcome to Beaker Stack');
       expect(titles.length).toBeGreaterThan(0);
       expect(
         screen.getByText(/A modern full-stack application/i)

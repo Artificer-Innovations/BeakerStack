@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Development Helper Script for Demo App
+# Development Helper Script for Beaker Stack
 # This script helps manage development processes and port conflicts
 
 set -e
@@ -65,7 +65,7 @@ clean_all() {
     
     # Kill processes on common ports
     kill_port 8081 "Metro/React Native"
-    kill_port 8082 "Demo App Mobile"
+    kill_port 8082 "Beaker Stack Mobile"
     kill_port 5173 "Vite/Web App"
     kill_port 4173 "Vite Preview"
     kill_port 54321 "Supabase Local"
@@ -141,7 +141,7 @@ case "${1:-help}" in
         kill_port "$2" "Process"
         ;;
     "help"|*)
-        echo "Demo App Development Helper"
+        echo "Beaker Stack Development Helper"
         echo ""
         echo "Usage: $0 <command>"
         echo ""

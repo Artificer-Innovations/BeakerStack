@@ -17,8 +17,9 @@ if (envResult.error) {
 // Use console.warn instead if needed, or check in the app runtime
 
 const config = {
-  name: 'demo-app',
-  slug: 'demo-app',
+  name: 'Beaker Stack',
+  slug: 'beaker-stack',
+  scheme: 'beaker-stack',
   version: '1.0.0',
   orientation: 'portrait',
   platforms: ['ios', 'android'],
@@ -29,7 +30,7 @@ const config = {
   },
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.anonymous.demoapp',
+    bundleIdentifier: 'com.anonymous.beakerstack',
     infoPlist: {
       LSApplicationQueriesSchemes: [
         'com.googleusercontent.apps.75693205997-6r5f5nvmjnjhhehsm5j9baqsh6lej1rf',
@@ -41,7 +42,7 @@ const config = {
     },
   },
   android: {
-    package: 'com.anonymous.demoapp',
+    package: 'com.anonymous.beakerstack',
     adaptiveIcon: {
       foregroundImage: './assets/icon.png',
       backgroundColor: '#ffffff',

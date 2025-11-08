@@ -1,43 +1,13 @@
 diff --git a/node_modules/react-native/React/Fabric/RCTThirdPartyFabricComponentsProvider.h b/node_modules/react-native/React/Fabric/RCTThirdPartyFabricComponentsProvider.h
 new file mode 100644
-index 0000000..8aa9b28
---- /dev/null
-+++ b/node_modules/react-native/React/Fabric/RCTThirdPartyFabricComponentsProvider.h
-@@ -0,0 +1,23 @@
-+#pragma GCC diagnostic push
-+#pragma GCC diagnostic ignored "-Wreturn-type-c-linkage"
-+
-+#import <React/RCTComponentViewProtocol.h>
-+#import <react/renderer/componentregistry/ComponentDescriptorProviderRegistry.h>
-+
-+#ifdef __cplusplus
-+extern "C" {
-+#endif
-+
-+Class<RCTComponentViewProtocol> RCTThirdPartyFabricComponentsProvider(const char *name);
-+
-+#ifdef __cplusplus
-+}
-+#endif
-+
-+namespace facebook::react {
-+
-+ComponentDescriptorProviderRegistry RCTThirdPartyFabricComponentsProvider();
-+
-+} // namespace facebook::react
-+
-+#pragma GCC diagnostic pop
+index 0000000..e69de29
 diff --git a/node_modules/react-native/React/Fabric/RCTThirdPartyFabricComponentsProvider.mm b/node_modules/react-native/React/Fabric/RCTThirdPartyFabricComponentsProvider.mm
 new file mode 100644
-index 0000000..0103bb2
+index 0000000..deead0e
 --- /dev/null
 +++ b/node_modules/react-native/React/Fabric/RCTThirdPartyFabricComponentsProvider.mm
-@@ -0,0 +1,14 @@
+@@ -0,0 +1,10 @@
 +#import "RCTThirdPartyFabricComponentsProvider.h"
-+
-+Class<RCTComponentViewProtocol> RCTThirdPartyFabricComponentsProvider(const char * /*name*/) {
-+  return nil;
-+}
 +
 +namespace facebook::react {
 +

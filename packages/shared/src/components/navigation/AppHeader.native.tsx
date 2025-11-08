@@ -119,7 +119,7 @@ export function AppHeader({ supabaseClient }: AppHeaderProps) {
               />
             </Svg>
           </View>
-          <Text style={styles.title}>Demo App</Text>
+          <Text style={styles.title}>Beaker Stack</Text>
         </TouchableOpacity>
 
         {/* Right side: Auth buttons or user menu */}

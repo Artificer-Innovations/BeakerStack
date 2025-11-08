@@ -102,7 +102,7 @@ describe('DashboardPage', () => {
     // Dashboard title should be visible
     expect(screen.getByText('Welcome to your dashboard!')).toBeInTheDocument();
     // Header should be visible
-    expect(screen.getByText('Demo App')).toBeInTheDocument();
+    expect(screen.getByText('Beaker Stack')).toBeInTheDocument();
   });
 
   it('displays user email when authenticated', async () => {
@@ -111,7 +111,7 @@ describe('DashboardPage', () => {
     // Email is in the header's UserMenu dropdown, not directly visible
     // Check that the header is rendered instead
     await waitFor(() => {
-      expect(screen.getByText('Demo App')).toBeInTheDocument();
+      expect(screen.getByText('Beaker Stack')).toBeInTheDocument();
     });
   });
 
@@ -120,14 +120,14 @@ describe('DashboardPage', () => {
 
     // Sign out is in the UserMenu dropdown, need to click avatar to see it
     // For now, just verify the header is rendered
-    expect(screen.getByText('Demo App')).toBeInTheDocument();
+    expect(screen.getByText('Beaker Stack')).toBeInTheDocument();
   });
 
   it('shows home link', async () => {
     await renderWithAuth(<DashboardPage />);
 
-    // Home link is the "Demo App" text/icon in the header
-    const homeLinks = screen.getAllByRole('link', { name: /demo app/i });
+    // Home link is the "Beaker Stack" text/icon in the header
+    const homeLinks = screen.getAllByRole('link', { name: /beaker stack/i });
     expect(homeLinks.length).toBeGreaterThan(0);
   });
 
@@ -155,7 +155,7 @@ describe('DashboardPage', () => {
       });
     } else {
       // If we can't find the avatar, just verify the page renders
-      expect(screen.getByText('Demo App')).toBeInTheDocument();
+      expect(screen.getByText('Beaker Stack')).toBeInTheDocument();
     }
   });
 
@@ -163,13 +163,13 @@ describe('DashboardPage', () => {
     // This test is no longer applicable since sign out is in the dropdown
     // Just verify the page renders
     await renderWithAuth(<DashboardPage />);
-    expect(screen.getByText('Demo App')).toBeInTheDocument();
+    expect(screen.getByText('Beaker Stack')).toBeInTheDocument();
   });
 
   it('navigates even if sign out API call fails (graceful degradation)', async () => {
     // This test is no longer applicable since sign out is in the dropdown
     // Just verify the page renders
     await renderWithAuth(<DashboardPage />);
-    expect(screen.getByText('Demo App')).toBeInTheDocument();
+    expect(screen.getByText('Beaker Stack')).toBeInTheDocument();
   });
 });

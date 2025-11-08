@@ -10,7 +10,7 @@ appId: ${MOBILE_APP_ID}
 - waitForAnimationToEnd
 
 # Verify home page loaded
-- assertVisible: "Welcome to Demo App"
+- assertVisible: "Welcome to Beaker Stack"
 
 # Verify Sign Up button exists
 - assertVisible: "Sign Up"

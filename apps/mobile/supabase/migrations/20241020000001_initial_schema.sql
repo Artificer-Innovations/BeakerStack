@@ -1,4 +1,4 @@
--- Initial schema setup for Demo App
+-- Initial schema setup for Beaker Stack
 -- This migration sets up the basic database structure
 
 -- Enable necessary extensions

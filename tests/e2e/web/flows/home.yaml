@@ -11,7 +11,7 @@ url: ${WEB_URL}
 - waitForAnimationToEnd
 
 # Verify home page loaded - wait up to 5 seconds for text to appear
-- assertVisible: "Welcome to Demo App"
+- assertVisible: "Welcome to Beaker Stack"
 
 # Verify Sign Up button exists
 - assertVisible: "Sign Up"

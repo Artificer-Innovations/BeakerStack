@@ -124,7 +124,7 @@ describe('ProfilePage', () => {
     await renderWithAuth(<ProfilePage />);
 
     // Profile page should render with header
-    expect(screen.getByText('Demo App')).toBeInTheDocument();
+    expect(screen.getByText('Beaker Stack')).toBeInTheDocument();
     // Profile content should render
     await waitFor(() => {
       expect(screen.getByTestId('profile-header')).toBeInTheDocument();
@@ -134,9 +134,9 @@ describe('ProfilePage', () => {
   it('displays navigation links', async () => {
     await renderWithAuth(<ProfilePage />);
 
-    // Navigation links are in the header - check for home link (Demo App)
+    // Navigation links are in the header - check for home link (Beaker Stack)
     await waitFor(() => {
-      const homeLinks = screen.getAllByRole('link', { name: /demo app/i });
+      const homeLinks = screen.getAllByRole('link', { name: /beaker stack/i });
       expect(homeLinks.length).toBeGreaterThan(0);
     });
   });
@@ -147,7 +147,7 @@ describe('ProfilePage', () => {
     // Email is in the header's UserMenu dropdown, not directly visible
     // Check that the header is rendered instead
     await waitFor(() => {
-      expect(screen.getByText('Demo App')).toBeInTheDocument();
+      expect(screen.getByText('Beaker Stack')).toBeInTheDocument();
     });
   });
 
@@ -156,7 +156,7 @@ describe('ProfilePage', () => {
     await renderWithAuth(<ProfilePage />);
 
     // The page should render even during loading
-    expect(screen.getByText('Demo App')).toBeInTheDocument();
+    expect(screen.getByText('Beaker Stack')).toBeInTheDocument();
   });
 
   it('renders profile components when profile exists', async () => {
@@ -192,7 +192,7 @@ describe('ProfilePage', () => {
     await renderWithAuth(<ProfilePage />);
 
     // Verify page renders - components will render once profile loads
-    expect(screen.getByText('Demo App')).toBeInTheDocument();
+    expect(screen.getByText('Beaker Stack')).toBeInTheDocument();
 
     // Wait for profile to load
     await waitFor(() => {
@@ -204,7 +204,7 @@ describe('ProfilePage', () => {
     await renderWithAuth(<ProfilePage />);
 
     // Verify page renders
-    expect(screen.getByText('Demo App')).toBeInTheDocument();
+    expect(screen.getByText('Beaker Stack')).toBeInTheDocument();
 
     // Wait for profile header to render (shows "No profile")
     await waitFor(() => {
@@ -217,7 +217,7 @@ describe('ProfilePage', () => {
 
     // The page should render regardless of profile loading state
     await waitFor(() => {
-      expect(screen.getByText('Demo App')).toBeInTheDocument();
+      expect(screen.getByText('Beaker Stack')).toBeInTheDocument();
     });
   });
 });

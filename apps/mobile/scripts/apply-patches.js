@@ -49,7 +49,7 @@ const relativePatchDir = path.relative(projectRoot, patchesDir);
 
 const result = spawnSync(
   'npx',
-  ['patch-package', '--patch-dir', relativePatchDir],
+  ['patch-package', '--patch-dir', relativePatchDir, '--error-on-fail'],
   {
     cwd: projectRoot,
     stdio: 'inherit',

@@ -138,7 +138,7 @@ describe('Mobile App', () => {
 
     // Check if the app content is rendered
     // Title appears in both header and main content
-    const titles = getAllByText('Welcome to Demo App');
+    const titles = getAllByText('Welcome to Beaker Stack');
     expect(titles.length).toBeGreaterThan(0);
   });
 

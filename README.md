@@ -1,4 +1,4 @@
-# Demo App
+# Beaker Stack
 
 A full-stack monorepo with React Native mobile app, React web app, and Supabase backend.
 
@@ -31,7 +31,7 @@ A full-stack monorepo with React Native mobile app, React web app, and Supabase 
 
    ```bash
    git clone <repository-url>
-   cd demo-app
+   cd BeakerStack
    npm install
    ```
 
@@ -68,7 +68,7 @@ A full-stack monorepo with React Native mobile app, React web app, and Supabase 
 ## Project Structure
 
 ```
-demo-app/
+BeakerStack/
 ├── apps/
 │   ├── mobile/          # React Native app
 │   └── web/             # React web app

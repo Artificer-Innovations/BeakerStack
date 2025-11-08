@@ -2,7 +2,7 @@
 # https://supabase.com/docs/guides/local-development/cli/config
 # A string used to distinguish different Supabase projects on the same host. Defaults to the
 # working directory name when running `supabase init`.
-project_id = "DemoApp"
+project_id = "BeakerStack"
 
 [api]
 enabled = true
@@ -125,7 +125,7 @@ site_url = "http://localhost:5173"
 additional_redirect_urls = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
-  "demo-app://auth/callback",
+  "beaker-stack://auth/callback",
   "exp://127.0.0.1:8081/--/auth/callback",
   "exp://localhost:8081/--/auth/callback"
 ]

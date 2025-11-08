@@ -26,8 +26,8 @@ cd "$PROJECT_ROOT"
 cd apps/mobile
 
 # Package/bundle identifiers (from app.json)
-ANDROID_PACKAGE="com.anonymous.demoapp"
-IOS_BUNDLE_ID="com.anonymous.demoapp"
+ANDROID_PACKAGE="com.anonymous.beakerstack"
+IOS_BUNDLE_ID="com.anonymous.beakerstack"
 
 # Function to check if Android device/emulator is connected
 check_android_device() {

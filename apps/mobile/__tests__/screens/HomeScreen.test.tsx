@@ -133,7 +133,7 @@ describe('HomeScreen', () => {
     );
 
     // Title appears in both header and main content
-    const titles = getAllByText('Welcome to Demo App');
+    const titles = getAllByText('Welcome to Beaker Stack');
     expect(titles.length).toBeGreaterThan(0);
     expect(getByText(/A modern full-stack application/i)).toBeTruthy();
   });
@@ -188,11 +188,11 @@ describe('HomeScreen', () => {
       true
     );
 
-    // The header should be visible with "Demo App" text
+    // The header should be visible with "Beaker Stack" text
     // Dashboard and Profile are in the user menu dropdown, not directly visible
     await waitFor(() => {
-      const demoAppText = getAllByText('Demo App');
-      expect(demoAppText.length).toBeGreaterThan(0);
+      const beakerStackText = getAllByText('Beaker Stack');
+      expect(beakerStackText.length).toBeGreaterThan(0);
     });
   });
 

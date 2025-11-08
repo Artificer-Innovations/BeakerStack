@@ -31,7 +31,7 @@ describe('App', () => {
 
     // Check if the home page content is rendered
     // Title appears in both header and main content
-    const titles = screen.getAllByText('Welcome to Demo App');
+    const titles = screen.getAllByText('Welcome to Beaker Stack');
     expect(titles.length).toBeGreaterThan(0);
   });
 

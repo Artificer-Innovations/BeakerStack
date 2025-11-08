@@ -32,7 +32,7 @@
     "test:db": "supabase test db",
     "test:e2e": "npm run test:e2e:web && npm run test:e2e:mobile",
     "test:e2e:web": "export PATH=\"$PATH:$HOME/.maestro/bin\" && maestro test tests/e2e/web/flows/home.yaml --env WEB_URL=\"${WEB_URL:-http://localhost:5173}\" --env TEST_EMAIL=\"${TEST_EMAIL:-e2e-test-$(date +%s)@example.com}\" --env TEST_PASSWORD=\"${TEST_PASSWORD:-TestPassword123!}\"",
-    "test:e2e:mobile": "export PATH=\"$PATH:$HOME/.maestro/bin\" && maestro test tests/e2e/mobile/flows/home.yaml --env MOBILE_APP_ID=\"${MOBILE_APP_ID:-com.anonymous.demoapp}\" --env TEST_EMAIL=\"${TEST_EMAIL:-e2e-test-$(date +%s)@example.com}\" --env TEST_PASSWORD=\"${TEST_PASSWORD:-TestPassword123!}\"",
+    "test:e2e:mobile": "export PATH=\"$PATH:$HOME/.maestro/bin\" && maestro test tests/e2e/mobile/flows/home.yaml --env MOBILE_APP_ID=\"${MOBILE_APP_ID:-com.anonymous.beakerstack}\" --env TEST_EMAIL=\"${TEST_EMAIL:-e2e-test-$(date +%s)@example.com}\" --env TEST_PASSWORD=\"${TEST_PASSWORD:-TestPassword123!}\"",
     "test:watch": "concurrently \"cd apps/mobile && npm run test:watch\" \"cd apps/web && npm run test:watch\" \"cd packages/shared-tests && npm run test:web -- --watch\" \"cd packages/shared-tests && npm run test:native -- --watch\"",
     "test:coverage": "npm run test:coverage:mobile && npm run test:coverage:web && npm run test:coverage:shared && npm run test:coverage:merge",
     "test:coverage:mobile": "cd apps/mobile && npm test -- --coverage --passWithNoTests",

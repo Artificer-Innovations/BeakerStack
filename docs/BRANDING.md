@@ -1,6 +1,6 @@
 # Branding Guide
 
-This document describes how to customize the branding for the Demo App, including the app icon, colors, and display strings.
+This document describes how to customize the branding for the Beaker Stack, including the app icon, colors, and display strings.
 
 ## App Icon
 
@@ -122,7 +122,7 @@ The favicon files are referenced in `apps/web/index.html` with appropriate link 
 
 ### Display Name
 
-The app name "Demo App" appears in:
+The app name "Beaker Stack" appears in:
 
 - **Web header**: `packages/shared/src/components/navigation/AppHeader.web.tsx`
 - **Mobile header**: `packages/shared/src/components/navigation/AppHeader.native.tsx`

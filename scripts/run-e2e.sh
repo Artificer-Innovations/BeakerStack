@@ -7,7 +7,7 @@ set -e
 ENVIRONMENT=${1:-local}
 PR_NUMBER=${2:-}
 WEB_URL=""
-MOBILE_APP_ID="com.anonymous.demoapp"
+MOBILE_APP_ID="com.anonymous.beakerstack"
 
 # Determine environment URLs
 case "$ENVIRONMENT" in

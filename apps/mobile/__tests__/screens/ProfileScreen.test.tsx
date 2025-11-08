@@ -135,9 +135,9 @@ describe('ProfileScreen', () => {
     // Profile screen should render with header
     await waitFor(
       () => {
-        // The header should be visible with "Demo App" text
-        const demoAppText = getAllByText('Demo App');
-        expect(demoAppText.length).toBeGreaterThan(0);
+        // The header should be visible with "Beaker Stack" text
+        const beakerStackText = getAllByText('Beaker Stack');
+        expect(beakerStackText.length).toBeGreaterThan(0);
       },
       { timeout: 3000 }
     );
@@ -152,8 +152,8 @@ describe('ProfileScreen', () => {
     await waitFor(
       () => {
         // The header should be visible
-        const demoAppText = getAllByText('Demo App');
-        expect(demoAppText.length).toBeGreaterThan(0);
+        const beakerStackText = getAllByText('Beaker Stack');
+        expect(beakerStackText.length).toBeGreaterThan(0);
       },
       { timeout: 3000 }
     );
@@ -167,9 +167,9 @@ describe('ProfileScreen', () => {
     // Dashboard should appear in the header menu
     await waitFor(
       () => {
-        // The header should be rendered with "Demo App" text
-        const demoAppText = getAllByText('Demo App');
-        expect(demoAppText.length).toBeGreaterThan(0);
+        // The header should be rendered with "Beaker Stack" text
+        const beakerStackText = getAllByText('Beaker Stack');
+        expect(beakerStackText.length).toBeGreaterThan(0);
       },
       { timeout: 3000 }
     );

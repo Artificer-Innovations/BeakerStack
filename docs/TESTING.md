@@ -217,7 +217,7 @@ describe('Auth Flow Integration', () => {
 3. **For Mobile E2E Tests:**
    - App must be built and installed on device/simulator
    - Simulator/emulator must be running
-   - Set `MOBILE_APP_ID` environment variable (defaults to `com.anonymous.demoapp`)
+   - Set `MOBILE_APP_ID` environment variable (defaults to `com.anonymous.beakerstack`)
 
 ### Running E2E Tests
 
@@ -242,7 +242,7 @@ describe('Auth Flow Integration', () => {
    export TEST_PASSWORD="TestPassword123!"
 
    # Set mobile app ID (for mobile tests)
-   export MOBILE_APP_ID="com.anonymous.demoapp"
+   export MOBILE_APP_ID="com.anonymous.beakerstack"
    ```
 
 3. **Ensure the web app is running** (for web E2E tests):
@@ -295,7 +295,7 @@ npm run test:e2e:mobile
 # Or run directly with Maestro (with custom app ID)
 export PATH="$PATH:$HOME/.maestro/bin"
 maestro test tests/e2e/mobile/flows/home.yaml \
-  --env MOBILE_APP_ID="com.anonymous.demoapp" \
+ --env MOBILE_APP_ID="com.anonymous.beakerstack" \
   --env TEST_EMAIL="e2e-test-$(date +%s)@example.com" \
   --env TEST_PASSWORD="TestPassword123!"
 
@@ -316,7 +316,7 @@ url: ${WEB_URL} # Use 'url:' for web, 'appId:' for mobile
 ---
 - launchApp
 - waitForAnimationToEnd
-- assertVisible: 'Welcome to Demo App'
+- assertVisible: 'Welcome to Beaker Stack'
 - assertVisible: 'Sign Up'
 - tapOn: 'Sign Up'
 - waitForAnimationToEnd
@@ -740,8 +740,8 @@ appId: ${WEB_URL}
   - Ensure a simulator/emulator is running:
     - iOS: Open Simulator app or check with `xcrun simctl list devices | grep Booted`
     - Android: Check with `adb devices` (should show a device)
-  - Verify the app ID matches: `com.anonymous.demoapp` (or set `MOBILE_APP_ID` env var)
-  - Try uninstalling and reinstalling: `cd apps/mobile && npm run ios:uninstall && npm run ios`
+- Verify the app ID matches: `com.anonymous.beakerstack` (or set `MOBILE_APP_ID` env var)
+- Try uninstalling and reinstalling: `cd apps/mobile && npm run ios:uninstall && npm run ios`
 
 **Problem:** "Invalid File Path" error with runScript
 

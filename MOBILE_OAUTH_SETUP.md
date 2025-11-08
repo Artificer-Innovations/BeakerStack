@@ -16,7 +16,7 @@ This guide explains how OAuth works in the mobile app (iOS and Android) vs the w
 1. User clicks "Sign in with Google"
 2. App opens OAuth in browser (using Expo AuthSession)
 3. User authorizes → Google redirects to Supabase
-4. Supabase redirects to `demo-app://auth/callback` (deep link)
+4. Supabase redirects to `beaker-stack://auth/callback` (deep link)
 5. Deep link opens the app → App handles callback and sets session
 
 ## Configuration Completed
@@ -28,7 +28,7 @@ This guide explains how OAuth works in the mobile app (iOS and Android) vs the w
 
 ✅ **Updated `app.json`:**
 
-- Added `scheme: "demo-app"` for deep linking
+- Added `scheme: "beaker-stack"` for deep linking
 - Added iOS `bundleIdentifier` and Android `package`
 
 ✅ **Created Mobile OAuth Handler:**
@@ -74,13 +74,13 @@ This guide explains how OAuth works in the mobile app (iOS and Android) vs the w
 
 **Issue: OAuth opens browser but app doesn't reopen after auth**
 
-- Solution: Verify `scheme: "demo-app"` is in `app.json`
+- Solution: Verify `scheme: "beaker-stack"` is configured in your Expo app (`app.config.ts` or `app.json`)
 - Solution: Restart Expo dev server after changing `app.json`
 
 **Issue: "redirect_uri_mismatch" error in mobile**
 
-- Solution: The mobile redirect URL (`demo-app://auth/callback`) is automatically handled by Supabase
-- Solution: Ensure Supabase config includes `demo-app://auth/callback` in `additional_redirect_urls`
+- Solution: The mobile redirect URL (`beaker-stack://auth/callback`) is automatically handled by Supabase
+- Solution: Ensure Supabase config includes `beaker-stack://auth/callback` in `additional_redirect_urls`
 
 **Issue: Deep link not working**
 
