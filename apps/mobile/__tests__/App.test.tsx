@@ -26,21 +26,33 @@ jest.mock('@shared/hooks/useAuth', () => ({
 }));
 
 // Mock the Supabase client module entirely
-jest.mock('../src/lib/supabase', () => ({
-  supabase: {
-    from: jest.fn(() => ({
-      select: jest.fn().mockResolvedValue({ data: [], error: null }),
-    })),
-    auth: {
-      getSession: jest
-        .fn()
-        .mockResolvedValue({ data: { session: null }, error: null }),
-      onAuthStateChange: jest.fn(() => ({
-        data: { subscription: { unsubscribe: jest.fn() } },
+jest.mock('../src/lib/supabase', () => {
+  const mockChannel: any = {
+    on: jest.fn().mockReturnThis(),
+    subscribe: jest.fn((callback: (status: string) => void) => {
+      callback('SUBSCRIBED');
+      return mockChannel;
+    }),
+  };
+
+  return {
+    supabase: {
+      from: jest.fn(() => ({
+        select: jest.fn().mockResolvedValue({ data: [], error: null }),
       })),
+      auth: {
+        getSession: jest
+          .fn()
+          .mockResolvedValue({ data: { session: null }, error: null }),
+        onAuthStateChange: jest.fn(() => ({
+          data: { subscription: { unsubscribe: jest.fn() } },
+        })),
+      },
+      channel: jest.fn(() => mockChannel),
+      removeChannel: jest.fn().mockResolvedValue({ status: 'ok', error: null }),
     },
-  },
-}));
+  };
+});
 
 // Mock AuthContext to avoid needing the full provider setup in tests
 jest.mock('@shared/contexts/AuthContext', () => ({
@@ -54,6 +66,20 @@ jest.mock('@shared/contexts/AuthContext', () => ({
     signUp: jest.fn(),
     signOut: jest.fn(),
     signInWithGoogle: jest.fn(),
+  }),
+}));
+
+// Mock ProfileContext to avoid needing the full provider setup in tests
+jest.mock('@shared/contexts/ProfileContext', () => ({
+  ProfileProvider: ({ children }: any) => children,
+  useProfileContext: () => ({
+    profile: null,
+    loading: false,
+    error: null,
+    fetchProfile: jest.fn(),
+    createProfile: jest.fn(),
+    updateProfile: jest.fn(),
+    refreshProfile: jest.fn(),
   }),
 }));
 

@@ -11,6 +11,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useAuthContext } from '@shared/contexts/AuthContext';
+import { useProfileContext } from '@shared/contexts/ProfileContext';
 import { useProfile } from '@shared/hooks/useProfile';
 import { supabase } from '../lib/supabase';
 import { Logger } from '@shared/utils/logger';
@@ -190,7 +191,7 @@ export function DebugTools() {
                 Test the ProfileEditor component - edit your profile and save
                 changes.
               </Text>
-              <ProfileEditorTestMobile supabase={supabase} user={auth.user} />
+              <ProfileEditorTestMobile />
               <Text style={styles.testNote}>
                 ✓ Edit profile fields and click "Update Profile" or "Create
                 Profile"
@@ -801,13 +802,10 @@ function FormComponentsTestMobile() {
 }
 
 // ProfileEditor test component for mobile
-function ProfileEditorTestMobile({
-  supabase,
-  user,
-}: {
-  supabase: import('@supabase/supabase-js').SupabaseClient;
-  user: import('@supabase/supabase-js').User;
-}) {
+function ProfileEditorTestMobile() {
+  const auth = useAuthContext();
+  const profileContext = useProfileContext();
+  const user = profileContext.currentUser ?? auth.user;
   const [componentsLoaded, setComponentsLoaded] = useState(false);
   const [ProfileEditor, setProfileEditor] = useState<React.ComponentType<
     import('@shared/components/profile/ProfileEditor.native').ProfileEditorProps
@@ -844,8 +842,6 @@ function ProfileEditorTestMobile({
     <View key='profile-editor-container' style={{ width: '100%' }}>
       <ProfileEditor
         key={`profile-editor-${user?.id || 'no-user'}`}
-        supabaseClient={supabase}
-        user={user}
         onSuccess={() => {
           Logger.debug('[ProfileEditorTest] onSuccess callback fired');
           Alert.alert('Success', 'Profile saved successfully!');

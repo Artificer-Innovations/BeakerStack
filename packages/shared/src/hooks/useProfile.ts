@@ -1,5 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import type { SupabaseClient, User } from '@supabase/supabase-js';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type {
+  SupabaseClient,
+  User,
+  RealtimeChannel,
+} from '@supabase/supabase-js';
 import type {
   UserProfile,
   UserProfileInsert,
@@ -9,6 +13,8 @@ import type { TablesInsert } from '../types/database';
 import { Logger } from '../utils/logger';
 
 export interface ProfileHookReturn {
+  supabaseClient: SupabaseClient;
+  currentUser: User | null;
   profile: UserProfile | null;
   loading: boolean;
   error: Error | null;
@@ -23,6 +29,142 @@ export interface ProfileHookReturn {
   ) => Promise<UserProfile>;
   refreshProfile: () => Promise<void>;
 }
+
+// ============================================================================
+// Singleton Realtime Registry
+// ============================================================================
+// This ensures only ONE channel per userId exists globally, shared across all
+// hook instances. Each hook adds/removes its listener; the channel is only
+// unsubscribed when the last listener is removed.
+
+type RealtimeListener = (profile: UserProfile | null) => void;
+
+interface ChannelEntry {
+  channel: RealtimeChannel;
+  listeners: Set<RealtimeListener>;
+}
+
+class ProfileRealtimeRegistry {
+  private channels = new Map<string, ChannelEntry>();
+
+  subscribe(
+    supabaseClient: SupabaseClient,
+    userId: string,
+    listener: RealtimeListener
+  ): () => void {
+    let entry = this.channels.get(userId);
+
+    if (!entry) {
+      Logger.debug(
+        '[ProfileRealtimeRegistry] Creating new channel for user:',
+        userId
+      );
+
+      const channel = supabaseClient
+        .channel(`profile:${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'user_profiles',
+            filter: `user_id=eq.${userId}`,
+          },
+          payload => {
+            Logger.debug(
+              '[ProfileRealtimeRegistry] Received realtime update:',
+              payload
+            );
+
+            const entry = this.channels.get(userId);
+            if (!entry) return;
+
+            let newProfile: UserProfile | null = null;
+            if (
+              payload.eventType === 'INSERT' ||
+              payload.eventType === 'UPDATE'
+            ) {
+              newProfile = payload.new as UserProfile;
+              Logger.debug(
+                '[ProfileRealtimeRegistry] Broadcasting update to',
+                entry.listeners.size,
+                'listeners'
+              );
+            } else if (payload.eventType === 'DELETE') {
+              Logger.debug(
+                '[ProfileRealtimeRegistry] Broadcasting delete to',
+                entry.listeners.size,
+                'listeners'
+              );
+            }
+
+            // Fan-out to all listeners
+            entry.listeners.forEach(fn => fn(newProfile));
+          }
+        )
+        .subscribe(status => {
+          Logger.debug(
+            '[ProfileRealtimeRegistry] Channel status for user',
+            userId,
+            ':',
+            status
+          );
+        });
+
+      entry = { channel, listeners: new Set() };
+      this.channels.set(userId, entry);
+    }
+
+    // Add this listener
+    entry.listeners.add(listener);
+    Logger.debug(
+      '[ProfileRealtimeRegistry] Added listener for user',
+      userId,
+      '(total:',
+      entry.listeners.size,
+      ')'
+    );
+
+    // Return unsubscribe function
+    return () => {
+      const entry = this.channels.get(userId);
+      if (!entry) return;
+
+      entry.listeners.delete(listener);
+      Logger.debug(
+        '[ProfileRealtimeRegistry] Removed listener for user',
+        userId,
+        '(remaining:',
+        entry.listeners.size,
+        ')'
+      );
+
+      // If no listeners remain, tear down the channel
+      if (entry.listeners.size === 0) {
+        Logger.debug(
+          '[ProfileRealtimeRegistry] No listeners remain, unsubscribing channel for user:',
+          userId
+        );
+        // Check if unsubscribe exists before calling it
+        if (typeof entry.channel.unsubscribe === 'function') {
+          entry.channel.unsubscribe().catch(err => {
+            Logger.warn(
+              '[ProfileRealtimeRegistry] Channel unsubscribe error:',
+              err
+            );
+          });
+        } else {
+          Logger.warn(
+            '[ProfileRealtimeRegistry] Channel does not have unsubscribe method'
+          );
+        }
+        this.channels.delete(userId);
+      }
+    };
+  }
+}
+
+const realtimeRegistry = new ProfileRealtimeRegistry();
 
 export function useProfile(
   supabaseClient: SupabaseClient,
@@ -68,15 +210,54 @@ export function useProfile(
     [supabaseClient]
   );
 
+  const supabaseClientRef = useRef(supabaseClient);
+
+  useEffect(() => {
+    supabaseClientRef.current = supabaseClient;
+  }, [supabaseClient]);
+
   // Auto-fetch profile when user changes
   useEffect(() => {
     if (user) {
-      fetchProfile(user.id);
+      fetchProfile(user.id).catch(err => {
+        // Error is already set in state by fetchProfile
+        // Catch here to prevent unhandled promise rejection
+        Logger.error('[useProfile] Initial fetchProfile call failed:', err);
+      });
     } else {
       setProfile(null);
       setLoading(false);
     }
   }, [user?.id, fetchProfile]);
+
+  // Subscribe to realtime updates using the singleton registry
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    Logger.debug(
+      '[useProfile] Subscribing to realtime updates for user:',
+      user.id
+    );
+
+    // Create a stable listener callback
+    const listener = (newProfile: UserProfile | null) => {
+      Logger.debug('[useProfile] Received profile update from registry');
+      setProfile(newProfile);
+    };
+
+    // Subscribe via the registry
+    const client = supabaseClientRef.current;
+    const userId = user.id;
+    const unsubscribe = realtimeRegistry.subscribe(client, userId, listener);
+
+    // Cleanup: only removes this hook's listener
+    return () => {
+      Logger.debug('[useProfile] Unsubscribing listener for user:', userId);
+      unsubscribe();
+    };
+  }, [user?.id]);
 
   const createProfile = async (
     userId: string,
@@ -181,6 +362,8 @@ export function useProfile(
   };
 
   return {
+    supabaseClient,
+    currentUser: user,
     profile,
     loading,
     error,

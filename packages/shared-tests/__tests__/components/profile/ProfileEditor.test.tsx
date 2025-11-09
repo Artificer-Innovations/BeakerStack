@@ -49,7 +49,7 @@ jest.mock('@shared/src/components/forms/FormError.web', () => ({
     message ? <div data-testid='form-error'>{message}</div> : null,
 }));
 
-// Mock useProfile hook
+// Mock ProfileContext
 const mockProfile: UserProfile = {
   id: 'profile-id-1',
   user_id: 'user-id-1',
@@ -70,66 +70,75 @@ const mockUser: User = {
 
 const mockSupabaseClient = {} as SupabaseClient;
 
-jest.mock('@shared/src/hooks/useProfile', () => ({
-  useProfile: jest.fn(),
+const createContextValue = (
+  overrides: Partial<ReturnType<typeof useProfileContext>> = {}
+): ReturnType<typeof useProfileContext> =>
+  ({
+    supabaseClient: mockSupabaseClient,
+    currentUser: mockUser,
+    profile: null,
+    loading: false,
+    error: null,
+    fetchProfile: jest.fn(),
+    createProfile: jest.fn(),
+    updateProfile: jest.fn(),
+    refreshProfile: jest.fn(),
+    ...overrides,
+  }) as ReturnType<typeof useProfileContext>;
+
+jest.mock('@shared/src/contexts/ProfileContext', () => ({
+  useProfileContext: jest.fn(),
 }));
 
-import { useProfile } from '@shared/src/hooks/useProfile';
+import { useProfileContext } from '@shared/src/contexts/ProfileContext';
 
 describe('ProfileEditor', () => {
-  const mockUseProfile = useProfile as jest.MockedFunction<typeof useProfile>;
+  const mockUseProfileContext = useProfileContext as jest.MockedFunction<
+    typeof useProfileContext
+  >;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseProfile.mockReturnValue({
-      profile: null,
-      loading: false,
-      error: null,
-      fetchProfile: jest.fn(),
-      createProfile: jest.fn().mockResolvedValue(mockProfile),
-      updateProfile: jest.fn().mockResolvedValue(mockProfile),
-      refreshProfile: jest.fn(),
-    });
+    mockUseProfileContext.mockReturnValue(
+      createContextValue({
+        createProfile: jest.fn().mockResolvedValue(mockProfile),
+        updateProfile: jest.fn().mockResolvedValue(mockProfile),
+      })
+    );
   });
 
   it('renders message when user is not logged in', () => {
-    render(<ProfileEditor supabaseClient={mockSupabaseClient} user={null} />);
+    mockUseProfileContext.mockReturnValue(
+      createContextValue({
+        currentUser: null,
+      })
+    );
+
+    render(<ProfileEditor />);
     expect(
       screen.getByText('Please sign in to edit your profile.')
     ).toBeInTheDocument();
   });
 
   it('renders loading message when profile is loading', () => {
-    mockUseProfile.mockReturnValue({
-      profile: null,
-      loading: true,
-      error: null,
-      fetchProfile: jest.fn(),
-      createProfile: jest.fn(),
-      updateProfile: jest.fn(),
-      refreshProfile: jest.fn(),
-    });
-
-    render(
-      <ProfileEditor supabaseClient={mockSupabaseClient} user={mockUser} />
+    mockUseProfileContext.mockReturnValue(
+      createContextValue({
+        loading: true,
+      })
     );
+
+    render(<ProfileEditor />);
     expect(screen.getByText('Loading profile...')).toBeInTheDocument();
   });
 
   it('initializes form with existing profile data', async () => {
-    mockUseProfile.mockReturnValue({
-      profile: mockProfile,
-      loading: false,
-      error: null,
-      fetchProfile: jest.fn(),
-      createProfile: jest.fn(),
-      updateProfile: jest.fn(),
-      refreshProfile: jest.fn(),
-    });
-
-    render(
-      <ProfileEditor supabaseClient={mockSupabaseClient} user={mockUser} />
+    mockUseProfileContext.mockReturnValue(
+      createContextValue({
+        profile: mockProfile,
+      })
     );
+
+    render(<ProfileEditor />);
 
     await waitFor(() => {
       const usernameInput = screen.getByTestId(
@@ -148,19 +157,13 @@ describe('ProfileEditor', () => {
   });
 
   it('updates form data when user types', async () => {
-    mockUseProfile.mockReturnValue({
-      profile: mockProfile,
-      loading: false,
-      error: null,
-      fetchProfile: jest.fn(),
-      createProfile: jest.fn(),
-      updateProfile: jest.fn(),
-      refreshProfile: jest.fn(),
-    });
-
-    render(
-      <ProfileEditor supabaseClient={mockSupabaseClient} user={mockUser} />
+    mockUseProfileContext.mockReturnValue(
+      createContextValue({
+        profile: mockProfile,
+      })
     );
+
+    render(<ProfileEditor />);
 
     await waitFor(() => {
       const usernameInput = screen.getByTestId(
@@ -172,19 +175,9 @@ describe('ProfileEditor', () => {
   });
 
   it('validates and shows field errors for invalid input', async () => {
-    mockUseProfile.mockReturnValue({
-      profile: null,
-      loading: false,
-      error: null,
-      fetchProfile: jest.fn(),
-      createProfile: jest.fn(),
-      updateProfile: jest.fn(),
-      refreshProfile: jest.fn(),
-    });
+    mockUseProfileContext.mockReturnValue(createContextValue());
 
-    render(
-      <ProfileEditor supabaseClient={mockSupabaseClient} user={mockUser} />
-    );
+    render(<ProfileEditor />);
 
     const usernameInput = screen.getByTestId(
       'input-username'
@@ -201,19 +194,13 @@ describe('ProfileEditor', () => {
 
   it('creates profile when no profile exists', async () => {
     const mockCreateProfile = jest.fn().mockResolvedValue(mockProfile);
-    mockUseProfile.mockReturnValue({
-      profile: null,
-      loading: false,
-      error: null,
-      fetchProfile: jest.fn(),
-      createProfile: mockCreateProfile,
-      updateProfile: jest.fn(),
-      refreshProfile: jest.fn(),
-    });
-
-    render(
-      <ProfileEditor supabaseClient={mockSupabaseClient} user={mockUser} />
+    mockUseProfileContext.mockReturnValue(
+      createContextValue({
+        createProfile: mockCreateProfile,
+      })
     );
+
+    render(<ProfileEditor />);
 
     const submitButton = screen.getByTestId('submit-button');
     fireEvent.click(submitButton);
@@ -228,19 +215,14 @@ describe('ProfileEditor', () => {
 
   it('updates profile when profile exists', async () => {
     const mockUpdateProfile = jest.fn().mockResolvedValue(mockProfile);
-    mockUseProfile.mockReturnValue({
-      profile: mockProfile,
-      loading: false,
-      error: null,
-      fetchProfile: jest.fn(),
-      createProfile: jest.fn(),
-      updateProfile: mockUpdateProfile,
-      refreshProfile: jest.fn(),
-    });
-
-    render(
-      <ProfileEditor supabaseClient={mockSupabaseClient} user={mockUser} />
+    mockUseProfileContext.mockReturnValue(
+      createContextValue({
+        profile: mockProfile,
+        updateProfile: mockUpdateProfile,
+      })
     );
+
+    render(<ProfileEditor />);
 
     await waitFor(() => {
       const submitButton = screen.getByTestId('submit-button');
@@ -260,23 +242,13 @@ describe('ProfileEditor', () => {
 
   it('calls onSuccess callback after successful submission', async () => {
     const mockOnSuccess = jest.fn();
-    mockUseProfile.mockReturnValue({
-      profile: null,
-      loading: false,
-      error: null,
-      fetchProfile: jest.fn(),
-      createProfile: jest.fn().mockResolvedValue(mockProfile),
-      updateProfile: jest.fn(),
-      refreshProfile: jest.fn(),
-    });
-
-    render(
-      <ProfileEditor
-        supabaseClient={mockSupabaseClient}
-        user={mockUser}
-        onSuccess={mockOnSuccess}
-      />
+    mockUseProfileContext.mockReturnValue(
+      createContextValue({
+        createProfile: jest.fn().mockResolvedValue(mockProfile),
+      })
     );
+
+    render(<ProfileEditor onSuccess={mockOnSuccess} />);
 
     const submitButton = screen.getByTestId('submit-button');
     fireEvent.click(submitButton);
@@ -289,23 +261,13 @@ describe('ProfileEditor', () => {
   it('calls onError callback when submission fails', async () => {
     const mockOnError = jest.fn();
     const error = new Error('Database error');
-    mockUseProfile.mockReturnValue({
-      profile: null,
-      loading: false,
-      error: null,
-      fetchProfile: jest.fn(),
-      createProfile: jest.fn().mockRejectedValue(error),
-      updateProfile: jest.fn(),
-      refreshProfile: jest.fn(),
-    });
-
-    render(
-      <ProfileEditor
-        supabaseClient={mockSupabaseClient}
-        user={mockUser}
-        onError={mockOnError}
-      />
+    mockUseProfileContext.mockReturnValue(
+      createContextValue({
+        createProfile: jest.fn().mockRejectedValue(error),
+      })
     );
+
+    render(<ProfileEditor onError={mockOnError} />);
 
     const submitButton = screen.getByTestId('submit-button');
     fireEvent.click(submitButton);
@@ -317,19 +279,13 @@ describe('ProfileEditor', () => {
 
   it('displays profile error when hook has error', () => {
     const error = new Error('Failed to fetch profile');
-    mockUseProfile.mockReturnValue({
-      profile: null,
-      loading: false,
-      error,
-      fetchProfile: jest.fn(),
-      createProfile: jest.fn(),
-      updateProfile: jest.fn(),
-      refreshProfile: jest.fn(),
-    });
-
-    render(
-      <ProfileEditor supabaseClient={mockSupabaseClient} user={mockUser} />
+    mockUseProfileContext.mockReturnValue(
+      createContextValue({
+        error,
+      })
     );
+
+    render(<ProfileEditor />);
 
     expect(screen.getByTestId('form-error')).toHaveTextContent(
       'Failed to fetch profile'

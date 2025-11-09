@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@shared/types/database';
+import { Logger } from '@shared/utils/logger';
 
 import Constants from 'expo-constants';
 // Handle both expoConfig (SDK 49+) and manifest (older SDKs)
@@ -37,6 +38,17 @@ if (!supabaseUrl) {
 
 if (!supabaseAnonKey) {
   throw new Error('Missing EXPO_PUBLIC_SUPABASE_ANON_KEY environment variable');
+}
+
+if (__DEV__) {
+  const realtimeUrl = supabaseUrl.replace(/^http(s?)/, (_, secure) =>
+    secure ? 'wss' : 'ws'
+  );
+  Logger.debug('[mobile.supabase] HTTP base URL:', supabaseUrl);
+  Logger.debug(
+    '[mobile.supabase] Realtime websocket URL:',
+    `${realtimeUrl}/realtime/v1/websocket`
+  );
 }
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {

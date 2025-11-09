@@ -33,9 +33,19 @@ jest.mock('../../src/lib/supabase', () => {
     select: mockSelect,
   }));
 
+  const mockChannel: any = {
+    on: jest.fn().mockReturnThis(),
+    subscribe: jest.fn((callback: (status: string) => void) => {
+      callback('SUBSCRIBED');
+      return mockChannel;
+    }),
+  };
+
   return {
     supabase: {
       from: mockFrom,
+      channel: jest.fn(() => mockChannel),
+      removeChannel: jest.fn().mockResolvedValue({ status: 'ok', error: null }),
     },
   };
 });
@@ -53,6 +63,7 @@ import { render, waitFor } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import HomeScreen from '../../src/screens/HomeScreen';
 import { AuthProvider } from '@shared/contexts/AuthContext';
+import { ProfileProvider } from '@shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { HOME_TITLE } from '@shared/utils/strings';
 import { BRANDING } from '@shared/config/branding';
@@ -85,6 +96,15 @@ describe('HomeScreen', () => {
       select: mockSelect,
     }));
 
+    // Mock realtime channel for useProfile hook
+    const mockChannel: any = {
+      on: jest.fn().mockReturnThis(),
+      subscribe: jest.fn((callback: (status: string) => void) => {
+        callback('SUBSCRIBED');
+        return mockChannel;
+      }),
+    };
+
     mockSupabaseClient = {
       auth: {
         getSession: jest.fn().mockResolvedValue({
@@ -102,6 +122,8 @@ describe('HomeScreen', () => {
         signOut: jest.fn().mockResolvedValue({ error: null }),
       },
       from: mockFrom,
+      channel: jest.fn(() => mockChannel),
+      removeChannel: jest.fn().mockResolvedValue({ status: 'ok', error: null }),
     } as any;
   });
 
@@ -122,7 +144,11 @@ describe('HomeScreen', () => {
     return render(
       <NavigationContainer>
         <AuthProvider supabaseClient={mockSupabaseClient as SupabaseClient}>
-          {ui}
+          <ProfileProvider
+            supabaseClient={mockSupabaseClient as SupabaseClient}
+          >
+            {ui}
+          </ProfileProvider>
         </AuthProvider>
       </NavigationContainer>
     );

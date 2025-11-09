@@ -3,6 +3,7 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import HomePage from '../HomePage';
 import { AuthProvider } from '@shared/contexts/AuthContext';
+import { ProfileProvider } from '@shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { HOME_TITLE } from '@shared/utils/strings';
 
@@ -33,9 +34,34 @@ vi.mock('@/lib/supabase', () => {
     select: mockSelect,
   }));
 
+  interface MockChannel {
+    on: ReturnType<typeof vi.fn>;
+    subscribe: ReturnType<typeof vi.fn>;
+    unsubscribe: ReturnType<typeof vi.fn>;
+  }
+
+  const createMockChannel = (): MockChannel => {
+    const channel = {} as MockChannel;
+
+    channel.on = vi.fn().mockImplementation(() => channel);
+    channel.subscribe = vi
+      .fn()
+      .mockImplementation((callback: (status: string) => void) => {
+        callback('SUBSCRIBED');
+        return channel;
+      });
+    channel.unsubscribe = vi
+      .fn()
+      .mockResolvedValue({ status: 'ok', error: null });
+
+    return channel;
+  };
+
   return {
     supabase: {
       from: mockFrom,
+      channel: vi.fn().mockImplementation(createMockChannel),
+      removeChannel: vi.fn().mockResolvedValue({ status: 'ok', error: null }),
     },
   };
 });
@@ -94,11 +120,32 @@ describe('HomePage', () => {
       }),
     } as unknown as SupabaseClient;
 
+    // Add channel and removeChannel methods to mock
+    const clientWithRealtime =
+      mockSupabaseClient as typeof mockSupabaseClient & {
+        channel: ReturnType<typeof vi.fn>;
+        removeChannel: ReturnType<typeof vi.fn>;
+      };
+    clientWithRealtime.channel = vi.fn().mockReturnValue({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn(callback => {
+        callback('SUBSCRIBED');
+        return { on: vi.fn().mockReturnThis(), subscribe: vi.fn() };
+      }),
+    });
+    clientWithRealtime.removeChannel = vi
+      .fn()
+      .mockResolvedValue({ status: 'ok', error: null });
+
     let result: ReturnType<typeof render> | null = null;
     await act(async () => {
       result = render(
         <BrowserRouter>
-          <AuthProvider supabaseClient={mockSupabaseClient}>{ui}</AuthProvider>
+          <AuthProvider supabaseClient={mockSupabaseClient}>
+            <ProfileProvider supabaseClient={mockSupabaseClient}>
+              {ui}
+            </ProfileProvider>
+          </AuthProvider>
         </BrowserRouter>
       );
       // Wait for the getSession promise to resolve

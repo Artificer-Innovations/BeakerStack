@@ -182,8 +182,6 @@ export function DebugTools() {
                   changes.
                 </p>
                 <ProfileEditor
-                  supabaseClient={supabase}
-                  user={auth.user}
                   onSuccess={() => {
                     alert('Profile saved successfully!');
                   }}

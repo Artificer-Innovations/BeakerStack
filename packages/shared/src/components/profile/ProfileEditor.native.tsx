@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import type { SupabaseClient, User } from '@supabase/supabase-js';
-import { useProfile } from '../../hooks/useProfile';
+import { useProfileContext } from '../../contexts/ProfileContext';
 import {
   profileFormSchema,
   transformFormToUpdate,
@@ -17,8 +16,6 @@ import { AvatarUpload } from './AvatarUpload.native';
 import { Logger } from '../../utils/logger';
 
 export interface ProfileEditorProps {
-  supabaseClient: SupabaseClient;
-  user: User | null;
   onSuccess?: () => void;
   onError?: (error: Error) => void;
   style?: ViewStyle;
@@ -58,13 +55,13 @@ const isZodErrorShape = (error: unknown): error is ZodErrorShape => {
  * Provides a form for editing user profile information
  */
 export function ProfileEditor({
-  supabaseClient,
-  user,
   onSuccess,
   onError,
   style,
 }: ProfileEditorProps) {
-  const profile = useProfile(supabaseClient, user);
+  const profile = useProfileContext();
+  const supabaseClient = profile.supabaseClient;
+  const user = profile.currentUser;
   const [formData, setFormData] = useState<ProfileFormInput>({
     username: '',
     display_name: '',

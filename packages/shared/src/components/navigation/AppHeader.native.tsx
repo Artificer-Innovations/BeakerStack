@@ -11,7 +11,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import Svg, { Circle, Path, Rect, Line } from 'react-native-svg';
 import { useAuthContext } from '../../contexts/AuthContext';
-import { useProfile } from '../../hooks/useProfile';
+import { useProfileContext } from '../../contexts/ProfileContext';
 import { UserMenu } from './UserMenu.native';
 import { BRANDING } from '../../config/branding';
 
@@ -33,10 +33,10 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
  * AppHeader component for React Native
  * Displays app icon, title, and navigation based on auth state
  */
-export function AppHeader({ supabaseClient }: AppHeaderProps) {
+export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
   const navigation = useNavigation<NavigationProp>();
   const auth = useAuthContext();
-  const profile = useProfile(supabaseClient, auth.user);
+  const profile = useProfileContext();
 
   // Get status bar height for Android
   const statusBarHeight =

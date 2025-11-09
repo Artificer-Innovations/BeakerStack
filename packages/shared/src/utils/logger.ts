@@ -13,9 +13,17 @@ const isDevEnvironment = (): boolean => {
     return __DEV__;
   }
 
-  if (typeof process !== 'undefined' && typeof process.env !== 'undefined') {
-    const env = process.env['NODE_ENV'];
-    return env !== 'production';
+  const maybeProcess =
+    typeof globalThis !== 'undefined'
+      ? (
+          globalThis as {
+            process?: { env?: Record<string, string | undefined> };
+          }
+        ).process
+      : undefined;
+
+  if (maybeProcess?.env?.['NODE_ENV']) {
+    return maybeProcess.env['NODE_ENV'] !== 'production';
   }
 
   return false;

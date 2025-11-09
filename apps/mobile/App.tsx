@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
 import { AuthProvider } from '@shared/contexts/AuthContext';
+import { ProfileProvider } from '@shared/contexts/ProfileContext';
 // Import from native-specific file for correct types
 import { configureGoogleSignIn } from '@shared/hooks/useAuth.native';
 import { Logger } from '@shared/utils/logger';
@@ -57,8 +58,10 @@ export default function App() {
 
   return (
     <AuthProvider supabaseClient={supabase}>
-      <AppNavigator />
-      <StatusBar style='auto' />
+      <ProfileProvider supabaseClient={supabase}>
+        <AppNavigator />
+        <StatusBar style='auto' />
+      </ProfileProvider>
     </AuthProvider>
   );
 }

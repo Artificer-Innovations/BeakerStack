@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { useAuthContext } from '../../contexts/AuthContext';
-import { useProfile } from '../../hooks/useProfile';
+import { useProfileContext } from '../../contexts/ProfileContext';
 import { UserMenu } from './UserMenu.web';
 import { BRANDING } from '../../config/branding';
 
@@ -13,9 +13,9 @@ export interface AppHeaderProps {
  * AppHeader component for web
  * Displays app icon, title, and navigation based on auth state
  */
-export function AppHeader({ supabaseClient }: AppHeaderProps) {
+export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
   const auth = useAuthContext();
-  const profile = useProfile(supabaseClient, auth.user);
+  const profile = useProfileContext();
 
   return (
     <div className='bg-white shadow'>

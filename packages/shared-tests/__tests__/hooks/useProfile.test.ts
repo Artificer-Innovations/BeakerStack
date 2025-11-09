@@ -18,6 +18,15 @@ const createMockSupabaseClient = () => {
     updated_at: '2024-01-01T00:00:00Z',
   };
 
+  const mockChannel = {
+    on: jest.fn().mockReturnThis(),
+    subscribe: jest.fn(callback => {
+      callback('SUBSCRIBED');
+      return mockChannel;
+    }),
+    unsubscribe: jest.fn().mockResolvedValue({ status: 'ok', error: null }),
+  };
+
   const mockClient = {
     from: jest.fn(() => ({
       select: jest.fn(() => ({
@@ -47,9 +56,11 @@ const createMockSupabaseClient = () => {
         })),
       })),
     })),
+    channel: jest.fn(() => mockChannel),
+    removeChannel: jest.fn().mockResolvedValue({ status: 'ok', error: null }),
   } as unknown as SupabaseClient;
 
-  return { mockClient, mockProfile };
+  return { mockClient, mockProfile, mockChannel };
 };
 
 const createMockUser = (): User => ({
@@ -414,5 +425,78 @@ describe('useProfile', () => {
 
     // Should not have called fetchProfile when user is null
     expect(mockClient.from).not.toHaveBeenCalled();
+  });
+
+  it('should subscribe to realtime updates when user is provided', async () => {
+    const { mockClient } = createMockSupabaseClient();
+    const mockUser = createMockUser();
+
+    renderHook(() => useProfile(mockClient, mockUser));
+
+    await waitFor(() => {
+      expect(mockClient.channel).toHaveBeenCalledWith(`profile:${mockUser.id}`);
+    });
+  });
+
+  it('should update profile when realtime UPDATE event is received', async () => {
+    const { mockClient, mockProfile } = createMockSupabaseClient();
+    const mockUser = createMockUser();
+
+    // Store the callback passed to .on()
+    let realtimeCallback: any;
+    const mockChannel = {
+      on: jest.fn((event, config, callback) => {
+        realtimeCallback = callback;
+        return mockChannel;
+      }),
+      subscribe: jest.fn(callback => {
+        callback('SUBSCRIBED');
+        return mockChannel;
+      }),
+    };
+    mockClient.channel = jest.fn(() => mockChannel);
+
+    const { result } = renderHook(() => useProfile(mockClient, mockUser));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    // Simulate a realtime UPDATE event
+    const updatedProfile = {
+      ...mockProfile,
+      display_name: 'Updated Name via Realtime',
+    };
+
+    act(() => {
+      realtimeCallback({
+        eventType: 'UPDATE',
+        new: updatedProfile,
+        old: mockProfile,
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.profile?.display_name).toBe(
+        'Updated Name via Realtime'
+      );
+    });
+  });
+
+  it('should clean up realtime subscription on unmount', async () => {
+    const { mockClient, mockChannel } = createMockSupabaseClient();
+    const mockUser = createMockUser();
+
+    const { unmount } = renderHook(() => useProfile(mockClient, mockUser));
+
+    await waitFor(() => {
+      expect(mockClient.channel).toHaveBeenCalled();
+    });
+
+    unmount();
+
+    await waitFor(() => {
+      expect(mockChannel.unsubscribe).toHaveBeenCalled();
+    });
   });
 });

@@ -119,12 +119,16 @@ file_size_limit = "50MiB"
 [auth]
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
-# in emails.
-site_url = "http://localhost:5173"
+# in emails. Can be overridden with SUPABASE_AUTH_SITE_URL environment variable.
+site_url = "env(SUPABASE_AUTH_SITE_URL)"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 additional_redirect_urls = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
+  "https://localhost:5173",
+  # For multi-device testing, set SUPABASE_ADDITIONAL_REDIRECT_URL in your .env.local
+  # Example: SUPABASE_ADDITIONAL_REDIRECT_URL=https://beaker-stack-192-168-0-196.nip.io:5173
+  "env(SUPABASE_ADDITIONAL_REDIRECT_URL)",
   "beaker-stack://auth/callback",
   "exp://127.0.0.1:8081/--/auth/callback",
   "exp://localhost:8081/--/auth/callback"

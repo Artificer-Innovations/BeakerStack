@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { SupabaseClient, User } from '@supabase/supabase-js';
-import { useProfile } from '../../hooks/useProfile';
+import { useProfileContext } from '../../contexts/ProfileContext';
 import {
   profileFormSchema,
   transformFormToUpdate,
@@ -15,8 +14,6 @@ import { AvatarUpload } from './AvatarUpload.web';
 import { Logger } from '../../utils/logger';
 
 export interface ProfileEditorProps {
-  supabaseClient: SupabaseClient;
-  user: User | null;
   onSuccess?: () => void;
   onError?: (error: Error) => void;
   className?: string;
@@ -27,13 +24,19 @@ export interface ProfileEditorProps {
  * Provides a form for editing user profile information
  */
 export function ProfileEditor({
-  supabaseClient,
-  user,
   onSuccess,
   onError,
   className = '',
 }: ProfileEditorProps) {
-  const profile = useProfile(supabaseClient, user);
+  const {
+    supabaseClient,
+    currentUser,
+    profile: profileData,
+    loading,
+    error,
+    createProfile,
+    updateProfile,
+  } = useProfileContext();
   const [formData, setFormData] = useState<ProfileFormInput>({
     username: '',
     display_name: '',
@@ -48,19 +51,19 @@ export function ProfileEditor({
 
   // Initialize form data when profile loads
   useEffect(() => {
-    if (profile.profile) {
+    if (profileData) {
       setFormData({
-        username: profile.profile['username'] || '',
-        display_name: profile.profile['display_name'] || '',
-        bio: profile.profile['bio'] || '',
-        website: profile.profile['website'] || '',
-        location: profile.profile['location'] || '',
-        avatar_url: profile.profile['avatar_url'] || '',
+        username: profileData['username'] || '',
+        display_name: profileData['display_name'] || '',
+        bio: profileData['bio'] || '',
+        website: profileData['website'] || '',
+        location: profileData['location'] || '',
+        avatar_url: profileData['avatar_url'] || '',
       });
       setFieldErrors({});
       setGeneralError(null);
     }
-  }, [profile.profile]);
+  }, [profileData]);
 
   // Clear field error when user starts typing
   const handleFieldChange = (field: keyof ProfileFormInput, value: string) => {
@@ -78,7 +81,7 @@ export function ProfileEditor({
   };
 
   const handleSubmit = async () => {
-    if (!user) {
+    if (!currentUser) {
       const error = new Error('User must be logged in to update profile');
       setGeneralError(error.message);
       onError?.(error);
@@ -94,15 +97,15 @@ export function ProfileEditor({
       const validatedData = profileFormSchema.parse(formData);
 
       // Transform to database format (empty strings -> null)
-      const updateData = profile.profile
+      const updateData = profileData
         ? transformFormToUpdate(validatedData)
         : transformFormToInsert(validatedData);
 
       // Submit to database
-      if (profile.profile) {
-        await profile.updateProfile(user.id, updateData);
+      if (profileData) {
+        await updateProfile(currentUser.id, updateData);
       } else {
-        await profile.createProfile(user.id, updateData);
+        await createProfile(currentUser.id, updateData);
       }
 
       // Success
@@ -128,7 +131,7 @@ export function ProfileEditor({
     }
   };
 
-  if (!user) {
+  if (!currentUser) {
     return (
       <div className={`rounded-md bg-yellow-50 p-4 ${className}`}>
         <p className='text-sm text-yellow-800'>
@@ -138,7 +141,7 @@ export function ProfileEditor({
     );
   }
 
-  if (profile.loading && !profile.profile) {
+  if (loading && !profileData) {
     return (
       <div className={`rounded-md bg-gray-50 p-4 ${className}`}>
         <p className='text-sm text-gray-600'>Loading profile...</p>
@@ -159,7 +162,7 @@ export function ProfileEditor({
             ? { error: fieldErrors['username'] }
             : {})}
           placeholder='Enter username (optional)'
-          disabled={isSubmitting || profile.loading}
+          disabled={isSubmitting || loading}
         />
 
         <FormInput
@@ -170,7 +173,7 @@ export function ProfileEditor({
             ? { error: fieldErrors['display_name'] }
             : {})}
           placeholder='Enter display name (optional)'
-          disabled={isSubmitting || profile.loading}
+          disabled={isSubmitting || loading}
         />
 
         <FormInput
@@ -181,7 +184,7 @@ export function ProfileEditor({
           placeholder='Tell us about yourself (optional)'
           multiline
           rows={4}
-          disabled={isSubmitting || profile.loading}
+          disabled={isSubmitting || loading}
         />
 
         <FormInput
@@ -191,7 +194,7 @@ export function ProfileEditor({
           {...(fieldErrors['website'] ? { error: fieldErrors['website'] } : {})}
           placeholder='https://example.com (optional)'
           type='url'
-          disabled={isSubmitting || profile.loading}
+          disabled={isSubmitting || loading}
         />
 
         <FormInput
@@ -202,13 +205,13 @@ export function ProfileEditor({
             ? { error: fieldErrors['location'] }
             : {})}
           placeholder='Enter your location (optional)'
-          disabled={isSubmitting || profile.loading}
+          disabled={isSubmitting || loading}
         />
 
         <AvatarUpload
-          currentAvatarUrl={profile.profile?.avatar_url || null}
+          currentAvatarUrl={profileData?.avatar_url || null}
           onUploadComplete={async url => {
-            if (user) {
+            if (currentUser) {
               Logger.debug(
                 '[ProfileEditor.web] Avatar upload complete, URL:',
                 url
@@ -222,7 +225,7 @@ export function ProfileEditor({
 
               // Update profile with new avatar URL
               if (cleanUrl) {
-                await profile.updateProfile(user.id, {
+                await updateProfile(currentUser.id, {
                   avatar_url: cleanUrl,
                 });
                 // Update form data
@@ -235,26 +238,26 @@ export function ProfileEditor({
             }
           }}
           onRemove={async () => {
-            if (user) {
+            if (currentUser) {
               // Update profile to remove avatar URL
-              await profile.updateProfile(user.id, { avatar_url: null });
+              await updateProfile(currentUser.id, { avatar_url: null });
               // Update form data
               handleFieldChange('avatar_url', '');
             }
           }}
-          userId={user?.id || ''}
+          userId={currentUser?.id || ''}
           supabaseClient={supabaseClient}
         />
       </div>
 
       {generalError && <FormError message={generalError} />}
-      {profile.error && <FormError message={profile.error.message} />}
+      {error && <FormError message={error.message} />}
 
       <FormButton
-        title={profile.profile ? 'Update Profile' : 'Create Profile'}
+        title={profileData ? 'Update Profile' : 'Create Profile'}
         onPress={handleSubmit}
-        loading={isSubmitting || profile.loading}
-        disabled={isSubmitting || profile.loading}
+        loading={isSubmitting || loading}
+        disabled={isSubmitting || loading}
       />
     </div>
   );

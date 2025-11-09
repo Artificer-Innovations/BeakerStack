@@ -3,6 +3,7 @@ import { render, waitFor } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import ProfileScreen from '../../src/screens/ProfileScreen';
 import { AuthProvider } from '@shared/contexts/AuthContext';
+import { ProfileProvider } from '@shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { BRANDING } from '@shared/config/branding';
 
@@ -19,9 +20,19 @@ jest.mock('../../src/lib/supabase', () => {
     })),
   }));
 
+  const mockChannel: any = {
+    on: jest.fn().mockReturnThis(),
+    subscribe: jest.fn((callback: (status: string) => void) => {
+      callback('SUBSCRIBED');
+      return mockChannel;
+    }),
+  };
+
   return {
     supabase: {
       from: mockFrom,
+      channel: jest.fn(() => mockChannel),
+      removeChannel: jest.fn().mockResolvedValue({ status: 'ok', error: null }),
     },
   };
 });
@@ -93,6 +104,15 @@ describe('ProfileScreen', () => {
       })),
     }));
 
+    // Mock realtime channel for useProfile hook
+    const mockChannel: any = {
+      on: jest.fn().mockReturnThis(),
+      subscribe: jest.fn((callback: (status: string) => void) => {
+        callback('SUBSCRIBED');
+        return mockChannel;
+      }),
+    };
+
     mockSupabaseClient = {
       auth: {
         getSession: jest.fn().mockResolvedValue({
@@ -115,6 +135,8 @@ describe('ProfileScreen', () => {
         signOut: jest.fn().mockResolvedValue({ error: null }),
       },
       from: mockFrom,
+      channel: jest.fn(() => mockChannel),
+      removeChannel: jest.fn().mockResolvedValue({ status: 'ok', error: null }),
     } as any;
   });
 
@@ -122,7 +144,11 @@ describe('ProfileScreen', () => {
     return render(
       <NavigationContainer>
         <AuthProvider supabaseClient={mockSupabaseClient as SupabaseClient}>
-          {ui}
+          <ProfileProvider
+            supabaseClient={mockSupabaseClient as SupabaseClient}
+          >
+            {ui}
+          </ProfileProvider>
         </AuthProvider>
       </NavigationContainer>
     );

@@ -16,6 +16,53 @@ if (envResult.error) {
 // Gradle captures stdout during builds, so we avoid console.log here
 // Use console.warn instead if needed, or check in the app runtime
 
+// Helper function to extract domain from Supabase URL for ATS exception
+function getATSExceptionDomain(supabaseUrl: string | undefined): string | null {
+  if (!supabaseUrl) return null;
+
+  try {
+    const url = new URL(supabaseUrl);
+    const hostname = url.hostname;
+
+    // Only add ATS exception for non-localhost HTTP domains (like nip.io)
+    if (
+      url.protocol === 'http:' &&
+      hostname !== 'localhost' &&
+      hostname !== '127.0.0.1' &&
+      !hostname.startsWith('192.168.') && // Skip raw IPs
+      !hostname.startsWith('10.') &&
+      !hostname.startsWith('172.')
+    ) {
+      return hostname;
+    }
+  } catch (e) {
+    // Invalid URL, ignore
+  }
+
+  return null;
+}
+
+// Build iOS App Transport Security config dynamically
+function buildATSConfig() {
+  const domain = getATSExceptionDomain(process.env.EXPO_PUBLIC_SUPABASE_URL);
+
+  if (!domain) {
+    // No ATS exception needed
+    return undefined;
+  }
+
+  return {
+    NSAllowsArbitraryLoads: false,
+    NSExceptionDomains: {
+      [domain]: {
+        NSIncludesSubdomains: true,
+        NSExceptionAllowsInsecureHTTPLoads: true,
+        NSExceptionRequiresForwardSecrecy: false,
+      },
+    },
+  };
+}
+
 const config = {
   name: 'Beaker Stack',
   slug: 'beaker-stack',
@@ -39,6 +86,8 @@ const config = {
         'This app needs access to your camera to upload profile pictures.',
       NSPhotoLibraryUsageDescription:
         'This app needs access to your photo library to upload profile pictures.',
+      // Dynamically add ATS exception for HTTP nip.io domains (development only)
+      ...(buildATSConfig() ? { NSAppTransportSecurity: buildATSConfig() } : {}),
     },
   },
   android: {

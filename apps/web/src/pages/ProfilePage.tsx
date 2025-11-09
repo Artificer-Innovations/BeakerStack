@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuthContext } from '@shared/contexts/AuthContext';
-import { useProfile } from '@shared/hooks/useProfile';
+import { useProfileContext } from '@shared/contexts/ProfileContext';
 import { supabase } from '@/lib/supabase';
 import { AppHeader } from '@shared/components/navigation/AppHeader.web';
 // Import Profile Display Components - Vite will automatically resolve .web.tsx files
@@ -13,7 +13,7 @@ import { Logger } from '@shared/utils/logger';
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const auth = useAuthContext();
-  const profile = useProfile(supabase, auth.user);
+  const profile = useProfileContext();
 
   return (
     <div className='min-h-screen bg-gray-50'>
@@ -79,8 +79,6 @@ export default function ProfilePage() {
               {isEditing && (
                 <div className='bg-white shadow rounded-lg p-6'>
                   <ProfileEditor
-                    supabaseClient={supabase}
-                    user={auth.user}
                     onSuccess={() => {
                       // Refresh profile data after successful update
                       profile.refreshProfile();

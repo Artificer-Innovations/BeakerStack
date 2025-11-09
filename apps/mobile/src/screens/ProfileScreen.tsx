@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthContext } from '@shared/contexts/AuthContext';
-import { useProfile } from '@shared/hooks/useProfile';
+import { useProfileContext } from '@shared/contexts/ProfileContext';
 import { Logger } from '@shared/utils/logger';
 import { supabase } from '../lib/supabase';
 import { AppHeader } from '@shared/components/navigation/AppHeader.native';
@@ -83,7 +83,7 @@ function ProfileScreenContent({ navigation: _navigation }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [componentsLoaded, setComponentsLoaded] = useState(false);
   const auth = useAuthContext();
-  const profile = useProfile(supabase, auth.user);
+  const profile = useProfileContext();
 
   // Lazy load ProfileEditor only when editing
   useEffect(() => {
@@ -161,8 +161,6 @@ function ProfileScreenContent({ navigation: _navigation }: Props) {
               <View style={styles.card}>
                 {componentsLoaded && ProfileEditor ? (
                   <ProfileEditor
-                    supabaseClient={supabase}
-                    user={auth.user}
                     onSuccess={() => {
                       // Refresh profile data after successful update
                       profile.refreshProfile();

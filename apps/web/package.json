@@ -31,6 +31,7 @@
     "@types/react-dom": "18.2.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
+    "@rolldown/pluginutils": "^1.0.0-beta.47",
     "@vitejs/plugin-react": "^4.1.0",
     "@vitest/coverage-v8": "^1.6.1",
     "autoprefixer": "^10.4.0",
