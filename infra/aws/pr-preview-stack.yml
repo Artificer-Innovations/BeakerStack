@@ -110,7 +110,6 @@ Resources:
           - ServerSideEncryptionConfiguration:
               - ServerSideEncryptionByDefault:
                   SSEAlgorithm: AES256
-            BucketKeyEnabled: true
           - !Ref AWS::NoValue
       LifecycleConfiguration:
         Rules:
@@ -145,7 +144,6 @@ Resources:
           - ServerSideEncryptionConfiguration:
               - ServerSideEncryptionByDefault:
                   SSEAlgorithm: AES256
-            BucketKeyEnabled: true
           - !Ref AWS::NoValue
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
@@ -181,7 +179,6 @@ Resources:
   WebsiteOriginAccessControl:
     Type: AWS::CloudFront::OriginAccessControl
     Properties:
-      Name: !Sub '${AWS::StackName}-oac'
       OriginAccessControlConfig:
         Description: Access control for PR preview website bucket
         Name: !Sub '${AWS::StackName}-oac'
