@@ -88,6 +88,8 @@ variables → Actions) before enabling the workflow.
 | `SUPABASE_PREVIEW_DB_PASSWORD` | Database password for the preview project.               |
 | `SUPABASE_PREVIEW_DB_URL`      | Connection URI (used for teardown schema drop).          |
 | `SUPABASE_ACCESS_TOKEN`        | Supabase personal access token (CLI authentication).     |
+| `PREVIEW_SUPABASE_URL`         | Supabase API URL (Settings → API → Project URL).         |
+| `PREVIEW_SUPABASE_ANON_KEY`    | Supabase anon key (Settings → API → anon public key).    |
 | `EXPO_TOKEN`                   | Expo access token with Update + Channel permissions.     |
 
 ### Variables
