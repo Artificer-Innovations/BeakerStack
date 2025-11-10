@@ -195,6 +195,9 @@ checkout_baseline() {
   git worktree add --detach "${worktree_dir}" "origin/${BASELINE_REF}" >/dev/null
   rsync -a --delete "${worktree_dir}/supabase/" "${SUPABASE_CONFIG_DIR}/"
   git worktree remove "${worktree_dir}" --force >/dev/null
+
+  # Overlay current branch migrations to ensure PR-specific changes are included.
+  rsync -a "${REPO_ROOT}/supabase/" "${SUPABASE_CONFIG_DIR}/"
 }
 
 link_supabase() {
