@@ -21,15 +21,31 @@ supabase_run() {
   local attempt=1
   local delay=5
 
+  local tmp
+  tmp="$(mktemp)"
+
   while true; do
     local status
-    "$@"
-    status=$?
+    if "$@" >"${tmp}" 2>&1; then
+      status=0
+    else
+      status=$?
+    fi
+
+    # Treat common Supabase CLI error messages as failures even if exit code is zero.
+    if grep -qiE "failed to connect|cannot find project ref|Error:" "${tmp}"; then
+      status=${status:-1}
+    fi
+
+    cat "${tmp}"
+
     if (( status == 0 )); then
+      rm -f "${tmp}"
       return 0
     fi
 
     if (( attempt >= max_attempts )); then
+      rm -f "${tmp}"
       if (( allow_fail )); then
         log "WARN" "${description} failed after ${attempt} attempt(s); continuing. (exit ${status})"
         return 0
@@ -42,6 +58,7 @@ supabase_run() {
     sleep "${delay}"
     attempt=$((attempt + 1))
     delay=$((delay * 2))
+    : >"${tmp}"
   done
 }
 
