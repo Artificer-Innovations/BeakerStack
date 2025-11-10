@@ -48,6 +48,7 @@ Optional:
 
 Environment variables:
   EXPO_TOKEN                     Required for non-interactive EAS commands
+  EXPO_PROJECT_ID                Required if .eas/project.json is absent (can be found in Expo dashboard)
 
 Outputs:
   PREVIEW_MOBILE_CHANNEL         Expo Update channel name
@@ -190,6 +191,25 @@ run_eas() {
   (cd "${PROJECT_DIR}" && EXPO_TOKEN="${EXPO_TOKEN}" "${EAS_BIN[@]}" "$@")
 }
 
+ensure_project_configured() {
+  if [[ -f "${PROJECT_DIR}/.eas/project.json" ]]; then
+    return
+  fi
+
+  if [[ -z "${EXPO_PROJECT_ID:-}" ]]; then
+    log "ERROR" ".eas/project.json not found. Set EXPO_PROJECT_ID or check in the generated file from 'eas init'."
+    exit 1
+  fi
+
+  log "INFO" "Configuring Expo project for CI (creating .eas/project.json)..."
+  run_eas init --id "${EXPO_PROJECT_ID}" --non-interactive --force >/dev/null
+
+  if [[ ! -f "${PROJECT_DIR}/.eas/project.json" ]]; then
+    log "ERROR" "Failed to configure Expo project automatically. Run 'eas init' locally and commit .eas/project.json."
+    exit 1
+  fi
+}
+
 ensure_branch_and_channel() {
   local channel
   channel="$(channel_name)"
@@ -259,6 +279,7 @@ main() {
     log "INFO" "Dry-run mode enabled; no Expo changes will be made."
   fi
 
+  ensure_project_configured
   ensure_branch_and_channel
   publish_update
   fetch_latest_update_urls

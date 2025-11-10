@@ -24,7 +24,7 @@ the helper scripts under `scripts/pr-preview/`.
 | ------------ | ------------------------------------------------------ | ----------------------------------------------------------------------------- |
 | **AWS**      | Hosts S3 bucket, CloudFront distribution, Route53 DNS. | Requires ability to create CloudFormation stacks and manage ACM certificates. |
 | **Supabase** | Dedicated preview project for PR data.                 | Service role password and API access token required.                          |
-| **Expo**     | Expo EAS Update for mobile previews.                   | Requires `EXPO_TOKEN` with channel + update permissions.                      |
+| **Expo**     | Expo EAS Update for mobile previews.                   | Requires `EXPO_TOKEN` with channel + update permissions and the Expo project’s **Project ID** (Settings → General). |
 
 ### CLI Tooling (CI)
 
@@ -104,6 +104,7 @@ variables → Actions) before enabling the workflow.
 | `PR_PREVIEW_AWS_REGION`     | AWS region for stack.      | `us-east-1`              |
 | `EXPO_ACCOUNT`              | Expo account slug.         | `artificerinnovations`   |
 | `EXPO_PROJECT_SLUG`         | Expo project slug.         | `beaker-stack`           |
+| `EXPO_PROJECT_ID`           | Expo project ID (Settings → General → Project ID). | `00000000-0000-0000-0000-000000000000` |
 
 ## Workflow Behaviour
 
@@ -196,6 +197,8 @@ All scripts support `--dry-run` and write outputs to `GITHUB_OUTPUT` (CI) or
    ```
 
 4. **Publish Expo update**
+
+   If `.eas/project.json` is missing, run `npx eas-cli init --id <Expo project ID>` inside `apps/mobile` first.
 
    ```bash
    EXPO_TOKEN=... \

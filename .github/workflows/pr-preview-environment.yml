@@ -121,6 +121,7 @@ jobs:
         shell: bash
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPO_PROJECT_ID: ${{ vars.EXPO_PROJECT_ID }}
         run: |
           set -euo pipefail
           PR_NUMBER_VALUE="${PR_NUMBER}"
