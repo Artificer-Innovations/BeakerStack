@@ -184,7 +184,7 @@ parse_args() {
 
 checkout_baseline() {
   log "INFO" "Ensuring Supabase migrations are synced with ${BASELINE_REF}..."
-  run_cmd git fetch --depth=1 origin
+  run_cmd git fetch origin "${BASELINE_REF}" --depth=1
   if [[ "${DRY_RUN}" == true ]]; then
     return
   fi
@@ -192,7 +192,7 @@ checkout_baseline() {
   # Use a temporary worktree so we don't disturb the current workspace
   local worktree_dir
   worktree_dir="$(mktemp -d "${REPO_ROOT}/.supabase-worktree-XXXX")"
-  git worktree add --detach "${worktree_dir}" "${BASELINE_REF}" >/dev/null
+  git worktree add --detach "${worktree_dir}" "origin/${BASELINE_REF}" >/dev/null
   rsync -a --delete "${worktree_dir}/supabase/" "${SUPABASE_CONFIG_DIR}/"
   git worktree remove "${worktree_dir}" --force >/dev/null
 }
