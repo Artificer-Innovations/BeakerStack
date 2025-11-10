@@ -200,10 +200,11 @@ sync_to_s3() {
     exit 1
   fi
 
-  log "INFO" "Syncing ${BUILD_DIR} to ${s3_uri}..."
+  log "INFO" "Syncing assets (excluding index.html) to ${s3_uri} with long cache TTL..."
   run_cmd aws s3 sync "${BUILD_DIR}/" "${s3_uri}/" \
     --delete \
-    --cache-control "public,max-age=60" \
+    --exclude "index.html" \
+    --cache-control "public,max-age=31536000,immutable" \
     --region "${AWS_REGION}"
 
   log "INFO" "Ensuring SPA fallback (index.html) is cached with short TTL..."
