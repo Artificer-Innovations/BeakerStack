@@ -248,8 +248,7 @@ seed_database() {
     cd "${SUPABASE_RUNTIME_DIR}"
     run_cmd env \
       SUPABASE_ACCESS_TOKEN="${SUPABASE_ACCESS_TOKEN}" \
-      supabase db seed \
-        --yes
+      supabase db seed
   )
 }
 
@@ -276,7 +275,7 @@ generate_types() {
     cd "${SUPABASE_RUNTIME_DIR}"
     env SUPABASE_ACCESS_TOKEN="${SUPABASE_ACCESS_TOKEN}" \
       supabase gen types typescript \
-        >"${shared_types}"
+        --linked >"${shared_types}"
   )
   cp "${shared_types}" "${web_types}"
   cp "${shared_types}" "${mobile_types}"
