@@ -199,23 +199,28 @@ checkout_baseline() {
 
 link_supabase() {
   log "INFO" "Linking Supabase project ${PROJECT_REF}..."
-  run_cmd env \
-    SUPABASE_ACCESS_TOKEN="${SUPABASE_ACCESS_TOKEN}" \
-    supabase link \
-      --project-ref "${PROJECT_REF}" \
-      --password "${DB_PASSWORD}" \
-      --config "${SUPABASE_CONFIG_DIR}/config.toml" \
-      --non-interactive
+  # supabase link requires running in the project directory where config.toml lives
+  (
+    cd "${SUPABASE_CONFIG_DIR}"
+    run_cmd env \
+      SUPABASE_ACCESS_TOKEN="${SUPABASE_ACCESS_TOKEN}" \
+      supabase link \
+        --project-ref "${PROJECT_REF}" \
+        --password "${DB_PASSWORD}" \
+        --non-interactive
+  )
 }
 
 reset_database() {
   log "INFO" "Resetting Supabase preview database to baseline migrations..."
-  run_cmd env \
-    SUPABASE_ACCESS_TOKEN="${SUPABASE_ACCESS_TOKEN}" \
-    supabase db reset \
-      --linked \
-      --config "${SUPABASE_CONFIG_DIR}/config.toml" \
-      --non-interactive
+  (
+    cd "${SUPABASE_CONFIG_DIR}"
+    run_cmd env \
+      SUPABASE_ACCESS_TOKEN="${SUPABASE_ACCESS_TOKEN}" \
+      supabase db reset \
+        --linked \
+        --non-interactive
+  )
 }
 
 seed_database() {
@@ -231,11 +236,13 @@ seed_database() {
   fi
 
   log "INFO" "Seeding database using ${seed_file}..."
-  run_cmd env \
-    SUPABASE_ACCESS_TOKEN="${SUPABASE_ACCESS_TOKEN}" \
-    supabase db seed \
-      --linked \
-      --config "${SUPABASE_CONFIG_DIR}/config.toml"
+  (
+    cd "${SUPABASE_CONFIG_DIR}"
+    run_cmd env \
+      SUPABASE_ACCESS_TOKEN="${SUPABASE_ACCESS_TOKEN}" \
+      supabase db seed \
+        --linked
+  )
 }
 
 generate_types() {
@@ -257,20 +264,24 @@ generate_types() {
   fi
 
   mkdir -p "$(dirname "${shared_types}")" "$(dirname "${web_types}")" "$(dirname "${mobile_types}")"
-  env SUPABASE_ACCESS_TOKEN="${SUPABASE_ACCESS_TOKEN}" \
-    supabase gen types typescript \
-      --linked \
-      --config "${SUPABASE_CONFIG_DIR}/config.toml" >"${shared_types}"
+  (
+    cd "${SUPABASE_CONFIG_DIR}"
+    env SUPABASE_ACCESS_TOKEN="${SUPABASE_ACCESS_TOKEN}" \
+      supabase gen types typescript \
+        --linked >"${shared_types}"
+  )
   cp "${shared_types}" "${web_types}"
   cp "${shared_types}" "${mobile_types}"
 }
 
 unlink_supabase() {
   log "INFO" "Unlinking Supabase project..."
-  run_cmd env \
-    SUPABASE_ACCESS_TOKEN="${SUPABASE_ACCESS_TOKEN}" \
-    supabase unlink \
-      --config "${SUPABASE_CONFIG_DIR}/config.toml"
+  (
+    cd "${SUPABASE_CONFIG_DIR}"
+    run_cmd env \
+      SUPABASE_ACCESS_TOKEN="${SUPABASE_ACCESS_TOKEN}" \
+      supabase unlink
+  )
 }
 
 main() {
