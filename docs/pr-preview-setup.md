@@ -27,6 +27,7 @@ the helper scripts under `scripts/pr-preview/`.
 | **Expo**     | Expo EAS Update for mobile previews.                   | Requires `EXPO_TOKEN` with channel + update permissions and the Expo project’s **Project ID** (Settings → General). |
 
 ### CLI Tooling (CI)
+
 All tools are installed automatically in the workflow, but when running
 locally ensure the following are available:
 
