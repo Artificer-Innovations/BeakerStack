@@ -379,27 +379,89 @@ generate_types() {
   local shared_types="${REPO_ROOT}/packages/shared/src/types/database.ts"
   local web_types="${REPO_ROOT}/apps/web/src/types/database.ts"
   local mobile_types="${REPO_ROOT}/apps/mobile/src/types/database.ts"
+  local tmp_types
+  tmp_types="$(mktemp)"
 
   log "INFO" "Generating TypeScript types..."
   if [[ "${DRY_RUN}" == true ]]; then
-    log "DRY" "env SUPABASE_DISABLE_KEYRING=1 SUPABASE_ACCESS_TOKEN=*** supabase gen types typescript --linked > ${shared_types}"
+    log "DRY" "env SUPABASE_DISABLE_KEYRING=1 SUPABASE_ACCESS_TOKEN=*** supabase gen types typescript --linked > ${tmp_types}"
+    log "DRY" "cp ${tmp_types} ${shared_types}"
     log "DRY" "cp ${shared_types} ${web_types}"
     log "DRY" "cp ${shared_types} ${mobile_types}"
+    rm -f "${tmp_types}"
     return
   fi
 
   mkdir -p "$(dirname "${shared_types}")" "$(dirname "${web_types}")" "$(dirname "${mobile_types}")"
 
+  # Generate types to a temporary file first
+  local gen_status=1
   (
     cd "${SUPABASE_RUNTIME_DIR}"
-    supabase_run "Generate Supabase types" env \
+    if supabase_run "Generate Supabase types" env \
       SUPABASE_DISABLE_KEYRING=1 \
       SUPABASE_ACCESS_TOKEN="${SUPABASE_ACCESS_TOKEN}" \
       supabase gen types typescript \
-        --linked
-  ) >"${shared_types}"
-  cp "${shared_types}" "${web_types}"
-  cp "${shared_types}" "${mobile_types}"
+        --linked >"${tmp_types}" 2>&1; then
+      gen_status=0
+    fi
+  )
+
+  # Validate the generated types file
+  if (( gen_status == 0 )) && [[ -s "${tmp_types}" ]]; then
+    # Check if the file looks like valid TypeScript (starts with expected patterns)
+    if head -n 5 "${tmp_types}" | grep -qE "^(export type|export interface|export namespace|type Database)" 2>/dev/null; then
+      # Valid TypeScript types - move to destination
+      mv "${tmp_types}" "${shared_types}"
+      cp "${shared_types}" "${web_types}"
+      cp "${shared_types}" "${mobile_types}"
+      log "INFO" "TypeScript types generated and validated successfully."
+      return 0
+    else
+      log "WARN" "Generated types file appears invalid (doesn't start with expected TypeScript patterns)."
+      log "WARN" "First few lines of generated file:"
+      head -n 10 "${tmp_types}" | while IFS= read -r line; do
+        log "WARN" "  ${line}"
+      done
+      rm -f "${tmp_types}"
+      return 1
+    fi
+  else
+    log "WARN" "Type generation failed or produced empty output."
+    if [[ -s "${tmp_types}" ]]; then
+      log "WARN" "Output from type generation:"
+      head -n 20 "${tmp_types}" | while IFS= read -r line; do
+        log "WARN" "  ${line}"
+      done
+    fi
+    rm -f "${tmp_types}"
+    return 1
+  fi
+}
+
+restore_types_from_baseline() {
+  local shared_types="${REPO_ROOT}/packages/shared/src/types/database.ts"
+  local web_types="${REPO_ROOT}/apps/web/src/types/database.ts"
+  local mobile_types="${REPO_ROOT}/apps/mobile/src/types/database.ts"
+  
+  # Normalize BASELINE_REF - handle both "main" and "origin/main" formats
+  local checkout_ref="${BASELINE_REF}"
+  if [[ "${BASELINE_REF}" != origin/* ]]; then
+    checkout_ref="origin/${BASELINE_REF}"
+  fi
+  
+  log "INFO" "Restoring type files from baseline branch ${checkout_ref}..."
+  
+  # Try to restore from baseline branch
+  if git show "${checkout_ref}:packages/shared/src/types/database.ts" >"${shared_types}" 2>/dev/null; then
+    cp "${shared_types}" "${web_types}"
+    cp "${shared_types}" "${mobile_types}"
+    log "INFO" "Type files restored from baseline branch."
+    return 0
+  else
+    log "WARN" "Could not restore type files from baseline branch ${checkout_ref}."
+    return 1
+  fi
 }
 
 unlink_supabase() {
@@ -461,6 +523,11 @@ main() {
     return 1
   fi
 
+  # Always restore types from baseline first as a safety measure
+  # This ensures we have valid types even if generation fails
+  log "INFO" "Restoring type files from baseline branch as a safety measure..."
+  restore_types_from_baseline || log "WARN" "Could not restore types from baseline (this is OK if types don't exist yet)."
+
   # If no changes detected, skip database operations
   if [[ "${SUPABASE_HAS_CHANGES}" != true ]]; then
     log "INFO" "Supabase changes skipped; retaining existing preview database and types."
@@ -478,15 +545,15 @@ main() {
       
       # Generate types only if database operations succeeded
       if generate_types; then
-        log "INFO" "TypeScript types generated successfully."
+        log "INFO" "TypeScript types generated successfully (overwriting baseline types)."
       else
-        log "WARN" "Type generation failed; existing types may be used."
+        log "WARN" "Type generation failed; using baseline types (already restored)."
         db_success=false
       fi
     else
       log "WARN" "Database operations failed (likely network/connectivity issue)."
       log "WARN" "This may be due to Supabase connection timeouts from CI runners."
-      log "WARN" "Skipping type generation - web builds will use existing types."
+      log "WARN" "Skipping type generation - using baseline types (already restored)."
       db_success=false
     fi
 
