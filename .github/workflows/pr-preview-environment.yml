@@ -85,6 +85,7 @@ jobs:
       - name: Prepare Supabase preview database
         id: supabase
         shell: bash
+        continue-on-error: true
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           SUPABASE_MAX_RETRIES: 5

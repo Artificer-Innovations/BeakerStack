@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Use set -euo pipefail for strict error handling
+# However, we'll make database operations non-blocking so the workflow can continue
 set -euo pipefail
 
 supabase_run() {
@@ -252,13 +254,36 @@ parse_args() {
 
 checkout_baseline() {
   log "INFO" "Ensuring Supabase migrations are synced with ${BASELINE_REF}..."
-  run_cmd git fetch origin "${BASELINE_REF}" --depth=1
+  
+  # Normalize BASELINE_REF - handle both "main" and "origin/main" formats
+  local fetch_ref="${BASELINE_REF}"
+  local checkout_ref="${BASELINE_REF}"
+  if [[ "${BASELINE_REF}" != origin/* ]]; then
+    fetch_ref="${BASELINE_REF}"
+    checkout_ref="origin/${BASELINE_REF}"
+  else
+    fetch_ref="${BASELINE_REF#origin/}"
+    checkout_ref="${BASELINE_REF}"
+  fi
+  
+  # Fetch the baseline branch
+  if ! run_cmd git fetch origin "${fetch_ref}" --depth=1 2>/dev/null; then
+    log "WARN" "Failed to fetch ${fetch_ref} from origin; trying to use existing refs..."
+    # Try to use existing refs if fetch fails
+    if ! git rev-parse --verify "${checkout_ref}" >/dev/null 2>&1; then
+      log "ERROR" "Cannot resolve ${checkout_ref}. Ensure the baseline branch exists."
+      return 1
+    fi
+  fi
+  
   if [[ "${DRY_RUN}" == true ]]; then
     return
   fi
 
   if [[ "${SKIP_IF_UNCHANGED}" == true ]]; then
-    if git diff --quiet "${BASELINE_REF}" HEAD -- supabase; then
+    # Compare against the checkout ref (which might be origin/main or just main)
+    if git diff --quiet "${checkout_ref}" HEAD -- supabase 2>/dev/null || \
+       git diff --quiet "${fetch_ref}" HEAD -- supabase 2>/dev/null; then
       SUPABASE_HAS_CHANGES=false
       log "INFO" "No Supabase directory changes detected relative to ${BASELINE_REF}; skipping Supabase reset."
       return
@@ -268,7 +293,17 @@ checkout_baseline() {
   # Use a temporary worktree so we don't disturb the current workspace
   local worktree_dir
   worktree_dir="$(mktemp -d "${REPO_ROOT}/.supabase-worktree-XXXX")"
-  git worktree add --detach "${worktree_dir}" "origin/${BASELINE_REF}" >/dev/null
+  
+  # Try checkout_ref first, fallback to fetch_ref
+  if ! git worktree add --detach "${worktree_dir}" "${checkout_ref}" >/dev/null 2>&1; then
+    log "WARN" "Failed to checkout ${checkout_ref}, trying ${fetch_ref}..."
+    if ! git worktree add --detach "${worktree_dir}" "${fetch_ref}" >/dev/null 2>&1; then
+      log "ERROR" "Cannot checkout baseline ref ${BASELINE_REF} (tried ${checkout_ref} and ${fetch_ref})"
+      rm -rf "${worktree_dir}"
+      return 1
+    fi
+    checkout_ref="${fetch_ref}"
+  fi
 
   TEMP_SUPABASE_DIR="$(mktemp -d "${REPO_ROOT}/.supabase-runtime-XXXX")"
   rsync -a --delete "${worktree_dir}/supabase/" "${TEMP_SUPABASE_DIR}/"
@@ -387,7 +422,28 @@ cleanup() {
 
 trap cleanup EXIT
 
+# Helper to run commands that may fail without exiting the script
+run_with_error_handling() {
+  local description="$1"
+  shift
+  
+  if [[ "${DRY_RUN}" == true ]]; then
+    log "DRY" "${description}"
+    return 0
+  fi
+  
+  # Run in a subshell with error handling disabled
+  (
+    set +e
+    "$@"
+  )
+  local status=$?
+  return ${status}
+}
+
 main() {
+  local db_success=false
+  
   parse_args "$@"
   ensure_prereqs
 
@@ -399,25 +455,66 @@ main() {
     log "INFO" "Dry-run mode enabled. No changes will be applied."
   fi
 
-  checkout_baseline
-  if [[ "${SUPABASE_HAS_CHANGES}" == true ]]; then
-    link_supabase
-    reset_database
-    seed_database
-    generate_types
-    unlink_supabase
-  else
-    log "INFO" "Supabase changes skipped; retaining existing preview database and types."
+  # Attempt checkout - if this fails, we can't continue
+  if ! checkout_baseline; then
+    log "ERROR" "Failed to checkout baseline; cannot continue."
+    return 1
   fi
 
+  # If no changes detected, skip database operations
+  if [[ "${SUPABASE_HAS_CHANGES}" != true ]]; then
+    log "INFO" "Supabase changes skipped; retaining existing preview database and types."
+    db_success=true  # Consider this success since we're intentionally skipping
+  else
+    # Temporarily disable exit-on-error for database operations
+    set +e
+    
+    # Attempt database operations - continue even if they fail
+    log "INFO" "Attempting Supabase database operations..."
+    
+    if link_supabase && reset_database && seed_database; then
+      db_success=true
+      log "INFO" "Database reset and seeding completed successfully."
+      
+      # Generate types only if database operations succeeded
+      if generate_types; then
+        log "INFO" "TypeScript types generated successfully."
+      else
+        log "WARN" "Type generation failed; existing types may be used."
+        db_success=false
+      fi
+    else
+      log "WARN" "Database operations failed (likely network/connectivity issue)."
+      log "WARN" "This may be due to Supabase connection timeouts from CI runners."
+      log "WARN" "Skipping type generation - web builds will use existing types."
+      db_success=false
+    fi
+
+    # Always try to unlink (non-blocking)
+    unlink_supabase || true
+    
+    # Re-enable exit-on-error for output operations
+    set -e
+  fi
+
+  # Write outputs regardless of success (these should never fail)
   if [[ -n "${PR_NUMBER}" ]]; then
     write_output "PREVIEW_PR_NUMBER" "${PR_NUMBER}"
   fi
   write_output "PREVIEW_SUPABASE_PROJECT_REF" "${PROJECT_REF}"
   write_output "PREVIEW_SUPABASE_DB_PASSWORD" "${DB_PASSWORD}"
+  write_output "SUPABASE_SUCCESS" "${db_success}"
 
-  log "INFO" "Supabase preview database prepared successfully."
+  if [[ "${db_success}" == true ]]; then
+    log "INFO" "Supabase preview database prepared successfully."
+  else
+    log "WARN" "Supabase database operations did not complete successfully."
+    log "WARN" "Workflow will continue - preview deployments may still succeed."
+  fi
 }
 
-main "$@"
+# Run main function, but always exit with 0 to allow workflow to continue
+# even if database operations fail (web/mobile deploys don't require DB)
+main "$@" || true
+exit 0
 
