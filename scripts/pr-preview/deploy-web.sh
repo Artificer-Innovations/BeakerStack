@@ -205,6 +205,7 @@ sync_to_s3() {
     --delete \
     --exclude "index.html" \
     --cache-control "public,max-age=31536000,immutable" \
+    --content-type-auto \
     --region "${AWS_REGION}"
 
   log "INFO" "Ensuring SPA fallback (index.html) is cached with short TTL..."
@@ -212,6 +213,16 @@ sync_to_s3() {
     --cache-control "public,max-age=60" \
     --content-type "text/html; charset=utf-8" \
     --region "${AWS_REGION}"
+  
+  log "INFO" "Verifying favicon files are deployed..."
+  local favicon_files=("favicon.ico" "favicon-16x16.png" "favicon-32x32.png" "apple-touch-icon.png" "android-chrome-192x192.png" "android-chrome-512x512.png")
+  for favicon in "${favicon_files[@]}"; do
+    if [[ -f "${BUILD_DIR}/${favicon}" ]]; then
+      log "INFO" "  ✓ ${favicon} present in build output"
+    else
+      log "WARN" "  ✗ ${favicon} missing from build output"
+    fi
+  done
 
   write_output "PREVIEW_S3_PREFIX" "${prefix}"
 }

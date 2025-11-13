@@ -20,11 +20,11 @@ the helper scripts under `scripts/pr-preview/`.
 
 ### Accounts & Services
 
-| Service      | Description                                            | Notes                                                                                                               |
-| ------------ | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| **AWS**      | Hosts S3 bucket, CloudFront distribution, Route53 DNS. | Requires ability to create CloudFormation stacks and manage ACM certificates.                                       |
-| **Supabase** | Dedicated preview project for PR data.                 | Service role password and API access token required.                                                                |
-| **Expo**     | Expo EAS Update for mobile previews.                   | Requires `EXPO_TOKEN` with channel + update permissions and the Expo project’s **Project ID** (Settings → General). |
+| Service      | Description                                            | Notes                                                                                                                                                                       |
+| ------------ | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **AWS**      | Hosts S3 bucket, CloudFront distribution, Route53 DNS. | Requires ability to create CloudFormation stacks and manage ACM certificates.                                                                                               |
+| **Supabase** | Dedicated preview project for PR data.                 | Service role password and API access token required. **Must be configured with OAuth and redirect URLs** - see [Supabase Preview Setup Guide](./supabase-preview-setup.md). |
+| **Expo**     | Expo EAS Update for mobile previews.                   | Requires `EXPO_TOKEN` with channel + update permissions and the Expo project’s **Project ID** (Settings → General).                                                         |
 
 ### CLI Tooling (CI)
 
@@ -246,6 +246,10 @@ All scripts support `--dry-run` and write outputs to `GITHUB_OUTPUT` (CI) or
 - **Reset fails due to schema differences**  
   Ensure migrations and seeds align with preview project. Review CLI logs uploaded
   as GitHub Actions artifacts.
+- **Google OAuth errors**  
+  Configure Google OAuth provider in Supabase dashboard. See [Supabase Preview Setup Guide](./supabase-preview-setup.md) for detailed instructions.
+- **Email confirmation redirects to localhost**  
+  Configure site URL and redirect URLs in Supabase dashboard for preview domains. See [Supabase Preview Setup Guide](./supabase-preview-setup.md) for detailed instructions.
 
 ### Expo EAS Issues
 
@@ -288,8 +292,21 @@ Use this list whenever you update the preview tooling:
 6. **Workflow rehearsal** – Trigger the GitHub Actions workflow on a draft PR. Validate that the comment posts links and that cleanup runs when the PR is closed.
 7. **Regression tests** – Run `npm run lint`, `npm run type-check`, and `npm test` to confirm the monorepo remains green.
 
+## Additional Configuration
+
+### Supabase Preview Environment
+
+Before deploying PR previews, you must configure your Supabase preview project for:
+
+- Google OAuth provider setup
+- Site URL and redirect URL configuration for preview domains
+- Email confirmation settings (recommended: disabled for previews)
+
+See [Supabase Preview Setup Guide](./supabase-preview-setup.md) for complete step-by-step instructions.
+
 ## References
 
 - AWS CloudFront Function docs: <https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cloudfront-functions.html>
 - Supabase CLI docs: <https://supabase.com/docs/reference/cli>
 - Expo EAS Update docs: <https://docs.expo.dev/eas-update/introduction/>
+- [Supabase Preview Setup Guide](./supabase-preview-setup.md) - Configuration instructions for Supabase preview environments
