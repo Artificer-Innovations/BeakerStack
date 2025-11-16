@@ -5,7 +5,7 @@ import HomePage from '../HomePage';
 import { AuthProvider } from '@shared/contexts/AuthContext';
 import { ProfileProvider } from '@shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { HOME_TITLE } from '@shared/utils/strings';
+import { HOME_TITLE, HOME_SUBTITLE } from '@shared/utils/strings';
 
 // Mock environment variables to prevent real Supabase client creation
 vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost:54321');
@@ -165,7 +165,7 @@ describe('HomePage', () => {
       const titles = screen.getAllByText(HOME_TITLE);
       expect(titles.length).toBeGreaterThan(0);
       expect(
-        screen.getByText(/A modern full-stack application/i)
+        screen.getByText(HOME_SUBTITLE)
       ).toBeInTheDocument();
     });
 
