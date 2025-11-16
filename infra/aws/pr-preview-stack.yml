@@ -1,0 +1,628 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Three-environment infrastructure stack (production, staging, preview).
+  Provisions S3 storage, CloudFront distributions, logging, DNS records, and
+  CloudFront Function for path-based PR preview routing on deploy.beakerstack.com.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Domain Configuration
+        Parameters:
+          - DomainName
+          - HostedZoneId
+          - CertificateArn
+      - Label:
+          default: S3 Configuration
+        Parameters:
+          - LogsBucketName
+          - EnableS3BucketEncryption
+          - LogRetentionInDays
+      - Label:
+          default: Preview Settings
+        Parameters:
+          - PreviewPrefix
+    ParameterLabels:
+      DomainName:
+        default: Root domain (e.g. beakerstack.com)
+      HostedZoneId:
+        default: Route53 hosted zone ID for the domain
+      CertificateArn:
+        default: ACM certificate ARN (us-east-1) for domain and wildcard
+      LogsBucketName:
+        default: S3 logs bucket name (leave blank to autogenerate)
+      EnableS3BucketEncryption:
+        default: Enable S3 bucket encryption
+      LogRetentionInDays:
+        default: CloudFront log retention (days)
+      PreviewPrefix:
+        default: Prefix for preview deployments (e.g. pr-)
+
+Parameters:
+  DomainName:
+    Type: String
+    Description: Apex domain used for all environments (e.g. beakerstack.com)
+  HostedZoneId:
+    Type: String
+    Description: Route53 hosted zone ID that manages the domain
+  CertificateArn:
+    Type: String
+    Description: ACM certificate ARN in us-east-1 that covers DomainName and *.DomainName
+  LogsBucketName:
+    Type: String
+    Description: Explicit S3 bucket name for logs. Leave blank to generate.
+    Default: ''
+  EnableS3BucketEncryption:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'true'
+    Description: Enable SSE-S3 encryption on buckets.
+  LogRetentionInDays:
+    Type: Number
+    Default: 90
+    MinValue: 7
+    MaxValue: 3650
+    Description: Number of days to retain access logs.
+  PreviewPrefix:
+    Type: String
+    Default: pr-
+    Description: Prefix used for preview folders (e.g. pr-123)
+
+Conditions:
+  UseProvidedLogsBucketName: !Not [!Equals [!Ref LogsBucketName, '']]
+  EncryptBuckets: !Equals [!Ref EnableS3BucketEncryption, 'true']
+
+Resources:
+  # Shared logs bucket for all CloudFront distributions
+  LogsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !If [UseProvidedLogsBucketName, !Ref LogsBucketName, !Ref AWS::NoValue]
+      AccessControl: LogDeliveryWrite
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerPreferred
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireLogs
+            Status: Enabled
+            ExpirationInDays: !Ref LogRetentionInDays
+      BucketEncryption:
+        Fn::If:
+          - EncryptBuckets
+          - ServerSideEncryptionConfiguration:
+              - ServerSideEncryptionByDefault:
+                  SSEAlgorithm: AES256
+          - !Ref AWS::NoValue
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+
+  LogsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref LogsBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AWSLogDeliveryWrite
+            Effect: Allow
+            Principal:
+              Service: delivery.logs.amazonaws.com
+            Action:
+              - s3:PutObject
+            Resource:
+              Fn::Sub:
+                - '${BucketArn}/*'
+                - BucketArn: !GetAtt LogsBucket.Arn
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: bucket-owner-full-control
+          - Sid: AWSLogDeliveryAclCheck
+            Effect: Allow
+            Principal:
+              Service: delivery.logs.amazonaws.com
+            Action:
+              - s3:GetBucketAcl
+            Resource: !GetAtt LogsBucket.Arn
+
+  # Production bucket
+  ProdBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${DomainName}-prod'
+      AccessControl: Private
+      VersioningConfiguration:
+        Status: Enabled
+      LoggingConfiguration:
+        DestinationBucketName: !Ref LogsBucket
+        LogFilePrefix: prod/
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        Fn::If:
+          - EncryptBuckets
+          - ServerSideEncryptionConfiguration:
+              - ServerSideEncryptionByDefault:
+                  SSEAlgorithm: AES256
+          - !Ref AWS::NoValue
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteIncompleteMultipartUploads
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+            Status: Enabled
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+
+  # Staging bucket
+  StagingBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${DomainName}-staging'
+      AccessControl: Private
+      VersioningConfiguration:
+        Status: Enabled
+      LoggingConfiguration:
+        DestinationBucketName: !Ref LogsBucket
+        LogFilePrefix: staging/
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        Fn::If:
+          - EncryptBuckets
+          - ServerSideEncryptionConfiguration:
+              - ServerSideEncryptionByDefault:
+                  SSEAlgorithm: AES256
+          - !Ref AWS::NoValue
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteIncompleteMultipartUploads
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+            Status: Enabled
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+
+  # Deploy/Preview bucket
+  DeployBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${DomainName}-deploy'
+      AccessControl: Private
+      VersioningConfiguration:
+        Status: Enabled
+      LoggingConfiguration:
+        DestinationBucketName: !Ref LogsBucket
+        LogFilePrefix: deploy/
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        Fn::If:
+          - EncryptBuckets
+          - ServerSideEncryptionConfiguration:
+              - ServerSideEncryptionByDefault:
+                  SSEAlgorithm: AES256
+          - !Ref AWS::NoValue
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteIncompleteMultipartUploads
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+            Status: Enabled
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+
+  # Origin Access Controls for each bucket
+  ProdOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Description: Access control for production website bucket
+        Name: !Sub '${AWS::StackName}-prod-oac'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  StagingOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Description: Access control for staging website bucket
+        Name: !Sub '${AWS::StackName}-staging-oac'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  DeployOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Description: Access control for deploy/preview website bucket
+        Name: !Sub '${AWS::StackName}-deploy-oac'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # Bucket policies allowing CloudFront access
+  ProdBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ProdBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipalRead
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action:
+              - s3:GetObject
+            Resource:
+              Fn::Sub:
+                - '${BucketArn}/*'
+                - BucketArn: !GetAtt ProdBucket.Arn
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${ProdDistribution}'
+
+  StagingBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref StagingBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipalRead
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action:
+              - s3:GetObject
+            Resource:
+              Fn::Sub:
+                - '${BucketArn}/*'
+                - BucketArn: !GetAtt StagingBucket.Arn
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${StagingDistribution}'
+
+  DeployBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DeployBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipalRead
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action:
+              - s3:GetObject
+            Resource:
+              Fn::Sub:
+                - '${BucketArn}/*'
+                - BucketArn: !GetAtt DeployBucket.Arn
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${DeployDistribution}'
+
+  # CloudFront Function for path-based PR routing on deploy domain
+  # Note: The actual function code is loaded from infra/aws/functions/PRPathRouter.js
+  # and rendered by bootstrap-aws-stack.sh with template substitution
+  # AutoPublish is enabled so the function is available immediately, then bootstrap script updates it
+  PRPathRouterFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub '${AWS::StackName}-PRPathRouter'
+      AutoPublish: true
+      FunctionConfig:
+        Comment: Maps /pr-<N>/* paths to S3 prefix pr-<N>/* for preview deployments
+        Runtime: cloudfront-js-2.0
+      FunctionCode: !Sub |
+        function handler(event) {
+          var request = event.request;
+          var uri = request.uri || '/';
+          var previewPrefixBase = '${PreviewPrefix}';
+          // Match /pr-<N>/ pattern at the start of the path
+          var prPathPattern = new RegExp('^/(' + previewPrefixBase + '\\d+)(/.*)?$');
+          var match = uri.match(prPathPattern);
+          if (match) {
+            var prPrefix = match[1];
+            var restOfPath = match[2] || '/';
+            var trimmed = restOfPath.replace(/\/$/, '');
+            var hasExtension = /\.[a-z0-9]+$/i.test(trimmed);
+            if (!hasExtension && trimmed !== '' && trimmed !== '/') {
+              request.uri = '/' + prPrefix + '/index.html';
+            } else if (trimmed === '' || trimmed === '/') {
+              request.uri = '/' + prPrefix + '/index.html';
+            } else {
+              request.uri = '/' + prPrefix + restOfPath;
+            }
+          }
+          return request;
+        }
+
+  # Production CloudFront Distribution (beakerstack.com)
+  ProdDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub 'Production distribution for ${DomainName}'
+        DefaultRootObject: index.html
+        Aliases:
+          - !Ref DomainName
+          - !Sub 'www.${DomainName}'
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertificateArn
+          MinimumProtocolVersion: TLSv1.2_2021
+          SslSupportMethod: sni-only
+        Logging:
+          Bucket: !GetAtt LogsBucket.DomainName
+          Prefix: cloudfront/prod/
+          IncludeCookies: false
+        DefaultCacheBehavior:
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD]
+          TargetOriginId: ProdOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized
+          ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03 # SecurityHeadersPolicy
+          # SPA fallback for client-side routing
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt SPAFallbackFunction.FunctionMetadata.FunctionARN
+        Origins:
+          - Id: ProdOrigin
+            DomainName: !GetAtt ProdBucket.RegionalDomainName
+            S3OriginConfig: {}
+            OriginAccessControlId: !Ref ProdOriginAccessControl
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /error.html
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+
+  # Staging CloudFront Distribution (staging.beakerstack.com)
+  StagingDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub 'Staging distribution for ${DomainName}'
+        DefaultRootObject: index.html
+        Aliases:
+          - !Sub 'staging.${DomainName}'
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertificateArn
+          MinimumProtocolVersion: TLSv1.2_2021
+          SslSupportMethod: sni-only
+        Logging:
+          Bucket: !GetAtt LogsBucket.DomainName
+          Prefix: cloudfront/staging/
+          IncludeCookies: false
+        DefaultCacheBehavior:
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD]
+          TargetOriginId: StagingOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized
+          ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03 # SecurityHeadersPolicy
+          # SPA fallback for client-side routing
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt SPAFallbackFunction.FunctionMetadata.FunctionARN
+        Origins:
+          - Id: StagingOrigin
+            DomainName: !GetAtt StagingBucket.RegionalDomainName
+            S3OriginConfig: {}
+            OriginAccessControlId: !Ref StagingOriginAccessControl
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /error.html
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+
+  # Deploy/Preview CloudFront Distribution (deploy.beakerstack.com)
+  # Uses PRPathRouter function for path-based routing
+  DeployDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub 'Preview/Deploy distribution for ${DomainName} with path-based PR routing'
+        DefaultRootObject: index.html
+        Aliases:
+          - !Sub 'deploy.${DomainName}'
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertificateArn
+          MinimumProtocolVersion: TLSv1.2_2021
+          SslSupportMethod: sni-only
+        Logging:
+          Bucket: !GetAtt LogsBucket.DomainName
+          Prefix: cloudfront/deploy/
+          IncludeCookies: false
+        DefaultCacheBehavior:
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD]
+          TargetOriginId: DeployOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized
+          ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03 # SecurityHeadersPolicy
+          # Use PRPathRouter function for path-based routing
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt PRPathRouterFunction.FunctionMetadata.FunctionARN
+        Origins:
+          - Id: DeployOrigin
+            DomainName: !GetAtt DeployBucket.RegionalDomainName
+            S3OriginConfig: {}
+            OriginAccessControlId: !Ref DeployOriginAccessControl
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /error.html
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /error.html
+            ErrorCachingMinTTL: 0
+
+  # Simple SPA fallback function for prod/staging (serves index.html for non-file paths)
+  SPAFallbackFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub '${AWS::StackName}-SPAFallback'
+      AutoPublish: true
+      FunctionConfig:
+        Comment: SPA fallback - serves index.html for non-file paths
+        Runtime: cloudfront-js-2.0
+      FunctionCode: |
+        function handler(event) {
+          var request = event.request;
+          var uri = request.uri || '/';
+          
+          // Check if path has a file extension
+          var hasExtension = /\.[a-z0-9]+$/i.test(uri);
+          
+          // If no extension and not root, serve index.html (SPA routing)
+          if (!hasExtension && uri !== '/' && !uri.endsWith('/')) {
+            request.uri = '/index.html';
+          }
+          
+          return request;
+        }
+
+  # DNS Records
+  ApexRecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub '${DomainName}.'
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt ProdDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2 # CloudFront hosted zone ID
+        EvaluateTargetHealth: false
+
+  WwwRecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub 'www.${DomainName}.'
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt ProdDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+        EvaluateTargetHealth: false
+
+  StagingRecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub 'staging.${DomainName}.'
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt StagingDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+        EvaluateTargetHealth: false
+
+  DeployRecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub 'deploy.${DomainName}.'
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt DeployDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+        EvaluateTargetHealth: false
+
+Outputs:
+  ProdBucketName:
+    Description: Name of the S3 bucket for production assets
+    Value: !Ref ProdBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-ProdBucketName'
+  StagingBucketName:
+    Description: Name of the S3 bucket for staging assets
+    Value: !Ref StagingBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-StagingBucketName'
+  DeployBucketName:
+    Description: Name of the S3 bucket for preview/deploy assets
+    Value: !Ref DeployBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-DeployBucketName'
+  LogsBucketName:
+    Description: Name of the S3 bucket that stores CloudFront access logs
+    Value: !Ref LogsBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-LogsBucketName'
+  ProdDistributionId:
+    Description: CloudFront distribution ID for production (beakerstack.com)
+    Value: !Ref ProdDistribution
+    Export:
+      Name: !Sub '${AWS::StackName}-ProdDistributionId'
+  StagingDistributionId:
+    Description: CloudFront distribution ID for staging (staging.beakerstack.com)
+    Value: !Ref StagingDistribution
+    Export:
+      Name: !Sub '${AWS::StackName}-StagingDistributionId'
+  DeployDistributionId:
+    Description: CloudFront distribution ID for preview/deploy (deploy.beakerstack.com)
+    Value: !Ref DeployDistribution
+    Export:
+      Name: !Sub '${AWS::StackName}-DeployDistributionId'
+  ProdDistributionDomainName:
+    Description: CloudFront distribution domain URL for production
+    Value: !GetAtt ProdDistribution.DomainName
+    Export:
+      Name: !Sub '${AWS::StackName}-ProdDistributionDomain'
+  StagingDistributionDomainName:
+    Description: CloudFront distribution domain URL for staging
+    Value: !GetAtt StagingDistribution.DomainName
+    Export:
+      Name: !Sub '${AWS::StackName}-StagingDistributionDomain'
+  DeployDistributionDomainName:
+    Description: CloudFront distribution domain URL for preview/deploy
+    Value: !GetAtt DeployDistribution.DomainName
+    Export:
+      Name: !Sub '${AWS::StackName}-DeployDistributionDomain'
+  PRPathRouterFunctionArn:
+    Description: ARN of the PR path router CloudFront function
+    Value: !GetAtt PRPathRouterFunction.FunctionMetadata.FunctionARN
+    Export:
+      Name: !Sub '${AWS::StackName}-PRPathRouterFunctionArn'
+  PreviewPrefixOutput:
+    Description: Prefix used for PR preview deployments
+    Value: !Ref PreviewPrefix
+    Export:
+      Name: !Sub '${AWS::StackName}-PreviewPrefix'

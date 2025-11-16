@@ -661,7 +661,7 @@ did not work. We did however remove the stubs for apple login; and will have to 
 
 ---
 
-### Task 9.1b: Support Renaming the Project
+### DONE - Task 9.1b: Support Renaming the Project
 
 **Goal**: This project is released as a GitHub Template repo named BeakerStack, with the various identifiers like:
 "Beaker Stack", "BeakerStack", "beakerstack", and "beaker-stack". We would like to make it easy to rename this

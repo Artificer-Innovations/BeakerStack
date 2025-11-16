@@ -3,7 +3,7 @@
 
 -- Create user_profiles table
 CREATE TABLE IF NOT EXISTS public.user_profiles (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE NOT NULL,
     username TEXT UNIQUE,
     display_name TEXT,
