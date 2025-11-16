@@ -212,7 +212,7 @@ invalidate_cloudfront() {
     return
   fi
 
-  local path="/$(preview_prefix())/*"
+  local path="/$(preview_prefix)/*"
   log "INFO" "Creating CloudFront invalidation for ${path}..."
 
   if [[ "${DRY_RUN}" == true ]]; then
