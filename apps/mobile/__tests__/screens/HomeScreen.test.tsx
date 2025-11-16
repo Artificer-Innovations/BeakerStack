@@ -65,7 +65,7 @@ import HomeScreen from '../../src/screens/HomeScreen';
 import { AuthProvider } from '@shared/contexts/AuthContext';
 import { ProfileProvider } from '@shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { HOME_TITLE } from '@shared/utils/strings';
+import { HOME_TITLE, HOME_SUBTITLE } from '@shared/utils/strings';
 import { BRANDING } from '@shared/config/branding';
 
 describe('HomeScreen', () => {
@@ -163,7 +163,8 @@ describe('HomeScreen', () => {
     // Title appears in both header and main content
     const titles = getAllByText(HOME_TITLE);
     expect(titles.length).toBeGreaterThan(0);
-    expect(getByText(/A modern full-stack application/i)).toBeTruthy();
+    // Check subtitle using the shared string constant
+    expect(getByText(HOME_SUBTITLE)).toBeTruthy();
   });
 
   it('shows sign in button when not authenticated', () => {
