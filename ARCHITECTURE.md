@@ -2357,8 +2357,22 @@ git commit -m "docs: update setup instructions in README"
    - ✅ Code review approved (if team size > 1)
 
 5. **Merge**:
-   - Use "Squash and merge" for feature branches
-   - Delete branch after merge
+   - **Feature branches → `develop`**: Use "Squash and merge" to keep history clean
+   - **`develop` → `main`**: Use "Merge commit" (NOT squash) to preserve branch history
+   - ⚠️ **Important**: Never merge the same PR to both `develop` and `main` - always merge to `develop` first, then merge `develop` to `main`
+   - Delete feature branch after merge
+
+6. **Branch Protection** (configure in GitHub Settings → Branches):
+   - **`main` branch**:
+     - ✅ Require pull request reviews before merging
+     - ✅ Require status checks to pass before merging
+     - ✅ Require branches to be up to date before merging
+     - ✅ **Restrict merge types**: Allow only "Merge commit" (disable "Squash and merge" and "Rebase and merge")
+     - ✅ Do not allow bypassing the above settings
+   - **`develop` branch**:
+     - ✅ Require pull request reviews before merging
+     - ✅ Require status checks to pass before merging
+     - ✅ Allow all merge types (squash, merge, rebase)
 
 ## CI/CD Pipeline
 
