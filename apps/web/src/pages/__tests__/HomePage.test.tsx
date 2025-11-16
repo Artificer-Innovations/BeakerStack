@@ -164,9 +164,7 @@ describe('HomePage', () => {
       // Title appears in both header and main content, check that it exists
       const titles = screen.getAllByText(HOME_TITLE);
       expect(titles.length).toBeGreaterThan(0);
-      expect(
-        screen.getByText(HOME_SUBTITLE)
-      ).toBeInTheDocument();
+      expect(screen.getByText(HOME_SUBTITLE)).toBeInTheDocument();
     });
 
     it('shows sign in button', async () => {
