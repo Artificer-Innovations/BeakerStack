@@ -2363,13 +2363,18 @@ git commit -m "docs: update setup instructions in README"
    - Delete feature branch after merge
 
 6. **Branch Protection** (configure in GitHub Settings → Branches):
-   - **`main` branch**:
+   - ⚠️ **Note**: GitHub does not support branch-specific merge method restrictions. Merge methods are repository-wide only.
+   - **Repository Settings** (Settings → General → Pull Requests):
+     - ✅ Allow merge commits (enabled)
+     - ✅ Allow squash merging (enabled - needed for feature → develop)
+     - ❌ Allow rebase merging (optional)
+   - **`main` branch protection**:
      - ✅ Require pull request reviews before merging
      - ✅ Require status checks to pass before merging
      - ✅ Require branches to be up to date before merging
-     - ✅ **Restrict merge types**: Allow only "Merge commit" (disable "Squash and merge" and "Rebase and merge")
      - ✅ Do not allow bypassing the above settings
-   - **`develop` branch**:
+     - ⚠️ **Manual enforcement**: Team must use "Create a merge commit" (NOT squash) when merging `develop` → `main`
+   - **`develop` branch protection**:
      - ✅ Require pull request reviews before merging
      - ✅ Require status checks to pass before merging
      - ✅ Allow all merge types (squash, merge, rebase)
