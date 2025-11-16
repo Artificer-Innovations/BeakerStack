@@ -34,7 +34,8 @@ This is a monorepo template for a full-stack application with:
 
 3. **AWS S3 + CloudFront for Web Hosting**
    - Static site deployment
-   - PR subdomain routing (pr-123.yourdomain.com)
+   - PR path-based routing (deploy.yourdomain.com/pr-123/)
+   - Three-environment strategy: production, staging, and deploy (preview)
    - Cost-effective (~$3-5/month for small-medium traffic)
    - Full control over infrastructure
    - Excellent performance with CDN
@@ -111,7 +112,7 @@ This is a monorepo template for a full-stack application with:
 │  • http://localhost:54321 (supabase)                            │
 │                                                                  │
 │  PR PREVIEWS (per PR):                                          │
-│  • https://pr-123.yourdomain.com (web via S3+CloudFront)       │
+│  • https://deploy.yourdomain.com/pr-123/ (web via S3+CloudFront) │
 │  • EAS channel: pr-123 (mobile)                                │
 │  • Shared PR Testing Database                                   │
 │                                                                  │
@@ -410,7 +411,7 @@ This project uses **three separate Supabase database instances** to provide safe
 │ • Reset to develop state when PR with DB changes opens         │
 │ • PR-specific migrations applied on top of develop             │
 │ • Can be broken - that's the point!                            │
-│ • Used by: pr-{number}.yourdomain.com + pr-{number} mobile     │
+│ • Used by: deploy.yourdomain.com/pr-{number}/ + pr-{number} mobile │
 │ • Supabase Pro Plan ($25/month) or Free Tier ($0)             │
 └─────────────────────────────────────────────────────────────────┘
 
@@ -1174,7 +1175,7 @@ PR_NUMBER=${2:-123}
 echo "🧪 Running E2E tests..."
 
 if [ "$ENVIRONMENT" = "pr" ]; then
-  WEB_URL="https://pr-${PR_NUMBER}.yourdomain.com"
+  WEB_URL="https://deploy.yourdomain.com/pr-${PR_NUMBER}/"
   echo "Testing PR environment: $WEB_URL"
 elif [ "$ENVIRONMENT" = "staging" ]; then
   WEB_URL="https://staging.yourdomain.com"
@@ -1818,7 +1819,7 @@ ROLLBACK;
 
 ```yaml
 # tests/e2e/web/flows/login.yaml
-appId: https://pr-123.yourdomain.com
+appId: https://deploy.yourdomain.com/pr-123/
 ---
 # Test: User can login with Google
 - launchApp
@@ -1843,7 +1844,7 @@ appId: https://pr-123.yourdomain.com
 
 ```yaml
 # tests/e2e/web/flows/profile.yaml
-appId: https://pr-123.yourdomain.com
+appId: https://deploy.yourdomain.com/pr-123/
 ---
 # Test: Profile form validation
 - launchApp
@@ -2047,7 +2048,7 @@ jobs:
       - name: Run web E2E tests
         run: |
           maestro test tests/e2e/web/flows/ \
-            --host https://pr-${{ github.event.pull_request.number }}.yourdomain.com
+            --host https://deploy.yourdomain.com/pr-${{ github.event.pull_request.number }}/
 
       - name: Upload screenshots
         if: always()
@@ -2425,12 +2426,12 @@ git commit -m "docs: update setup instructions in README"
 
 3. **Deploy Web Preview**
    - Download database types artifact
-   - Build React app with Vite
+   - Build React app with Vite (with `VITE_BASE_PATH=/pr-{number}`)
    - Point to PR Testing Supabase (via env vars)
-   - Deploy to S3: `s3://bucket/pr-{number}/`
-   - Invalidate CloudFront cache
+   - Deploy to S3: `s3://deploy-bucket/pr-{number}/`
+   - Invalidate CloudFront cache for `/pr-{number}/*`
    - **Duration**: ~2-3 minutes
-   - **Result**: https://pr-{number}.yourdomain.com
+   - **Result**: https://deploy.yourdomain.com/pr-{number}/
 
 4. **Deploy Mobile Preview**
    - Download database types artifact
@@ -2468,7 +2469,7 @@ git commit -m "docs: update setup instructions in README"
 
 ### 🌐 Web Application
 
-**URL:** https://pr-123.yourdomain.com
+**URL:** https://deploy.yourdomain.com/pr-123/
 
 ### 📱 Mobile Application
 
@@ -2617,6 +2618,45 @@ If issues detected:
 
 ## Web Application Deployment (S3 + CloudFront)
 
+### Three-Environment Hosting Strategy
+
+The web application uses a **three-environment hosting strategy** with separate S3 buckets and CloudFront distributions:
+
+1. **Production** (`beakerstack.com` / `www.beakerstack.com`)
+   - S3 bucket: `beakerstack.com-prod`
+   - CloudFront distribution: Serves from bucket root
+   - Deployment: On merge to `main` branch
+   - Uses production Supabase database
+
+2. **Staging** (`staging.beakerstack.com`)
+   - S3 bucket: `beakerstack.com-staging`
+   - CloudFront distribution: Serves from bucket root
+   - Deployment: On merge to `develop` branch
+   - Uses staging Supabase database
+
+3. **Deploy/Preview** (`deploy.beakerstack.com`)
+   - S3 bucket: `beakerstack.com-deploy`
+   - CloudFront distribution: Uses path-based routing via CloudFront Function
+   - **Path-based PR previews**: Each PR deploys to `/pr-{number}/` path prefix
+   - Example: `https://deploy.beakerstack.com/pr-123/`
+   - Deployment: On PR open/update
+   - Uses shared PR testing Supabase database
+
+**Why Path-Based Routing Instead of Subdomains?**
+
+- **OAuth compatibility**: Single domain (`deploy.beakerstack.com`) works better with Google OAuth and Supabase auth configurations
+- **Simpler DNS**: No need for wildcard DNS records (`*.beakerstack.com`)
+- **Single certificate**: One SSL certificate covers all preview environments
+- **Better for ephemeral environments**: Easier to clean up (just delete S3 prefix)
+
+**How Path-Based Routing Works:**
+
+1. Each PR build sets `VITE_BASE_PATH=/pr-{number}` during build
+2. React Router uses this base path via `BrowserRouter basename`
+3. Assets are uploaded to S3 at `s3://deploy-bucket/pr-{number}/`
+4. CloudFront Function (`PRPathRouter.js`) maps incoming `/pr-{number}/*` requests to S3 prefix `pr-{number}/*`
+5. SPA fallback: Routes like `/pr-123/dashboard` serve `pr-123/index.html` (handled by CloudFront Function)
+
 ### Build Output
 
 React (with Vite) builds to static files:
@@ -2715,57 +2755,73 @@ aws s3api put-bucket-policy --bucket your-app-web-production --policy '{
 
 ### React Router Configuration
 
-Use `BrowserRouter` for clean URLs (not `HashRouter`):
+Use `BrowserRouter` with `basename` support for path-based PR previews:
 
 ```typescript
-// apps/web/src/App.tsx
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+// apps/web/src/main.tsx
+import { BrowserRouter } from 'react-router-dom'
 
-function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
-    </BrowserRouter>
-  )
-}
+// Get base path from environment variable (e.g., /pr-123 or / for prod/staging)
+const basePath = import.meta.env.VITE_BASE_PATH || '/'
+
+ReactDOM.createRoot(rootElement).render(
+  <BrowserRouter basename={basePath}>
+    <App />
+  </BrowserRouter>
+)
 ```
+
+**Why `basename` is needed:**
+
+- **Production/Staging**: `basename="/"` (served from root)
+- **PR Previews**: `basename="/pr-123"` (served from `/pr-123/` path)
+- React Router uses this to handle client-side routing correctly for each environment
 
 ### Vite Configuration for Optimal Deployment
 
 ```typescript
 // apps/web/vite.config.ts
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@shared': path.resolve(__dirname, '../../packages/shared/src'),
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  // Respect VITE_BASE_PATH for asset URLs (defaults to '/' for local/prod/staging)
+  const basePath = env.VITE_BASE_PATH || '/';
+
+  return {
+    base: basePath, // This ensures assets are served from the correct base path
+    plugins: [react()],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+        '@shared': path.resolve(__dirname, '../../packages/shared/src'),
+      },
     },
-  },
-  build: {
-    outDir: 'dist',
-    sourcemap: true, // For error tracking
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          // Vendor splitting for better caching
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          supabase: ['@supabase/supabase-js'],
+    build: {
+      outDir: 'dist',
+      sourcemap: true, // For error tracking
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Vendor splitting for better caching
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+            supabase: ['@supabase/supabase-js'],
+          },
         },
       },
     },
-  },
+  };
 });
 ```
+
+**Base Path Configuration:**
+
+- **Production/Staging**: `VITE_BASE_PATH` not set (defaults to `/`)
+- **PR Previews**: `VITE_BASE_PATH=/pr-{number}` (set during build)
+- Vite uses this to rewrite asset URLs (e.g., `/assets/` → `/pr-123/assets/`)
+- HTML plugin also transforms absolute paths in `index.html` to respect base path
 
 ### Deployment Script
 
@@ -3419,7 +3475,7 @@ npm run db:status
    └─> CI resets PR Testing DB to develop
    └─> CI applies PR migration
    └─> CI deploys web/mobile pointing to PR Testing DB
-   └─> Test at https://pr-123.yourdomain.com
+   └─> Test at https://deploy.yourdomain.com/pr-123/
 
 3. Merge to develop
    └─> CI applies migration to Staging DB

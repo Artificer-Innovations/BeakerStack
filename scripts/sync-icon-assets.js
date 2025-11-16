@@ -20,6 +20,13 @@ function syncIconAssets() {
     process.exit(1);
   }
 
+  // Ensure web public directory exists
+  const webPublicDir = path.dirname(webIconPath);
+  if (!fs.existsSync(webPublicDir)) {
+    fs.mkdirSync(webPublicDir, { recursive: true });
+    console.log(`✓ Created directory: ${webPublicDir}`);
+  }
+
   // Copy to web public directory
   fs.copyFileSync(sourceIconPath, webIconPath);
   console.log(`✓ Copied icon to ${webIconPath}`);

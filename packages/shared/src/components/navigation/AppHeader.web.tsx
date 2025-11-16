@@ -17,6 +17,19 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
   const auth = useAuthContext();
   const profile = useProfileContext();
 
+  // Extract base path from current location (e.g., /pr-9 from /pr-9/login)
+  // This handles path-based PR previews where the app is served from /pr-<N>/
+  const getBasePath = (): string => {
+    if (typeof window === 'undefined' || !window.location) {
+      return '/';
+    }
+    // Match PR path pattern (e.g., /pr-123)
+    const basePathMatch = window.location.pathname.match(/^(\/pr-\d+)/);
+    return basePathMatch ? basePathMatch[1] + '/' : '/';
+  };
+
+  const basePath = getBasePath();
+
   return (
     <div className='bg-white shadow'>
       <div className='max-w-[800px] mx-auto px-4 sm:px-6 lg:px-8'>
@@ -25,7 +38,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
           <div className='flex items-center space-x-3'>
             <Link to='/' className='flex items-center'>
               <img
-                src='/demo-flask-icon.svg'
+                src={`${basePath}demo-flask-icon.svg`}
                 alt={BRANDING.displayName}
                 className='w-8 h-8'
               />

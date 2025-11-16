@@ -138,10 +138,13 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
     setLoading(true);
     setError(null);
 
-    const redirectTo =
-      typeof window !== 'undefined' && window.location
-        ? `${window.location.origin}/auth/callback`
-        : undefined;
+    let redirectTo: string | undefined;
+    if (typeof window !== 'undefined' && window.location) {
+      // Extract base path from current location (e.g., /pr-9 from /pr-9/login)
+      // This handles path-based PR previews where the app is served from /pr-<N>/
+      const basePath = window.location.pathname.match(/^(\/pr-\d+)/)?.[1] || '';
+      redirectTo = `${window.location.origin}${basePath}/auth/callback`;
+    }
 
     const authArgs = redirectTo
       ? {

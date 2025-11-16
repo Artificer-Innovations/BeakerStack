@@ -21,7 +21,7 @@ case "$ENVIRONMENT" in
       echo "Usage: ./scripts/run-e2e.sh pr <PR_NUMBER>"
       exit 1
     fi
-    WEB_URL="https://pr-${PR_NUMBER}.yourdomain.com"
+    WEB_URL="https://deploy.yourdomain.com/pr-${PR_NUMBER}/"
     echo "🧪 Running E2E tests against PR #${PR_NUMBER} environment"
     ;;
   staging)

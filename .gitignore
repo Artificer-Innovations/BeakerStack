@@ -266,3 +266,6 @@ supabase/logs
 # Maestro
 maestro.log
 apps/mobile/google-services.json
+
+# AWS build artifacts
+.aws-build/
