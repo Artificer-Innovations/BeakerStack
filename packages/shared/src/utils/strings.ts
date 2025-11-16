@@ -4,12 +4,12 @@ import { BRANDING } from '../config/branding';
 export const HOME_STRINGS = {
   title: `Welcome to ${BRANDING.displayName}`,
   subtitle:
-    'A modern full-stack application with React, React Native, and Supabase',
+    'A modern full-stack application with React, React Native, and Supabase. Supporting both web and mobile platforms, social authentication, and more.',
 } as const;
 
 export const DASHBOARD_STRINGS = {
   title: 'Welcome to your dashboard!',
-  subtitle: 'This is where your main application content will go',
+  subtitle: 'This is where your main application content will go.',
 } as const;
 
 // Export individual strings for convenience

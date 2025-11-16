@@ -157,7 +157,7 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { describe, it, expect } from '@jest/globals';
 import App from '../App';
-import { HOME_TITLE } from '@shared/utils/strings';
+import { HOME_TITLE, HOME_SUBTITLE } from '@shared/utils/strings';
 
 describe('Mobile App', () => {
   it('renders without crashing', () => {
@@ -172,11 +172,7 @@ describe('Mobile App', () => {
   it('renders subtitle text', () => {
     const { getByText } = render(<App />);
 
-    // Check if subtitle is present
-    expect(
-      getByText(
-        'A modern full-stack application with React, React Native, and Supabase'
-      )
-    ).toBeTruthy();
+    // Check if subtitle is present using the shared string constant
+    expect(getByText(HOME_SUBTITLE)).toBeTruthy();
   });
 });
