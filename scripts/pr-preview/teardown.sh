@@ -89,7 +89,7 @@ ensure_prereqs() {
   if [[ -n "${SUPABASE_DB_URL}" ]] && ! command -v psql >/dev/null 2>&1; then
     log "WARN" "psql not found; Supabase schema cleanup will be skipped."
     SUPABASE_DB_URL=""
-  }
+  fi
 
   if [[ -n "${EXPO_ACCOUNT}" ]]; then
     command -v npx >/dev/null 2>&1 || {
