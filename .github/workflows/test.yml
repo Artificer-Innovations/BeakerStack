@@ -6,6 +6,30 @@ on:
       - main
       - develop
   pull_request:
+    paths:
+      # Application code and tests
+      - 'apps/**'
+      - 'packages/**'
+      - 'tests/**'
+      # Database schema and migrations
+      - 'supabase/**'
+      # Dependencies and configuration
+      - 'package.json'
+      - 'package-lock.json'
+      - '**/package.json'
+      - '**/tsconfig.json'
+      - '**/tsconfig.*.json'
+      - '**/jest.config.*'
+      - '**/*.config.js'
+      - '**/*.config.ts'
+      - '**/babel.config.*'
+      - '**/metro.config.*'
+      - '**/vite.config.*'
+      # Test-related scripts (if they change, tests might be affected)
+      - 'scripts/merge-coverage.js'
+      - 'scripts/format-ci-summary.mjs'
+      # Workflow file itself
+      - '.github/workflows/test.yml'
 
 permissions:
   contents: read

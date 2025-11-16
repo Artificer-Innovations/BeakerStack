@@ -13,11 +13,14 @@ if (!rootElement) {
   throw new Error('Root element #root not found');
 }
 
+// Get base path from environment variable, defaulting to '/' for local development
+const basePath = import.meta.env.VITE_BASE_PATH || '/';
+
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <AuthProvider supabaseClient={supabase}>
       <ProfileProvider supabaseClient={supabase}>
-        <BrowserRouter>
+        <BrowserRouter basename={basePath}>
           <App />
         </BrowserRouter>
       </ProfileProvider>
