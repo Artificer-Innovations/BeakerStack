@@ -1,0 +1,76 @@
+{
+  "cli": {
+    "version": ">= 5.9.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "pr-{{PR_NUMBER}}",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "{{PREVIEW_SUPABASE_URL}}",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "{{PREVIEW_SUPABASE_ANON_KEY}}"
+      },
+      "ios": {
+        "simulator": false,
+        "buildConfiguration": "Release"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "staging": {
+      "distribution": "internal",
+      "channel": "staging",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "{{STAGING_SUPABASE_URL}}",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "{{STAGING_SUPABASE_ANON_KEY}}"
+      },
+      "ios": {
+        "simulator": false,
+        "buildConfiguration": "Release"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "distribution": "store",
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "{{PRODUCTION_SUPABASE_URL}}",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "{{PRODUCTION_SUPABASE_ANON_KEY}}"
+      },
+      "ios": {
+        "simulator": false,
+        "buildConfiguration": "Release"
+      },
+      "android": {
+        "buildType": "aab"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "{{APPLE_ID}}",
+        "ascAppId": "{{APP_STORE_CONNECT_APP_ID}}",
+        "appleTeamId": "{{APPLE_TEAM_ID}}"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "internal"
+      }
+    }
+  }
+}
+

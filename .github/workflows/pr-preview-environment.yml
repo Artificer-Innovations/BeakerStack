@@ -114,20 +114,49 @@ jobs:
             --preview-prefix "${PREVIEW_PREFIX_VALUE}" \
             --region "${AWS_REGION_VALUE}"
 
+      - name: Deploy mobile preview
+        id: mobile
+        shell: bash
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PROJECT_ID: ${{ secrets.EXPO_PROJECT_ID }}
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          PR_NUMBER_VALUE="${PR_NUMBER}"
+          EXPO_ACCOUNT_VALUE="${{ vars.EXPO_ACCOUNT }}"
+          if [[ -z "${EXPO_ACCOUNT_VALUE}" ]]; then
+            echo "Warning: EXPO_ACCOUNT not set, skipping mobile deployment"
+            exit 0
+          fi
+          ./scripts/pr-preview/deploy-mobile.sh \
+            --pr-number "${PR_NUMBER_VALUE}" \
+            --expo-account "${EXPO_ACCOUNT_VALUE}" \
+            --platform all
+
       - name: Post preview summary comment
         if: always()
         uses: actions/github-script@v7
         env:
           WEB_URL: ${{ steps.web.outputs.PREVIEW_WEB_URL }}
+          MOBILE_CHANNEL: ${{ steps.mobile.outputs.PREVIEW_MOBILE_CHANNEL }}
+          MOBILE_UPDATE_URL: ${{ steps.mobile.outputs.PREVIEW_MOBILE_UPDATE_URL }}
         with:
           script: |
             const marker = '<!-- pr-preview-links -->';
             const webUrl = process.env.WEB_URL;
+            const mobileChannel = process.env.MOBILE_CHANNEL;
+            const mobileUpdateUrl = process.env.MOBILE_UPDATE_URL;
 
             const lines = [];
             lines.push('<!-- pr-preview-links -->');
             if (webUrl) {
               lines.push(`🌐 **Web preview:** ${webUrl}`);
+            }
+            if (mobileUpdateUrl) {
+              lines.push(`📱 **Mobile preview:** Channel \`${mobileChannel}\` - [View updates](${mobileUpdateUrl})`);
             }
             const body = lines.join('\n');
 
