@@ -119,4 +119,164 @@ describe('FormInput (Web)', () => {
         ariaInvalid === undefined
     ).toBe(true);
   });
+
+  it('renders textarea when multiline is true', () => {
+    const mockOnChange = jest.fn();
+    render(
+      <FormInput
+        label='Description'
+        value=''
+        onChange={mockOnChange}
+        multiline
+      />
+    );
+
+    const textarea = screen.getByLabelText(
+      'Description'
+    ) as HTMLTextAreaElement;
+    expect(textarea.tagName).toBe('TEXTAREA');
+  });
+
+  it('uses custom rows for textarea', () => {
+    const mockOnChange = jest.fn();
+    render(
+      <FormInput
+        label='Description'
+        value=''
+        onChange={mockOnChange}
+        multiline
+        rows={5}
+      />
+    );
+
+    const textarea = screen.getByLabelText(
+      'Description'
+    ) as HTMLTextAreaElement;
+    expect(textarea.rows).toBe(5);
+  });
+
+  it('calls onChange when textarea value changes', () => {
+    const mockOnChange = jest.fn();
+    render(
+      <FormInput
+        label='Description'
+        value=''
+        onChange={mockOnChange}
+        multiline
+      />
+    );
+
+    const textarea = screen.getByLabelText('Description');
+    fireEvent.change(textarea, { target: { value: 'new description' } });
+
+    expect(mockOnChange).toHaveBeenCalledWith('new description');
+  });
+
+  it('calls onBlur when textarea loses focus', () => {
+    const mockOnChange = jest.fn();
+    const mockOnBlur = jest.fn();
+    render(
+      <FormInput
+        label='Description'
+        value=''
+        onChange={mockOnChange}
+        onBlur={mockOnBlur}
+        multiline
+      />
+    );
+
+    const textarea = screen.getByLabelText('Description');
+    fireEvent.blur(textarea);
+
+    expect(mockOnBlur).toHaveBeenCalled();
+  });
+
+  it('displays error message for textarea', () => {
+    const mockOnChange = jest.fn();
+    render(
+      <FormInput
+        label='Description'
+        value=''
+        onChange={mockOnChange}
+        error='Description is required'
+        multiline
+      />
+    );
+
+    expect(screen.getByText('Description is required')).toBeInTheDocument();
+    const textarea = screen.getByLabelText('Description');
+    expect(textarea.getAttribute('aria-invalid')).toBe('true');
+  });
+
+  it('sets aria-describedby for textarea when error is present', () => {
+    const mockOnChange = jest.fn();
+    render(
+      <FormInput
+        label='Description'
+        value=''
+        onChange={mockOnChange}
+        error='Error message'
+        multiline
+      />
+    );
+
+    const textarea = screen.getByLabelText('Description');
+    const inputId = textarea.id;
+    expect(textarea.getAttribute('aria-describedby')).toBe(`${inputId}-error`);
+  });
+
+  it('does not set aria-describedby for textarea when no error', () => {
+    const mockOnChange = jest.fn();
+    render(
+      <FormInput
+        label='Description'
+        value=''
+        onChange={mockOnChange}
+        multiline
+      />
+    );
+
+    const textarea = screen.getByLabelText('Description');
+    const ariaDescribedBy = textarea.getAttribute('aria-describedby');
+    expect(ariaDescribedBy === null || ariaDescribedBy === undefined).toBe(
+      true
+    );
+  });
+
+  it('disables textarea when disabled prop is true', () => {
+    const mockOnChange = jest.fn();
+    render(
+      <FormInput
+        label='Description'
+        value=''
+        onChange={mockOnChange}
+        multiline
+        disabled
+      />
+    );
+
+    const textarea = screen.getByLabelText(
+      'Description'
+    ) as HTMLTextAreaElement;
+    expect(textarea.disabled).toBe(true);
+  });
+
+  it('shows required indicator for textarea', () => {
+    const mockOnChange = jest.fn();
+    render(
+      <FormInput
+        label='Description'
+        value=''
+        onChange={mockOnChange}
+        multiline
+        required
+      />
+    );
+
+    expect(screen.getByText('*')).toBeInTheDocument();
+    const textarea = screen.getByLabelText(
+      'Description'
+    ) as HTMLTextAreaElement;
+    expect(textarea.required).toBe(true);
+  });
 });

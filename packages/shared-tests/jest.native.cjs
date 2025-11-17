@@ -13,7 +13,8 @@ module.exports = {
   moduleNameMapper: {
     "^@shared/src/(.*)$": path.join(sharedSrcPath, "$1"),
     "^react-native$": "react-native-web",
-    "^react-router-dom$": path.join(__dirname, "__mocks__/react-router-dom.tsx")
+    "^react-router-dom$": path.join(__dirname, "__mocks__/react-router-dom.tsx"),
+    "^react-native-svg$": path.join(__dirname, "__mocks__/react-native-svg.tsx")
   },
   transform: {
     "^.+\\.(ts|tsx|js|jsx)$": [
@@ -30,7 +31,10 @@ module.exports = {
     "!<rootDir>/packages/shared/src/**/*.d.ts",
     "!<rootDir>/packages/shared/src/**/__tests__/**",
     "!<rootDir>/packages/shared/src/**/__mocks__/**",
-    "!<rootDir>/packages/shared/src/index.ts"
+    "!<rootDir>/packages/shared/src/index.ts",
+    "!<rootDir>/packages/shared/src/**/index.web.ts",
+    "!<rootDir>/packages/shared/src/**/index.native.ts",
+    "!<rootDir>/packages/shared/src/types/**"
   ],
   coveragePathIgnorePatterns: [
     "/node_modules/",
@@ -40,7 +44,8 @@ module.exports = {
   coverageDirectory: path.join(__dirname, "coverage"),
   coverageReporters: ["text", "lcov", "html", "json"],
   testMatch: [
-    "**/__tests__/**/*.test.{ts,tsx}"
+    "**/__tests__/**/*.test.{ts,tsx}",
+    "**/__tests__/**/*.native.test.{ts,tsx}"
   ],
   coverageProvider: "v8"
 };

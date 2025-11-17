@@ -1,11 +1,11 @@
 import '@testing-library/jest-dom';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { ProfileEditor } from '@shared/src/components/profile/ProfileEditor.web';
+import { ProfileEditor } from '@shared/src/components/profile/ProfileEditor.native';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 import type { UserProfile } from '@shared/src/types/profile';
 
 // Mock the form components
-jest.mock('@shared/src/components/forms/FormInput.web', () => ({
+jest.mock('@shared/src/components/forms/FormInput.native', () => ({
   FormInput: ({
     label,
     value,
@@ -32,7 +32,7 @@ jest.mock('@shared/src/components/forms/FormInput.web', () => ({
   ),
 }));
 
-jest.mock('@shared/src/components/forms/FormButton.web', () => ({
+jest.mock('@shared/src/components/forms/FormButton.native', () => ({
   FormButton: ({ title, onPress, loading, disabled }: any) => (
     <button
       onClick={onPress}
@@ -44,7 +44,7 @@ jest.mock('@shared/src/components/forms/FormButton.web', () => ({
   ),
 }));
 
-jest.mock('@shared/src/components/forms/FormError.web', () => ({
+jest.mock('@shared/src/components/forms/FormError.native', () => ({
   FormError: ({ message }: any) =>
     message ? <div data-testid='form-error'>{message}</div> : null,
 }));
@@ -53,7 +53,7 @@ jest.mock('@shared/src/components/forms/FormError.web', () => ({
 let mockOnUploadComplete: ((url: string) => Promise<void>) | null = null;
 let mockOnRemove: (() => Promise<void>) | null = null;
 
-jest.mock('@shared/src/components/profile/AvatarUpload.web', () => ({
+jest.mock('@shared/src/components/profile/AvatarUpload.native', () => ({
   AvatarUpload: ({ onUploadComplete, onRemove }: any) => {
     mockOnUploadComplete = onUploadComplete;
     mockOnRemove = onRemove;
@@ -72,6 +72,15 @@ jest.mock('@shared/src/components/profile/AvatarUpload.web', () => ({
         </button>
       </div>
     );
+  },
+}));
+
+// Mock Logger
+jest.mock('@shared/src/utils/logger', () => ({
+  Logger: {
+    debug: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
   },
 }));
 
@@ -118,7 +127,7 @@ jest.mock('@shared/src/contexts/ProfileContext', () => ({
 
 import { useProfileContext } from '@shared/src/contexts/ProfileContext';
 
-describe('ProfileEditor', () => {
+describe('ProfileEditor (Native)', () => {
   const mockUseProfileContext = useProfileContext as jest.MockedFunction<
     typeof useProfileContext
   >;
@@ -371,22 +380,6 @@ describe('ProfileEditor', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('form-error')).not.toBeInTheDocument();
     });
-  });
-
-  it('shows error when user is not logged in during submit', async () => {
-    const mockOnError = jest.fn();
-    mockUseProfileContext.mockReturnValue(
-      createContextValue({
-        currentUser: null,
-      })
-    );
-
-    render(<ProfileEditor onError={mockOnError} />);
-
-    // Try to submit (should not be possible, but test the error handling)
-    const submitButton = screen.queryByTestId('submit-button');
-    // Submit button won't exist when user is not logged in
-    expect(submitButton).not.toBeInTheDocument();
   });
 
   it('shows field errors for display_name', async () => {

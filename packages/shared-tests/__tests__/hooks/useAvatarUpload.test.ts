@@ -452,4 +452,253 @@ describe('useAvatarUpload', () => {
       expect(result.current.uploadedUrl).toMatch(/\?t=\d+&v=/);
     });
   });
+
+  it('should handle Blob without MIME type', async () => {
+    const { mockClient, mockBucket } = createMockSupabaseClient();
+    const { result } = renderHook(() =>
+      useAvatarUpload(mockClient, 'user-id-1')
+    );
+
+    // Create a Blob without type
+    const blob = new Blob(['content'], { type: '' });
+
+    await act(async () => {
+      await result.current.uploadAvatar(blob);
+    });
+
+    await waitFor(() => {
+      expect(result.current.uploadedUrl).not.toBeNull();
+    });
+
+    // Should default to jpg extension
+    expect(mockBucket.upload).toHaveBeenCalledWith(
+      'user-id-1/avatar.jpg',
+      blob,
+      expect.objectContaining({
+        contentType: 'image/jpeg',
+      })
+    );
+  });
+
+  it('should handle Blob with MIME type', async () => {
+    const { mockClient, mockBucket } = createMockSupabaseClient();
+    const { result } = renderHook(() =>
+      useAvatarUpload(mockClient, 'user-id-1')
+    );
+
+    // Create a Blob with PNG type
+    const blob = new Blob(['content'], { type: 'image/png' });
+
+    await act(async () => {
+      await result.current.uploadAvatar(blob);
+    });
+
+    await waitFor(() => {
+      expect(result.current.uploadedUrl).not.toBeNull();
+    });
+
+    // Should use png extension
+    expect(mockBucket.upload).toHaveBeenCalledWith(
+      'user-id-1/avatar.png',
+      blob,
+      expect.objectContaining({
+        contentType: 'image/png',
+      })
+    );
+  });
+
+  it('should handle ArrayBuffer with metadata', async () => {
+    const { mockClient, mockBucket } = createMockSupabaseClient();
+    const { result } = renderHook(() =>
+      useAvatarUpload(mockClient, 'user-id-1')
+    );
+
+    // Create an ArrayBuffer with type metadata
+    const arrayBuffer = new ArrayBuffer(8);
+    const arrayBufferWithMetadata = Object.assign(arrayBuffer, {
+      type: 'image/png',
+      size: 8,
+    });
+
+    await act(async () => {
+      await result.current.uploadAvatar(arrayBufferWithMetadata);
+    });
+
+    await waitFor(() => {
+      expect(result.current.uploadedUrl).not.toBeNull();
+    });
+
+    // Should use the type from metadata
+    expect(mockBucket.upload).toHaveBeenCalledWith(
+      'user-id-1/avatar.png',
+      arrayBufferWithMetadata,
+      expect.objectContaining({
+        contentType: 'image/png',
+      })
+    );
+  });
+
+  it('should handle ArrayBuffer without type metadata (defaults to jpeg)', async () => {
+    const { mockClient, mockBucket } = createMockSupabaseClient();
+    const { result } = renderHook(() =>
+      useAvatarUpload(mockClient, 'user-id-1')
+    );
+
+    // Create an ArrayBuffer without type
+    const arrayBuffer = new ArrayBuffer(8);
+
+    await act(async () => {
+      await result.current.uploadAvatar(arrayBuffer);
+    });
+
+    await waitFor(() => {
+      expect(result.current.uploadedUrl).not.toBeNull();
+    });
+
+    // Should default to jpeg
+    expect(mockBucket.upload).toHaveBeenCalledWith(
+      'user-id-1/avatar.jpg',
+      arrayBuffer,
+      expect.objectContaining({
+        contentType: 'image/jpeg',
+      })
+    );
+  });
+
+  it('should handle ArrayBuffer with unknown MIME type (defaults to jpg)', async () => {
+    const { mockClient, mockBucket } = createMockSupabaseClient();
+    const { result } = renderHook(() =>
+      useAvatarUpload(mockClient, 'user-id-1')
+    );
+
+    // Create an ArrayBuffer with unknown type
+    const arrayBuffer = new ArrayBuffer(8);
+    const arrayBufferWithMetadata = Object.assign(arrayBuffer, {
+      type: 'image/gif', // Not in allowed list, should default to jpg
+    });
+
+    await act(async () => {
+      await result.current.uploadAvatar(arrayBufferWithMetadata);
+    });
+
+    await waitFor(() => {
+      expect(result.current.uploadedUrl).not.toBeNull();
+    });
+
+    // Should default to jpg for unknown types
+    expect(mockBucket.upload).toHaveBeenCalledWith(
+      'user-id-1/avatar.jpg',
+      arrayBufferWithMetadata,
+      expect.objectContaining({
+        contentType: 'image/gif', // Type is preserved, but extension defaults to jpg
+      })
+    );
+  });
+
+  it('should handle error when removing old avatar fails (non-blocking)', async () => {
+    const { mockClient, mockBucket } = createMockSupabaseClient();
+    const { result } = renderHook(() =>
+      useAvatarUpload(mockClient, 'user-id-1')
+    );
+
+    // Mock remove to fail
+    mockBucket.remove = jest.fn().mockRejectedValue(new Error('Delete failed'));
+
+    const validFile = new File(['content'], 'avatar.jpg', {
+      type: 'image/jpeg',
+    });
+
+    // Should still succeed even if remove fails
+    await act(async () => {
+      await result.current.uploadAvatar(validFile);
+    });
+
+    await waitFor(() => {
+      expect(result.current.uploadedUrl).not.toBeNull();
+      expect(result.current.error).toBeNull();
+    });
+  });
+
+  it('should handle upload returning null data', async () => {
+    const { mockClient, mockBucket } = createMockSupabaseClient();
+    const { result } = renderHook(() =>
+      useAvatarUpload(mockClient, 'user-id-1')
+    );
+
+    // Mock upload to return null data
+    mockBucket.upload = jest.fn().mockResolvedValue({
+      data: null,
+      error: null,
+    });
+
+    const validFile = new File(['content'], 'avatar.jpg', {
+      type: 'image/jpeg',
+    });
+
+    await act(async () => {
+      try {
+        await result.current.uploadAvatar(validFile);
+      } catch (error) {
+        // Expected to throw
+      }
+    });
+
+    await waitFor(() => {
+      expect(result.current.error).not.toBeNull();
+      expect(result.current.error?.message).toContain('returned no data');
+    });
+  });
+
+  it('should handle removeAvatar when list fails (falls back to common paths)', async () => {
+    const { mockClient, mockBucket } = createMockSupabaseClient();
+    const { result } = renderHook(() =>
+      useAvatarUpload(mockClient, 'user-id-1')
+    );
+
+    // Mock list to fail
+    mockBucket.list = jest.fn().mockResolvedValue({
+      data: null,
+      error: { message: 'List failed' },
+    });
+
+    await act(async () => {
+      await result.current.removeAvatar();
+    });
+
+    await waitFor(() => {
+      expect(result.current.error).toBeNull();
+    });
+
+    // Should have tried to remove common paths
+    expect(mockBucket.remove).toHaveBeenCalledWith([
+      'user-id-1/avatar.jpg',
+      'user-id-1/avatar.png',
+      'user-id-1/avatar.webp',
+    ]);
+  });
+
+  it('should handle removeAvatar when no files are found', async () => {
+    const { mockClient, mockBucket } = createMockSupabaseClient();
+    const { result } = renderHook(() =>
+      useAvatarUpload(mockClient, 'user-id-1')
+    );
+
+    // Mock list to return empty array
+    mockBucket.list = jest.fn().mockResolvedValue({
+      data: [],
+      error: null,
+    });
+
+    await act(async () => {
+      await result.current.removeAvatar();
+    });
+
+    await waitFor(() => {
+      expect(result.current.error).toBeNull();
+      expect(result.current.uploadedUrl).toBeNull();
+    });
+
+    // Should not call remove when no files found
+    expect(mockBucket.remove).not.toHaveBeenCalled();
+  });
 });

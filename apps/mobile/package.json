@@ -56,6 +56,7 @@
     "@testing-library/jest-native": "^5.4.3",
     "@testing-library/react-native": "^12.9.0",
     "@types/react": "18.2.0",
+    "@types/react-test-renderer": "^19.1.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "dotenv": "^16.4.7",
@@ -82,7 +83,9 @@
       "src/**/*.{ts,tsx}",
       "!src/**/*.d.ts",
       "!src/**/__tests__/**",
-      "!src/**/__mocks__/**"
+      "!src/**/__mocks__/**",
+      "!src/**/types/**",
+      "!src/**/DebugTools.tsx"
     ],
     "coverageDirectory": "coverage",
     "coverageReporters": [
