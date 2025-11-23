@@ -12,6 +12,8 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 export default function App() {
   useEffect(() => {
     // Log that useEffect is running (helps debug OTA update issues)
+    // Using console.log so it's visible in Chrome DevTools Console tab
+    console.log('[App] useEffect running - initializing Google Sign-In config');
     Logger.info('[App] useEffect running - initializing Google Sign-In config');
     
     // Handle both expoConfig (SDK 49+) and manifest (older SDKs)
@@ -40,8 +42,8 @@ export default function App() {
       : extra?.googleAndroidClientId;
 
     // Always log the config so we can debug OTA update issues
-    // Use info level so it's visible in both dev and production
-    Logger.info('[App] Google Sign-In config:', {
+    // Using console.log so it's visible in Chrome DevTools Console tab
+    const configInfo = {
       hasWebClientId: !!webClientId,
       hasIosClientId: !!iosClientId,
       hasAndroidClientId: !!androidClientId,
@@ -52,7 +54,9 @@ export default function App() {
       allExtraKeys: Object.keys(extra || {}),
       isDev: __DEV__,
       webClientIdPrefix: webClientId?.substring(0, 20) || 'undefined',
-    });
+    };
+    console.log('[App] Google Sign-In config:', configInfo);
+    Logger.info('[App] Google Sign-In config:', configInfo);
 
     // Configure Google Sign-In asynchronously
     // The signInWithGoogle function will wait for this to complete
@@ -61,6 +65,7 @@ export default function App() {
       iosClientId,
       androidClientId,
     }).catch(err => {
+      console.warn('[App] Failed to configure Google Sign-In:', err);
       Logger.warn('[App] Failed to configure Google Sign-In:', err);
     });
   }, []);
