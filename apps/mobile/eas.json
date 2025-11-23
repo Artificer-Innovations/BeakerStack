@@ -11,6 +11,9 @@
       },
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "SKIP_PREBUILD": "false"
       }
     },
     "preview": {

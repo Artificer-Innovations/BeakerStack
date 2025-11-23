@@ -8,6 +8,8 @@
     "react-test-renderer": "18.2.0"
   },
   "scripts": {
+    "eas-build-pre-install": "node scripts/generate-google-services.js || true",
+    "eas-build-post-install": "node scripts/apply-patches.js || true",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
@@ -27,7 +29,17 @@
     "clean": "rm -rf android/build ios/build android/.gradle android/.cxx ios/DerivedData",
     "postinstall": "node ./scripts/apply-patches.js",
     "generate-icon": "node scripts/convert-icon.js",
-    "pregenerate-icon": "cd ../.. && npm run sync-icons"
+    "pregenerate-icon": "cd ../.. && npm run sync-icons",
+    "build:dev:ios": "sh -c 'if [ -z \"$EXPO_TOKEN\" ]; then for env_file in .env.local ../../.env.local; do if [ -f \"$env_file\" ]; then set -a && source \"$env_file\" && set +a && break; fi; done; fi; if [ -z \"$EXPO_TOKEN\" ]; then echo \"❌ EXPO_TOKEN is required.\"; echo \"   Add it to apps/mobile/.env.local or root .env.local:\"; echo \"   EXPO_TOKEN=your-token-here\"; echo \"   Or set it as an environment variable: EXPO_TOKEN=... npm run build:dev:ios\"; exit 1; fi; EXPO_TOKEN=\"$EXPO_TOKEN\" npx --yes eas-cli build --platform ios --profile development'",
+    "build:dev:android": "sh -c 'if [ -z \"$EXPO_TOKEN\" ]; then for env_file in .env.local ../../.env.local; do if [ -f \"$env_file\" ]; then set -a && source \"$env_file\" && set +a && break; fi; done; fi; if [ -z \"$EXPO_TOKEN\" ]; then echo \"❌ EXPO_TOKEN is required.\"; echo \"   Add it to apps/mobile/.env.local or root .env.local:\"; echo \"   EXPO_TOKEN=your-token-here\"; echo \"   Or set it as an environment variable: EXPO_TOKEN=... npm run build:dev:android\"; exit 1; fi; EXPO_TOKEN=\"$EXPO_TOKEN\" npx --yes eas-cli build --platform android --profile development'",
+    "build:dev:ios:local": "sh -c 'if [ -z \"$EXPO_TOKEN\" ]; then for env_file in .env.local ../../.env.local; do if [ -f \"$env_file\" ]; then set -a && source \"$env_file\" && set +a && break; fi; done; fi; if [ -z \"$EXPO_TOKEN\" ]; then echo \"❌ EXPO_TOKEN is required.\"; echo \"   Add it to apps/mobile/.env.local or root .env.local:\"; echo \"   EXPO_TOKEN=your-token-here\"; echo \"   Or set it as an environment variable: EXPO_TOKEN=... npm run build:dev:ios:local\"; exit 1; fi; EXPO_TOKEN=\"$EXPO_TOKEN\" npx --yes eas-cli build --platform ios --profile development --local'",
+    "build:dev:android:local": "sh -c 'if [ -z \"$EXPO_TOKEN\" ]; then for env_file in .env.local ../../.env.local; do if [ -f \"$env_file\" ]; then set -a && source \"$env_file\" && set +a && break; fi; done; fi; if [ -z \"$EXPO_TOKEN\" ]; then echo \"❌ EXPO_TOKEN is required.\"; echo \"   Add it to apps/mobile/.env.local or root .env.local:\"; echo \"   EXPO_TOKEN=your-token-here\"; echo \"   Or set it as an environment variable: EXPO_TOKEN=... npm run build:dev:android:local\"; exit 1; fi; EXPO_TOKEN=\"$EXPO_TOKEN\" npx --yes eas-cli build --platform android --profile development --local'",
+    "install:dev:ios": "sh -c 'if [ -z \"$EAS_BUILD_PATH\" ]; then echo \"⚠️  Set EAS_BUILD_PATH to the path of the .ipa file or .app directory\"; echo \"Example: EAS_BUILD_PATH=~/Downloads/BeakerStack.ipa npm run install:dev:ios\"; echo \"Or for local builds: npm run install:dev:ios:local\"; exit 1; fi; if [ -d \"$EAS_BUILD_PATH\" ]; then APP_PATH=\"$EAS_BUILD_PATH\"; elif [ -f \"$EAS_BUILD_PATH\" ] && [[ \"$EAS_BUILD_PATH\" == *.tar.gz ]]; then TMP_DIR=$(mktemp -d); tar -xzf \"$EAS_BUILD_PATH\" -C \"$TMP_DIR\"; APP_PATH=\"$TMP_DIR/BeakerStack.app\"; else APP_PATH=\"$EAS_BUILD_PATH\"; fi; xcrun simctl install booted \"$APP_PATH\" && xcrun simctl launch booted com.anonymous.beakerstack && echo \"✅ Development build installed and launched\"'",
+    "install:dev:ios:local": "sh -c 'LATEST_BUILD=$(ls -t build-*.tar.gz 2>/dev/null | head -1); if [ -z \"$LATEST_BUILD\" ]; then echo \"❌ No local build found. Run: npm run build:dev:ios:local\"; exit 1; fi; echo \"📦 Extracting $LATEST_BUILD...\"; TMP_DIR=$(mktemp -d); tar -xzf \"$LATEST_BUILD\" -C \"$TMP_DIR\"; APP_PATH=\"$TMP_DIR/BeakerStack.app\"; if [ ! -d \"$APP_PATH\" ]; then echo \"❌ Could not find BeakerStack.app in build archive\"; exit 1; fi; echo \"📱 Installing to simulator...\"; xcrun simctl install booted \"$APP_PATH\" && xcrun simctl launch booted com.anonymous.beakerstack && echo \"✅ Development build installed and launched\" && rm -rf \"$TMP_DIR\"'",
+    "install:dev:android": "sh -c 'if [ -z \"$EAS_BUILD_PATH\" ]; then echo \"⚠️  Set EAS_BUILD_PATH to the path of the downloaded .apk file\"; echo \"Example: EAS_BUILD_PATH=~/Downloads/BeakerStack.apk npm run install:dev:android\"; echo \"Or for local builds: npm run install:dev:android:local\"; exit 1; fi; adb install -r \"$EAS_BUILD_PATH\" && adb shell monkey -p com.anonymous.beakerstack 1 && echo \"✅ Development build installed and launched\"'",
+    "install:dev:android:local": "sh -c 'LATEST_BUILD=$(ls -t build-*.apk 2>/dev/null | head -1); if [ -z \"$LATEST_BUILD\" ]; then echo \"❌ No local build found. Run: npm run build:dev:android:local\"; exit 1; fi; echo \"📱 Installing $LATEST_BUILD...\"; if ! command -v adb >/dev/null 2>&1; then echo \"❌ adb not found. Make sure Android SDK platform-tools is in your PATH.\"; exit 1; fi; if ! adb devices | grep -q \"device$\"; then echo \"❌ No Android device/emulator detected. Make sure your emulator is running or device is connected.\"; echo \"   Start emulator: emulator -avd <avd-name>\"; echo \"   Or check devices: adb devices\"; exit 1; fi; adb install -r \"$LATEST_BUILD\" && adb shell monkey -p com.anonymous.beakerstack 1 && echo \"✅ Development build installed and launched\"'",
+    "dev:ios": "npm run build:dev:ios && echo \"📱 Build complete! Download from https://expo.dev/accounts/artificer-innovations-llc/projects/beaker-stack/builds and run: EAS_BUILD_PATH=~/Downloads/BeakerStack.ipa npm run install:dev:ios\"",
+    "dev:android": "npm run build:dev:android && echo \"📱 Build complete! Download from https://expo.dev/accounts/artificer-innovations-llc/projects/beaker-stack/builds and run: EAS_BUILD_PATH=~/Downloads/BeakerStack.apk npm run install:dev:android\""
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "1.21.0",
@@ -61,6 +73,7 @@
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "dotenv": "^16.4.7",
+    "eas-cli": "^16.28.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "jest-expo": "~50.0.4",

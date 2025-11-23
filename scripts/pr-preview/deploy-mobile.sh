@@ -261,27 +261,113 @@ publish_update() {
   }
 }
 
-fetch_latest_update_urls() {
-  local channel project_url install_url
-  channel="$(channel_name)"
+get_expo_project_id() {
+  # Try to get project ID from .eas/project.json first (most reliable)
+  if [[ -f "${PROJECT_DIR}/.eas/project.json" ]]; then
+    local project_id
+    project_id="$(jq -r '.projectId // empty' "${PROJECT_DIR}/.eas/project.json" 2>/dev/null || true)"
+    if [[ -n "${project_id}" && "${project_id}" != "null" ]]; then
+      echo "${project_id}"
+      return
+    fi
+  fi
 
-  if [[ "${DRY_RUN}" == true ]]; then
-    project_url="https://expo.dev/accounts/${EXPO_ACCOUNT}/projects/${EXPO_PROJECT_SLUG}/updates/${channel}"
-    install_url="${project_url}"
-    write_output "PREVIEW_MOBILE_CHANNEL" "${channel}"
-    write_output "PREVIEW_MOBILE_UPDATE_URL" "${project_url}"
-    write_output "PREVIEW_MOBILE_INSTALL_URL" "${install_url}"
+  # Try to get from app.config.ts
+  if [[ -f "${PROJECT_DIR}/app.config.ts" ]]; then
+    local project_id
+    # Look for projectId in eas.projectId or extra.eas.projectId
+    project_id="$(grep -E "(projectId|eas.*projectId)" "${PROJECT_DIR}/app.config.ts" | grep -oE "'[a-f0-9-]+'|\"[a-f0-9-]+\"" | head -1 | tr -d "'\"")"
+    if [[ -n "${project_id}" ]]; then
+      echo "${project_id}"
+      return
+    fi
+  fi
+
+  # Fall back to EXPO_PROJECT_ID environment variable
+  if [[ -n "${EXPO_PROJECT_ID:-}" ]]; then
+    echo "${EXPO_PROJECT_ID}"
     return
   fi
 
-  project_url="https://expo.dev/accounts/${EXPO_ACCOUNT}/projects/${EXPO_PROJECT_SLUG}/updates/${channel}"
+  # Last resort: try to get from EAS
+  local project_info
+  project_info="$(run_eas project:info --json 2>/dev/null || true)"
+  if [[ -n "${project_info}" ]]; then
+    local project_id_from_eas
+    project_id_from_eas="$(echo "${project_info}" | jq -r '.id // empty' 2>/dev/null || true)"
+    if [[ -n "${project_id_from_eas}" && "${project_id_from_eas}" != "null" ]]; then
+      echo "${project_id_from_eas}"
+      return
+    fi
+  fi
+
+  log "ERROR" "Could not determine Expo project ID. Please ensure .eas/project.json exists or set EXPO_PROJECT_ID."
+  exit 1
+}
+
+get_expo_owner() {
+  # Try to get owner from app.config.ts first
+  if [[ -f "${PROJECT_DIR}/app.config.ts" ]]; then
+    local owner
+    owner="$(grep -E "^\s*owner\s*:" "${PROJECT_DIR}/app.config.ts" | sed -E "s/.*owner\s*:\s*['\"]([^'\"]+)['\"].*/\1/" | head -1)"
+    if [[ -n "${owner}" ]]; then
+      echo "${owner}"
+      return
+    fi
+  fi
+
+  # Fall back to .eas/project.json
+  if [[ -f "${PROJECT_DIR}/.eas/project.json" ]]; then
+    local account_name
+    account_name="$(jq -r '.accountName // empty' "${PROJECT_DIR}/.eas/project.json" 2>/dev/null || true)"
+    if [[ -n "${account_name}" && "${account_name}" != "null" ]]; then
+      echo "${account_name}"
+      return
+    fi
+  fi
+
+  # Fall back to EXPO_ACCOUNT if provided
+  if [[ -n "${EXPO_ACCOUNT:-}" ]]; then
+    echo "${EXPO_ACCOUNT}"
+    return
+  fi
+
+  # Last resort: try to get from EAS
+  local project_info
+  project_info="$(run_eas project:info --json 2>/dev/null || true)"
+  if [[ -n "${project_info}" ]]; then
+    local owner_from_eas
+    owner_from_eas="$(echo "${project_info}" | jq -r '.owner.username // .owner.slug // empty' 2>/dev/null || true)"
+    if [[ -n "${owner_from_eas}" && "${owner_from_eas}" != "null" ]]; then
+      echo "${owner_from_eas}"
+      return
+    fi
+  fi
+
+  # Default fallback
+  echo "${EXPO_ACCOUNT:-artificer-innovations-llc}"
+}
+
+fetch_latest_update_urls() {
+  local channel project_url install_url expo_owner project_id
+  channel="$(channel_name)"
+  expo_owner="$(get_expo_owner)"
+  project_id="$(get_expo_project_id)"
+
+  # Web dashboard URL (for viewing in browser)
+  project_url="https://expo.dev/accounts/${expo_owner}/projects/${EXPO_PROJECT_SLUG}/updates/${channel}"
+  # Dev client URL format (for loading in app) - this is the format the dev client accepts
+  dev_client_url="https://u.expo.dev/${project_id}?channel-name=${channel}"
   install_url="${project_url}"
 
   write_output "PREVIEW_MOBILE_CHANNEL" "${channel}"
-  write_output "PREVIEW_MOBILE_UPDATE_URL" "${project_url}"
+  write_output "PREVIEW_MOBILE_UPDATE_URL" "${dev_client_url}"
+  write_output "PREVIEW_MOBILE_DASHBOARD_URL" "${project_url}"
   write_output "PREVIEW_MOBILE_INSTALL_URL" "${install_url}"
 
   log "INFO" "Preview update available at ${project_url}"
+  log "INFO" "Dev client URL: ${dev_client_url}"
+  log "INFO" "To load in dev client: Enter URL manually → ${dev_client_url}"
 }
 
 main() {

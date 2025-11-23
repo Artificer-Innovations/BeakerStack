@@ -157,6 +157,27 @@ jobs:
             }
             if (mobileUpdateUrl) {
               lines.push(`📱 **Mobile preview:** Channel \`${mobileChannel}\` - [View updates](${mobileUpdateUrl})`);
+              lines.push('');
+              lines.push('### Testing Mobile Preview');
+              lines.push('');
+              lines.push('⚠️ **Note:** This app requires a **Development Build** (Expo Go will not work due to native Google OAuth).');
+              lines.push('');
+              lines.push('**Step 1: Install Development Build (one-time setup)**');
+              lines.push('1. Build: `npm run mobile:build:dev:ios` (or `mobile:build:dev:android`)');
+              lines.push('2. Download from [Expo dashboard](https://expo.dev/accounts/artificer-innovations-llc/projects/beaker-stack/builds)');
+              lines.push('3. Install: `EAS_BUILD_PATH=~/Downloads/BeakerStack.ipa npm run mobile:install:dev:ios` (iOS) or `EAS_BUILD_PATH=~/Downloads/BeakerStack.apk npm run mobile:install:dev:android` (Android)');
+              lines.push('');
+              lines.push('**Step 2: Load PR Preview Update**');
+              lines.push(`1. Open the development build on your device/simulator`);
+              lines.push(`2. Shake device (or Cmd+D on iOS / Cmd+M on Android) → "Enter URL manually"`);
+              lines.push(`3. Paste the update URL: \`${mobileUpdateUrl}\``);
+              lines.push(`4. The app will reload with the JavaScript bundle from channel \`${mobileChannel}\``);
+              lines.push('');
+              lines.push(`**Note:** You must use the full URL format - just entering the channel name (\`${mobileChannel}\`) will not work.`);
+              lines.push('');
+              lines.push(`**Alternative:** For local development, use: \`cd apps/mobile && npx expo start --dev-client\`, then press 'i' for iOS simulator.`);
+              lines.push('');
+              lines.push('📖 See [Mobile Build Testing Guide](../../docs/MOBILE_BUILD_TESTING.md) for detailed instructions.');
             }
             const body = lines.join('\n');
 

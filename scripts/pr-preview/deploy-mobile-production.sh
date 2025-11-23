@@ -259,9 +259,41 @@ publish_update() {
   }
 }
 
+get_expo_owner() {
+  # Try to get owner from app.config.ts first
+  if [[ -f "${PROJECT_DIR}/app.config.ts" ]]; then
+    local owner
+    owner="$(grep -E "^\s*owner\s*:" "${PROJECT_DIR}/app.config.ts" | sed -E "s/.*owner\s*:\s*['\"]([^'\"]+)['\"].*/\1/" | head -1)"
+    if [[ -n "${owner}" ]]; then
+      echo "${owner}"
+      return
+    fi
+  fi
+
+  # Fall back to .eas/project.json
+  if [[ -f "${PROJECT_DIR}/.eas/project.json" ]]; then
+    local account_name
+    account_name="$(jq -r '.accountName // empty' "${PROJECT_DIR}/.eas/project.json" 2>/dev/null || true)"
+    if [[ -n "${account_name}" && "${account_name}" != "null" ]]; then
+      echo "${account_name}"
+      return
+    fi
+  fi
+
+  # Fall back to EXPO_ACCOUNT if provided
+  if [[ -n "${EXPO_ACCOUNT:-}" ]]; then
+    echo "${EXPO_ACCOUNT}"
+    return
+  fi
+
+  # Default fallback
+  echo "artificer-innovations-llc"
+}
+
 fetch_latest_update_urls() {
-  local project_url
-  project_url="https://expo.dev/accounts/${EXPO_ACCOUNT}/projects/${EXPO_PROJECT_SLUG}/updates/${CHANNEL}"
+  local project_url expo_owner
+  expo_owner="$(get_expo_owner)"
+  project_url="https://expo.dev/accounts/${expo_owner}/projects/${EXPO_PROJECT_SLUG}/updates/${CHANNEL}"
 
   if [[ "${DRY_RUN}" == true ]]; then
     write_output "PRODUCTION_MOBILE_CHANNEL" "${CHANNEL}"

@@ -92,7 +92,11 @@ export function configureGoogleSignIn(options?: {
   // Lazy configure - only import when actually called
   import('@react-native-google-signin/google-signin')
     .then(module => {
-      // Only pass defined values - don't pass undefined properties
+      // IMPORTANT: Both webClientId and iosClientId are required.
+      // - webClientId: Used for the ID token audience (Supabase requires this)
+      // - iosClientId: Required for native iOS initialization
+      // When both are provided, the library uses webClientId for the ID token,
+      // which is what Supabase expects for verification.
       const config: {
         webClientId: string;
         iosClientId?: string;
@@ -102,12 +106,11 @@ export function configureGoogleSignIn(options?: {
         offlineAccess: true,
       };
 
+      // iosClientId is required for iOS - the library needs it for initialization
+      // but the ID token will still use webClientId as the audience
       if (options?.iosClientId) {
         config.iosClientId = options.iosClientId;
       }
-
-      // Note: Android typically uses webClientId, but we accept androidClientId
-      // for potential future use or custom configuration
 
       module.GoogleSignin.configure(config);
     })
