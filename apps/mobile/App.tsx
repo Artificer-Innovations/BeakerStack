@@ -11,6 +11,9 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 
 export default function App() {
   useEffect(() => {
+    // Log that useEffect is running (helps debug OTA update issues)
+    Logger.info('[App] useEffect running - initializing Google Sign-In config');
+    
     // Handle both expoConfig (SDK 49+) and manifest (older SDKs)
     const config = Constants.expoConfig ?? Constants.manifest;
     const extra = (
