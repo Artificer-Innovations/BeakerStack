@@ -329,6 +329,25 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
 
       // Check if configured (for Android, this is critical)
       if (!isConfigured) {
+        // Log detailed info about Constants to help debug OTA update issues
+        try {
+          const Constants = require('expo-constants').default;
+          const config = Constants.expoConfig ?? Constants.manifest;
+          const extra = config?.extra || {};
+          console.error('[useAuth] Google Sign-In not configured. Constants.expoConfig.extra:', {
+            hasExpoConfig: !!Constants.expoConfig,
+            hasManifest: !!Constants.manifest,
+            extraKeys: Object.keys(extra),
+            googleWebClientId: extra.googleWebClientId,
+            googleIosClientId: extra.googleIosClientId,
+            googleAndroidClientId: extra.googleAndroidClientId,
+            isConfigured,
+            hasConfigurePromise: !!configurePromise,
+          });
+        } catch (e) {
+          // Ignore errors accessing Constants
+        }
+        
         const errorMsg =
           'Google Sign-In not configured. Configuration may have failed silently. ' +
           'Please check the logs for configuration errors and ensure webClientId is set.';

@@ -11,6 +11,15 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 
 export default function App() {
   useEffect(() => {
+    // Expose Constants globally for debugging in Chrome Console (after app loads)
+    try {
+      if (typeof global !== 'undefined' && Constants) {
+        (global as any).__EXPO_CONSTANTS__ = Constants;
+      }
+    } catch (e) {
+      // Ignore errors exposing Constants
+    }
+    
     // Log that useEffect is running (helps debug OTA update issues)
     // Using console.log so it's visible in Chrome DevTools Console tab
     console.log('[App] useEffect running - initializing Google Sign-In config');
@@ -43,6 +52,12 @@ export default function App() {
 
     // Always log the config so we can debug OTA update issues
     // Using console.log so it's visible in Chrome DevTools Console tab
+    console.log('[App] extra object:', extra);
+    console.log('[App] extra keys:', Object.keys(extra || {}));
+    console.log('[App] raw googleWebClientId:', extra?.googleWebClientId);
+    console.log('[App] raw googleIosClientId:', extra?.googleIosClientId);
+    console.log('[App] raw googleAndroidClientId:', extra?.googleAndroidClientId);
+    
     const configInfo = {
       hasWebClientId: !!webClientId,
       hasIosClientId: !!iosClientId,
@@ -55,7 +70,7 @@ export default function App() {
       isDev: __DEV__,
       webClientIdPrefix: webClientId?.substring(0, 20) || 'undefined',
     };
-    console.log('[App] Google Sign-In config:', configInfo);
+    console.log('[App] Google Sign-In config:', JSON.stringify(configInfo, null, 2));
     Logger.info('[App] Google Sign-In config:', configInfo);
 
     // Configure Google Sign-In asynchronously
