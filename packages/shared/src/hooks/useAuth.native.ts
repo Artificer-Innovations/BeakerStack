@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { SupabaseClient, User, Session } from '@supabase/supabase-js';
 import type { AuthHookReturn } from '../types/auth';
 import { Logger } from '../utils/logger';
+import Constants from 'expo-constants';
 
 type GoogleSignInModule = {
   configure(config: {
@@ -331,16 +332,19 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
       if (!isConfigured) {
         // Log detailed info about Constants to help debug OTA update issues
         try {
-          const Constants = require('expo-constants').default;
           const config = Constants.expoConfig ?? Constants.manifest;
-          const extra = config?.extra || {};
+          const extra =
+            config && 'extra' in config
+              ? (config as { extra?: Record<string, unknown> }).extra || {}
+              : {};
+          // eslint-disable-next-line no-console
           console.error('[useAuth] Google Sign-In not configured. Constants.expoConfig.extra:', {
             hasExpoConfig: !!Constants.expoConfig,
             hasManifest: !!Constants.manifest,
             extraKeys: Object.keys(extra),
-            googleWebClientId: extra.googleWebClientId,
-            googleIosClientId: extra.googleIosClientId,
-            googleAndroidClientId: extra.googleAndroidClientId,
+            googleWebClientId: extra['googleWebClientId'],
+            googleIosClientId: extra['googleIosClientId'],
+            googleAndroidClientId: extra['googleAndroidClientId'],
             isConfigured,
             hasConfigurePromise: !!configurePromise,
           });
