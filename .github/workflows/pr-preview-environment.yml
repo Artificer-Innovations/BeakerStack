@@ -179,7 +179,20 @@ jobs:
               lines.push('');
               lines.push('📖 See [Mobile Build Testing Guide](../../docs/MOBILE_BUILD_TESTING.md) for detailed instructions.');
             }
-            const body = lines.join('\n');
+            let body = lines.join('\n');
+
+            // Add timestamp in Pacific time
+            const now = new Date();
+            const pacificTime = now.toLocaleString('en-US', {
+              timeZone: 'America/Los_Angeles',
+              dateStyle: 'long',
+              timeStyle: 'short'
+            });
+            const timezone = now.toLocaleString('en-US', {
+              timeZone: 'America/Los_Angeles',
+              timeZoneName: 'short'
+            }).split(' ').pop();
+            body = `${body}\n\n---\n\n_Updated at: ${pacificTime} ${timezone}_`;
 
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
