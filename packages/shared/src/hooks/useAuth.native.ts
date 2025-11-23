@@ -337,8 +337,8 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
             config && 'extra' in config
               ? (config as { extra?: Record<string, unknown> }).extra || {}
               : {};
-          // eslint-disable-next-line no-console
-          console.error('[useAuth] Google Sign-In not configured. Constants.expoConfig.extra:', {
+
+          Logger.error('[useAuth]', 'Google Sign-In not configured. Constants.expoConfig.extra:', JSON.stringify({
             hasExpoConfig: !!Constants.expoConfig,
             hasManifest: !!Constants.manifest,
             extraKeys: Object.keys(extra),
@@ -347,9 +347,10 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
             googleAndroidClientId: extra['googleAndroidClientId'],
             isConfigured,
             hasConfigurePromise: !!configurePromise,
-          });
+          }, null, 2));
         } catch (e) {
           // Ignore errors accessing Constants
+          Logger.error('[useAuth]', 'Google Sign-In not configured. Error accessing Constants:', JSON.stringify(e, null, 2));          
         }
         
         const errorMsg =

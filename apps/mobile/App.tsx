@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
 import { AuthProvider } from '@shared/contexts/AuthContext';
 import { ProfileProvider } from '@shared/contexts/ProfileContext';
 // Import from native-specific file for correct types
@@ -24,6 +25,24 @@ export default function App() {
     // Using console.log so it's visible in Chrome DevTools Console tab
     console.log('[App] useEffect running - initializing Google Sign-In config');
     Logger.info('[App] useEffect running - initializing Google Sign-In config');
+    
+    // Log OTA update info to see which channel the build is using
+    if (Updates.isEnabled) {
+      console.log('[App] OTA Updates enabled');
+      console.log('[App] Updates channel:', Updates.channel);
+      console.log('[App] Update ID:', Updates.updateId);
+      console.log('[App] Update manifest ID:', Updates.manifest?.id);
+      console.log('[App] Update manifest:', Updates.manifest);
+      Logger.info('[App] OTA Update info:', {
+        channel: Updates.channel,
+        updateId: Updates.updateId,
+        manifestId: Updates.manifest?.id,
+        manifest: Updates.manifest,
+      });
+    } else {
+      console.log('[App] OTA Updates disabled (using local bundle)');
+      Logger.info('[App] OTA Updates disabled (using local bundle)');
+    }
     
     // Handle both expoConfig (SDK 49+) and manifest (older SDKs)
     const config = Constants.expoConfig ?? Constants.manifest;
