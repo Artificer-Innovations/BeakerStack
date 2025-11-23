@@ -36,31 +36,20 @@ export default function App() {
       ? undefined
       : extra?.googleAndroidClientId;
 
-    // Always log in development, and also log in production if values are missing
-    if (__DEV__) {
-      Logger.debug('[App] Google Sign-In config:', {
-        hasWebClientId: !!webClientId,
-        hasIosClientId: !!iosClientId,
-        hasAndroidClientId: !!androidClientId,
-        webClientIdLength: webClientId?.length ?? 0,
-        rawWebClientId: extra?.googleWebClientId,
-        rawIosClientId: extra?.googleIosClientId,
-        rawAndroidClientId: extra?.googleAndroidClientId,
-        allExtraKeys: Object.keys(extra || {}),
-        isDev: __DEV__,
-      });
-    } else if (!webClientId) {
-      // Log as warning in production if client ID is missing (so it's visible)
-      Logger.warn('[App] Google Sign-In config - MISSING webClientId:', {
-        hasWebClientId: false,
-        hasIosClientId: !!iosClientId,
-        hasAndroidClientId: !!androidClientId,
-        rawWebClientId: extra?.googleWebClientId,
-        rawIosClientId: extra?.googleIosClientId,
-        rawAndroidClientId: extra?.googleAndroidClientId,
-        allExtraKeys: Object.keys(extra || {}),
-      });
-    }
+    // Always log the config so we can debug OTA update issues
+    // Use info level so it's visible in both dev and production
+    Logger.info('[App] Google Sign-In config:', {
+      hasWebClientId: !!webClientId,
+      hasIosClientId: !!iosClientId,
+      hasAndroidClientId: !!androidClientId,
+      webClientIdLength: webClientId?.length ?? 0,
+      rawWebClientId: extra?.googleWebClientId,
+      rawIosClientId: extra?.googleIosClientId,
+      rawAndroidClientId: extra?.googleAndroidClientId,
+      allExtraKeys: Object.keys(extra || {}),
+      isDev: __DEV__,
+      webClientIdPrefix: webClientId?.substring(0, 20) || 'undefined',
+    });
 
     // Configure Google Sign-In asynchronously
     // The signInWithGoogle function will wait for this to complete

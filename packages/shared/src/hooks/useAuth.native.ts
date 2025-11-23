@@ -91,7 +91,13 @@ export function configureGoogleSignIn(options?: {
   const webClientId = options?.webClientId;
   if (!webClientId) {
     Logger.warn(
-      '[useAuth] Google Sign-In not configured: webClientId is missing'
+      '[useAuth] Google Sign-In not configured: webClientId is missing',
+      {
+        hasWebClientId: false,
+        hasIosClientId: !!options?.iosClientId,
+        hasAndroidClientId: !!options?.androidClientId,
+        optionsKeys: Object.keys(options || {}),
+      }
     );
     return Promise.resolve();
   }
@@ -137,9 +143,10 @@ export function configureGoogleSignIn(options?: {
             module.GoogleSignin.configure(config);
             isConfigured = true;
 
-            if (__DEV__) {
-              Logger.debug('[useAuth] Google Sign-In configured successfully');
-            }
+            Logger.info('[useAuth] Google Sign-In configured successfully', {
+              hasWebClientId: !!webClientId,
+              hasIosClientId: !!config.iosClientId,
+            });
             resolve();
           } catch (configErr) {
             const errorMsg = `Failed to configure Google Sign-In: ${configErr instanceof Error ? configErr.message : String(configErr)}`;
