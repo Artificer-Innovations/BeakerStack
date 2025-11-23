@@ -36,7 +36,8 @@ export default function App() {
       ? undefined
       : extra?.googleAndroidClientId;
 
-    if (__DEV__) {
+    // Always log in development, and also log in production if values are missing
+    if (__DEV__ || !webClientId) {
       Logger.debug('[App] Google Sign-In config:', {
         hasWebClientId: !!webClientId,
         hasIosClientId: !!iosClientId,
@@ -46,6 +47,7 @@ export default function App() {
         rawIosClientId: extra?.googleIosClientId,
         rawAndroidClientId: extra?.googleAndroidClientId,
         allExtraKeys: Object.keys(extra || {}),
+        isDev: __DEV__,
       });
     }
 
