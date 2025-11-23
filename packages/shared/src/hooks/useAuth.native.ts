@@ -338,7 +338,7 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
               ? (config as { extra?: Record<string, unknown> }).extra || {}
               : {};
 
-          Logger.error('[useAuth]', 'Google Sign-In not configured. Constants.expoConfig.extra:', JSON.stringify({
+          Logger.error('[useAuth]', 'UPDATED!! Google Sign-In not configured. Constants.expoConfig.extra:', JSON.stringify({
             hasExpoConfig: !!Constants.expoConfig,
             hasManifest: !!Constants.manifest,
             extraKeys: Object.keys(extra),
@@ -350,11 +350,11 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
           }, null, 2));
         } catch (e) {
           // Ignore errors accessing Constants
-          Logger.error('[useAuth]', 'Google Sign-In not configured. Error accessing Constants:', JSON.stringify(e, null, 2));          
+          Logger.error('[useAuth]', 'UPDATED!! Google Sign-In not configured. Error accessing Constants:', JSON.stringify(e, null, 2));          
         }
         
         const errorMsg =
-          'Google Sign-In not configured. Configuration may have failed silently. ' +
+          'UPDATED!! Google Sign-In not configured. Configuration may have failed silently. ' +
           'Please check the logs for configuration errors and ensure webClientId is set.';
         Logger.error('[useAuth]', errorMsg);
         throw new Error(errorMsg);

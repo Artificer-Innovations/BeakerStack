@@ -12,6 +12,13 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 
 export default function App() {
   useEffect(() => {
+    // CRITICAL: Log immediately to verify this code is running
+    // This will help us determine if the OTA update is loading at all
+    const logMessage = '[App] ⚠️⚠️⚠️ APP.TSX USEEFFECT RUNNING ⚠️⚠️⚠️';
+    console.log(logMessage);
+    console.error(logMessage); // Use error level so it's more visible
+    Logger.error(logMessage); // Also use Logger.error for native logs
+    
     // Expose Constants globally for debugging in Chrome Console (after app loads)
     try {
       if (typeof global !== 'undefined' && Constants) {
@@ -27,20 +34,33 @@ export default function App() {
     Logger.info('[App] useEffect running - initializing Google Sign-In config');
     
     // Log OTA update info to see which channel the build is using
+    // Use both console.log (for Chrome DevTools) and Logger (for native logs)
     if (Updates.isEnabled) {
-      console.log('[App] OTA Updates enabled');
-      console.log('[App] Updates channel:', Updates.channel);
-      console.log('[App] Update ID:', Updates.updateId);
-      console.log('[App] Update manifest ID:', Updates.manifest?.id);
-      console.log('[App] Update manifest:', Updates.manifest);
-      Logger.info('[App] OTA Update info:', {
+      const updateInfo = {
+        enabled: true,
         channel: Updates.channel,
         updateId: Updates.updateId,
         manifestId: Updates.manifest?.id,
-        manifest: Updates.manifest,
-      });
+        runtimeVersion: Updates.runtimeVersion,
+      };
+      const updateLog = `[App] OTA Updates ENABLED - Channel: ${Updates.channel}, Update ID: ${Updates.updateId}`;
+      console.log('[App] ========================================');
+      console.log('[App] OTA Updates ENABLED');
+      console.log('[App] Channel:', Updates.channel);
+      console.log('[App] Update ID:', Updates.updateId);
+      console.log('[App] Runtime Version:', Updates.runtimeVersion);
+      console.log('[App] Manifest ID:', Updates.manifest?.id);
+      console.log('[App] ========================================');
+      console.error(updateLog); // Use error level for visibility
+      Logger.error(updateLog);
+      Logger.info('[App] OTA Update info:', updateInfo);
     } else {
-      console.log('[App] OTA Updates disabled (using local bundle)');
+      const disabledLog = '[App] OTA Updates DISABLED (using local bundle)';
+      console.log('[App] ========================================');
+      console.log(disabledLog);
+      console.log('[App] ========================================');
+      console.error(disabledLog); // Use error level for visibility
+      Logger.error(disabledLog);
       Logger.info('[App] OTA Updates disabled (using local bundle)');
     }
     
