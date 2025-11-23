@@ -18,20 +18,25 @@ const requiredVars = {
   GOOGLE_SERVICES_PROJECT_NUMBER: process.env.GOOGLE_SERVICES_PROJECT_NUMBER,
   GOOGLE_SERVICES_PROJECT_ID: process.env.GOOGLE_SERVICES_PROJECT_ID,
   GOOGLE_SERVICES_STORAGE_BUCKET: process.env.GOOGLE_SERVICES_STORAGE_BUCKET,
-  GOOGLE_SERVICES_MOBILESDK_APP_ID: process.env.GOOGLE_SERVICES_MOBILESDK_APP_ID,
-  GOOGLE_SERVICES_ANDROID_CLIENT_ID: process.env.GOOGLE_SERVICES_ANDROID_CLIENT_ID,
-  GOOGLE_SERVICES_ANDROID_CERTIFICATE_HASH: process.env.GOOGLE_SERVICES_ANDROID_CERTIFICATE_HASH,
+  GOOGLE_SERVICES_MOBILESDK_APP_ID:
+    process.env.GOOGLE_SERVICES_MOBILESDK_APP_ID,
+  GOOGLE_SERVICES_ANDROID_CLIENT_ID:
+    process.env.GOOGLE_SERVICES_ANDROID_CLIENT_ID,
+  GOOGLE_SERVICES_ANDROID_CERTIFICATE_HASH:
+    process.env.GOOGLE_SERVICES_ANDROID_CERTIFICATE_HASH,
   GOOGLE_SERVICES_WEB_CLIENT_ID: process.env.GOOGLE_SERVICES_WEB_CLIENT_ID,
   GOOGLE_SERVICES_IOS_CLIENT_ID: process.env.GOOGLE_SERVICES_IOS_CLIENT_ID,
   GOOGLE_SERVICES_API_KEY: process.env.GOOGLE_SERVICES_API_KEY,
 };
 
 // Check if we're in a build environment (EAS build or CI)
-const isBuildEnv = process.env.EAS_BUILD === 'true' || process.env.CI === 'true';
+const isBuildEnv =
+  process.env.EAS_BUILD === 'true' || process.env.CI === 'true';
 // Check if we're in an EAS build temporary directory (local or cloud)
-const isEasBuildDir = process.cwd().includes('eas-build-local-nodejs') || 
-                      process.cwd().includes('/tmp/') ||
-                      process.env.EAS_BUILD === 'true';
+const isEasBuildDir =
+  process.cwd().includes('eas-build-local-nodejs') ||
+  process.cwd().includes('/tmp/') ||
+  process.env.EAS_BUILD === 'true';
 
 // If not in build env and file exists, skip generation (for local dev)
 // But if we're in an EAS build directory and file doesn't exist, we need to generate it
@@ -48,22 +53,32 @@ const missingVars = Object.entries(requiredVars)
 if (missingVars.length > 0) {
   if (isBuildEnv || isEasBuildDir) {
     // In EAS build (local or cloud), we need the file
-    console.error('❌ Missing required environment variables for google-services.json:');
+    console.error(
+      '❌ Missing required environment variables for google-services.json:'
+    );
     missingVars.forEach(key => console.error(`   - ${key}`));
     console.error('\n💡 For EAS builds, set these as EAS secrets:');
-    console.error('   eas secret:create --scope project --name GOOGLE_SERVICES_PROJECT_NUMBER --value "..."');
+    console.error(
+      '   eas secret:create --scope project --name GOOGLE_SERVICES_PROJECT_NUMBER --value "..."'
+    );
     console.error('   (and similarly for other GOOGLE_SERVICES_* variables)');
     console.error('\n💡 For local EAS builds, you can also:');
     console.error('   1. Add these to your .env.local file, or');
-    console.error('   2. Ensure google-services.json is in apps/mobile/ (it will be copied to the build)');
+    console.error(
+      '   2. Ensure google-services.json is in apps/mobile/ (it will be copied to the build)'
+    );
     process.exit(1);
   } else {
     // For local dev (not in EAS build), warn but don't fail
     console.warn('⚠️  Missing environment variables for google-services.json:');
     missingVars.forEach(key => console.warn(`   - ${key}`));
-    console.warn('💡 Using local google-services.json if it exists, or create it manually.');
+    console.warn(
+      '💡 Using local google-services.json if it exists, or create it manually.'
+    );
     if (!fs.existsSync(outputPath)) {
-      console.error('❌ google-services.json not found and cannot be generated.');
+      console.error(
+        '❌ google-services.json not found and cannot be generated.'
+      );
       process.exit(1);
     }
     process.exit(0);
@@ -71,7 +86,8 @@ if (missingVars.length > 0) {
 }
 
 // Package name from app.config.ts or environment
-const packageName = process.env.ANDROID_PACKAGE_NAME || 'com.anonymous.beakerstack';
+const packageName =
+  process.env.ANDROID_PACKAGE_NAME || 'com.anonymous.beakerstack';
 const bundleId = process.env.IOS_BUNDLE_ID || 'com.anonymous.beakerstack';
 
 // Generate the google-services.json structure
@@ -95,7 +111,8 @@ const googleServices = {
           client_type: 1,
           android_info: {
             package_name: packageName,
-            certificate_hash: requiredVars.GOOGLE_SERVICES_ANDROID_CERTIFICATE_HASH,
+            certificate_hash:
+              requiredVars.GOOGLE_SERVICES_ANDROID_CERTIFICATE_HASH,
           },
         },
         {
@@ -133,4 +150,3 @@ const googleServices = {
 // Write the file
 fs.writeFileSync(outputPath, JSON.stringify(googleServices, null, 2));
 console.log('✅ Generated google-services.json from environment variables');
-

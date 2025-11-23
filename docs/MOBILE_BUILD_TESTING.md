@@ -15,6 +15,7 @@ Our mobile app uses **Expo EAS Updates** for over-the-air (OTA) JavaScript updat
 ⚠️ **Our app includes native modules (Google OAuth), so Expo Go will NOT work.**
 
 You must use a **Development Build** (also called a "custom dev client") which:
+
 - Includes all your native modules (Google OAuth, etc.)
 - Still supports OTA updates via EAS Updates
 - Can be installed on simulators, emulators, or physical devices
@@ -32,6 +33,7 @@ You only need to do this **once** (or when native dependencies change). After th
 ### Easy Method: Use npm Scripts
 
 **For iOS Simulator:**
+
 ```bash
 # Build in the cloud (recommended, takes ~10-15 minutes)
 npm run mobile:build:dev:ios
@@ -42,6 +44,7 @@ npm run mobile:build:dev:ios:local
 ```
 
 **For Android Emulator:**
+
 ```bash
 # Build in the cloud (recommended, takes ~10-15 minutes)
 npm run mobile:build:dev:android
@@ -53,6 +56,7 @@ npm run mobile:build:dev:android:local
 After the build completes:
 
 **For Local Builds (easiest):**
+
 ```bash
 # iOS - automatically finds and installs the latest local build
 npm run mobile:install:dev:ios:local
@@ -62,12 +66,14 @@ EAS_BUILD_PATH=path/to/BeakerStack.apk npm run mobile:install:dev:android
 ```
 
 **For Cloud Builds:**
+
 1. **Download the build** from [Expo dashboard](https://expo.dev/accounts/artificer-innovations-llc/projects/beaker-stack/builds) (filter by "development" profile)
 2. **Install on simulator/emulator**:
+
    ```bash
    # iOS
    EAS_BUILD_PATH=~/Downloads/BeakerStack.ipa npm run mobile:install:dev:ios
-   
+
    # Android
    EAS_BUILD_PATH=~/Downloads/BeakerStack.apk npm run mobile:install:dev:android
    ```
@@ -77,6 +83,7 @@ EAS_BUILD_PATH=path/to/BeakerStack.apk npm run mobile:install:dev:android
 If you prefer to run commands directly:
 
 **For iOS Simulator:**
+
 ```bash
 cd apps/mobile
 npx eas build --platform ios --profile development
@@ -84,6 +91,7 @@ npx eas build --platform ios --profile development
 ```
 
 **For Android Emulator:**
+
 ```bash
 cd apps/mobile
 npx eas build --platform android --profile development
@@ -105,11 +113,13 @@ Once you have the development build installed, you can load OTA updates from any
 2. **Shake the device** (or press `Cmd+D` on iOS simulator / `Cmd+M` on Android emulator)
 3. **Tap "Enter URL manually"** or "Open from URL"
 4. **Enter the update URL** in this format:
+
    ```
    https://u.expo.dev/{PROJECT_ID}?channel-name={CHANNEL_NAME}
    ```
-   
+
    For example:
+
    ```
    https://u.expo.dev/23c5e522-5341-4342-85f5-f2e46dd6087f?channel-name=pr-17
    ```
@@ -121,12 +131,14 @@ Once you have the development build installed, you can load OTA updates from any
 The URL format is: `https://u.expo.dev/{PROJECT_ID}?channel-name={CHANNEL_NAME}`
 
 To find your project ID:
+
 1. Check `apps/mobile/.eas/project.json` → `projectId` field (most reliable)
 2. Check `apps/mobile/app.config.ts` → `extra.eas.projectId` field
 3. Run: `cd apps/mobile && npx eas project:info` and look for the `id` field
 4. Visit your Expo dashboard and check the project settings
 
-**Important Notes:** 
+**Important Notes:**
+
 - The web dashboard URL (`https://expo.dev/.../updates/pr-17`) is for viewing updates in the browser, not for loading in the dev client
 - Just entering the channel name (e.g., `pr-17`) will not work - you need the full URL format
 - The PR comment will automatically include the correct URL for you to copy
@@ -139,6 +151,7 @@ npx expo start --dev-client
 ```
 
 Then in the development build:
+
 - Scan the QR code, or
 - Press `i` for iOS simulator / `a` for Android emulator
 
@@ -171,6 +184,7 @@ EXPO_TOKEN=your-token npx eas build --platform android --profile production
 ### Step 2: Download the Build
 
 1. **View Builds**:
+
    ```bash
    npx eas build:list --limit 10
    ```
@@ -184,6 +198,7 @@ EXPO_TOKEN=your-token npx eas build --platform android --profile production
 ### Step 3: Install on iOS Simulator
 
 1. **Boot a Simulator**:
+
    ```bash
    open -a Simulator
    # Or select a specific device:
@@ -191,11 +206,13 @@ EXPO_TOKEN=your-token npx eas build --platform android --profile production
    ```
 
 2. **Install the .ipa**:
+
    ```bash
    xcrun simctl install booted ~/Downloads/BeakerStack.ipa
    ```
 
 3. **Launch the App**:
+
    ```bash
    xcrun simctl launch booted com.anonymous.beakerstack
    ```
@@ -223,20 +240,23 @@ EXPO_TOKEN=your-token npx eas build --platform android --profile production
 ### Step 5: Install on Android Emulator
 
 1. **Boot an Emulator**:
+
    ```bash
    # List available emulators
    emulator -list-avds
-   
+
    # Start an emulator
    emulator -avd Pixel_5_API_33
    ```
 
 2. **Install the APK**:
+
    ```bash
    adb install ~/Downloads/BeakerStack.apk
    ```
 
 3. **Launch the App**:
+
    ```bash
    adb shell monkey -p com.anonymous.beakerstack 1
    ```
@@ -244,6 +264,7 @@ EXPO_TOKEN=your-token npx eas build --platform android --profile production
    Or find "Beaker Stack" in the app drawer and tap it.
 
 **Note**: If you only have an `.aab` file (Play Store bundle), you need to either:
+
 - Build with `buildType: "apk"` in the profile, or
 - Convert the `.aab` to `.apk` using [bundletool](https://github.com/google/bundletool)
 
@@ -279,6 +300,7 @@ EXPO_TOKEN=your-token npx eas build --platform android --profile production
 - **Purpose**: Test PR-specific changes before merge
 
 **To Test**:
+
 1. Find the PR comment with the mobile preview link
 2. Follow Option 1 (OTA) or Option 2 (Full Build) above
 3. The app will connect to the preview Supabase instance
@@ -290,6 +312,7 @@ EXPO_TOKEN=your-token npx eas build --platform android --profile production
 - **Purpose**: Test changes before production release
 
 **To Test**:
+
 1. Build with `--profile staging` or use the staging channel
 2. Install using Option 2 above
 3. The app will connect to the staging Supabase instance
@@ -301,6 +324,7 @@ EXPO_TOKEN=your-token npx eas build --platform android --profile production
 - **Purpose**: Final release to users
 
 **To Test**:
+
 1. Build with `--profile production`
 2. Install via TestFlight (iOS) or Play Store Internal Testing (Android)
 3. The app will connect to the production Supabase instance
@@ -379,4 +403,3 @@ npx eas update:view <UPDATE_ID>
 - **Expo Dashboard**: https://expo.dev/accounts/artificer-innovations-llc/projects/beaker-stack
 - **Builds**: https://expo.dev/accounts/artificer-innovations-llc/projects/beaker-stack/builds
 - **Updates**: https://expo.dev/accounts/artificer-innovations-llc/projects/beaker-stack/updates
-

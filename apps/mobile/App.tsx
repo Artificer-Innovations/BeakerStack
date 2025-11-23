@@ -49,10 +49,14 @@ export default function App() {
       });
     }
 
+    // Configure Google Sign-In asynchronously
+    // The signInWithGoogle function will wait for this to complete
     configureGoogleSignIn({
       webClientId,
       iosClientId,
       androidClientId,
+    }).catch(err => {
+      Logger.warn('[App] Failed to configure Google Sign-In:', err);
     });
   }, []);
 

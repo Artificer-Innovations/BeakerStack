@@ -19,11 +19,17 @@ const scriptDir = __dirname;
 let mobileRoot, patchesDir, projectRoot;
 
 // Check if we're in apps/mobile/scripts/
-if (scriptDir.endsWith('apps/mobile/scripts') || scriptDir.endsWith('apps\\mobile\\scripts')) {
+if (
+  scriptDir.endsWith('apps/mobile/scripts') ||
+  scriptDir.endsWith('apps\\mobile\\scripts')
+) {
   mobileRoot = path.join(scriptDir, '..');
   patchesDir = path.join(mobileRoot, 'patches');
   projectRoot = path.join(mobileRoot, '..', '..');
-} else if (scriptDir.endsWith('apps/mobile') || scriptDir.endsWith('apps\\mobile')) {
+} else if (
+  scriptDir.endsWith('apps/mobile') ||
+  scriptDir.endsWith('apps\\mobile')
+) {
   // Called from apps/mobile/
   mobileRoot = scriptDir;
   patchesDir = path.join(mobileRoot, 'patches');
