@@ -5,6 +5,26 @@ import {
 } from '@shared/src/hooks/useAuth.native';
 import type { SupabaseClient, User, Session } from '@supabase/supabase-js';
 
+// Mock expo-constants
+jest.mock('expo-constants', () => ({
+  default: {
+    expoConfig: {
+      extra: {
+        googleWebClientId: 'test-web-client-id',
+        googleIosClientId: 'test-ios-client-id',
+        googleAndroidClientId: 'test-android-client-id',
+      },
+    },
+    manifest: {
+      extra: {
+        googleWebClientId: 'test-web-client-id',
+        googleIosClientId: 'test-ios-client-id',
+        googleAndroidClientId: 'test-android-client-id',
+      },
+    },
+  },
+}));
+
 // Mock @react-native-google-signin/google-signin
 const mockGoogleSignin = {
   configure: jest.fn(),
@@ -635,7 +655,12 @@ describe('useAuth (Native)', () => {
       const { Logger } = require('@shared/src/utils/logger');
       configureGoogleSignIn({});
       expect(Logger.warn).toHaveBeenCalledWith(
-        '[useAuth] Google Sign-In not configured: webClientId is missing'
+        '[useAuth] Google Sign-In not configured: webClientId is missing',
+        expect.objectContaining({
+          hasWebClientId: false,
+          hasIosClientId: false,
+          hasAndroidClientId: false,
+        })
       );
     });
 

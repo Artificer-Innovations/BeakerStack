@@ -7,6 +7,49 @@ import { ProfileProvider } from '@shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { BRANDING } from '@shared/config/branding';
 
+// Mock expo-constants
+jest.mock('expo-constants', () => ({
+  default: {
+    expoConfig: {
+      extra: {
+        supabaseUrl: 'http://localhost:54321',
+        supabaseAnonKey: 'test-anon-key',
+        googleWebClientId: 'test-web-client-id',
+        googleIosClientId: 'test-ios-client-id',
+        googleAndroidClientId: 'test-android-client-id',
+      },
+    },
+    manifest: {
+      extra: {
+        supabaseUrl: 'http://localhost:54321',
+        supabaseAnonKey: 'test-anon-key',
+        googleWebClientId: 'test-web-client-id',
+        googleIosClientId: 'test-ios-client-id',
+        googleAndroidClientId: 'test-android-client-id',
+      },
+    },
+  },
+}));
+
+// Mock @react-native-google-signin/google-signin
+jest.mock('@react-native-google-signin/google-signin', () => ({
+  GoogleSignin: {
+    configure: jest.fn(),
+    hasPlayServices: jest.fn().mockResolvedValue(undefined),
+    signIn: jest.fn().mockResolvedValue(undefined),
+    getTokens: jest.fn().mockResolvedValue({
+      idToken: 'mock-id-token',
+      accessToken: 'mock-access-token',
+    }),
+    signOut: jest.fn().mockResolvedValue(undefined),
+  },
+  statusCodes: {
+    SIGN_IN_CANCELLED: 'SIGN_IN_CANCELLED',
+    IN_PROGRESS: 'IN_PROGRESS',
+    PLAY_SERVICES_NOT_AVAILABLE: 'PLAY_SERVICES_NOT_AVAILABLE',
+  },
+}));
+
 // Mock the supabase client import
 jest.mock('../../src/lib/supabase', () => {
   const mockFrom = jest.fn(() => ({

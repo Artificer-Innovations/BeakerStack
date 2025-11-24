@@ -267,5 +267,11 @@ supabase/logs
 maestro.log
 apps/mobile/google-services.json
 
+# Android build artifacts and keystores
+*.apk
+*.aab
+*.jks
+*.patch.backup
+
 # AWS build artifacts
 .aws-build/
