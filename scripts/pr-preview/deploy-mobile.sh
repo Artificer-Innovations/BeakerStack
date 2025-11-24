@@ -20,6 +20,7 @@ EXPO_ACCOUNT=""
 EXPO_PROJECT_SLUG="${DEFAULT_EXPO_PROJECT_SLUG}"
 OUTPUT_ENV=""
 DRY_RUN=false
+BUILD_NATIVE=false
 PROJECT_DIR="${MOBILE_APP_DIR}"
 
 EAS_BIN=(npx --yes eas-cli)
@@ -43,6 +44,7 @@ Optional:
   --platform [all|ios|android]   Platform target for EAS Update (default: ${DEFAULT_PLATFORM})
   --message TEXT                 Custom update message (default: "PR #<number> preview update")
   --env-file PATH                Write outputs to PATH (KEY=VALUE format)
+  --build-native                 Build native apps (iOS and Android) in addition to publishing OTA update
   --dry-run                      Log commands without executing
   --help                         Show this help message
 
@@ -54,6 +56,10 @@ Outputs:
   PREVIEW_MOBILE_CHANNEL         Expo Update channel name
   PREVIEW_MOBILE_UPDATE_URL      Expo URL to view the latest update
   PREVIEW_MOBILE_INSTALL_URL     Expo go/QR URL for testers (if available)
+  PREVIEW_MOBILE_IOS_BUILD_ID    iOS build ID (if --build-native used)
+  PREVIEW_MOBILE_IOS_DOWNLOAD_URL iOS build download URL (if --build-native used)
+  PREVIEW_MOBILE_ANDROID_BUILD_ID Android build ID (if --build-native used)
+  PREVIEW_MOBILE_ANDROID_DOWNLOAD_URL Android build download URL (if --build-native used)
 EOF
 }
 
@@ -135,6 +141,10 @@ parse_args() {
         OUTPUT_ENV="$2"
         : >"${OUTPUT_ENV}"
         shift 2
+        ;;
+      --build-native)
+        BUILD_NATIVE=true
+        shift
         ;;
       --dry-run)
         DRY_RUN=true
@@ -370,6 +380,169 @@ fetch_latest_update_urls() {
   log "INFO" "To load in dev client: Enter URL manually → ${dev_client_url}"
 }
 
+wait_for_build() {
+  local build_id="$1"
+  local platform="$2"
+  local max_wait="${3:-1800}" # 30 minutes default
+  local elapsed=0
+  local interval=30 # Check every 30 seconds
+
+  log "INFO" "Waiting for ${platform} build ${build_id} to complete..."
+  
+  while [[ ${elapsed} -lt ${max_wait} ]]; do
+    local build_info
+    build_info="$(run_eas build:view "${build_id}" --json 2>/dev/null || echo "{}")"
+    
+    if [[ -z "${build_info}" || "${build_info}" == "{}" ]]; then
+      log "WARN" "Could not fetch build status, continuing to wait..."
+      sleep "${interval}"
+      elapsed=$((elapsed + interval))
+      continue
+    fi
+    
+    local status
+    status="$(echo "${build_info}" | jq -r '.status // "unknown"' 2>/dev/null || echo "unknown")"
+    
+    case "${status}" in
+      "finished")
+        log "INFO" "${platform} build ${build_id} completed successfully"
+        return 0
+        ;;
+      "errored"|"canceled")
+        log "ERROR" "${platform} build ${build_id} failed with status: ${status}"
+        return 1
+        ;;
+      "in-progress"|"in-queue"|"pending")
+        log "INFO" "${platform} build ${build_id} status: ${status} (${elapsed}s elapsed)"
+        ;;
+      *)
+        log "WARN" "${platform} build ${build_id} unknown status: ${status}"
+        ;;
+    esac
+    
+    sleep "${interval}"
+    elapsed=$((elapsed + interval))
+  done
+  
+  log "ERROR" "${platform} build ${build_id} timed out after ${max_wait} seconds"
+  return 1
+}
+
+build_native_app() {
+  local build_message
+  build_message="PR #${PR_NUMBER} preview build"
+  
+  log "INFO" "Starting native builds for PR #${PR_NUMBER}..."
+  
+  # Build iOS
+  log "INFO" "Starting iOS build..."
+  local ios_build_output
+  ios_build_output="$(run_eas build \
+    --platform ios \
+    --profile preview \
+    --non-interactive \
+    --json \
+    --message "${build_message}" 2>&1 || true)"
+  
+  local ios_build_id
+  ios_build_id="$(echo "${ios_build_output}" | jq -r '.id // empty' 2>/dev/null || true)"
+  
+  if [[ -z "${ios_build_id}" || "${ios_build_id}" == "null" ]]; then
+    log "ERROR" "Failed to start iOS build"
+    log "ERROR" "Build output: ${ios_build_output}"
+    return 1
+  fi
+  
+  log "INFO" "iOS build started: ${ios_build_id}"
+  
+  # Build Android (start in parallel)
+  log "INFO" "Starting Android build..."
+  local android_build_output
+  android_build_output="$(run_eas build \
+    --platform android \
+    --profile preview \
+    --non-interactive \
+    --json \
+    --message "${build_message}" 2>&1 || true)"
+  
+  local android_build_id
+  android_build_id="$(echo "${android_build_output}" | jq -r '.id // empty' 2>/dev/null || true)"
+  
+  if [[ -z "${android_build_id}" || "${android_build_id}" == "null" ]]; then
+    log "ERROR" "Failed to start Android build"
+    log "ERROR" "Build output: ${android_build_output}"
+    return 1
+  fi
+  
+  log "INFO" "Android build started: ${android_build_id}"
+  
+  # Wait for both builds to complete
+  local ios_success=false
+  local android_success=false
+  
+  if wait_for_build "${ios_build_id}" "iOS"; then
+    ios_success=true
+  fi
+  
+  if wait_for_build "${android_build_id}" "Android"; then
+    android_success=true
+  fi
+  
+  # Get download URLs for completed builds
+  if [[ "${ios_success}" == true ]]; then
+    local ios_build_info
+    ios_build_info="$(run_eas build:view "${ios_build_id}" --json 2>/dev/null || echo "{}")"
+    local ios_download_url
+    ios_download_url="$(echo "${ios_build_info}" | jq -r '.artifacts.buildUrl // .artifacts.url // empty' 2>/dev/null || true)"
+    
+    if [[ -n "${ios_download_url}" && "${ios_download_url}" != "null" ]]; then
+      write_output "PREVIEW_MOBILE_IOS_BUILD_ID" "${ios_build_id}"
+      write_output "PREVIEW_MOBILE_IOS_DOWNLOAD_URL" "${ios_download_url}"
+      log "INFO" "iOS build download URL: ${ios_download_url}"
+    else
+      # Fallback: construct URL from build ID
+      local expo_owner
+      expo_owner="$(get_expo_owner)"
+      ios_download_url="https://expo.dev/accounts/${expo_owner}/projects/${EXPO_PROJECT_SLUG}/builds/${ios_build_id}"
+      write_output "PREVIEW_MOBILE_IOS_BUILD_ID" "${ios_build_id}"
+      write_output "PREVIEW_MOBILE_IOS_DOWNLOAD_URL" "${ios_download_url}"
+      log "INFO" "iOS build available at: ${ios_download_url}"
+    fi
+  else
+    log "ERROR" "iOS build failed"
+  fi
+  
+  if [[ "${android_success}" == true ]]; then
+    local android_build_info
+    android_build_info="$(run_eas build:view "${android_build_id}" --json 2>/dev/null || echo "{}")"
+    local android_download_url
+    android_download_url="$(echo "${android_build_info}" | jq -r '.artifacts.buildUrl // .artifacts.url // empty' 2>/dev/null || true)"
+    
+    if [[ -n "${android_download_url}" && "${android_download_url}" != "null" ]]; then
+      write_output "PREVIEW_MOBILE_ANDROID_BUILD_ID" "${android_build_id}"
+      write_output "PREVIEW_MOBILE_ANDROID_DOWNLOAD_URL" "${android_download_url}"
+      log "INFO" "Android build download URL: ${android_download_url}"
+    else
+      # Fallback: construct URL from build ID
+      local expo_owner
+      expo_owner="$(get_expo_owner)"
+      android_download_url="https://expo.dev/accounts/${expo_owner}/projects/${EXPO_PROJECT_SLUG}/builds/${android_build_id}"
+      write_output "PREVIEW_MOBILE_ANDROID_BUILD_ID" "${android_build_id}"
+      write_output "PREVIEW_MOBILE_ANDROID_DOWNLOAD_URL" "${android_download_url}"
+      log "INFO" "Android build available at: ${android_download_url}"
+    fi
+  else
+    log "ERROR" "Android build failed"
+  fi
+  
+  if [[ "${ios_success}" != true || "${android_success}" != true ]]; then
+    log "WARN" "Some builds failed, but continuing..."
+    return 1
+  fi
+  
+  return 0
+}
+
 main() {
   parse_args "$@"
   ensure_prereqs
@@ -380,8 +553,15 @@ main() {
 
   ensure_project_configured
   ensure_branch_and_channel
+  
+  # Always publish OTA update
   publish_update
   fetch_latest_update_urls
+  
+  # Conditionally build native apps if requested
+  if [[ "${BUILD_NATIVE}" == true ]]; then
+    build_native_app || log "WARN" "Native build completed with errors"
+  fi
 
   log "INFO" "Mobile preview deployment completed."
 }

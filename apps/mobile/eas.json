@@ -27,7 +27,7 @@
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "{{EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID}}"
       },
       "ios": {
-        "simulator": false,
+        "simulator": true,
         "buildConfiguration": "Release"
       },
       "android": {

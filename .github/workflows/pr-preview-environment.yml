@@ -114,6 +114,22 @@ jobs:
             --preview-prefix "${PREVIEW_PREFIX_VALUE}" \
             --region "${AWS_REGION_VALUE}"
 
+      - name: Check for native code changes
+        id: native-changes
+        shell: bash
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          BASE_REF="origin/${{ github.base_ref }}"
+          HEAD_REF="HEAD"
+          if ./scripts/pr-preview/check-native-changes.sh "${BASE_REF}" "${HEAD_REF}"; then
+            echo "needs_native_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "needs_native_build=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Deploy mobile preview
         id: mobile
         shell: bash
@@ -131,10 +147,18 @@ jobs:
             echo "Warning: EXPO_ACCOUNT not set, skipping mobile deployment"
             exit 0
           fi
+          BUILD_NATIVE_FLAG=""
+          if [[ "${{ steps.native-changes.outputs.needs_native_build }}" == "true" ]]; then
+            BUILD_NATIVE_FLAG="--build-native"
+            echo "Native code changes detected - will build native apps"
+          else
+            echo "No native code changes - skipping native build (using OTA updates only)"
+          fi
           ./scripts/pr-preview/deploy-mobile.sh \
             --pr-number "${PR_NUMBER_VALUE}" \
             --expo-account "${EXPO_ACCOUNT_VALUE}" \
-            --platform all
+            --platform all \
+            ${BUILD_NATIVE_FLAG}
 
       - name: Post preview summary comment
         if: always()
@@ -143,6 +167,9 @@ jobs:
           WEB_URL: ${{ steps.web.outputs.PREVIEW_WEB_URL }}
           MOBILE_CHANNEL: ${{ steps.mobile.outputs.PREVIEW_MOBILE_CHANNEL }}
           MOBILE_UPDATE_URL: ${{ steps.mobile.outputs.PREVIEW_MOBILE_UPDATE_URL }}
+          MOBILE_IOS_DOWNLOAD_URL: ${{ steps.mobile.outputs.PREVIEW_MOBILE_IOS_DOWNLOAD_URL }}
+          MOBILE_ANDROID_DOWNLOAD_URL: ${{ steps.mobile.outputs.PREVIEW_MOBILE_ANDROID_DOWNLOAD_URL }}
+          NEEDS_NATIVE_BUILD: ${{ steps.native-changes.outputs.needs_native_build }}
         with:
           script: |
             const marker = '<!-- pr-preview-links -->';
@@ -156,27 +183,68 @@ jobs:
               lines.push(`🌐 **Web preview:** ${webUrl}`);
             }
             if (mobileUpdateUrl) {
-              lines.push(`📱 **Mobile preview:** Channel \`${mobileChannel}\` - [View updates](${mobileUpdateUrl})`);
+              const iosDownloadUrl = process.env.MOBILE_IOS_DOWNLOAD_URL;
+              const androidDownloadUrl = process.env.MOBILE_ANDROID_DOWNLOAD_URL;
+              const needsNativeBuild = process.env.NEEDS_NATIVE_BUILD === 'true';
+              
+              lines.push(`📱 **Mobile preview:** Channel \`${mobileChannel}\``);
               lines.push('');
-              lines.push('### Testing Mobile Preview');
-              lines.push('');
-              lines.push('⚠️ **Note:** This app requires a **Development Build** (Expo Go will not work due to native Google OAuth).');
-              lines.push('');
-              lines.push('**Step 1: Install Development Build (one-time setup)**');
-              lines.push('1. Build: `npm run mobile:build:dev:ios` (or `mobile:build:dev:android`)');
-              lines.push('2. Download from [Expo dashboard](https://expo.dev/accounts/artificer-innovations-llc/projects/beaker-stack/builds)');
-              lines.push('3. Install: `EAS_BUILD_PATH=~/Downloads/BeakerStack.ipa npm run mobile:install:dev:ios` (iOS) or `EAS_BUILD_PATH=~/Downloads/BeakerStack.apk npm run mobile:install:dev:android` (Android)');
-              lines.push('');
-              lines.push('**Step 2: Load PR Preview Update**');
-              lines.push(`1. Open the development build on your device/simulator`);
-              lines.push(`2. Shake device (or Cmd+D on iOS / Cmd+M on Android) → "Enter URL manually"`);
-              lines.push(`3. Paste the update URL: \`${mobileUpdateUrl}\``);
-              lines.push(`4. The app will reload with the JavaScript bundle from channel \`${mobileChannel}\``);
-              lines.push('');
-              lines.push(`**Note:** You must use the full URL format - just entering the channel name (\`${mobileChannel}\`) will not work.`);
-              lines.push('');
-              lines.push(`**Alternative:** For local development, use: \`cd apps/mobile && npx expo start --dev-client\`, then press 'i' for iOS simulator.`);
-              lines.push('');
+              
+              // Show native build downloads if available
+              if (iosDownloadUrl || androidDownloadUrl) {
+                lines.push('### 📱 Mobile Preview Builds');
+                lines.push('');
+                lines.push('**Native builds are available for download:**');
+                lines.push('');
+                
+                if (iosDownloadUrl) {
+                  lines.push('**iOS Simulator Build:**');
+                  lines.push(`- [Download .app file](${iosDownloadUrl})`);
+                  lines.push('- Install with: `xcrun simctl install booted ~/Downloads/BeakerStack.app`');
+                  lines.push('');
+                }
+                
+                if (androidDownloadUrl) {
+                  lines.push('**Android Build (Device & Emulator):**');
+                  lines.push(`- [Download .apk file](${androidDownloadUrl})`);
+                  lines.push('- Install with: `adb install ~/Downloads/BeakerStack.apk`');
+                  lines.push('');
+                }
+                
+                lines.push('**Note:** These builds include the preview Supabase configuration and are ready to use.');
+                lines.push('');
+              } else if (needsNativeBuild) {
+                lines.push('### 📱 Mobile Preview Builds');
+                lines.push('');
+                lines.push('⚠️ **Native build in progress...**');
+                lines.push('');
+                lines.push('Native code changes were detected, so a new build is being created. This may take 10-15 minutes.');
+                lines.push('Check back in a few minutes for download links.');
+                lines.push('');
+              } else {
+                lines.push('### 📱 Mobile Preview (OTA Updates)');
+                lines.push('');
+                lines.push('**No native code changes detected** - using OTA updates only.');
+                lines.push('');
+                lines.push('⚠️ **Note:** This app requires a **Development Build** (Expo Go will not work due to native Google OAuth).');
+                lines.push('');
+                lines.push('**Step 1: Install Development Build (one-time setup)**');
+                lines.push('1. Build: `npm run mobile:build:dev:ios` (or `mobile:build:dev:android`)');
+                lines.push('2. Download from [Expo dashboard](https://expo.dev/accounts/artificer-innovations-llc/projects/beaker-stack/builds)');
+                lines.push('3. Install: `EAS_BUILD_PATH=~/Downloads/BeakerStack.ipa npm run mobile:install:dev:ios` (iOS) or `EAS_BUILD_PATH=~/Downloads/BeakerStack.apk npm run mobile:install:dev:android` (Android)');
+                lines.push('');
+                lines.push('**Step 2: Load PR Preview Update**');
+                lines.push(`1. Open the development build on your device/simulator`);
+                lines.push(`2. Shake device (or Cmd+D on iOS / Cmd+M on Android) → "Enter URL manually"`);
+                lines.push(`3. Paste the update URL: \`${mobileUpdateUrl}\``);
+                lines.push(`4. The app will reload with the JavaScript bundle from channel \`${mobileChannel}\``);
+                lines.push('');
+                lines.push(`**Note:** You must use the full URL format - just entering the channel name (\`${mobileChannel}\`) will not work.`);
+                lines.push('');
+                lines.push(`**Alternative:** For local development, use: \`cd apps/mobile && npx expo start --dev-client\`, then press 'i' for iOS simulator.`);
+                lines.push('');
+              }
+              
               lines.push('📖 See [Mobile Build Testing Guide](../../docs/MOBILE_BUILD_TESTING.md) for detailed instructions.');
             }
             let body = lines.join('\n');
