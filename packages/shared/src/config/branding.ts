@@ -4,8 +4,8 @@
 // automated rename script).
 
 export const BRANDING = {
-  displayName: 'The Updated Beaker Stack',
-  shortName: 'The Updated Beaker Stack',
+  displayName: 'Beaker Stack',
+  shortName: 'Beaker Stack',
   slug: 'beaker-stack',
   camelName: 'beakerStack',
   pascalName: 'BeakerStack',

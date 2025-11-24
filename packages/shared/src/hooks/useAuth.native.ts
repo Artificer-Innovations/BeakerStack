@@ -133,21 +133,10 @@ export function configureGoogleSignIn(options?: {
               config.iosClientId = options.iosClientId;
             }
 
-            if (__DEV__) {
-              Logger.debug('[useAuth] Configuring Google Sign-In with:', {
-                hasWebClientId: !!webClientId,
-                hasIosClientId: !!config.iosClientId,
-                webClientIdLength: webClientId?.length ?? 0,
-              });
-            }
-
             module.GoogleSignin.configure(config);
             isConfigured = true;
 
-            Logger.info('[useAuth] Google Sign-In configured successfully', {
-              hasWebClientId: !!webClientId,
-              hasIosClientId: !!config.iosClientId,
-            });
+            Logger.info('[useAuth] Google Sign-In configured successfully');
             resolve();
           } catch (configErr) {
             const errorMsg = `Failed to configure Google Sign-In: ${configErr instanceof Error ? configErr.message : String(configErr)}`;
@@ -338,23 +327,29 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
               ? (config as { extra?: Record<string, unknown> }).extra || {}
               : {};
 
-          Logger.error('[useAuth]', 'UPDATED!! Google Sign-In not configured. Constants.expoConfig.extra:', JSON.stringify({
-            hasExpoConfig: !!Constants.expoConfig,
-            hasManifest: !!Constants.manifest,
-            extraKeys: Object.keys(extra),
-            googleWebClientId: extra['googleWebClientId'],
-            googleIosClientId: extra['googleIosClientId'],
-            googleAndroidClientId: extra['googleAndroidClientId'],
-            isConfigured,
-            hasConfigurePromise: !!configurePromise,
-          }, null, 2));
+          Logger.debug(
+            '[useAuth] Google Sign-In not configured - Constants check',
+            {
+              hasExpoConfig: !!Constants.expoConfig,
+              hasManifest: !!Constants.manifest,
+              extraKeys: Object.keys(extra),
+              hasGoogleWebClientId: !!extra['googleWebClientId'],
+              hasGoogleIosClientId: !!extra['googleIosClientId'],
+              hasGoogleAndroidClientId: !!extra['googleAndroidClientId'],
+              isConfigured,
+              hasConfigurePromise: !!configurePromise,
+            }
+          );
         } catch (e) {
           // Ignore errors accessing Constants
-          Logger.error('[useAuth]', 'UPDATED!! Google Sign-In not configured. Error accessing Constants:', JSON.stringify(e, null, 2));          
+          Logger.debug(
+            '[useAuth] Google Sign-In not configured - Error accessing Constants',
+            e
+          );
         }
-        
+
         const errorMsg =
-          'UPDATED!! Google Sign-In not configured. Configuration may have failed silently. ' +
+          'Google Sign-In not configured. Configuration may have failed silently. ' +
           'Please check the logs for configuration errors and ensure webClientId is set.';
         Logger.error('[useAuth]', errorMsg);
         throw new Error(errorMsg);
@@ -369,9 +364,7 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
         throw new Error('No ID token received from Google');
       }
 
-      if (__DEV__) {
-        Logger.debug('[Google Sign-In] Got ID token');
-      }
+      Logger.debug('[useAuth] Google Sign-In: Got ID token');
 
       // Sign in with Supabase
       // Note: The nonce check is controlled by Supabase server configuration (skip_nonce_check)
@@ -386,11 +379,9 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
         throw authError;
       }
 
-      if (__DEV__) {
-        Logger.debug(
-          '[Google Sign-In] Successfully authenticated with Supabase'
-        );
-      }
+      Logger.debug(
+        '[useAuth] Google Sign-In: Successfully authenticated with Supabase'
+      );
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'code' in err) {
         const { statusCodes: codes } = await getGoogleSignIn();
