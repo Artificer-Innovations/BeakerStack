@@ -207,10 +207,16 @@ run_eas() {
   # EXPO_PUBLIC_* prefix is required by Expo for variables embedded in the app bundle
   [[ -n "${EXPO_PUBLIC_SUPABASE_URL:-}" ]] && env_vars+=("EXPO_PUBLIC_SUPABASE_URL=${EXPO_PUBLIC_SUPABASE_URL}")
   [[ -n "${EXPO_PUBLIC_SUPABASE_ANON_KEY:-}" ]] && env_vars+=("EXPO_PUBLIC_SUPABASE_ANON_KEY=${EXPO_PUBLIC_SUPABASE_ANON_KEY}")
-  # Google OAuth uses GOOGLE_SERVICES_* naming (no EXPO_PUBLIC_ prefix needed)
+  # Google Services variables (needed for google-services.json generation during EAS builds)
+  [[ -n "${GOOGLE_SERVICES_PROJECT_NUMBER:-}" ]] && env_vars+=("GOOGLE_SERVICES_PROJECT_NUMBER=${GOOGLE_SERVICES_PROJECT_NUMBER}")
+  [[ -n "${GOOGLE_SERVICES_PROJECT_ID:-}" ]] && env_vars+=("GOOGLE_SERVICES_PROJECT_ID=${GOOGLE_SERVICES_PROJECT_ID}")
+  [[ -n "${GOOGLE_SERVICES_STORAGE_BUCKET:-}" ]] && env_vars+=("GOOGLE_SERVICES_STORAGE_BUCKET=${GOOGLE_SERVICES_STORAGE_BUCKET}")
+  [[ -n "${GOOGLE_SERVICES_MOBILESDK_APP_ID:-}" ]] && env_vars+=("GOOGLE_SERVICES_MOBILESDK_APP_ID=${GOOGLE_SERVICES_MOBILESDK_APP_ID}")
+  [[ -n "${GOOGLE_SERVICES_ANDROID_CLIENT_ID:-}" ]] && env_vars+=("GOOGLE_SERVICES_ANDROID_CLIENT_ID=${GOOGLE_SERVICES_ANDROID_CLIENT_ID}")
+  [[ -n "${GOOGLE_SERVICES_ANDROID_CERTIFICATE_HASH:-}" ]] && env_vars+=("GOOGLE_SERVICES_ANDROID_CERTIFICATE_HASH=${GOOGLE_SERVICES_ANDROID_CERTIFICATE_HASH}")
   [[ -n "${GOOGLE_SERVICES_WEB_CLIENT_ID:-}" ]] && env_vars+=("GOOGLE_SERVICES_WEB_CLIENT_ID=${GOOGLE_SERVICES_WEB_CLIENT_ID}")
   [[ -n "${GOOGLE_SERVICES_IOS_CLIENT_ID:-}" ]] && env_vars+=("GOOGLE_SERVICES_IOS_CLIENT_ID=${GOOGLE_SERVICES_IOS_CLIENT_ID}")
-  [[ -n "${GOOGLE_SERVICES_ANDROID_CLIENT_ID:-}" ]] && env_vars+=("GOOGLE_SERVICES_ANDROID_CLIENT_ID=${GOOGLE_SERVICES_ANDROID_CLIENT_ID}")
+  [[ -n "${GOOGLE_SERVICES_API_KEY:-}" ]] && env_vars+=("GOOGLE_SERVICES_API_KEY=${GOOGLE_SERVICES_API_KEY}")
 
   # Run EAS command with environment variables
   (cd "${PROJECT_DIR}" && env "${env_vars[@]}" "${EAS_BIN[@]}" "$@")
@@ -534,50 +540,68 @@ build_native_app() {
   fi
   
   # Get download URLs for completed builds
-  if [[ "${ios_success}" == true ]]; then
-    local ios_build_info
-    ios_build_info="$(run_eas build:view "${ios_build_id}" --json 2>/dev/null || echo "{}")"
-    local ios_download_url
-    ios_download_url="$(echo "${ios_build_info}" | jq -r '.artifacts.buildUrl // .artifacts.url // empty' 2>/dev/null || true)"
-    
-    if [[ -n "${ios_download_url}" && "${ios_download_url}" != "null" ]]; then
-      write_output "PREVIEW_MOBILE_IOS_BUILD_ID" "${ios_build_id}"
-      write_output "PREVIEW_MOBILE_IOS_DOWNLOAD_URL" "${ios_download_url}"
-      log "INFO" "iOS build download URL: ${ios_download_url}"
+  if [[ -n "${ios_build_id}" ]]; then
+    if [[ "${ios_success}" == true ]]; then
+      local ios_build_info
+      ios_build_info="$(run_eas build:view "${ios_build_id}" --json 2>/dev/null || echo "{}")"
+      local ios_download_url
+      ios_download_url="$(echo "${ios_build_info}" | jq -r '.artifacts.buildUrl // .artifacts.url // empty' 2>/dev/null || true)"
+      
+      if [[ -n "${ios_download_url}" && "${ios_download_url}" != "null" ]]; then
+        write_output "PREVIEW_MOBILE_IOS_BUILD_ID" "${ios_build_id}"
+        write_output "PREVIEW_MOBILE_IOS_DOWNLOAD_URL" "${ios_download_url}"
+        log "INFO" "iOS build download URL: ${ios_download_url}"
+      else
+        # Fallback: construct URL from build ID
+        local expo_owner
+        expo_owner="$(get_expo_owner)"
+        ios_download_url="https://expo.dev/accounts/${expo_owner}/projects/${EXPO_PROJECT_SLUG}/builds/${ios_build_id}"
+        write_output "PREVIEW_MOBILE_IOS_BUILD_ID" "${ios_build_id}"
+        write_output "PREVIEW_MOBILE_IOS_DOWNLOAD_URL" "${ios_download_url}"
+        log "INFO" "iOS build available at: ${ios_download_url}"
+      fi
     else
-      # Fallback: construct URL from build ID
+      # Build failed or still in progress - output build ID so user can check status
       local expo_owner
       expo_owner="$(get_expo_owner)"
-      ios_download_url="https://expo.dev/accounts/${expo_owner}/projects/${EXPO_PROJECT_SLUG}/builds/${ios_build_id}"
+      local ios_status_url="https://expo.dev/accounts/${expo_owner}/projects/${EXPO_PROJECT_SLUG}/builds/${ios_build_id}"
       write_output "PREVIEW_MOBILE_IOS_BUILD_ID" "${ios_build_id}"
-      write_output "PREVIEW_MOBILE_IOS_DOWNLOAD_URL" "${ios_download_url}"
-      log "INFO" "iOS build available at: ${ios_download_url}"
+      write_output "PREVIEW_MOBILE_IOS_DOWNLOAD_URL" "${ios_status_url}"
+      log "WARN" "iOS build ${ios_build_id} did not complete successfully or is still in progress. Check status at: ${ios_status_url}"
     fi
-  else
-    log "ERROR" "iOS build failed"
   fi
   
-  if [[ "${android_success}" == true ]]; then
-    local android_build_info
-    android_build_info="$(run_eas build:view "${android_build_id}" --json 2>/dev/null || echo "{}")"
-    local android_download_url
-    android_download_url="$(echo "${android_build_info}" | jq -r '.artifacts.buildUrl // .artifacts.url // empty' 2>/dev/null || true)"
-    
-    if [[ -n "${android_download_url}" && "${android_download_url}" != "null" ]]; then
-      write_output "PREVIEW_MOBILE_ANDROID_BUILD_ID" "${android_build_id}"
-      write_output "PREVIEW_MOBILE_ANDROID_DOWNLOAD_URL" "${android_download_url}"
-      log "INFO" "Android build download URL: ${android_download_url}"
+  if [[ -n "${android_build_id}" ]]; then
+    if [[ "${android_success}" == true ]]; then
+      local android_build_info
+      android_build_info="$(run_eas build:view "${android_build_id}" --json 2>/dev/null || echo "{}")"
+      local android_download_url
+      android_download_url="$(echo "${android_build_info}" | jq -r '.artifacts.buildUrl // .artifacts.url // empty' 2>/dev/null || true)"
+      
+      if [[ -n "${android_download_url}" && "${android_download_url}" != "null" ]]; then
+        write_output "PREVIEW_MOBILE_ANDROID_BUILD_ID" "${android_build_id}"
+        write_output "PREVIEW_MOBILE_ANDROID_DOWNLOAD_URL" "${android_download_url}"
+        log "INFO" "Android build download URL: ${android_download_url}"
+      else
+        # Fallback: construct URL from build ID
+        local expo_owner
+        expo_owner="$(get_expo_owner)"
+        android_download_url="https://expo.dev/accounts/${expo_owner}/projects/${EXPO_PROJECT_SLUG}/builds/${android_build_id}"
+        write_output "PREVIEW_MOBILE_ANDROID_BUILD_ID" "${android_build_id}"
+        write_output "PREVIEW_MOBILE_ANDROID_DOWNLOAD_URL" "${android_download_url}"
+        log "INFO" "Android build available at: ${android_download_url}"
+      fi
     else
-      # Fallback: construct URL from build ID
+      # Build failed or still in progress - output build ID so user can check status
       local expo_owner
       expo_owner="$(get_expo_owner)"
-      android_download_url="https://expo.dev/accounts/${expo_owner}/projects/${EXPO_PROJECT_SLUG}/builds/${android_build_id}"
+      local android_status_url="https://expo.dev/accounts/${expo_owner}/projects/${EXPO_PROJECT_SLUG}/builds/${android_build_id}"
       write_output "PREVIEW_MOBILE_ANDROID_BUILD_ID" "${android_build_id}"
-      write_output "PREVIEW_MOBILE_ANDROID_DOWNLOAD_URL" "${android_download_url}"
-      log "INFO" "Android build available at: ${android_download_url}"
+      write_output "PREVIEW_MOBILE_ANDROID_DOWNLOAD_URL" "${android_status_url}"
+      log "WARN" "Android build ${android_build_id} did not complete successfully or is still in progress. Check status at: ${android_status_url}"
     fi
   else
-    log "ERROR" "Android build failed"
+    log "ERROR" "Android build failed to start (missing google-services.json or other prebuild error)"
   fi
   
   if [[ "${ios_success}" != true || "${android_success}" != true ]]; then
