@@ -449,11 +449,79 @@ wait_for_build() {
   return 1
 }
 
+ensure_eas_secrets() {
+  log "INFO" "Ensuring EAS secrets are set for preview environment..."
+  
+  # List of required secrets for google-services.json generation
+  local required_secrets=(
+    "GOOGLE_SERVICES_PROJECT_NUMBER"
+    "GOOGLE_SERVICES_PROJECT_ID"
+    "GOOGLE_SERVICES_STORAGE_BUCKET"
+    "GOOGLE_SERVICES_MOBILESDK_APP_ID"
+    "GOOGLE_SERVICES_ANDROID_CLIENT_ID"
+    "GOOGLE_SERVICES_ANDROID_CERTIFICATE_HASH"
+    "GOOGLE_SERVICES_WEB_CLIENT_ID"
+    "GOOGLE_SERVICES_IOS_CLIENT_ID"
+    "GOOGLE_SERVICES_API_KEY"
+    "PREVIEW_SUPABASE_URL"
+    "PREVIEW_SUPABASE_ANON_KEY"
+  )
+  
+  # Map from environment variable names to EAS secret names
+  # Some env vars have different names than the secrets
+  local secret_value
+  for secret_name in "${required_secrets[@]}"; do
+    # Get the value from environment variable (may have different name)
+    case "${secret_name}" in
+      "PREVIEW_SUPABASE_URL")
+        secret_value="${EXPO_PUBLIC_SUPABASE_URL:-}"
+        ;;
+      "PREVIEW_SUPABASE_ANON_KEY")
+        secret_value="${EXPO_PUBLIC_SUPABASE_ANON_KEY:-}"
+        ;;
+      *)
+        # For GOOGLE_SERVICES_*, use the same name
+        eval "secret_value=\"\${${secret_name}:-}\""
+        ;;
+    esac
+    
+    if [[ -z "${secret_value}" ]]; then
+      log "WARN" "Secret ${secret_name} not set in environment, skipping..."
+      continue
+    fi
+    
+    # Check if secret already exists
+    if run_eas secret:list --scope environment --environment preview --json 2>/dev/null | \
+       jq -e --arg name "${secret_name}" '.[] | select(.name == $name)' >/dev/null 2>&1; then
+      log "INFO" "Secret ${secret_name} already exists, updating..."
+      # Update existing secret (EAS CLI doesn't have a direct update command, so we delete and recreate)
+      run_eas secret:delete --scope environment --environment preview --name "${secret_name}" --non-interactive --force >/dev/null 2>&1 || true
+    fi
+    
+    # Create or update the secret
+    log "INFO" "Setting EAS secret ${secret_name} for preview environment..."
+    # EAS secret:create reads the value from stdin
+    echo "${secret_value}" | run_eas secret:create \
+      --scope environment \
+      --environment preview \
+      --name "${secret_name}" \
+      --non-interactive \
+      --force >/dev/null 2>&1 || {
+      log "WARN" "Failed to set secret ${secret_name}, continuing..."
+    }
+  done
+  
+  log "INFO" "EAS secrets configured for preview environment"
+}
+
 build_native_app() {
   local build_message
   build_message="PR #${PR_NUMBER} preview build"
   
   log "INFO" "Starting native builds for PR #${PR_NUMBER}..."
+  
+  # Ensure EAS secrets are set (needed for build process to access env vars)
+  ensure_eas_secrets
   
   # Verify required environment variables are set
   local missing_vars=()
@@ -476,20 +544,40 @@ build_native_app() {
     --json \
     --message "${build_message}" 2>&1 || true)"
   
-  # Extract JSON from output (EAS CLI may output warnings before JSON)
+  # Extract JSON from output (EAS CLI outputs progress messages, then JSON array at the end)
+  # The JSON is an array like [{...}] and appears after all progress messages
   local ios_json
-  ios_json="$(echo "${ios_build_output}" | grep -E '^\s*\{' | jq -s '.[0]' 2>/dev/null || echo "${ios_build_output}" | tail -1)"
+  # Find the line number where JSON array starts (last occurrence of [)
+  local json_start_line
+  json_start_line="$(echo "${ios_build_output}" | grep -n '^\[' | tail -1 | cut -d: -f1 2>/dev/null || true)"
+  
+  if [[ -n "${json_start_line}" ]]; then
+    # Extract everything from the [ to the end
+    ios_json="$(echo "${ios_build_output}" | sed -n "${json_start_line},\$p" 2>/dev/null || true)"
+    # Validate it's valid JSON
+    if ! echo "${ios_json}" | jq empty 2>/dev/null; then
+      ios_json=""
+    fi
+  fi
   
   local ios_build_id
-  ios_build_id="$(echo "${ios_json}" | jq -r '.id // empty' 2>/dev/null || true)"
+  local ios_build_status
+  if [[ -n "${ios_json}" ]]; then
+    ios_build_id="$(echo "${ios_json}" | jq -r 'if type=="array" and length>0 then .[0].id // empty else .id // empty end' 2>/dev/null || true)"
+    ios_build_status="$(echo "${ios_json}" | jq -r 'if type=="array" and length>0 then .[0].status // empty else .status // empty end' 2>/dev/null || true)"
+  fi
   
   if [[ -z "${ios_build_id}" || "${ios_build_id}" == "null" ]]; then
-    log "ERROR" "Failed to start iOS build"
+    log "ERROR" "Failed to start iOS build or extract build ID"
     log "ERROR" "Build output: ${ios_build_output}"
     log "WARN" "Continuing with Android build even though iOS failed..."
     ios_build_id=""
   else
-    log "INFO" "iOS build started: ${ios_build_id}"
+    if [[ "${ios_build_status}" == "FINISHED" ]]; then
+      log "INFO" "iOS build completed successfully: ${ios_build_id}"
+    else
+      log "INFO" "iOS build started: ${ios_build_id} (status: ${ios_build_status})"
+    fi
   fi
   
   # Build Android (start in parallel or after iOS)
@@ -502,19 +590,39 @@ build_native_app() {
     --json \
     --message "${build_message}" 2>&1 || true)"
   
-  # Extract JSON from output (EAS CLI may output warnings before JSON)
+  # Extract JSON from output (EAS CLI outputs progress messages, then JSON array at the end)
+  # The JSON is an array like [{...}] and appears after all progress messages
   local android_json
-  android_json="$(echo "${android_build_output}" | grep -E '^\s*\{' | jq -s '.[0]' 2>/dev/null || echo "${android_build_output}" | tail -1)"
+  # Find the line number where JSON array starts (last occurrence of [)
+  local json_start_line
+  json_start_line="$(echo "${android_build_output}" | grep -n '^\[' | tail -1 | cut -d: -f1 2>/dev/null || true)"
+  
+  if [[ -n "${json_start_line}" ]]; then
+    # Extract everything from the [ to the end
+    android_json="$(echo "${android_build_output}" | sed -n "${json_start_line},\$p" 2>/dev/null || true)"
+    # Validate it's valid JSON
+    if ! echo "${android_json}" | jq empty 2>/dev/null; then
+      android_json=""
+    fi
+  fi
   
   local android_build_id
-  android_build_id="$(echo "${android_json}" | jq -r '.id // empty' 2>/dev/null || true)"
+  local android_build_status
+  if [[ -n "${android_json}" ]]; then
+    android_build_id="$(echo "${android_json}" | jq -r 'if type=="array" and length>0 then .[0].id // empty else .id // empty end' 2>/dev/null || true)"
+    android_build_status="$(echo "${android_json}" | jq -r 'if type=="array" and length>0 then .[0].status // empty else .status // empty end' 2>/dev/null || true)"
+  fi
   
   if [[ -z "${android_build_id}" || "${android_build_id}" == "null" ]]; then
-    log "ERROR" "Failed to start Android build"
+    log "ERROR" "Failed to start Android build or extract build ID"
     log "ERROR" "Build output: ${android_build_output}"
     android_build_id=""
   else
-    log "INFO" "Android build started: ${android_build_id}"
+    if [[ "${android_build_status}" == "FINISHED" ]]; then
+      log "INFO" "Android build completed successfully: ${android_build_id}"
+    else
+      log "INFO" "Android build started: ${android_build_id} (status: ${android_build_status})"
+    fi
   fi
   
   # If both builds failed, return error
@@ -523,19 +631,33 @@ build_native_app() {
     return 1
   fi
   
-  # Wait for both builds to complete (only if they were started)
+  # Wait for both builds to complete (only if they were started and not already finished)
   local ios_success=false
   local android_success=false
   
   if [[ -n "${ios_build_id}" ]]; then
-    if wait_for_build "${ios_build_id}" "iOS"; then
+    if [[ "${ios_build_status}" == "FINISHED" ]]; then
+      # Build already completed, mark as success
       ios_success=true
+      log "INFO" "iOS build already completed, skipping wait"
+    else
+      # Build is in progress, wait for it
+      if wait_for_build "${ios_build_id}" "iOS"; then
+        ios_success=true
+      fi
     fi
   fi
   
   if [[ -n "${android_build_id}" ]]; then
-    if wait_for_build "${android_build_id}" "Android"; then
+    if [[ "${android_build_status}" == "FINISHED" ]]; then
+      # Build already completed, mark as success
       android_success=true
+      log "INFO" "Android build already completed, skipping wait"
+    else
+      # Build is in progress, wait for it
+      if wait_for_build "${android_build_id}" "Android"; then
+        android_success=true
+      fi
     fi
   fi
   
