@@ -19,13 +19,6 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
-      "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "{{PREVIEW_SUPABASE_URL}}",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "{{PREVIEW_SUPABASE_ANON_KEY}}",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "{{EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID}}",
-        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "{{EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID}}",
-        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "{{EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID}}"
-      },
       "ios": {
         "simulator": true,
         "buildConfiguration": "Release"
@@ -37,13 +30,6 @@
     "staging": {
       "distribution": "internal",
       "channel": "staging",
-      "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "{{STAGING_SUPABASE_URL}}",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "{{STAGING_SUPABASE_ANON_KEY}}",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "{{EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID}}",
-        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "{{EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID}}",
-        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "{{EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID}}"
-      },
       "ios": {
         "simulator": false,
         "buildConfiguration": "Release"
@@ -55,13 +41,6 @@
     "production": {
       "distribution": "store",
       "channel": "production",
-      "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "{{PRODUCTION_SUPABASE_URL}}",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "{{PRODUCTION_SUPABASE_ANON_KEY}}",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "{{EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID}}",
-        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "{{EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID}}",
-        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "{{EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID}}"
-      },
       "ios": {
         "simulator": false,
         "buildConfiguration": "Release"

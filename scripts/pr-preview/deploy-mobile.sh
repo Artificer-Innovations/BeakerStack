@@ -187,7 +187,6 @@ channel_name() {
 }
 
 run_eas() {
-  local channel
   if [[ "${DRY_RUN}" == true ]]; then
     log "DRY" "eas $*"
     return 0
@@ -198,7 +197,23 @@ run_eas() {
     exit 1
   fi
 
-  (cd "${PROJECT_DIR}" && EXPO_TOKEN="${EXPO_TOKEN}" "${EAS_BIN[@]}" "$@")
+  # Pass through environment variables needed for EAS builds
+  # These will override the {{VARIABLE_NAME}} placeholders in eas.json
+  local env_vars=(
+    "EXPO_TOKEN=${EXPO_TOKEN}"
+  )
+  
+  # Add preview environment variables if they're set
+  # EXPO_PUBLIC_* prefix is required by Expo for variables embedded in the app bundle
+  [[ -n "${EXPO_PUBLIC_SUPABASE_URL:-}" ]] && env_vars+=("EXPO_PUBLIC_SUPABASE_URL=${EXPO_PUBLIC_SUPABASE_URL}")
+  [[ -n "${EXPO_PUBLIC_SUPABASE_ANON_KEY:-}" ]] && env_vars+=("EXPO_PUBLIC_SUPABASE_ANON_KEY=${EXPO_PUBLIC_SUPABASE_ANON_KEY}")
+  # Google OAuth uses GOOGLE_SERVICES_* naming (no EXPO_PUBLIC_ prefix needed)
+  [[ -n "${GOOGLE_SERVICES_WEB_CLIENT_ID:-}" ]] && env_vars+=("GOOGLE_SERVICES_WEB_CLIENT_ID=${GOOGLE_SERVICES_WEB_CLIENT_ID}")
+  [[ -n "${GOOGLE_SERVICES_IOS_CLIENT_ID:-}" ]] && env_vars+=("GOOGLE_SERVICES_IOS_CLIENT_ID=${GOOGLE_SERVICES_IOS_CLIENT_ID}")
+  [[ -n "${GOOGLE_SERVICES_ANDROID_CLIENT_ID:-}" ]] && env_vars+=("GOOGLE_SERVICES_ANDROID_CLIENT_ID=${GOOGLE_SERVICES_ANDROID_CLIENT_ID}")
+
+  # Run EAS command with environment variables
+  (cd "${PROJECT_DIR}" && env "${env_vars[@]}" "${EAS_BIN[@]}" "$@")
 }
 
 ensure_project_configured() {
@@ -434,6 +449,17 @@ build_native_app() {
   
   log "INFO" "Starting native builds for PR #${PR_NUMBER}..."
   
+  # Verify required environment variables are set
+  local missing_vars=()
+  [[ -z "${EXPO_PUBLIC_SUPABASE_URL:-}" ]] && missing_vars+=("EXPO_PUBLIC_SUPABASE_URL")
+  [[ -z "${EXPO_PUBLIC_SUPABASE_ANON_KEY:-}" ]] && missing_vars+=("EXPO_PUBLIC_SUPABASE_ANON_KEY")
+  
+  if [[ ${#missing_vars[@]} -gt 0 ]]; then
+    log "ERROR" "Missing required environment variables: ${missing_vars[*]}"
+    log "ERROR" "These must be set in the GitHub Actions workflow or passed to the script"
+    return 1
+  fi
+  
   # Build iOS
   log "INFO" "Starting iOS build..."
   local ios_build_output
@@ -444,18 +470,23 @@ build_native_app() {
     --json \
     --message "${build_message}" 2>&1 || true)"
   
+  # Extract JSON from output (EAS CLI may output warnings before JSON)
+  local ios_json
+  ios_json="$(echo "${ios_build_output}" | grep -E '^\s*\{' | jq -s '.[0]' 2>/dev/null || echo "${ios_build_output}" | tail -1)"
+  
   local ios_build_id
-  ios_build_id="$(echo "${ios_build_output}" | jq -r '.id // empty' 2>/dev/null || true)"
+  ios_build_id="$(echo "${ios_json}" | jq -r '.id // empty' 2>/dev/null || true)"
   
   if [[ -z "${ios_build_id}" || "${ios_build_id}" == "null" ]]; then
     log "ERROR" "Failed to start iOS build"
     log "ERROR" "Build output: ${ios_build_output}"
-    return 1
+    log "WARN" "Continuing with Android build even though iOS failed..."
+    ios_build_id=""
+  else
+    log "INFO" "iOS build started: ${ios_build_id}"
   fi
   
-  log "INFO" "iOS build started: ${ios_build_id}"
-  
-  # Build Android (start in parallel)
+  # Build Android (start in parallel or after iOS)
   log "INFO" "Starting Android build..."
   local android_build_output
   android_build_output="$(run_eas build \
@@ -465,27 +496,41 @@ build_native_app() {
     --json \
     --message "${build_message}" 2>&1 || true)"
   
+  # Extract JSON from output (EAS CLI may output warnings before JSON)
+  local android_json
+  android_json="$(echo "${android_build_output}" | grep -E '^\s*\{' | jq -s '.[0]' 2>/dev/null || echo "${android_build_output}" | tail -1)"
+  
   local android_build_id
-  android_build_id="$(echo "${android_build_output}" | jq -r '.id // empty' 2>/dev/null || true)"
+  android_build_id="$(echo "${android_json}" | jq -r '.id // empty' 2>/dev/null || true)"
   
   if [[ -z "${android_build_id}" || "${android_build_id}" == "null" ]]; then
     log "ERROR" "Failed to start Android build"
     log "ERROR" "Build output: ${android_build_output}"
+    android_build_id=""
+  else
+    log "INFO" "Android build started: ${android_build_id}"
+  fi
+  
+  # If both builds failed, return error
+  if [[ -z "${ios_build_id}" && -z "${android_build_id}" ]]; then
+    log "ERROR" "Both iOS and Android builds failed to start"
     return 1
   fi
   
-  log "INFO" "Android build started: ${android_build_id}"
-  
-  # Wait for both builds to complete
+  # Wait for both builds to complete (only if they were started)
   local ios_success=false
   local android_success=false
   
-  if wait_for_build "${ios_build_id}" "iOS"; then
-    ios_success=true
+  if [[ -n "${ios_build_id}" ]]; then
+    if wait_for_build "${ios_build_id}" "iOS"; then
+      ios_success=true
+    fi
   fi
   
-  if wait_for_build "${android_build_id}" "Android"; then
-    android_success=true
+  if [[ -n "${android_build_id}" ]]; then
+    if wait_for_build "${android_build_id}" "Android"; then
+      android_success=true
+    fi
   fi
   
   # Get download URLs for completed builds

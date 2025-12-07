@@ -47,7 +47,7 @@ export default function App() {
         }
       | undefined;
 
-    // Filter out unsubstituted env var patterns (e.g., "${EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID}")
+    // Filter out unsubstituted env var patterns (e.g., "${GOOGLE_SERVICES_WEB_CLIENT_ID}")
     const webClientId = extra?.googleWebClientId?.startsWith('${')
       ? undefined
       : extra?.googleWebClientId;

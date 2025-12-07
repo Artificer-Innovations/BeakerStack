@@ -3026,10 +3026,13 @@ APPLE_CLIENT_ID=your-apple-client-id
 
 ```bash
 # Expo/React Native
+# EXPO_PUBLIC_* prefix is required by Expo for variables embedded in the app bundle
 EXPO_PUBLIC_SUPABASE_URL=
 EXPO_PUBLIC_SUPABASE_ANON_KEY=
-EXPO_PUBLIC_GOOGLE_CLIENT_ID=
-EXPO_PUBLIC_APPLE_CLIENT_ID=
+# Google OAuth uses GOOGLE_SERVICES_* naming (no EXPO_PUBLIC_ prefix)
+GOOGLE_SERVICES_WEB_CLIENT_ID=
+GOOGLE_SERVICES_IOS_CLIENT_ID=
+GOOGLE_SERVICES_ANDROID_CLIENT_ID=
 ```
 
 #### Web App (`.env`)
