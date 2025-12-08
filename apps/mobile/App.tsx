@@ -41,11 +41,20 @@ export default function App() {
         : undefined
     ) as
       | {
+          supabaseUrl?: string;
+          supabaseAnonKey?: string;
           googleWebClientId?: string;
           googleIosClientId?: string;
           googleAndroidClientId?: string;
         }
       | undefined;
+
+    // Log Supabase configuration (always, not just in dev) to help debug build issues
+    if (extra?.supabaseUrl) {
+      Logger.info('[App] Supabase URL from build config:', extra.supabaseUrl);
+    } else {
+      Logger.warn('[App] Supabase URL missing from build config');
+    }
 
     // Filter out unsubstituted env var patterns (e.g., "${GOOGLE_SERVICES_WEB_CLIENT_ID}")
     const webClientId = extra?.googleWebClientId?.startsWith('${')

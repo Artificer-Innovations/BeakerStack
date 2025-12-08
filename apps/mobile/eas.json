@@ -40,6 +40,41 @@
         "buildType": "apk"
       }
     },
+    "preview-device": {
+      "distribution": "internal",
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "{{PREVIEW_SUPABASE_URL}}",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "{{PREVIEW_SUPABASE_ANON_KEY}}",
+        "GOOGLE_SERVICES_PROJECT_NUMBER": "{{GOOGLE_SERVICES_PROJECT_NUMBER}}",
+        "GOOGLE_SERVICES_PROJECT_ID": "{{GOOGLE_SERVICES_PROJECT_ID}}",
+        "GOOGLE_SERVICES_STORAGE_BUCKET": "{{GOOGLE_SERVICES_STORAGE_BUCKET}}",
+        "GOOGLE_SERVICES_MOBILESDK_APP_ID": "{{GOOGLE_SERVICES_MOBILESDK_APP_ID}}",
+        "GOOGLE_SERVICES_ANDROID_CLIENT_ID": "{{GOOGLE_SERVICES_ANDROID_CLIENT_ID}}",
+        "GOOGLE_SERVICES_ANDROID_CERTIFICATE_HASH": "{{GOOGLE_SERVICES_ANDROID_CERTIFICATE_HASH}}",
+        "GOOGLE_SERVICES_WEB_CLIENT_ID": "{{GOOGLE_SERVICES_WEB_CLIENT_ID}}",
+        "GOOGLE_SERVICES_IOS_CLIENT_ID": "{{GOOGLE_SERVICES_IOS_CLIENT_ID}}",
+        "GOOGLE_SERVICES_API_KEY": "{{GOOGLE_SERVICES_API_KEY}}"
+      },
+      "ios": {
+        "simulator": false,
+        "buildConfiguration": "Release"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview-device-local": {
+      "distribution": "internal",
+      "channel": "preview",
+      "ios": {
+        "simulator": false,
+        "buildConfiguration": "Release"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
     "staging": {
       "distribution": "internal",
       "channel": "staging",

@@ -467,6 +467,9 @@ ensure_eas_secrets() {
     "PREVIEW_SUPABASE_ANON_KEY"
   )
   
+  # Track failures
+  local failed_secrets=()
+  
   # Map from environment variable names to EAS secret names
   # Some env vars have different names than the secrets
   local secret_value
@@ -486,30 +489,48 @@ ensure_eas_secrets() {
     esac
     
     if [[ -z "${secret_value}" ]]; then
-      log "WARN" "Secret ${secret_name} not set in environment, skipping..."
+      log "ERROR" "Secret ${secret_name} not set in environment (required for build)"
+      failed_secrets+=("${secret_name}")
       continue
     fi
     
-    # Check if secret already exists
-    if run_eas secret:list --scope environment --environment preview --json 2>/dev/null | \
+    # Check if secret already exists (project-scoped secrets)
+    if run_eas secret:list --scope project --json 2>/dev/null | \
        jq -e --arg name "${secret_name}" '.[] | select(.name == $name)' >/dev/null 2>&1; then
       log "INFO" "Secret ${secret_name} already exists, updating..."
       # Update existing secret (EAS CLI doesn't have a direct update command, so we delete and recreate)
-      run_eas secret:delete --scope environment --environment preview --name "${secret_name}" --non-interactive --force >/dev/null 2>&1 || true
+      run_eas secret:delete --scope project --name "${secret_name}" --non-interactive --force >/dev/null 2>&1 || true
     fi
     
-    # Create or update the secret
-    log "INFO" "Setting EAS secret ${secret_name} for preview environment..."
-    # EAS secret:create reads the value from stdin
-    echo "${secret_value}" | run_eas secret:create \
-      --scope environment \
-      --environment preview \
+    # Create or update the secret (project-scoped, not environment-scoped)
+    # EAS secrets are project-scoped, and the eas.json uses {{VARIABLE_NAME}} to reference them
+    log "INFO" "Setting EAS secret ${secret_name} for preview environment (project scope)..."
+    # EAS secret:create uses --value flag or reads from stdin
+    local secret_output
+    secret_output="$(run_eas secret:create \
+      --scope project \
       --name "${secret_name}" \
+      --value "${secret_value}" \
+      --type string \
       --non-interactive \
-      --force >/dev/null 2>&1 || {
-      log "WARN" "Failed to set secret ${secret_name}, continuing..."
+      --force 2>&1)" || {
+      log "ERROR" "Failed to set secret ${secret_name}"
+      log "ERROR" "Error output: ${secret_output}"
+      failed_secrets+=("${secret_name}")
+      continue
     }
+    log "INFO" "Successfully set secret ${secret_name}"
   done
+  
+  # Fail if any required secrets couldn't be set
+  if [[ ${#failed_secrets[@]} -gt 0 ]]; then
+    log "ERROR" "Failed to set ${#failed_secrets[@]} required secret(s): ${failed_secrets[*]}"
+    log "ERROR" "Build will fail without these secrets. Please check:"
+    log "ERROR" "  1. GitHub secrets are set correctly"
+    log "ERROR" "  2. EXPO_TOKEN has permissions to create secrets"
+    log "ERROR" "  3. EAS CLI command syntax is correct"
+    return 1
+  fi
   
   log "INFO" "EAS secrets configured for preview environment"
 }
