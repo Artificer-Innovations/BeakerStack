@@ -138,8 +138,12 @@ export function configureGoogleSignIn(options?: {
             Logger.info('[useAuth] Configuring Google Sign-In...', {
               hasWebClientId: !!config.webClientId,
               hasIosClientId: !!config.iosClientId,
-              webClientIdPrefix: config.webClientId ? config.webClientId.substring(0, 20) + '...' : undefined,
-              iosClientIdPrefix: config.iosClientId ? config.iosClientId.substring(0, 20) + '...' : undefined,
+              webClientIdPrefix: config.webClientId
+                ? config.webClientId.substring(0, 20) + '...'
+                : undefined,
+              iosClientIdPrefix: config.iosClientId
+                ? config.iosClientId.substring(0, 20) + '...'
+                : undefined,
               platform: Platform.OS,
             });
 
@@ -413,7 +417,10 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
         errorType: err instanceof Error ? err.constructor.name : typeof err,
         errorMessage: err instanceof Error ? err.message : String(err),
         errorStack: err instanceof Error ? err.stack : undefined,
-        errorCode: err && typeof err === 'object' && 'code' in err ? (err as { code?: unknown }).code : undefined,
+        errorCode:
+          err && typeof err === 'object' && 'code' in err
+            ? (err as { code?: unknown }).code
+            : undefined,
         isConfigured,
         hasConfigurePromise: !!configurePromise,
       });
@@ -429,8 +436,12 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
           hasWebClientId: !!extra['googleWebClientId'],
           hasIosClientId: !!extra['googleIosClientId'],
           hasAndroidClientId: !!extra['googleAndroidClientId'],
-          webClientIdPrefix: extra['googleWebClientId'] ? String(extra['googleWebClientId']).substring(0, 20) + '...' : undefined,
-          androidClientIdPrefix: extra['googleAndroidClientId'] ? String(extra['googleAndroidClientId']).substring(0, 20) + '...' : undefined,
+          webClientIdPrefix: extra['googleWebClientId']
+            ? String(extra['googleWebClientId']).substring(0, 20) + '...'
+            : undefined,
+          androidClientIdPrefix: extra['googleAndroidClientId']
+            ? String(extra['googleAndroidClientId']).substring(0, 20) + '...'
+            : undefined,
         });
       } catch (configErr) {
         Logger.error('[useAuth] Error accessing configuration:', configErr);
@@ -472,7 +483,11 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
       }
 
       const errorObj = err instanceof Error ? err : new Error(String(err));
-      Logger.error('[useAuth] Google Sign-In failed:', errorObj.message, errorObj);
+      Logger.error(
+        '[useAuth] Google Sign-In failed:',
+        errorObj.message,
+        errorObj
+      );
       setError(errorObj);
       throw errorObj;
     } finally {
