@@ -8,8 +8,8 @@
     "react-test-renderer": "18.2.0"
   },
   "scripts": {
-    "eas-build-pre-install": "node scripts/generate-google-services.js || true",
-    "eas-build-post-install": "node scripts/apply-patches.js || true",
+    "eas-build-pre-install": "node scripts/generate-google-services.js",
+    "eas-build-post-install": "node scripts/apply-patches.js",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
