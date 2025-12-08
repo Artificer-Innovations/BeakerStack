@@ -40,16 +40,15 @@ if (!supabaseAnonKey) {
   throw new Error('Missing EXPO_PUBLIC_SUPABASE_ANON_KEY environment variable');
 }
 
-if (__DEV__) {
-  const realtimeUrl = supabaseUrl.replace(/^http(s?)/, (_, secure) =>
-    secure ? 'wss' : 'ws'
-  );
-  Logger.debug('[mobile.supabase] HTTP base URL:', supabaseUrl);
-  Logger.debug(
-    '[mobile.supabase] Realtime websocket URL:',
-    `${realtimeUrl}/realtime/v1/websocket`
-  );
-}
+// Always log the Supabase URL (not just in dev) to help debug build issues
+const realtimeUrl = supabaseUrl.replace(/^http(s?)/, (_, secure) =>
+  secure ? 'wss' : 'ws'
+);
+Logger.info('[mobile.supabase] Using Supabase URL:', supabaseUrl);
+Logger.info(
+  '[mobile.supabase] Realtime websocket URL:',
+  `${realtimeUrl}/realtime/v1/websocket`
+);
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {

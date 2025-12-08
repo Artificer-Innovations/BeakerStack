@@ -206,7 +206,7 @@ All scripts support `--dry-run` and write outputs to `GITHUB_OUTPUT` (CI) or
 
 4. **Publish Expo update**
 
-   If `.eas/project.json` is missing, run `npx eas-cli init --id <Expo project ID>` inside `apps/mobile` first.
+   The Expo project metadata (`apps/mobile/.eas/project.json`) is checked into this repo so CI and contributors target the same project automatically. If you intentionally point to a different Expo project, regenerate that file via `npx eas-cli init --id <Expo project ID>` inside `apps/mobile` and commit the update.
 
    ```bash
    EXPO_TOKEN=... \

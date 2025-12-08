@@ -35,9 +35,11 @@ jest.mock('@supabase/supabase-js', () => ({
 
 // Mock Logger
 const mockLoggerDebug = jest.fn();
+const mockLoggerInfo = jest.fn();
 jest.mock('@shared/utils/logger', () => ({
   Logger: {
     debug: mockLoggerDebug,
+    info: mockLoggerInfo,
     warn: jest.fn(),
     error: jest.fn(),
   },
@@ -63,6 +65,7 @@ describe('supabase.ts', () => {
     jest.clearAllMocks();
     mockCreateClient.mockClear();
     mockLoggerDebug.mockClear();
+    mockLoggerInfo.mockClear();
   });
 
   it('should create supabase client with correct configuration', () => {

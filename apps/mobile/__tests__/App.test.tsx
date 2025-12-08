@@ -19,9 +19,18 @@ jest.mock('expo-constants', () => ({
   },
 }));
 
+// Mock expo-updates (added for OTA update debugging)
+jest.mock('expo-updates', () => ({
+  isEnabled: false,
+  channel: null,
+  updateId: null,
+  manifest: null,
+}));
+
 // Mock configureGoogleSignIn (added in our auth changes)
-jest.mock('@shared/hooks/useAuth', () => ({
-  configureGoogleSignIn: jest.fn(),
+// Note: App.tsx imports from useAuth.native, not useAuth
+jest.mock('@shared/hooks/useAuth.native', () => ({
+  configureGoogleSignIn: jest.fn().mockResolvedValue(undefined),
   useAuth: jest.fn(),
 }));
 

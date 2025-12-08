@@ -119,11 +119,24 @@ jobs:
         with:
           script: |
             const marker = '<!-- coverage-comment -->';
-            const body = process.env.COMMENT_BODY?.trim();
+            let body = process.env.COMMENT_BODY?.trim();
             if (!body) {
               core.info('No comment body provided; skipping.');
               return;
             }
+
+            // Add timestamp in Pacific time
+            const now = new Date();
+            const pacificTime = now.toLocaleString('en-US', {
+              timeZone: 'America/Los_Angeles',
+              dateStyle: 'long',
+              timeStyle: 'short'
+            });
+            const timezone = now.toLocaleString('en-US', {
+              timeZone: 'America/Los_Angeles',
+              timeZoneName: 'short'
+            }).split(' ').pop();
+            body = `${body}\n\n---\n\n_Updated at: ${pacificTime} ${timezone}_`;
 
             const canWrite =
               (context.eventName === 'pull_request' &&
