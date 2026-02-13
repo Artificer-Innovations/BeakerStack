@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { Platform } from 'react-native';
 import type { SupabaseClient, User, Session } from '@supabase/supabase-js';
 import type { AuthHookReturn } from '../types/auth';
 import { Logger } from '../utils/logger';
+import Constants from 'expo-constants';
 
 type GoogleSignInModule = {
   configure(config: {
@@ -32,6 +34,8 @@ type SupabaseAuthStorage = {
 // Lazy import to prevent native module from loading during bundle initialization
 let GoogleSignin: GoogleSignInModule | null = null;
 let statusCodes: GoogleStatusCodes | null = null;
+let isConfigured = false;
+let configurePromise: Promise<void> | null = null;
 
 async function getGoogleSignIn(): Promise<{
   GoogleSignin: GoogleSignInModule | null;
@@ -79,41 +83,100 @@ export function configureGoogleSignIn(options?: {
   webClientId?: string;
   iosClientId?: string;
   androidClientId?: string;
-}) {
+}): Promise<void> {
+  // If already configured, return resolved promise
+  if (isConfigured && configurePromise) {
+    return configurePromise;
+  }
+
   // webClientId is required by Google Sign-In library
   const webClientId = options?.webClientId;
   if (!webClientId) {
     Logger.warn(
-      '[useAuth] Google Sign-In not configured: webClientId is missing'
+      '[useAuth] Google Sign-In not configured: webClientId is missing',
+      {
+        hasWebClientId: false,
+        hasIosClientId: !!options?.iosClientId,
+        hasAndroidClientId: !!options?.androidClientId,
+        optionsKeys: Object.keys(options || {}),
+      }
     );
-    return;
+    return Promise.resolve();
   }
 
-  // Lazy configure - only import when actually called
-  import('@react-native-google-signin/google-signin')
-    .then(module => {
-      // Only pass defined values - don't pass undefined properties
-      const config: {
-        webClientId: string;
-        iosClientId?: string;
-        offlineAccess: boolean;
-      } = {
-        webClientId,
-        offlineAccess: true,
-      };
+  // Create a promise that resolves when configuration is complete
+  // Use setTimeout to defer the import until after React Native has fully initialized
+  // This prevents the dynamic import from blocking app startup
+  configurePromise = new Promise<void>(resolve => {
+    // Defer the import to the next tick to ensure React Native bridge is ready
+    // Use a small delay (100ms) to ensure React Native is fully initialized
+    setTimeout(() => {
+      import('@react-native-google-signin/google-signin')
+        .then(module => {
+          try {
+            // IMPORTANT: Both webClientId and iosClientId are required.
+            // - webClientId: Used for the ID token audience (Supabase requires this)
+            // - iosClientId: Required for native iOS initialization
+            // When both are provided, the library uses webClientId for the ID token,
+            // which is what Supabase expects for verification.
+            const config: {
+              webClientId: string;
+              iosClientId?: string;
+              offlineAccess: boolean;
+            } = {
+              webClientId,
+              offlineAccess: true,
+            };
 
-      if (options?.iosClientId) {
-        config.iosClientId = options.iosClientId;
-      }
+            // iosClientId is required for iOS - the library needs it for initialization
+            // but the ID token will still use webClientId as the audience
+            if (options?.iosClientId) {
+              config.iosClientId = options.iosClientId;
+            }
 
-      // Note: Android typically uses webClientId, but we accept androidClientId
-      // for potential future use or custom configuration
+            // Log configuration details (without exposing full client IDs)
+            Logger.info('[useAuth] Configuring Google Sign-In...', {
+              hasWebClientId: !!config.webClientId,
+              hasIosClientId: !!config.iosClientId,
+              webClientIdPrefix: config.webClientId
+                ? config.webClientId.substring(0, 20) + '...'
+                : undefined,
+              iosClientIdPrefix: config.iosClientId
+                ? config.iosClientId.substring(0, 20) + '...'
+                : undefined,
+              platform: Platform.OS,
+            });
 
-      module.GoogleSignin.configure(config);
-    })
-    .catch(err => {
-      Logger.warn('[useAuth] Failed to configure Google Sign-In:', err);
-    });
+            module.GoogleSignin.configure(config);
+            isConfigured = true;
+
+            Logger.info('[useAuth] Google Sign-In configured successfully', {
+              platform: Platform.OS,
+            });
+            resolve();
+          } catch (configErr) {
+            const errorMsg = `Failed to configure Google Sign-In: ${configErr instanceof Error ? configErr.message : String(configErr)}`;
+            Logger.error('[useAuth]', errorMsg, configErr);
+            isConfigured = false;
+            configurePromise = null;
+            // Don't reject - allow app to continue without Google Sign-In
+            // But log the error clearly so it's visible
+            resolve();
+          }
+        })
+        .catch(err => {
+          const errorMsg = `Failed to import Google Sign-In module: ${err instanceof Error ? err.message : String(err)}`;
+          Logger.error('[useAuth]', errorMsg, err);
+          isConfigured = false;
+          configurePromise = null;
+          // Don't reject - allow app to continue without Google Sign-In
+          // But log the error clearly so it's visible
+          resolve();
+        });
+    }, 100); // Increased delay to 100ms to ensure React Native bridge is ready
+  });
+
+  return configurePromise;
 }
 
 export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
@@ -258,25 +321,83 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
     setError(null);
 
     try {
+      // Ensure Google Sign-In is configured before attempting sign-in
+      // Wait for configuration to complete if it's in progress
+      if (configurePromise) {
+        await configurePromise;
+      }
+
       const { GoogleSignin: GSI, statusCodes: codes } = await getGoogleSignIn();
 
       if (!GSI || !codes) {
         throw new Error('Google Sign-In module not available');
       }
 
+      // Check if configured (for Android, this is critical)
+      if (!isConfigured) {
+        // Log detailed info about Constants to help debug OTA update issues
+        try {
+          const config = Constants.expoConfig ?? Constants.manifest;
+          const extra =
+            config && 'extra' in config
+              ? (config as { extra?: Record<string, unknown> }).extra || {}
+              : {};
+
+          Logger.debug(
+            '[useAuth] Google Sign-In not configured - Constants check',
+            {
+              hasExpoConfig: !!Constants.expoConfig,
+              hasManifest: !!Constants.manifest,
+              extraKeys: Object.keys(extra),
+              hasGoogleWebClientId: !!extra['googleWebClientId'],
+              hasGoogleIosClientId: !!extra['googleIosClientId'],
+              hasGoogleAndroidClientId: !!extra['googleAndroidClientId'],
+              isConfigured,
+              hasConfigurePromise: !!configurePromise,
+            }
+          );
+        } catch (e) {
+          // Ignore errors accessing Constants
+          Logger.debug(
+            '[useAuth] Google Sign-In not configured - Error accessing Constants',
+            e
+          );
+        }
+
+        const errorMsg =
+          'Google Sign-In not configured. Configuration may have failed silently. ' +
+          'Please check the logs for configuration errors and ensure webClientId is set.';
+        Logger.error('[useAuth]', errorMsg);
+        throw new Error(errorMsg);
+      }
+
+      // Check Play Services availability
+      Logger.info('[useAuth] Checking Google Play Services...');
       await GSI.hasPlayServices();
+      Logger.info('[useAuth] Google Play Services available');
+
+      // Attempt sign-in
+      Logger.info('[useAuth] Initiating Google Sign-In...');
       await GSI.signIn();
+      Logger.info('[useAuth] Google Sign-In completed, getting tokens...');
 
       const tokens = await GSI.getTokens();
+      Logger.info('[useAuth] Got tokens from Google Sign-In', {
+        hasIdToken: !!tokens.idToken,
+        hasAccessToken: !!tokens.accessToken,
+        idTokenLength: tokens.idToken?.length || 0,
+      });
 
       if (!tokens.idToken) {
         throw new Error('No ID token received from Google');
       }
 
-      if (__DEV__) {
-        Logger.debug('[Google Sign-In] Got ID token');
-      }
+      Logger.debug('[useAuth] Google Sign-In: Got ID token');
 
+      // Sign in with Supabase
+      // Note: The nonce check is controlled by Supabase server configuration (skip_nonce_check)
+      // If you see "Passed nonce and nonce in id_token should either both exist or not" errors,
+      // ensure your Supabase instance has skip_nonce_check = true for Google in config.toml
       const { error: authError } = await supabaseClient.auth.signInWithIdToken({
         provider: 'google',
         token: tokens.idToken,
@@ -286,12 +407,46 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
         throw authError;
       }
 
-      if (__DEV__) {
-        Logger.debug(
-          '[Google Sign-In] Successfully authenticated with Supabase'
-        );
-      }
+      Logger.debug(
+        '[useAuth] Google Sign-In: Successfully authenticated with Supabase'
+      );
     } catch (err: unknown) {
+      // Log detailed error information for debugging
+      Logger.error('[useAuth] Google Sign-In error:', {
+        error: err,
+        errorType: err instanceof Error ? err.constructor.name : typeof err,
+        errorMessage: err instanceof Error ? err.message : String(err),
+        errorStack: err instanceof Error ? err.stack : undefined,
+        errorCode:
+          err && typeof err === 'object' && 'code' in err
+            ? (err as { code?: unknown }).code
+            : undefined,
+        isConfigured,
+        hasConfigurePromise: !!configurePromise,
+      });
+
+      // Log configuration details if available
+      try {
+        const config = Constants.expoConfig ?? Constants.manifest;
+        const extra =
+          config && 'extra' in config
+            ? (config as { extra?: Record<string, unknown> }).extra || {}
+            : {};
+        Logger.error('[useAuth] Current Google Sign-In configuration:', {
+          hasWebClientId: !!extra['googleWebClientId'],
+          hasIosClientId: !!extra['googleIosClientId'],
+          hasAndroidClientId: !!extra['googleAndroidClientId'],
+          webClientIdPrefix: extra['googleWebClientId']
+            ? String(extra['googleWebClientId']).substring(0, 20) + '...'
+            : undefined,
+          androidClientIdPrefix: extra['googleAndroidClientId']
+            ? String(extra['googleAndroidClientId']).substring(0, 20) + '...'
+            : undefined,
+        });
+      } catch (configErr) {
+        Logger.error('[useAuth] Error accessing configuration:', configErr);
+      }
+
       if (err && typeof err === 'object' && 'code' in err) {
         const { statusCodes: codes } = await getGoogleSignIn();
         if (codes) {
@@ -299,6 +454,7 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
 
           if (code === codes.SIGN_IN_CANCELLED) {
             const cancelError = new Error('Google sign-in was cancelled');
+            Logger.warn('[useAuth]', cancelError.message);
             setError(cancelError);
             throw cancelError;
           }
@@ -307,6 +463,7 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
             const progressError = new Error(
               'Google sign-in already in progress'
             );
+            Logger.warn('[useAuth]', progressError.message);
             setError(progressError);
             throw progressError;
           }
@@ -315,13 +472,22 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
             const servicesError = new Error(
               'Google Play Services not available'
             );
+            Logger.error('[useAuth]', servicesError.message);
             setError(servicesError);
             throw servicesError;
           }
+
+          // Log unknown error code
+          Logger.error('[useAuth] Unknown Google Sign-In error code:', code);
         }
       }
 
       const errorObj = err instanceof Error ? err : new Error(String(err));
+      Logger.error(
+        '[useAuth] Google Sign-In failed:',
+        errorObj.message,
+        errorObj
+      );
       setError(errorObj);
       throw errorObj;
     } finally {

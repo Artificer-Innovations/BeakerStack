@@ -18,6 +18,19 @@ jobs:
         with:
           script: |
             const marker = '<!-- merge-strategy-reminder -->';
+            
+            // Add timestamp in Pacific time
+            const now = new Date();
+            const pacificTime = now.toLocaleString('en-US', {
+              timeZone: 'America/Los_Angeles',
+              dateStyle: 'long',
+              timeStyle: 'short'
+            });
+            const timezone = now.toLocaleString('en-US', {
+              timeZone: 'America/Los_Angeles',
+              timeZoneName: 'short'
+            }).split(' ').pop();
+            
             const comment = `## ⚠️ Merge Strategy Reminder
 
             This PR targets the \`main\` branch. When merging, please use:
@@ -27,6 +40,10 @@ jobs:
             Using "Squash and merge" on PRs targeting \`main\` can cause merge conflicts when merging \`develop\` → \`main\` later.
 
             See [ARCHITECTURE.md](../../blob/develop/ARCHITECTURE.md#pull-request-process) for details.
+
+            ---
+
+            _Updated at: ${pacificTime} ${timezone}_
 
             ${marker}`;
 
