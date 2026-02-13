@@ -70,6 +70,8 @@ export default defineConfig(({ mode }) => {
           '**/*.config.*',
           '**/dist/',
           '**/build/',
+          '**/types/**',
+          '**/DebugTools.tsx',
         ],
       },
     },

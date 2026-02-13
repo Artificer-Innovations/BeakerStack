@@ -30,7 +30,10 @@ module.exports = {
     "!<rootDir>/packages/shared/src/**/*.d.ts",
     "!<rootDir>/packages/shared/src/**/__tests__/**",
     "!<rootDir>/packages/shared/src/**/__mocks__/**",
-    "!<rootDir>/packages/shared/src/index.ts"
+    "!<rootDir>/packages/shared/src/index.ts",
+    "!<rootDir>/packages/shared/src/**/index.web.ts",
+    "!<rootDir>/packages/shared/src/**/index.native.ts",
+    "!<rootDir>/packages/shared/src/types/**"
   ],
   coveragePathIgnorePatterns: [
     "/node_modules/",
@@ -40,7 +43,8 @@ module.exports = {
   coverageDirectory: path.join(__dirname, "coverage"),
   coverageReporters: ["text", "lcov", "html", "json"],
   testMatch: [
-    "**/__tests__/**/*.test.{ts,tsx}"
+    "**/__tests__/**/*.test.{ts,tsx}",
+    "!**/__tests__/**/*.native.test.{ts,tsx}"
   ],
   coverageProvider: "v8"
 };

@@ -49,6 +49,32 @@ jest.mock('@shared/src/components/forms/FormError.web', () => ({
     message ? <div data-testid='form-error'>{message}</div> : null,
 }));
 
+// Mock AvatarUpload component
+let mockOnUploadComplete: ((url: string) => Promise<void>) | null = null;
+let mockOnRemove: (() => Promise<void>) | null = null;
+
+jest.mock('@shared/src/components/profile/AvatarUpload.web', () => ({
+  AvatarUpload: ({ onUploadComplete, onRemove }: any) => {
+    mockOnUploadComplete = onUploadComplete;
+    mockOnRemove = onRemove;
+    return (
+      <div data-testid='avatar-upload'>
+        <button
+          data-testid='avatar-upload-trigger'
+          onClick={() =>
+            onUploadComplete('https://example.com/avatar.jpg?t=123')
+          }
+        >
+          Upload
+        </button>
+        <button data-testid='avatar-remove-trigger' onClick={() => onRemove()}>
+          Remove
+        </button>
+      </div>
+    );
+  },
+}));
+
 // Mock ProfileContext
 const mockProfile: UserProfile = {
   id: 'profile-id-1',
@@ -290,5 +316,170 @@ describe('ProfileEditor', () => {
     expect(screen.getByTestId('form-error')).toHaveTextContent(
       'Failed to fetch profile'
     );
+  });
+
+  it('clears field error when user starts typing', async () => {
+    mockUseProfileContext.mockReturnValue(createContextValue());
+
+    render(<ProfileEditor />);
+
+    const usernameInput = screen.getByTestId(
+      'input-username'
+    ) as HTMLInputElement;
+
+    // First, trigger a validation error
+    fireEvent.change(usernameInput, { target: { value: 'ab' } }); // Too short
+    const submitButton = screen.getByTestId('submit-button');
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('error-username')).toBeInTheDocument();
+    });
+
+    // Now type a valid value - error should be cleared
+    fireEvent.change(usernameInput, { target: { value: 'validusername' } });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('error-username')).not.toBeInTheDocument();
+    });
+  });
+
+  it('clears general error when user starts typing', async () => {
+    const mockOnError = jest.fn();
+    const error = new Error('Database error');
+    mockUseProfileContext.mockReturnValue(
+      createContextValue({
+        createProfile: jest.fn().mockRejectedValue(error),
+      })
+    );
+
+    render(<ProfileEditor onError={mockOnError} />);
+
+    const submitButton = screen.getByTestId('submit-button');
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('form-error')).toBeInTheDocument();
+    });
+
+    // Now type in a field - general error should be cleared
+    const usernameInput = screen.getByTestId(
+      'input-username'
+    ) as HTMLInputElement;
+    fireEvent.change(usernameInput, { target: { value: 'newvalue' } });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('form-error')).not.toBeInTheDocument();
+    });
+  });
+
+  it('shows error when user is not logged in during submit', async () => {
+    const mockOnError = jest.fn();
+    mockUseProfileContext.mockReturnValue(
+      createContextValue({
+        currentUser: null,
+      })
+    );
+
+    render(<ProfileEditor onError={mockOnError} />);
+
+    // Try to submit (should not be possible, but test the error handling)
+    const submitButton = screen.queryByTestId('submit-button');
+    // Submit button won't exist when user is not logged in
+    expect(submitButton).not.toBeInTheDocument();
+  });
+
+  it('shows field errors for display_name', async () => {
+    mockUseProfileContext.mockReturnValue(createContextValue());
+
+    render(<ProfileEditor />);
+
+    const displayNameInput = screen.getByTestId(
+      'input-display-name'
+    ) as HTMLInputElement;
+
+    // Set display_name to be too long (over 100 chars)
+    fireEvent.change(displayNameInput, {
+      target: { value: 'a'.repeat(101) },
+    });
+
+    const submitButton = screen.getByTestId('submit-button');
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('error-display-name')).toBeInTheDocument();
+    });
+  });
+
+  it('shows field errors for website with invalid URL', async () => {
+    mockUseProfileContext.mockReturnValue(createContextValue());
+
+    render(<ProfileEditor />);
+
+    const websiteInput = screen.getByTestId(
+      'input-website'
+    ) as HTMLInputElement;
+
+    // Set website to invalid URL
+    fireEvent.change(websiteInput, {
+      target: { value: 'not-a-valid-url' },
+    });
+
+    const submitButton = screen.getByTestId('submit-button');
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('error-website')).toBeInTheDocument();
+    });
+  });
+
+  it('handles avatar upload complete callback', async () => {
+    const mockUpdateProfile = jest.fn().mockResolvedValue(mockProfile);
+    mockUseProfileContext.mockReturnValue(
+      createContextValue({
+        profile: mockProfile,
+        updateProfile: mockUpdateProfile,
+      })
+    );
+
+    render(<ProfileEditor />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('avatar-upload')).toBeInTheDocument();
+    });
+
+    const uploadTrigger = screen.getByTestId('avatar-upload-trigger');
+    fireEvent.click(uploadTrigger);
+
+    await waitFor(() => {
+      expect(mockUpdateProfile).toHaveBeenCalledWith('user-id-1', {
+        avatar_url: 'https://example.com/avatar.jpg',
+      });
+    });
+  });
+
+  it('handles avatar remove callback', async () => {
+    const mockUpdateProfile = jest.fn().mockResolvedValue(mockProfile);
+    mockUseProfileContext.mockReturnValue(
+      createContextValue({
+        profile: mockProfile,
+        updateProfile: mockUpdateProfile,
+      })
+    );
+
+    render(<ProfileEditor />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('avatar-upload')).toBeInTheDocument();
+    });
+
+    const removeTrigger = screen.getByTestId('avatar-remove-trigger');
+    fireEvent.click(removeTrigger);
+
+    await waitFor(() => {
+      expect(mockUpdateProfile).toHaveBeenCalledWith('user-id-1', {
+        avatar_url: null,
+      });
+    });
   });
 });

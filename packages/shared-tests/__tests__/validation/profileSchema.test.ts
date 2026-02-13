@@ -372,6 +372,32 @@ describe('transformFormToInsert', () => {
     expect(result.display_name).toBe('Test User');
   });
 
+  it('should trim website, location, and avatar_url fields', () => {
+    const formData = {
+      website: '  https://example.com  ',
+      location: '  San Francisco, CA  ',
+      avatar_url: '  https://example.com/avatar.jpg  ',
+    };
+
+    const result = transformFormToInsert(formData);
+    expect(result.website).toBe('https://example.com');
+    expect(result.location).toBe('San Francisco, CA');
+    expect(result.avatar_url).toBe('https://example.com/avatar.jpg');
+  });
+
+  it('should convert trimmed empty website, location, and avatar_url to null', () => {
+    const formData = {
+      website: '   ',
+      location: '   ',
+      avatar_url: '   ',
+    };
+
+    const result = transformFormToInsert(formData);
+    expect(result.website).toBeNull();
+    expect(result.location).toBeNull();
+    expect(result.avatar_url).toBeNull();
+  });
+
   it('should handle undefined fields', () => {
     const formData = {
       username: 'testuser',
@@ -418,5 +444,18 @@ describe('transformFormToUpdate', () => {
 
     expect(insertResult.username).toBe(updateResult.username);
     expect(insertResult.display_name).toBe(updateResult.display_name);
+  });
+
+  it('should trim website, location, and avatar_url in update transform', () => {
+    const formData = {
+      website: '  https://example.com  ',
+      location: '  New York  ',
+      avatar_url: '  https://example.com/new-avatar.jpg  ',
+    };
+
+    const result = transformFormToUpdate(formData);
+    expect(result.website).toBe('https://example.com');
+    expect(result.location).toBe('New York');
+    expect(result.avatar_url).toBe('https://example.com/new-avatar.jpg');
   });
 });

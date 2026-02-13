@@ -35,7 +35,8 @@ const forwardToTelemetry = (level: LogLevel, args: LogArgs) => {
   }
 };
 
-const log = (level: LogLevel, args: LogArgs) => {
+// Export for testing purposes only
+export const log = (level: LogLevel, args: LogArgs) => {
   switch (level) {
     case 'debug':
       if (isDevEnvironment()) {

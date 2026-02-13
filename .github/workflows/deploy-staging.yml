@@ -100,3 +100,23 @@ jobs:
             --environment staging \
             --region "${AWS_REGION_VALUE}"
 
+      - name: Deploy mobile to staging
+        id: mobile
+        shell: bash
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PROJECT_ID: ${{ secrets.EXPO_PROJECT_ID }}
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          EXPO_ACCOUNT_VALUE="${{ vars.EXPO_ACCOUNT }}"
+          if [[ -z "${EXPO_ACCOUNT_VALUE}" ]]; then
+            echo "Warning: EXPO_ACCOUNT not set, skipping mobile deployment"
+            exit 0
+          fi
+          ./scripts/pr-preview/deploy-mobile-staging.sh \
+            --expo-account "${EXPO_ACCOUNT_VALUE}" \
+            --platform all \
+            --message "Staging deployment from ${GITHUB_SHA:0:7}"
+

@@ -483,6 +483,44 @@ describe('useProfile', () => {
     });
   });
 
+  it('should handle realtime DELETE event', async () => {
+    const { mockClient, mockProfile } = createMockSupabaseClient();
+    const mockUser = createMockUser();
+
+    // Store the callback passed to .on()
+    let realtimeCallback: any;
+    const mockChannel = {
+      on: jest.fn((event, config, callback) => {
+        realtimeCallback = callback;
+        return mockChannel;
+      }),
+      subscribe: jest.fn(callback => {
+        callback('SUBSCRIBED');
+        return mockChannel;
+      }),
+    };
+    mockClient.channel = jest.fn(() => mockChannel);
+
+    const { result } = renderHook(() => useProfile(mockClient, mockUser));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+      expect(result.current.profile).toEqual(mockProfile);
+    });
+
+    // Simulate a realtime DELETE event
+    act(() => {
+      realtimeCallback({
+        eventType: 'DELETE',
+        old: mockProfile,
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.profile).toBeNull();
+    });
+  });
+
   it('should clean up realtime subscription on unmount', async () => {
     const { mockClient, mockChannel } = createMockSupabaseClient();
     const mockUser = createMockUser();
@@ -498,5 +536,82 @@ describe('useProfile', () => {
     await waitFor(() => {
       expect(mockChannel.unsubscribe).toHaveBeenCalled();
     });
+  });
+
+  it('should handle unsubscribe error gracefully', async () => {
+    const { mockClient, mockProfile } = createMockSupabaseClient();
+    const mockUser = createMockUser();
+
+    const mockChannel = {
+      on: jest.fn().mockReturnThis(),
+      subscribe: jest.fn(callback => {
+        callback('SUBSCRIBED');
+        return mockChannel;
+      }),
+      unsubscribe: jest.fn().mockRejectedValue(new Error('Unsubscribe failed')),
+    };
+    mockClient.channel = jest.fn(() => mockChannel);
+
+    const { unmount } = renderHook(() => useProfile(mockClient, mockUser));
+
+    await waitFor(() => {
+      expect(mockClient.channel).toHaveBeenCalled();
+    });
+
+    // Unmount should not throw even if unsubscribe fails
+    unmount();
+
+    await waitFor(() => {
+      expect(mockChannel.unsubscribe).toHaveBeenCalled();
+    });
+  });
+
+  it('should handle update returning null data', async () => {
+    const { mockClient, mockProfile } = createMockSupabaseClient();
+    const mockUser = createMockUser();
+
+    const fromMock = {
+      select: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          single: jest.fn().mockResolvedValue({
+            data: mockProfile,
+            error: null,
+          }),
+        })),
+      })),
+      update: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          select: jest.fn(() => ({
+            single: jest.fn().mockResolvedValue({
+              data: null, // Update succeeded but returned null
+              error: null,
+            }),
+          })),
+        })),
+      })),
+    };
+    mockClient.from = jest.fn(() => fromMock as any);
+
+    const { result } = renderHook(() => useProfile(mockClient, mockUser));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    let thrownError: Error | null = null;
+    try {
+      await act(async () => {
+        await result.current.updateProfile(mockUser.id, {
+          display_name: 'Updated',
+        });
+      });
+    } catch (error) {
+      thrownError = error as Error;
+    }
+
+    expect(thrownError).not.toBeNull();
+    expect(thrownError?.message).toBe(
+      'Update succeeded but returned no profile data'
+    );
   });
 });
