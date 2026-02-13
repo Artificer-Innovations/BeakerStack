@@ -20,6 +20,7 @@ EXPO_ACCOUNT=""
 EXPO_PROJECT_SLUG="${DEFAULT_EXPO_PROJECT_SLUG}"
 OUTPUT_ENV=""
 DRY_RUN=false
+BUILD_NATIVE=false
 PROJECT_DIR="${MOBILE_APP_DIR}"
 
 EAS_BIN=(npx --yes eas-cli)
@@ -43,6 +44,7 @@ Optional:
   --platform [all|ios|android]   Platform target for EAS Update (default: ${DEFAULT_PLATFORM})
   --message TEXT                 Custom update message (default: "PR #<number> preview update")
   --env-file PATH                Write outputs to PATH (KEY=VALUE format)
+  --build-native                 Build native apps (iOS and Android) in addition to publishing OTA update
   --dry-run                      Log commands without executing
   --help                         Show this help message
 
@@ -54,6 +56,10 @@ Outputs:
   PREVIEW_MOBILE_CHANNEL         Expo Update channel name
   PREVIEW_MOBILE_UPDATE_URL      Expo URL to view the latest update
   PREVIEW_MOBILE_INSTALL_URL     Expo go/QR URL for testers (if available)
+  PREVIEW_MOBILE_IOS_BUILD_ID    iOS build ID (if --build-native used)
+  PREVIEW_MOBILE_IOS_DOWNLOAD_URL iOS build download URL (if --build-native used)
+  PREVIEW_MOBILE_ANDROID_BUILD_ID Android build ID (if --build-native used)
+  PREVIEW_MOBILE_ANDROID_DOWNLOAD_URL Android build download URL (if --build-native used)
 EOF
 }
 
@@ -136,6 +142,10 @@ parse_args() {
         : >"${OUTPUT_ENV}"
         shift 2
         ;;
+      --build-native)
+        BUILD_NATIVE=true
+        shift
+        ;;
       --dry-run)
         DRY_RUN=true
         shift
@@ -177,7 +187,6 @@ channel_name() {
 }
 
 run_eas() {
-  local channel
   if [[ "${DRY_RUN}" == true ]]; then
     log "DRY" "eas $*"
     return 0
@@ -188,7 +197,29 @@ run_eas() {
     exit 1
   fi
 
-  (cd "${PROJECT_DIR}" && EXPO_TOKEN="${EXPO_TOKEN}" "${EAS_BIN[@]}" "$@")
+  # Pass through environment variables needed for EAS builds
+  # These will override the {{VARIABLE_NAME}} placeholders in eas.json
+  local env_vars=(
+    "EXPO_TOKEN=${EXPO_TOKEN}"
+  )
+  
+  # Add preview environment variables if they're set
+  # EXPO_PUBLIC_* prefix is required by Expo for variables embedded in the app bundle
+  [[ -n "${EXPO_PUBLIC_SUPABASE_URL:-}" ]] && env_vars+=("EXPO_PUBLIC_SUPABASE_URL=${EXPO_PUBLIC_SUPABASE_URL}")
+  [[ -n "${EXPO_PUBLIC_SUPABASE_ANON_KEY:-}" ]] && env_vars+=("EXPO_PUBLIC_SUPABASE_ANON_KEY=${EXPO_PUBLIC_SUPABASE_ANON_KEY}")
+  # Google Services variables (needed for google-services.json generation during EAS builds)
+  [[ -n "${GOOGLE_SERVICES_PROJECT_NUMBER:-}" ]] && env_vars+=("GOOGLE_SERVICES_PROJECT_NUMBER=${GOOGLE_SERVICES_PROJECT_NUMBER}")
+  [[ -n "${GOOGLE_SERVICES_PROJECT_ID:-}" ]] && env_vars+=("GOOGLE_SERVICES_PROJECT_ID=${GOOGLE_SERVICES_PROJECT_ID}")
+  [[ -n "${GOOGLE_SERVICES_STORAGE_BUCKET:-}" ]] && env_vars+=("GOOGLE_SERVICES_STORAGE_BUCKET=${GOOGLE_SERVICES_STORAGE_BUCKET}")
+  [[ -n "${GOOGLE_SERVICES_MOBILESDK_APP_ID:-}" ]] && env_vars+=("GOOGLE_SERVICES_MOBILESDK_APP_ID=${GOOGLE_SERVICES_MOBILESDK_APP_ID}")
+  [[ -n "${GOOGLE_SERVICES_ANDROID_CLIENT_ID:-}" ]] && env_vars+=("GOOGLE_SERVICES_ANDROID_CLIENT_ID=${GOOGLE_SERVICES_ANDROID_CLIENT_ID}")
+  [[ -n "${GOOGLE_SERVICES_ANDROID_CERTIFICATE_HASH:-}" ]] && env_vars+=("GOOGLE_SERVICES_ANDROID_CERTIFICATE_HASH=${GOOGLE_SERVICES_ANDROID_CERTIFICATE_HASH}")
+  [[ -n "${GOOGLE_SERVICES_WEB_CLIENT_ID:-}" ]] && env_vars+=("GOOGLE_SERVICES_WEB_CLIENT_ID=${GOOGLE_SERVICES_WEB_CLIENT_ID}")
+  [[ -n "${GOOGLE_SERVICES_IOS_CLIENT_ID:-}" ]] && env_vars+=("GOOGLE_SERVICES_IOS_CLIENT_ID=${GOOGLE_SERVICES_IOS_CLIENT_ID}")
+  [[ -n "${GOOGLE_SERVICES_API_KEY:-}" ]] && env_vars+=("GOOGLE_SERVICES_API_KEY=${GOOGLE_SERVICES_API_KEY}")
+
+  # Run EAS command with environment variables
+  (cd "${PROJECT_DIR}" && env "${env_vars[@]}" "${EAS_BIN[@]}" "$@")
 }
 
 ensure_project_configured() {
@@ -196,13 +227,36 @@ ensure_project_configured() {
     return
   fi
 
-  if [[ -z "${EXPO_PROJECT_ID:-}" ]]; then
-    log "ERROR" ".eas/project.json not found. Set EXPO_PROJECT_ID or check in the generated file from 'eas init'."
+  local project_id="${EXPO_PROJECT_ID:-}"
+
+  # Try to get project ID from EAS if not set
+  if [[ -z "${project_id}" && -n "${EXPO_ACCOUNT:-}" && -n "${EXPO_PROJECT_SLUG:-}" ]]; then
+    log "INFO" "EXPO_PROJECT_ID not set, attempting to look up project ID from EAS..."
+    local project_info
+    project_info="$(run_eas project:info --json 2>/dev/null || true)"
+    if [[ -n "${project_info}" ]]; then
+      project_id="$(echo "${project_info}" | jq -r '.id // empty' 2>/dev/null || true)"
+      if [[ -n "${project_id}" && "${project_id}" != "null" ]]; then
+        log "INFO" "Found project ID: ${project_id}"
+      fi
+    fi
+  fi
+
+  if [[ -z "${project_id}" ]]; then
+    log "ERROR" ".eas/project.json not found and EXPO_PROJECT_ID not set."
+    log "ERROR" ""
+    log "ERROR" "To fix this, either:"
+    log "ERROR" "  1. Set EXPO_PROJECT_ID as a GitHub secret (recommended for CI)"
+    log "ERROR" "  2. Run 'eas init' locally and commit .eas/project.json to the repository"
+    log "ERROR" ""
+    log "ERROR" "To get your project ID:"
+    log "ERROR" "  - Visit https://expo.dev/accounts/${EXPO_ACCOUNT}/projects/${EXPO_PROJECT_SLUG}"
+    log "ERROR" "  - Or run 'eas project:info' locally"
     exit 1
   fi
 
   log "INFO" "Configuring Expo project for CI (creating .eas/project.json)..."
-  run_eas init --id "${EXPO_PROJECT_ID}" --non-interactive --force >/dev/null
+  run_eas init --id "${project_id}" --non-interactive --force >/dev/null
 
   if [[ ! -f "${PROJECT_DIR}/.eas/project.json" ]]; then
     log "ERROR" "Failed to configure Expo project automatically. Run 'eas init' locally and commit .eas/project.json."
@@ -221,10 +275,10 @@ ensure_branch_and_channel() {
 
   log "INFO" "Ensuring Expo channel ${channel} points to branch ${channel}..."
   if ! run_eas channel:view "${channel}" --json >/dev/null 2>&1; then
-    run_eas channel:create "${channel}" --branch "${channel}" --non-interactive --json || log "WARN" "Channel may already exist: ${channel}"
-  else
-    run_eas channel:edit "${channel}" --add-branch "${channel}" --non-interactive >/dev/null 2>&1 || true
+    run_eas channel:create "${channel}" --non-interactive --json || log "WARN" "Channel may already exist: ${channel}"
   fi
+
+  run_eas channel:edit "${channel}" --branch "${channel}" --non-interactive >/dev/null 2>&1 || true
 }
 
 publish_update() {
@@ -238,37 +292,599 @@ publish_update() {
   }
 }
 
-fetch_latest_update_urls() {
-  local channel update_json update_id update_group project_url install_url
-  channel="$(channel_name)"
+get_expo_project_id() {
+  # Try to get project ID from .eas/project.json first (most reliable)
+  if [[ -f "${PROJECT_DIR}/.eas/project.json" ]]; then
+    local project_id
+    project_id="$(jq -r '.projectId // empty' "${PROJECT_DIR}/.eas/project.json" 2>/dev/null || true)"
+    if [[ -n "${project_id}" && "${project_id}" != "null" ]]; then
+      echo "${project_id}"
+      return
+    fi
+  fi
 
-  if [[ "${DRY_RUN}" == true ]]; then
-    project_url="https://expo.dev/accounts/${EXPO_ACCOUNT}/projects/${EXPO_PROJECT_SLUG}/updates/${channel}"
-    install_url="${project_url}"
-    write_output "PREVIEW_MOBILE_CHANNEL" "${channel}"
-    write_output "PREVIEW_MOBILE_UPDATE_URL" "${project_url}"
-    write_output "PREVIEW_MOBILE_INSTALL_URL" "${install_url}"
+  # Try to get from app.config.ts
+  if [[ -f "${PROJECT_DIR}/app.config.ts" ]]; then
+    local project_id
+    # Look for projectId in eas.projectId or extra.eas.projectId
+    project_id="$(grep -E "(projectId|eas.*projectId)" "${PROJECT_DIR}/app.config.ts" | grep -oE "'[a-f0-9-]+'|\"[a-f0-9-]+\"" | head -1 | tr -d "'\"")"
+    if [[ -n "${project_id}" ]]; then
+      echo "${project_id}"
+      return
+    fi
+  fi
+
+  # Fall back to EXPO_PROJECT_ID environment variable
+  if [[ -n "${EXPO_PROJECT_ID:-}" ]]; then
+    echo "${EXPO_PROJECT_ID}"
     return
   fi
 
-  update_json="$(run_eas update:list --branch "${channel}" --limit 1 --json)"
-
-  if [[ -z "${update_json}" || "${update_json}" == "[]" ]]; then
-    log "WARN" "No updates found on branch ${channel} yet."
-  else
-    update_id="$(echo "${update_json}" | jq -r '.[0].id')"
-    update_group="$(echo "${update_json}" | jq -r '.[0].group')"
-    log "INFO" "Latest update ID: ${update_id} (group ${update_group})"
+  # Last resort: try to get from EAS
+  local project_info
+  project_info="$(run_eas project:info --json 2>/dev/null || true)"
+  if [[ -n "${project_info}" ]]; then
+    local project_id_from_eas
+    project_id_from_eas="$(echo "${project_info}" | jq -r '.id // empty' 2>/dev/null || true)"
+    if [[ -n "${project_id_from_eas}" && "${project_id_from_eas}" != "null" ]]; then
+      echo "${project_id_from_eas}"
+      return
+    fi
   fi
 
-  project_url="https://expo.dev/accounts/${EXPO_ACCOUNT}/projects/${EXPO_PROJECT_SLUG}/updates/${channel}"
+  log "ERROR" "Could not determine Expo project ID. Please ensure .eas/project.json exists or set EXPO_PROJECT_ID."
+  exit 1
+}
+
+get_expo_owner() {
+  # Try to get owner from app.config.ts first
+  if [[ -f "${PROJECT_DIR}/app.config.ts" ]]; then
+    local owner
+    owner="$(grep -E "^\s*owner\s*:" "${PROJECT_DIR}/app.config.ts" | sed -E "s/.*owner\s*:\s*['\"]([^'\"]+)['\"].*/\1/" | head -1)"
+    if [[ -n "${owner}" ]]; then
+      echo "${owner}"
+      return
+    fi
+  fi
+
+  # Fall back to .eas/project.json
+  if [[ -f "${PROJECT_DIR}/.eas/project.json" ]]; then
+    local account_name
+    account_name="$(jq -r '.accountName // empty' "${PROJECT_DIR}/.eas/project.json" 2>/dev/null || true)"
+    if [[ -n "${account_name}" && "${account_name}" != "null" ]]; then
+      echo "${account_name}"
+      return
+    fi
+  fi
+
+  # Fall back to EXPO_ACCOUNT if provided
+  if [[ -n "${EXPO_ACCOUNT:-}" ]]; then
+    echo "${EXPO_ACCOUNT}"
+    return
+  fi
+
+  # Last resort: try to get from EAS
+  local project_info
+  project_info="$(run_eas project:info --json 2>/dev/null || true)"
+  if [[ -n "${project_info}" ]]; then
+    local owner_from_eas
+    owner_from_eas="$(echo "${project_info}" | jq -r '.owner.username // .owner.slug // empty' 2>/dev/null || true)"
+    if [[ -n "${owner_from_eas}" && "${owner_from_eas}" != "null" ]]; then
+      echo "${owner_from_eas}"
+      return
+    fi
+  fi
+
+  # Default fallback
+  echo "${EXPO_ACCOUNT:-artificer-innovations-llc}"
+}
+
+fetch_latest_update_urls() {
+  local channel project_url install_url expo_owner project_id
+  channel="$(channel_name)"
+  expo_owner="$(get_expo_owner)"
+  project_id="$(get_expo_project_id)"
+
+  # Web dashboard URL (for viewing in browser)
+  project_url="https://expo.dev/accounts/${expo_owner}/projects/${EXPO_PROJECT_SLUG}/updates/${channel}"
+  # Dev client URL format (for loading in app) - this is the format the dev client accepts
+  dev_client_url="https://u.expo.dev/${project_id}?channel-name=${channel}"
   install_url="${project_url}"
 
   write_output "PREVIEW_MOBILE_CHANNEL" "${channel}"
-  write_output "PREVIEW_MOBILE_UPDATE_URL" "${project_url}"
+  write_output "PREVIEW_MOBILE_UPDATE_URL" "${dev_client_url}"
+  write_output "PREVIEW_MOBILE_DASHBOARD_URL" "${project_url}"
   write_output "PREVIEW_MOBILE_INSTALL_URL" "${install_url}"
 
   log "INFO" "Preview update available at ${project_url}"
+  log "INFO" "Dev client URL: ${dev_client_url}"
+  log "INFO" "To load in dev client: Enter URL manually → ${dev_client_url}"
+}
+
+wait_for_build() {
+  local build_id="$1"
+  local platform="$2"
+  local max_wait="${3:-1800}" # 30 minutes default
+  local elapsed=0
+  local interval=30 # Check every 30 seconds
+
+  log "INFO" "Waiting for ${platform} build ${build_id} to complete..."
+  
+  while [[ ${elapsed} -lt ${max_wait} ]]; do
+    local build_info
+    build_info="$(run_eas build:view "${build_id}" --json 2>/dev/null || echo "{}")"
+    
+    if [[ -z "${build_info}" || "${build_info}" == "{}" ]]; then
+      log "WARN" "Could not fetch build status, continuing to wait..."
+      sleep "${interval}"
+      elapsed=$((elapsed + interval))
+      continue
+    fi
+    
+    local status
+    status="$(echo "${build_info}" | jq -r '.status // "unknown"' 2>/dev/null || echo "unknown")"
+    
+    case "${status}" in
+      "finished")
+        log "INFO" "${platform} build ${build_id} completed successfully"
+        return 0
+        ;;
+      "errored"|"canceled")
+        log "ERROR" "${platform} build ${build_id} failed with status: ${status}"
+        return 1
+        ;;
+      "in-progress"|"in-queue"|"pending")
+        log "INFO" "${platform} build ${build_id} status: ${status} (${elapsed}s elapsed)"
+        ;;
+      *)
+        log "WARN" "${platform} build ${build_id} unknown status: ${status}"
+        ;;
+    esac
+    
+    sleep "${interval}"
+    elapsed=$((elapsed + interval))
+  done
+  
+  log "ERROR" "${platform} build ${build_id} timed out after ${max_wait} seconds"
+  return 1
+}
+
+ensure_eas_secrets() {
+  log "INFO" "Ensuring EAS secrets are set for preview environment..."
+  
+  # List of required secrets for google-services.json generation
+  local required_secrets=(
+    "GOOGLE_SERVICES_PROJECT_NUMBER"
+    "GOOGLE_SERVICES_PROJECT_ID"
+    "GOOGLE_SERVICES_STORAGE_BUCKET"
+    "GOOGLE_SERVICES_MOBILESDK_APP_ID"
+    "GOOGLE_SERVICES_ANDROID_CLIENT_ID"
+    "GOOGLE_SERVICES_ANDROID_CERTIFICATE_HASH"
+    "GOOGLE_SERVICES_WEB_CLIENT_ID"
+    "GOOGLE_SERVICES_IOS_CLIENT_ID"
+    "GOOGLE_SERVICES_API_KEY"
+    "PREVIEW_SUPABASE_URL"
+    "PREVIEW_SUPABASE_ANON_KEY"
+  )
+  
+  # Track failures
+  local failed_secrets=()
+  
+  # Map from environment variable names to EAS secret names
+  # Some env vars have different names than the secrets
+  local secret_value
+  for secret_name in "${required_secrets[@]}"; do
+    # Get the value from environment variable (may have different name)
+    case "${secret_name}" in
+      "PREVIEW_SUPABASE_URL")
+        secret_value="${EXPO_PUBLIC_SUPABASE_URL:-}"
+        ;;
+      "PREVIEW_SUPABASE_ANON_KEY")
+        secret_value="${EXPO_PUBLIC_SUPABASE_ANON_KEY:-}"
+        ;;
+      *)
+        # For GOOGLE_SERVICES_*, use the same name
+        eval "secret_value=\"\${${secret_name}:-}\""
+        ;;
+    esac
+    
+    if [[ -z "${secret_value}" ]]; then
+      log "ERROR" "Secret ${secret_name} not set in environment (required for build)"
+      failed_secrets+=("${secret_name}")
+      continue
+    fi
+    
+    # Check if secret already exists (project-scoped secrets)
+    if run_eas secret:list --scope project --json 2>/dev/null | \
+       jq -e --arg name "${secret_name}" '.[] | select(.name == $name)' >/dev/null 2>&1; then
+      log "INFO" "Secret ${secret_name} already exists, updating..."
+      # Update existing secret (EAS CLI doesn't have a direct update command, so we delete and recreate)
+      run_eas secret:delete --scope project --name "${secret_name}" --non-interactive --force >/dev/null 2>&1 || true
+    fi
+    
+    # Create or update the secret (project-scoped, not environment-scoped)
+    # EAS secrets are project-scoped, and the eas.json uses {{VARIABLE_NAME}} to reference them
+    log "INFO" "Setting EAS secret ${secret_name} for preview environment (project scope)..."
+    # EAS secret:create uses --value flag or reads from stdin
+    local secret_output
+    secret_output="$(run_eas secret:create \
+      --scope project \
+      --name "${secret_name}" \
+      --value "${secret_value}" \
+      --type string \
+      --non-interactive \
+      --force 2>&1)" || {
+      log "ERROR" "Failed to set secret ${secret_name}"
+      log "ERROR" "Error output: ${secret_output}"
+      failed_secrets+=("${secret_name}")
+      continue
+    }
+    log "INFO" "Successfully set secret ${secret_name}"
+  done
+  
+  # Fail if any required secrets couldn't be set
+  if [[ ${#failed_secrets[@]} -gt 0 ]]; then
+    log "ERROR" "Failed to set ${#failed_secrets[@]} required secret(s): ${failed_secrets[*]}"
+    log "ERROR" "Build will fail without these secrets. Please check:"
+    log "ERROR" "  1. GitHub secrets are set correctly"
+    log "ERROR" "  2. EXPO_TOKEN has permissions to create secrets"
+    log "ERROR" "  3. EAS CLI command syntax is correct"
+    return 1
+  fi
+  
+  log "INFO" "EAS secrets configured for preview environment"
+}
+
+find_existing_build() {
+  local platform="$1"  # "ios" or "android"
+  local pr_number="$2"
+  local current_commit="${3:-}"
+  
+  if [[ -z "${EXPO_TOKEN:-}" ]]; then
+    return 1
+  fi
+  
+  log "INFO" "Checking for existing ${platform} build for PR #${pr_number}..."
+  
+  # Query EAS for recent builds
+  local build_list
+  build_list="$(run_eas build:list \
+    --platform "${platform}" \
+    --profile preview \
+    --limit 20 \
+    --non-interactive \
+    --json 2>/dev/null || echo "[]")"
+  
+  if [[ -z "${build_list}" || "${build_list}" == "[]" ]]; then
+    return 1
+  fi
+  
+  # Find builds for this PR that are finished and successful
+  local pr_builds
+  pr_builds="$(echo "${build_list}" | jq -r --arg pr "PR #${pr_number}" \
+    '[.[] | select(.message // "" | contains($pr) and .status == "FINISHED")] | sort_by(.createdAt) | reverse' 2>/dev/null || echo "[]")"
+  
+  if [[ -z "${pr_builds}" || "${pr_builds}" == "[]" ]]; then
+    return 1
+  fi
+  
+  # If we have a current commit, prefer builds for that commit
+  if [[ -n "${current_commit}" ]]; then
+    local commit_build
+    commit_build="$(echo "${pr_builds}" | jq -r --arg commit "${current_commit}" \
+      '[.[] | select(.gitCommitHash == $commit)] | .[0]' 2>/dev/null || echo "null")"
+    
+    if [[ -n "${commit_build}" && "${commit_build}" != "null" ]]; then
+      echo "${commit_build}"
+      return 0
+    fi
+  fi
+  
+  # Otherwise, use the most recent successful build
+  local latest_build
+  latest_build="$(echo "${pr_builds}" | jq -r '.[0]' 2>/dev/null || echo "null")"
+  
+  if [[ -n "${latest_build}" && "${latest_build}" != "null" ]]; then
+    echo "${latest_build}"
+    return 0
+  fi
+  
+  return 1
+}
+
+build_native_app() {
+  local build_message
+  build_message="PR #${PR_NUMBER} preview build"
+  
+  log "INFO" "Starting native builds for PR #${PR_NUMBER}..."
+  
+  # Ensure EAS secrets are set (needed for build process to access env vars)
+  ensure_eas_secrets
+  
+  # Verify required environment variables are set
+  local missing_vars=()
+  [[ -z "${EXPO_PUBLIC_SUPABASE_URL:-}" ]] && missing_vars+=("EXPO_PUBLIC_SUPABASE_URL")
+  [[ -z "${EXPO_PUBLIC_SUPABASE_ANON_KEY:-}" ]] && missing_vars+=("EXPO_PUBLIC_SUPABASE_ANON_KEY")
+  
+  if [[ ${#missing_vars[@]} -gt 0 ]]; then
+    log "ERROR" "Missing required environment variables: ${missing_vars[*]}"
+    log "ERROR" "These must be set in the GitHub Actions workflow or passed to the script"
+    return 1
+  fi
+  
+  # Get current commit hash (if available)
+  local current_commit
+  current_commit="$(git rev-parse HEAD 2>/dev/null || echo "")"
+  
+  # Initialize build info variables (will be set if we find existing builds)
+  local ios_build_info=""
+  local android_build_info=""
+  
+  # Check for existing iOS build
+  local existing_ios_build
+  existing_ios_build="$(find_existing_build "ios" "${PR_NUMBER}" "${current_commit}" || true)"
+  
+  local ios_build_id=""
+  local ios_build_status=""
+  local ios_success=false
+  
+  if [[ -n "${existing_ios_build}" && "${existing_ios_build}" != "null" ]]; then
+    ios_build_id="$(echo "${existing_ios_build}" | jq -r '.id // empty' 2>/dev/null || true)"
+    ios_build_status="$(echo "${existing_ios_build}" | jq -r '.status // empty' 2>/dev/null || true)"
+    local existing_commit="$(echo "${existing_ios_build}" | jq -r '.gitCommitHash // empty' 2>/dev/null || true)"
+    
+    if [[ "${ios_build_status}" == "FINISHED" ]]; then
+      log "INFO" "Found existing iOS build ${ios_build_id} for PR #${PR_NUMBER} (commit: ${existing_commit})"
+      if [[ -z "${current_commit}" || "${existing_commit}" == "${current_commit}" ]]; then
+        log "INFO" "Reusing existing iOS build (no rebuild needed)"
+        ios_success=true
+        # Store the existing build JSON for later URL extraction
+        ios_build_info="${existing_ios_build}"
+      else
+        log "INFO" "Existing iOS build is for different commit, will create new build"
+        ios_build_id=""
+      fi
+    fi
+  fi
+  
+  # Build iOS (only if we don't have a reusable build)
+  if [[ -z "${ios_build_id}" ]]; then
+    log "INFO" "Starting iOS build..."
+    local ios_build_output
+    ios_build_output="$(run_eas build \
+      --platform ios \
+      --profile preview \
+      --non-interactive \
+      --json \
+      --message "${build_message}" 2>&1 || true)"
+    
+    # Extract JSON from output (EAS CLI outputs progress messages, then JSON array at the end)
+    # The JSON is an array like [{...}] and appears after all progress messages
+    local ios_json
+    # Find the line number where JSON array starts (last occurrence of [)
+    local json_start_line
+    json_start_line="$(echo "${ios_build_output}" | grep -n '^\[' | tail -1 | cut -d: -f1 2>/dev/null || true)"
+    
+    if [[ -n "${json_start_line}" ]]; then
+      # Extract everything from the [ to the end
+      ios_json="$(echo "${ios_build_output}" | sed -n "${json_start_line},\$p" 2>/dev/null || true)"
+      # Validate it's valid JSON
+      if ! echo "${ios_json}" | jq empty 2>/dev/null; then
+        ios_json=""
+      fi
+    fi
+    
+    if [[ -n "${ios_json}" ]]; then
+      # Extract the first build object from the array (or use the object directly)
+      local ios_build_obj
+      ios_build_obj="$(echo "${ios_json}" | jq -r 'if type=="array" and length>0 then .[0] else . end' 2>/dev/null || echo "{}")"
+      ios_build_id="$(echo "${ios_build_obj}" | jq -r '.id // empty' 2>/dev/null || true)"
+      ios_build_status="$(echo "${ios_build_obj}" | jq -r '.status // empty' 2>/dev/null || true)"
+      # Store build info for later URL extraction
+      ios_build_info="${ios_build_obj}"
+    fi
+    
+    if [[ -z "${ios_build_id}" || "${ios_build_id}" == "null" ]]; then
+      log "ERROR" "Failed to start iOS build or extract build ID"
+      log "ERROR" "Build output: ${ios_build_output}"
+      log "WARN" "Continuing with Android build even though iOS failed..."
+      ios_build_id=""
+    else
+      if [[ "${ios_build_status}" == "FINISHED" ]]; then
+        log "INFO" "iOS build completed successfully: ${ios_build_id}"
+        ios_success=true
+      else
+        log "INFO" "iOS build started: ${ios_build_id} (status: ${ios_build_status})"
+      fi
+    fi
+  fi
+  
+  # Check for existing Android build
+  local existing_android_build
+  existing_android_build="$(find_existing_build "android" "${PR_NUMBER}" "${current_commit}" || true)"
+  
+  local android_build_id=""
+  local android_build_status=""
+  local android_success=false
+  
+  if [[ -n "${existing_android_build}" && "${existing_android_build}" != "null" ]]; then
+    android_build_id="$(echo "${existing_android_build}" | jq -r '.id // empty' 2>/dev/null || true)"
+    android_build_status="$(echo "${existing_android_build}" | jq -r '.status // empty' 2>/dev/null || true)"
+    local existing_commit="$(echo "${existing_android_build}" | jq -r '.gitCommitHash // empty' 2>/dev/null || true)"
+    
+    if [[ "${android_build_status}" == "FINISHED" ]]; then
+      log "INFO" "Found existing Android build ${android_build_id} for PR #${PR_NUMBER} (commit: ${existing_commit})"
+      if [[ -z "${current_commit}" || "${existing_commit}" == "${current_commit}" ]]; then
+        log "INFO" "Reusing existing Android build (no rebuild needed)"
+        android_success=true
+        # Store the existing build JSON for later URL extraction
+        android_build_info="${existing_android_build}"
+      else
+        log "INFO" "Existing Android build is for different commit, will create new build"
+        android_build_id=""
+      fi
+    fi
+  fi
+  
+  # Build Android (only if we don't have a reusable build)
+  if [[ -z "${android_build_id}" ]]; then
+    log "INFO" "Starting Android build..."
+    local android_build_output
+    android_build_output="$(run_eas build \
+      --platform android \
+      --profile preview \
+      --non-interactive \
+      --json \
+      --message "${build_message}" 2>&1 || true)"
+    
+    # Extract JSON from output (EAS CLI outputs progress messages, then JSON array at the end)
+    # The JSON is an array like [{...}] and appears after all progress messages
+    local android_json
+    # Find the line number where JSON array starts (last occurrence of [)
+    local json_start_line
+    json_start_line="$(echo "${android_build_output}" | grep -n '^\[' | tail -1 | cut -d: -f1 2>/dev/null || true)"
+    
+    if [[ -n "${json_start_line}" ]]; then
+      # Extract everything from the [ to the end
+      android_json="$(echo "${android_build_output}" | sed -n "${json_start_line},\$p" 2>/dev/null || true)"
+      # Validate it's valid JSON
+      if ! echo "${android_json}" | jq empty 2>/dev/null; then
+        android_json=""
+      fi
+    fi
+    
+    if [[ -n "${android_json}" ]]; then
+      # Extract the first build object from the array (or use the object directly)
+      local android_build_obj
+      android_build_obj="$(echo "${android_json}" | jq -r 'if type=="array" and length>0 then .[0] else . end' 2>/dev/null || echo "{}")"
+      android_build_id="$(echo "${android_build_obj}" | jq -r '.id // empty' 2>/dev/null || true)"
+      android_build_status="$(echo "${android_build_obj}" | jq -r '.status // empty' 2>/dev/null || true)"
+      # Store build info for later URL extraction
+      android_build_info="${android_build_obj}"
+    fi
+    
+    if [[ -z "${android_build_id}" || "${android_build_id}" == "null" ]]; then
+      log "ERROR" "Failed to start Android build or extract build ID"
+      log "ERROR" "Build output: ${android_build_output}"
+      android_build_id=""
+    else
+      if [[ "${android_build_status}" == "FINISHED" ]]; then
+        log "INFO" "Android build completed successfully: ${android_build_id}"
+        android_success=true
+      else
+        log "INFO" "Android build started: ${android_build_id} (status: ${android_build_status})"
+      fi
+    fi
+  fi
+  
+  # If both builds failed, return error
+  if [[ -z "${ios_build_id}" && -z "${android_build_id}" ]]; then
+    log "ERROR" "Both iOS and Android builds failed to start"
+    return 1
+  fi
+  
+  # Wait for builds to complete (only if they were started and not already finished)
+  if [[ -n "${ios_build_id}" && "${ios_success}" != true ]]; then
+    if [[ "${ios_build_status}" == "FINISHED" ]]; then
+      # Build already completed, mark as success
+      ios_success=true
+      log "INFO" "iOS build already completed, skipping wait"
+    else
+      # Build is in progress, wait for it
+      if wait_for_build "${ios_build_id}" "iOS"; then
+        ios_success=true
+      fi
+    fi
+  fi
+  
+  if [[ -n "${android_build_id}" && "${android_success}" != true ]]; then
+    if [[ "${android_build_status}" == "FINISHED" ]]; then
+      # Build already completed, mark as success
+      android_success=true
+      log "INFO" "Android build already completed, skipping wait"
+    else
+      # Build is in progress, wait for it
+      if wait_for_build "${android_build_id}" "Android"; then
+        android_success=true
+      fi
+    fi
+  fi
+  
+  # Get download URLs for completed builds
+  if [[ -n "${ios_build_id}" ]]; then
+    if [[ "${ios_success}" == true ]]; then
+      # Use stored build info if available (from existing build), otherwise fetch it
+      if [[ -z "${ios_build_info:-}" ]]; then
+        ios_build_info="$(run_eas build:view "${ios_build_id}" --json 2>/dev/null || echo "{}")"
+      fi
+      local ios_download_url
+      ios_download_url="$(echo "${ios_build_info}" | jq -r '.artifacts.buildUrl // .artifacts.url // empty' 2>/dev/null || true)"
+      
+      if [[ -n "${ios_download_url}" && "${ios_download_url}" != "null" ]]; then
+        write_output "PREVIEW_MOBILE_IOS_BUILD_ID" "${ios_build_id}"
+        write_output "PREVIEW_MOBILE_IOS_DOWNLOAD_URL" "${ios_download_url}"
+        log "INFO" "iOS build download URL: ${ios_download_url}"
+      else
+        # Fallback: construct URL from build ID
+        local expo_owner
+        expo_owner="$(get_expo_owner)"
+        ios_download_url="https://expo.dev/accounts/${expo_owner}/projects/${EXPO_PROJECT_SLUG}/builds/${ios_build_id}"
+        write_output "PREVIEW_MOBILE_IOS_BUILD_ID" "${ios_build_id}"
+        write_output "PREVIEW_MOBILE_IOS_DOWNLOAD_URL" "${ios_download_url}"
+        log "INFO" "iOS build available at: ${ios_download_url}"
+      fi
+    else
+      # Build failed or still in progress - output build ID so user can check status
+      local expo_owner
+      expo_owner="$(get_expo_owner)"
+      local ios_status_url="https://expo.dev/accounts/${expo_owner}/projects/${EXPO_PROJECT_SLUG}/builds/${ios_build_id}"
+      write_output "PREVIEW_MOBILE_IOS_BUILD_ID" "${ios_build_id}"
+      write_output "PREVIEW_MOBILE_IOS_DOWNLOAD_URL" "${ios_status_url}"
+      log "WARN" "iOS build ${ios_build_id} did not complete successfully or is still in progress. Check status at: ${ios_status_url}"
+    fi
+  fi
+  
+  if [[ -n "${android_build_id}" ]]; then
+    if [[ "${android_success}" == true ]]; then
+      # Use stored build info if available (from existing build), otherwise fetch it
+      if [[ -z "${android_build_info:-}" ]]; then
+        android_build_info="$(run_eas build:view "${android_build_id}" --json 2>/dev/null || echo "{}")"
+      fi
+      local android_download_url
+      android_download_url="$(echo "${android_build_info}" | jq -r '.artifacts.buildUrl // .artifacts.url // empty' 2>/dev/null || true)"
+      
+      if [[ -n "${android_download_url}" && "${android_download_url}" != "null" ]]; then
+        write_output "PREVIEW_MOBILE_ANDROID_BUILD_ID" "${android_build_id}"
+        write_output "PREVIEW_MOBILE_ANDROID_DOWNLOAD_URL" "${android_download_url}"
+        log "INFO" "Android build download URL: ${android_download_url}"
+      else
+        # Fallback: construct URL from build ID
+        local expo_owner
+        expo_owner="$(get_expo_owner)"
+        android_download_url="https://expo.dev/accounts/${expo_owner}/projects/${EXPO_PROJECT_SLUG}/builds/${android_build_id}"
+        write_output "PREVIEW_MOBILE_ANDROID_BUILD_ID" "${android_build_id}"
+        write_output "PREVIEW_MOBILE_ANDROID_DOWNLOAD_URL" "${android_download_url}"
+        log "INFO" "Android build available at: ${android_download_url}"
+      fi
+    else
+      # Build failed or still in progress - output build ID so user can check status
+      local expo_owner
+      expo_owner="$(get_expo_owner)"
+      local android_status_url="https://expo.dev/accounts/${expo_owner}/projects/${EXPO_PROJECT_SLUG}/builds/${android_build_id}"
+      write_output "PREVIEW_MOBILE_ANDROID_BUILD_ID" "${android_build_id}"
+      write_output "PREVIEW_MOBILE_ANDROID_DOWNLOAD_URL" "${android_status_url}"
+      log "WARN" "Android build ${android_build_id} did not complete successfully or is still in progress. Check status at: ${android_status_url}"
+    fi
+  else
+    log "ERROR" "Android build failed to start (missing google-services.json or other prebuild error)"
+  fi
+  
+  if [[ "${ios_success}" != true || "${android_success}" != true ]]; then
+    log "WARN" "Some builds failed, but continuing..."
+    return 1
+  fi
+  
+  return 0
 }
 
 main() {
@@ -281,8 +897,15 @@ main() {
 
   ensure_project_configured
   ensure_branch_and_channel
+  
+  # Always publish OTA update
   publish_update
   fetch_latest_update_urls
+  
+  # Conditionally build native apps if requested
+  if [[ "${BUILD_NATIVE}" == true ]]; then
+    build_native_app || log "WARN" "Native build completed with errors"
+  fi
 
   log "INFO" "Mobile preview deployment completed."
 }
