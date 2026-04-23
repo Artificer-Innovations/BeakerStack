@@ -49,7 +49,7 @@
   "funding": {
     "type": "github",
     "url": "https://github.com/sponsors/Artificer-Innovations"
-  },  
+  },
   "scripts": {
     "sync-icons": "node scripts/sync-icon-assets.js",
     "generate-favicons": "node scripts/generate-favicons.js",
