@@ -27,13 +27,15 @@ Run the script from the repository root via the npm helper:
 npm run rename -- --from "Beaker Stack" --to "Acme App"
 ```
 
-Before running the script, stop any local Supabase stack to free the Docker containers and ports:
+`npm run setup` derives the same `--from` display string from `packages/shared/src/config/branding.ts` and `--from-legal` from `package.json` author so you are not asked to retype them. If those files disagree with strings still present elsewhere in the repo, run `npm run rename` manually with the exact `--from` / `--from-legal` literals you need.
+
+When a **local** Supabase stack is running, the rename script warns and asks what to do (interactive terminal only): you can run `supabase stop` from the prompt, **proceed anyway** (for example you are rebranding a fresh clone while another checkout still has `supabase start` on the same machine — clones often share the default `project_id` in `supabase/config.toml`, so the status check can reflect another directory’s stack), or quit. From a non-interactive context (no TTY, such as CI), rename **fails** until the stack is stopped or you pass `--no-supabase-check`.
 
 ```bash
 supabase stop            # or supabase stop --project-id <current-slug>
 ```
 
-The rename command checks for running Supabase services and exits early if it finds any. Pass `--no-supabase-check` to bypass the guard when you are certain Supabase is not needed (for example, in CI).
+Use `--no-supabase-check` when stdin is not a TTY and you are certain skipping the guard is appropriate (typical for CI).
 
 Recommended flags:
 

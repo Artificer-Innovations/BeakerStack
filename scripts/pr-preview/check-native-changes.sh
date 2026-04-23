@@ -26,8 +26,6 @@ NATIVE_PATTERNS=(
   "apps/mobile/patches/"
   "apps/mobile/android/"
   "apps/mobile/ios/"
-  "package.json"
-  "package-lock.json"
 )
 
 # Check if any native-related files changed

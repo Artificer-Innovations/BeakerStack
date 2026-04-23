@@ -215,13 +215,13 @@ This document contains granular, step-by-step tasks to build the MVP based on th
 - `apps/web/src/components/__tests__/SocialLoginButton.test.tsx` ✅
 - `apps/web/src/pages/AuthCallbackPage.tsx` ✅ (OAuth redirect handler)
 - `packages/shared/src/hooks/useAuth.ts` ✅ (updated with OAuth redirect URL)
-- `OAUTH_SETUP.md` ✅ (production OAuth setup guide)
+- [OAuth setup (production)](../oauth/OAUTH_SETUP.md) ✅
 
 **Notes**:
 
 - OAuth UI is fully implemented and tested
 - OAuth will show error until credentials are configured in Supabase
-- See `OAUTH_SETUP.md` for detailed setup instructions
+- See [../oauth/OAUTH_SETUP.md](../oauth/OAUTH_SETUP.md) for detailed setup instructions
 - Email/password authentication is fully functional
 
 ---

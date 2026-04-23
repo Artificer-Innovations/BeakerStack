@@ -1628,13 +1628,16 @@ describe('LoginScreen', () => {
 **Run commands**:
 
 ```bash
-# Run all unit tests
+# Run all unit tests (mobile, web, shared, and repo scripts)
 npm run test:unit
 
 # Run unit tests for specific app
 npm run test:unit:mobile
 npm run test:unit:web
 npm run test:unit:shared
+
+# Run only repo script unit tests
+npm run test:unit:scripts
 
 # Watch mode
 npm run test:watch
@@ -3107,17 +3110,18 @@ EXPO_TOKEN                              # For mobile deployments
 
     "test": "npm run test:unit && npm run test:integration && npm run test:db",
     "test:all": "npm run test && npm run test:e2e",
-    "test:unit": "npm run test:unit:mobile && npm run test:unit:web && npm run test:unit:shared",
+    "test:unit": "npm run test:unit:mobile && npm run test:unit:web && npm run test:unit:shared && npm run test:unit:scripts",
     "test:unit:mobile": "cd apps/mobile && npm test",
     "test:unit:web": "cd apps/web && npm test",
-    "test:unit:shared": "cd packages/shared && npm test",
+    "test:unit:shared": "cd packages/shared-tests && npm run test",
+    "test:unit:scripts": "node --test scripts/__tests__/*.test.mjs && ./scripts/pr-preview/check-preview-deploy-needed.sh --self-test",
     "test:integration": "jest --config tests/jest.config.js --testMatch='**/tests/integration/**/*.test.ts'",
     "test:db": "supabase test db",
     "test:e2e": "npm run test:e2e:web && npm run test:e2e:mobile",
     "test:e2e:web": "maestro test tests/e2e/web/flows/",
     "test:e2e:mobile": "maestro test tests/e2e/mobile/flows/",
-    "test:watch": "concurrently \"cd apps/mobile && npm run test:watch\" \"cd apps/web && npm run test:watch\" \"cd packages/shared && npm run test:watch\"",
-    "test:coverage": "npm run test:unit -- --coverage",
+    "test:watch": "concurrently \"cd apps/mobile && npm run test:watch\" \"cd apps/web && npm run test:watch\" \"cd packages/shared-tests && npm run test:web -- --watch\" \"cd packages/shared-tests && npm run test:native -- --watch\"",
+    "test:coverage": "npm run test:coverage:mobile && npm run test:coverage:web && npm run test:coverage:shared && npm run test:coverage:merge",
 
     "lint": "npm run lint:mobile && npm run lint:web && npm run lint:shared",
     "lint:mobile": "cd apps/mobile && npm run lint",

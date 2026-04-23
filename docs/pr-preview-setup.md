@@ -17,8 +17,7 @@ Each pull request receives an isolated web preview deployment:
 
 - **Web:** `https://deploy.<domain>/pr-<number>/` served via CloudFront + S3 using path-based routing.
 - **Database:** Supabase preview project reset to the target branch state.
-
-**Note:** Mobile/Expo deployments are temporarily disabled in CI/CD until web deployments are stable.
+- **Mobile:** When `EXPO_TOKEN`, `EXPO_PROJECT_ID`, and the `EXPO_ACCOUNT` repository variable are configured, the workflow publishes an EAS update on a PR-specific preview channel (see deploy steps in the workflow file).
 
 Automation lives in `.github/workflows/pr-preview-environment.yml`, which calls
 the helper scripts under `scripts/pr-preview/`.

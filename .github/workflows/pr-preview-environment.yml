@@ -19,8 +19,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy-preview:
+  preview-scope:
     if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    outputs:
+      run_deploy: ${{ steps.check.outputs.run_deploy }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Decide if PR preview deploy is needed
+        id: check
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./scripts/pr-preview/check-preview-deploy-needed.sh \
+            "origin/${{ github.base_ref }}" \
+            "HEAD"
+
+      - name: Log when preview deploy is skipped
+        if: steps.check.outputs.run_deploy != 'true'
+        run: echo "Skipping PR preview deploy (no app/package/supabase/pr-preview changes)."
+
+  deploy-preview:
+    if: github.event.action != 'closed' && needs.preview-scope.outputs.run_deploy == 'true'
+    needs: preview-scope
     runs-on: ubuntu-latest
     env:
       PREVIEW_DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
