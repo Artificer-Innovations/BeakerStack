@@ -19,7 +19,7 @@ This document provides a comprehensive guide to testing in this project, coverin
 
 This project uses a **hybrid testing approach**:
 
-1. **Unit tests are colocated** with the code they test (industry standard)
+1. **Unit tests are colocated** with the code they test (industry standard), including repo tooling under `scripts/__tests__/` (Node’s built-in test runner, not Jest/Vitest)
 2. **Integration and E2E tests are centralized** in `tests/` (they test the whole system)
 3. **Database tests follow Supabase convention** in `supabase/tests/` (required by tooling)
 
@@ -38,7 +38,8 @@ This project uses a **hybrid testing approach**:
 Unit Tests (Colocated with Code)
 ├── apps/mobile/__tests__/          → Mobile-specific component/screen tests
 ├── apps/web/__tests__/              → Web-specific component/page tests
-└── packages/shared-tests/__tests__/ → Shared component/hook/util tests
+├── packages/shared-tests/__tests__/ → Shared component/hook/util tests
+└── scripts/__tests__/               → Repo scripts (setup, rename, manifest, etc.) via `node --test`; PR-preview shell self-test is invoked from `npm run test:unit:scripts`
 
 Integration Tests (Centralized)
 └── tests/integration/               → Cross-platform integration tests
@@ -61,7 +62,8 @@ Is it testing a single function/component in isolation?
 ├─ YES → Unit test (colocated with code)
 │   ├─ Mobile-specific? → apps/mobile/__tests__/
 │   ├─ Web-specific? → apps/web/__tests__/
-│   └─ Shared code? → packages/shared-tests/__tests__/
+│   ├─ Shared code? → packages/shared-tests/__tests__/
+│   └─ Repo / provisioning script logic (Node `.mjs` under `scripts/`)? → scripts/__tests__/
 │
 └─ NO → Continue...
 
@@ -93,17 +95,21 @@ Is it testing database logic (RLS, triggers, functions)?
 - Form validation
 - Data transformations
 - Platform-specific logic
+- Repo script behavior (setup, rename, secrets input, etc.) in `scripts/__tests__/` using `node --test`
 
 ### Running Unit Tests
 
 ```bash
-# Run all unit tests
+# Run all unit tests (mobile, web, shared, and repo scripts under scripts/)
 npm run test:unit
 
 # Run unit tests for specific app
 npm run test:unit:mobile
 npm run test:unit:web
 npm run test:unit:shared
+
+# Run only repo script unit tests (node --test on scripts/__tests__ plus PR-preview shell self-test)
+npm run test:unit:scripts
 
 # Watch mode
 npm run test:watch
@@ -808,6 +814,8 @@ See `.github/workflows/test.yml` for test workflow configuration.
 
 ## Additional Resources
 
+- [OAuth testing notes](testing/TESTING_OAUTH.md)
+- [Protected routes — manual checks](testing/TESTING_PROTECTED_ROUTES.md)
 - [Jest Documentation](https://jestjs.io/docs/getting-started)
 - [React Testing Library](https://testing-library.com/react)
 - [Maestro Documentation](https://maestro.mobile.dev/)
