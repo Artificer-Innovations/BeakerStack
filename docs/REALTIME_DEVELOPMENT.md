@@ -206,7 +206,7 @@ If you see `CLOSED` instead of `SUBSCRIBED`, check your Supabase connection.
 
 ## How Automatic iOS ATS Configuration Works
 
-The `apps/mobile/app.config.ts` automatically detects when you're using an HTTP nip.io domain and adds the necessary iOS App Transport Security exception:
+The `apps/mobile/app.config.js` automatically detects when you're using an HTTP nip.io domain and adds the necessary iOS App Transport Security exception:
 
 1. It reads `EXPO_PUBLIC_SUPABASE_URL` from your `.env.local`
 2. If the URL uses `http://` with a valid hostname (not localhost or raw IP), it extracts the domain

@@ -1,0 +1,22 @@
+diff --git a/node_modules/@expo/bunyan/lib/bunyan.js b/node_modules/@expo/bunyan/lib/bunyan.js
+index be3f030..833f835 100644
+--- a/node_modules/@expo/bunyan/lib/bunyan.js
++++ b/node_modules/@expo/bunyan/lib/bunyan.js
+@@ -89,7 +89,7 @@ var assert = require('assert');
+ var EventEmitter = require('events').EventEmitter;
+ var stream = require('stream');
+ 
+-var uuid = require('uuid');
++var crypto = require('crypto');
+ 
+ try {
+     var sourceMapSupport = require('source-map-support' + '');
+@@ -925,7 +925,7 @@ function mkRecord(log, minLevel, args) {
+         rec.time = (new Date());
+     }
+     if (!rec.id) {
+-        rec.id = uuid.v1();
++        rec.id = crypto.randomUUID();
+     }
+     // Get call source info
+     if (log.src && !rec.src) {

@@ -260,10 +260,11 @@ publish_update() {
 }
 
 get_expo_owner() {
-  # Try to get owner from app.config.ts first
-  if [[ -f "${PROJECT_DIR}/app.config.ts" ]]; then
+  local _mobile_app_config="${PROJECT_DIR}/app.config.js"
+  [[ -f "${_mobile_app_config}" ]] || _mobile_app_config="${PROJECT_DIR}/app.config.ts"
+  if [[ -f "${_mobile_app_config}" ]]; then
     local owner
-    owner="$(grep -E "^\s*owner\s*:" "${PROJECT_DIR}/app.config.ts" | sed -E "s/.*owner\s*:\s*['\"]([^'\"]+)['\"].*/\1/" | head -1)"
+    owner="$(grep -E "^\s*owner\s*:" "${_mobile_app_config}" | sed -E "s/.*owner\s*:\s*['\"]([^'\"]+)['\"].*/\1/" | head -1)"
     if [[ -n "${owner}" ]]; then
       echo "${owner}"
       return

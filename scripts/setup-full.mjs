@@ -73,7 +73,7 @@ const AWS_ENV_PATH = path.join(REPO_ROOT, '.env.aws.generated.local');
 const LOCAL_ENV_PATH = path.join(REPO_ROOT, '.env.local');
 const STATE_PATH = path.join(REPO_ROOT, '.setup-state.json');
 const MOBILE_DIR = path.join(REPO_ROOT, 'apps', 'mobile');
-const MOBILE_APP_CONFIG_TS = path.join(MOBILE_DIR, 'app.config.ts');
+const MOBILE_APP_CONFIG = path.join(MOBILE_DIR, 'app.config.js');
 
 const PHASE_ORDER = ['prereqs', 'identity', 'supabase', 'aws', 'expo', 'google', 'write', 'github'];
 
@@ -110,8 +110,8 @@ Supabase CLI:
 Expo / EAS:
   If apps/mobile still points at the template EAS UUID, you can [l] link an existing project,
   [n] run eas init for a new project, or [s] skip. After [n], the new project id is read from
-  apps/mobile/.eas/project.json (and app.config.ts) when the CLI does not print a UUID.
-  The script patches app.config.ts and .eas/project.json so updates.url and extra.eas.projectId stay aligned.
+  apps/mobile/.eas/project.json (and app.config.js) when the CLI does not print a UUID.
+  The script patches app.config.js and .eas/project.json so updates.url and extra.eas.projectId stay aligned.
   EXPO_TOKEN can be supplied via env, file path, or masked/plain prompt at the end of the Expo phase.
 
 Other interactive CLIs (gh, aws, eas login) prefer the controlling TTY (/dev/tty) when available.
@@ -309,7 +309,7 @@ async function resolveSecretInputForSetup(line, primaryKey) {
  */
 async function readSupabaseProjectSlugBase() {
   try {
-    const text = await fs.readFile(MOBILE_APP_CONFIG_TS, 'utf8');
+    const text = await fs.readFile(MOBILE_APP_CONFIG, 'utf8');
     const nameM = text.match(/\bname:\s*['"]([^'"]+)['"]/);
     if (nameM?.[1]) {
       try {
@@ -323,7 +323,7 @@ async function readSupabaseProjectSlugBase() {
       return slugM[1].replace(/-/g, '');
     }
   } catch {
-    /* missing or unreadable app.config.ts */
+    /* missing or unreadable app.config.js */
   }
   return 'beaker';
 }
@@ -1181,7 +1181,7 @@ async function phaseSupabase(flags, rl, acc, promptInput) {
 
   const supabaseSlugBase = await readSupabaseProjectSlugBase();
   logInfo(
-    `Default new Supabase project slug per tier: ${supabaseSlugBase}-<staging|production|preview> (from apps/mobile/app.config.ts; same word rules as rename).`,
+    `Default new Supabase project slug per tier: ${supabaseSlugBase}-<staging|production|preview> (from apps/mobile/app.config.js; same word rules as rename).`,
   );
 
   /**

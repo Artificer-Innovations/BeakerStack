@@ -1,0 +1,40 @@
+diff --git a/node_modules/@expo/cli/build/src/utils/npm.js b/node_modules/@expo/cli/build/src/utils/npm.js
+index cd64560..6da4474 100644
+--- a/node_modules/@expo/cli/build/src/utils/npm.js
++++ b/node_modules/@expo/cli/build/src/utils/npm.js
+@@ -15,7 +15,14 @@ var _crypto = _interopRequireDefault(require("crypto"));
+ var _fs = _interopRequireDefault(require("fs"));
+ var _slugify = _interopRequireDefault(require("slugify"));
+ var _stream = require("stream");
+-var _tar = _interopRequireDefault(require("tar"));
++var _tarModule = require("tar");
++var _tar = {
++    default: typeof _tarModule.extract === "function"
++        ? _tarModule
++        : _tarModule.default && typeof _tarModule.default.extract === "function"
++            ? _tarModule.default
++            : _tarModule,
++};
+ var _util = require("util");
+ var _createFileTransform = require("./createFileTransform");
+ var _dir = require("./dir");
+diff --git a/node_modules/@expo/cli/build/src/utils/tar.js b/node_modules/@expo/cli/build/src/utils/tar.js
+index 9dcb912..e295ed6 100644
+--- a/node_modules/@expo/cli/build/src/utils/tar.js
++++ b/node_modules/@expo/cli/build/src/utils/tar.js
+@@ -4,7 +4,14 @@ Object.defineProperty(exports, "__esModule", {
+ });
+ exports.extractAsync = extractAsync;
+ var _spawnAsync = _interopRequireDefault(require("@expo/spawn-async"));
+-var _tar = _interopRequireDefault(require("tar"));
++var _tarModule = require("tar");
++var _tar = {
++    default: typeof _tarModule.extract === "function"
++        ? _tarModule
++        : _tarModule.default && typeof _tarModule.default.extract === "function"
++            ? _tarModule.default
++            : _tarModule,
++};
+ var Log = _interopRequireWildcard(require("../log"));
+ function _interopRequireDefault(obj) {
+     return obj && obj.__esModule ? obj : {

@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { SetupQuit } from './setup-manual-instructions.mjs';
 
-/** Shipped template EAS project UUID (must match apps/mobile/app.config.ts when unconfigured). */
+/** Shipped template EAS project UUID (must match apps/mobile/app.config.js when unconfigured). */
 export const TEMPLATE_EAS_PROJECT_ID = '23c5e522-5341-4342-85f5-f2e46dd6087f';
 
 /**
@@ -17,7 +17,7 @@ function escapeForRegExp(id) {
  * @param {{ repoRoot: string }} ctx
  */
 export function mobileAppConfigPath(ctx) {
-  return path.join(ctx.repoRoot, 'apps', 'mobile', 'app.config.ts');
+  return path.join(ctx.repoRoot, 'apps', 'mobile', 'app.config.js');
 }
 
 /**
@@ -36,7 +36,7 @@ export async function clearTemplateEasLinkageFromMobileApp(ctx) {
   const templateId = ctx.templateId || TEMPLATE_EAS_PROJECT_ID;
   const esc = escapeForRegExp(templateId);
   const projectJson = easProjectJsonPath(ctx);
-  const appTs = mobileAppConfigPath(ctx);
+  const appConfigPath = mobileAppConfigPath(ctx);
 
   try {
     await fs.unlink(projectJson);
@@ -47,9 +47,9 @@ export async function clearTemplateEasLinkageFromMobileApp(ctx) {
 
   let text;
   try {
-    text = await fs.readFile(appTs, 'utf8');
+    text = await fs.readFile(appConfigPath, 'utf8');
   } catch (e) {
-    logWarn(`Could not read app.config.ts: ${(e && e.message) || e}`);
+    logWarn(`Could not read app.config.js: ${(e && e.message) || e}`);
     return;
   }
 
@@ -58,7 +58,7 @@ export async function clearTemplateEasLinkageFromMobileApp(ctx) {
   const updatesRe = new RegExp(`\\n  updates:\\s*\\{[^}]*${esc}[^}]*\\},?`, 'm');
   if (updatesRe.test(next)) {
     next = next.replace(updatesRe, '\n');
-    logInfo('Stripped template updates.url block from app.config.ts.');
+    logInfo('Stripped template updates.url block from app.config.js.');
   }
 
   // Strip extra.eas.projectId block only for the known template UUID
@@ -68,11 +68,11 @@ export async function clearTemplateEasLinkageFromMobileApp(ctx) {
   );
   if (easRe.test(next)) {
     next = next.replace(easRe, '\n');
-    logInfo('Stripped template extra.eas.projectId from app.config.ts.');
+    logInfo('Stripped template extra.eas.projectId from app.config.js.');
   }
 
   if (next !== text) {
-    await fs.writeFile(appTs, next, 'utf8');
+    await fs.writeFile(appConfigPath, next, 'utf8');
   }
 }
 
@@ -130,9 +130,9 @@ export async function readResolvedEasProjectId(ctx) {
     /* no file */
   }
 
-  const appTs = mobileAppConfigPath(ctx);
+  const appConfigPath = mobileAppConfigPath(ctx);
   try {
-    const text = await fs.readFile(appTs, 'utf8');
+    const text = await fs.readFile(appConfigPath, 'utf8');
     const tid = templateId.toLowerCase();
     const m = text.match(/eas:\s*\{[^}]*projectId:\s*['"]([0-9a-f-]{36})['"]/is);
     if (m && m[1].toLowerCase() !== tid) return m[1];
@@ -164,22 +164,22 @@ function parseOwnerSlugFromAppConfig(text) {
 }
 
 /**
- * Writes EAS project id + updates URL into app.config.ts and .eas/project.json.
+ * Writes EAS project id + updates URL into app.config.js and .eas/project.json.
  * @param {{ repoRoot: string; logInfo?: (s: string) => void; logWarn?: (s: string) => void }} ctx
  * @param {string} projectId
  */
 export async function integrateEasProjectIdForDynamicConfig(ctx, projectId) {
   const logInfo = ctx.logInfo || (() => {});
   const logWarn = ctx.logWarn || (() => {});
-  const appTs = mobileAppConfigPath(ctx);
+  const appConfigPath = mobileAppConfigPath(ctx);
   const projectJson = easProjectJsonPath(ctx);
   const updatesUrl = `https://u.expo.dev/${projectId}`;
 
   let text;
   try {
-    text = await fs.readFile(appTs, 'utf8');
+    text = await fs.readFile(appConfigPath, 'utf8');
   } catch (e) {
-    logWarn(`Could not read app.config.ts: ${(e && e.message) || e}`);
+    logWarn(`Could not read app.config.js: ${(e && e.message) || e}`);
     return;
   }
 
@@ -201,8 +201,8 @@ export async function integrateEasProjectIdForDynamicConfig(ctx, projectId) {
     next = next.replace(/(extra:\s*\{)/, `$1\n    eas: {\n      projectId: '${projectId}',\n    },`);
   }
 
-  await fs.writeFile(appTs, next, 'utf8');
-  logInfo('Updated app.config.ts with EAS projectId and updates.url.');
+  await fs.writeFile(appConfigPath, next, 'utf8');
+  logInfo('Updated app.config.js with EAS projectId and updates.url.');
 
   await fs.mkdir(path.dirname(projectJson), { recursive: true });
   const body = JSON.stringify(

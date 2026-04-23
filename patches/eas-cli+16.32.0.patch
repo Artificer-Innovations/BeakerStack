@@ -1,0 +1,312 @@
+diff --git a/node_modules/eas-cli/build/analytics/AnalyticsManager.js b/node_modules/eas-cli/build/analytics/AnalyticsManager.js
+index 8419b7e..b713d84 100644
+--- a/node_modules/eas-cli/build/analytics/AnalyticsManager.js
++++ b/node_modules/eas-cli/build/analytics/AnalyticsManager.js
+@@ -8,7 +8,7 @@ const tslib_1 = require("tslib");
+ const rudder_sdk_node_1 = tslib_1.__importDefault(require("@expo/rudder-sdk-node"));
+ const os_1 = tslib_1.__importDefault(require("os"));
+ const url_1 = require("url");
+-const uuid_1 = require("uuid");
++const node_crypto_1 = require("crypto");
+ const User_1 = require("../user/User");
+ const UserSettings_1 = tslib_1.__importDefault(require("../user/UserSettings"));
+ const easCli_1 = require("../utils/easCli");
+@@ -112,7 +112,7 @@ async function createAnalyticsAsync() {
+         return new NoOpAnalytics();
+     }
+     const persistedDeviceId = await UserSettings_1.default.getAsync(USER_SETTINGS_KEY_ANALYTICS_DEVICE_ID, null);
+-    const deviceId = persistedDeviceId ?? (0, uuid_1.v4)();
++    const deviceId = persistedDeviceId ?? node_crypto_1.randomUUID();
+     if (!persistedDeviceId) {
+         await UserSettings_1.default.setAsync(USER_SETTINGS_KEY_ANALYTICS_DEVICE_ID, deviceId);
+     }
+@@ -167,7 +167,7 @@ class RudderstackAnalytics {
+         const userId = this.identifiedActor?.id;
+         const deviceId = this.persistentDeviceId;
+         const commonEventProperties = { source_version: easCli_1.easCliVersion, source: 'eas cli' };
+-        const identity = { userId: userId ?? undefined, anonymousId: deviceId ?? (0, uuid_1.v4)() };
++        const identity = { userId: userId ?? undefined, anonymousId: deviceId ?? node_crypto_1.randomUUID() };
+         this.rudderstackClient.track({
+             event: name,
+             properties: { ...properties, ...commonEventProperties },
+diff --git a/node_modules/eas-cli/build/build/createContext.js b/node_modules/eas-cli/build/build/createContext.js
+index b67fa33..99a2004 100644
+--- a/node_modules/eas-cli/build/build/createContext.js
++++ b/node_modules/eas-cli/build/build/createContext.js
+@@ -7,7 +7,7 @@ const json_file_1 = tslib_1.__importDefault(require("@expo/json-file"));
+ const package_manager_1 = require("@expo/package-manager");
+ const getenv_1 = tslib_1.__importDefault(require("getenv"));
+ const resolve_from_1 = tslib_1.__importDefault(require("resolve-from"));
+-const uuid_1 = require("uuid");
++const node_crypto_1 = require("crypto");
+ const build_1 = require("./android/build");
+ const build_2 = require("./ios/build");
+ const local_1 = require("./local");
+@@ -49,7 +49,7 @@ async function createBuildContextAsync({ buildProfileName, buildProfile, easJson
+         buildProfile,
+     });
+     const analyticsEventProperties = {
+-        tracking_id: (0, uuid_1.v4)(),
++        tracking_id: node_crypto_1.randomUUID(),
+         platform,
+         ...(exp.sdkVersion && { sdk_version: exp.sdkVersion }),
+         ...(accountId && { account_id: accountId }),
+diff --git a/node_modules/eas-cli/build/build/utils/repository.js b/node_modules/eas-cli/build/build/utils/repository.js
+index 5aa4d2a..7d148c2 100644
+--- a/node_modules/eas-cli/build/build/utils/repository.js
++++ b/node_modules/eas-cli/build/build/utils/repository.js
+@@ -12,8 +12,15 @@ const tslib_1 = require("tslib");
+ const chalk_1 = tslib_1.__importDefault(require("chalk"));
+ const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
+ const path_1 = tslib_1.__importDefault(require("path"));
+-const tar_1 = tslib_1.__importDefault(require("tar"));
+-const uuid_1 = require("uuid");
++const _easProjectTar = tslib_1.__importStar(require("tar"));
++const tar_1 = {
++    default: typeof _easProjectTar.create === "function"
++        ? _easProjectTar
++        : _easProjectTar.default && typeof _easProjectTar.default.create === "function"
++            ? _easProjectTar.default
++            : _easProjectTar,
++};
++const node_crypto_1 = require("crypto");
+ const log_1 = tslib_1.__importStar(require("../../log"));
+ const ora_1 = require("../../ora");
+ const prompts_1 = require("../../prompts");
+@@ -76,7 +83,7 @@ async function commitPromptAsync(vcsClient, { initialCommitMessage, commitAllFil
+ }
+ async function makeProjectMetadataFileAsync(archivePath) {
+     await fs_extra_1.default.mkdirp((0, paths_1.getTmpDirectory)());
+-    const metadataLocation = path_1.default.join((0, paths_1.getTmpDirectory)(), `${(0, uuid_1.v4)()}-eas-build-metadata.json`);
++    const metadataLocation = path_1.default.join((0, paths_1.getTmpDirectory)(), `${node_crypto_1.randomUUID()}-eas-build-metadata.json`);
+     const archiveContent = [];
+     await tar_1.default.list({
+         file: archivePath,
+@@ -94,8 +101,8 @@ async function makeProjectMetadataFileAsync(archivePath) {
+ async function makeProjectTarballAsync(vcsClient) {
+     const spinner = (0, ora_1.ora)('Compressing project files');
+     await fs_extra_1.default.mkdirp((0, paths_1.getTmpDirectory)());
+-    const shallowClonePath = path_1.default.join((0, paths_1.getTmpDirectory)(), `${(0, uuid_1.v4)()}-shallow-clone`);
+-    const tarPath = path_1.default.join((0, paths_1.getTmpDirectory)(), `${(0, uuid_1.v4)()}.tar.gz`);
++    const shallowClonePath = path_1.default.join((0, paths_1.getTmpDirectory)(), `${node_crypto_1.randomUUID()}-shallow-clone`);
++    const tarPath = path_1.default.join((0, paths_1.getTmpDirectory)(), `${node_crypto_1.randomUUID()}.tar.gz`);
+     // If the compression takes longer then a second, show the spinner.
+     // This can happen when the user has a lot of resources or doesn't ignore their CocoaPods.
+     // A basic project on a Mac can compress in roughly ~40ms.
+diff --git a/node_modules/eas-cli/build/commands/build/inspect.js b/node_modules/eas-cli/build/commands/build/inspect.js
+index 77d16de..73e7863 100644
+--- a/node_modules/eas-cli/build/commands/build/inspect.js
++++ b/node_modules/eas-cli/build/commands/build/inspect.js
+@@ -5,7 +5,7 @@ const core_1 = require("@oclif/core");
+ const chalk_1 = tslib_1.__importDefault(require("chalk"));
+ const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
+ const path_1 = tslib_1.__importDefault(require("path"));
+-const uuid_1 = require("uuid");
++const node_crypto_1 = require("crypto");
+ const local_1 = require("../../build/local");
+ const runBuildAndSubmit_1 = require("../../build/runBuildAndSubmit");
+ const EasCommand_1 = tslib_1.__importDefault(require("../../commandUtils/EasCommand"));
+@@ -71,7 +71,7 @@ class BuildInspect extends EasCommand_1.default {
+             withServerSideEnvironment: null,
+         });
+         const outputDirectory = path_1.default.resolve(process.cwd(), flags.output);
+-        const tmpWorkingdir = path_1.default.join((0, paths_1.getTmpDirectory)(), (0, uuid_1.v4)());
++        const tmpWorkingdir = path_1.default.join((0, paths_1.getTmpDirectory)(), node_crypto_1.randomUUID());
+         if (flags.force && process.cwd().startsWith(outputDirectory)) {
+             throw new Error(`This operation is not allowed, it would delete all files in ${outputDirectory} including the current project.`);
+         }
+diff --git a/node_modules/eas-cli/build/commands/upload.js b/node_modules/eas-cli/build/commands/upload.js
+index 4a0aee6..74be063 100644
+--- a/node_modules/eas-cli/build/commands/upload.js
++++ b/node_modules/eas-cli/build/commands/upload.js
+@@ -8,8 +8,15 @@ const fast_glob_1 = tslib_1.__importDefault(require("fast-glob"));
+ const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
+ const node_stream_zip_1 = tslib_1.__importDefault(require("node-stream-zip"));
+ const path_1 = tslib_1.__importDefault(require("path"));
+-const tar_1 = tslib_1.__importDefault(require("tar"));
+-const uuid_1 = require("uuid");
++const _easUploadTar = tslib_1.__importStar(require("tar"));
++const tar_1 = {
++    default: typeof _easUploadTar.create === "function"
++        ? _easUploadTar
++        : _easUploadTar.default && typeof _easUploadTar.default.create === "function"
++            ? _easUploadTar.default
++            : _easUploadTar,
++};
++const node_crypto_1 = require("crypto");
+ const url_1 = require("../build/utils/url");
+ const EasCommand_1 = tslib_1.__importDefault(require("../commandUtils/EasCommand"));
+ const flags_1 = require("../commandUtils/flags");
+@@ -211,7 +218,7 @@ async function uploadAppArchiveAsync(graphqlClient, originalPath) {
+     let filePath = originalPath;
+     if ((await fs_extra_1.default.stat(filePath)).isDirectory()) {
+         await fs_extra_1.default.mkdirp((0, paths_1.getTmpDirectory)());
+-        const tarPath = path_1.default.join((0, paths_1.getTmpDirectory)(), `${(0, uuid_1.v4)()}.tar.gz`);
++        const tarPath = path_1.default.join((0, paths_1.getTmpDirectory)(), `${node_crypto_1.randomUUID()}.tar.gz`);
+         const parentPath = path_1.default.dirname(originalPath);
+         const folderName = path_1.default.basename(originalPath);
+         await tar_1.default.create({ cwd: parentPath, file: tarPath, gzip: true }, [folderName]);
+diff --git a/node_modules/eas-cli/build/credentials/android/utils/keystore.js b/node_modules/eas-cli/build/credentials/android/utils/keystore.js
+index 35a3373..b93907f 100644
+--- a/node_modules/eas-cli/build/credentials/android/utils/keystore.js
++++ b/node_modules/eas-cli/build/credentials/android/utils/keystore.js
+@@ -8,7 +8,7 @@ const chalk_1 = tslib_1.__importDefault(require("chalk"));
+ const crypto_1 = tslib_1.__importDefault(require("crypto"));
+ const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
+ const path_1 = tslib_1.__importDefault(require("path"));
+-const uuid_1 = require("uuid");
++const node_crypto_1 = require("crypto");
+ const AnalyticsManager_1 = require("../../../analytics/AnalyticsManager");
+ const fetch_1 = tslib_1.__importDefault(require("../../../fetch"));
+ const generated_1 = require("../../../graphql/generated");
+@@ -81,7 +81,7 @@ async function createKeystoreAsync(graphqlClient, analytics, keystoreParams, pro
+ }
+ async function createKeystoreLocallyAsync(keystoreParams) {
+     await fs_extra_1.default.mkdirp((0, paths_1.getTmpDirectory)());
+-    const keystorePath = path_1.default.join((0, paths_1.getTmpDirectory)(), `${(0, uuid_1.v4)()}-keystore.jks`);
++    const keystorePath = path_1.default.join((0, paths_1.getTmpDirectory)(), `${node_crypto_1.randomUUID()}-keystore.jks`);
+     try {
+         await (0, spawn_async_1.default)('keytool', [
+             '-genkey',
+diff --git a/node_modules/eas-cli/build/metadata/utils/telemetry.js b/node_modules/eas-cli/build/metadata/utils/telemetry.js
+index 4070145..ca20802 100644
+--- a/node_modules/eas-cli/build/metadata/utils/telemetry.js
++++ b/node_modules/eas-cli/build/metadata/utils/telemetry.js
+@@ -3,14 +3,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
+ exports.subscribeTelemetryAsync = subscribeTelemetryAsync;
+ exports.makeDataScrubberAsync = makeDataScrubberAsync;
+ const apple_utils_1 = require("@expo/apple-utils");
+-const uuid_1 = require("uuid");
++const node_crypto_1 = require("crypto");
+ /**
+  * Subscribe the telemetry to the ongoing metadata requests and responses.
+  * When providing the app and auth info, we can scrub that data from the telemetry.
+  * Returns an execution ID to group all events of a single run together, and a unsubscribe function.
+  */
+ async function subscribeTelemetryAsync(analytics, event, options) {
+-    const executionId = (0, uuid_1.v4)();
++    const executionId = node_crypto_1.randomUUID();
+     const scrubber = await makeDataScrubberAsync(options);
+     const { interceptors } = (0, apple_utils_1.getRequestClient)();
+     const responseInterceptorId = interceptors.response.use(response => {
+diff --git a/node_modules/eas-cli/build/project/maybeUploadFingerprintAsync.js b/node_modules/eas-cli/build/project/maybeUploadFingerprintAsync.js
+index 05a2aa9..bdc1a47 100644
+--- a/node_modules/eas-cli/build/project/maybeUploadFingerprintAsync.js
++++ b/node_modules/eas-cli/build/project/maybeUploadFingerprintAsync.js
+@@ -4,7 +4,7 @@ exports.maybeUploadFingerprintAsync = maybeUploadFingerprintAsync;
+ const tslib_1 = require("tslib");
+ const fs_extra_1 = tslib_1.__importDefault(require("fs-extra"));
+ const path_1 = tslib_1.__importDefault(require("path"));
+-const uuid_1 = require("uuid");
++const node_crypto_1 = require("crypto");
+ const local_1 = require("../build/local");
+ const generated_1 = require("../graphql/generated");
+ const log_1 = tslib_1.__importDefault(require("../log"));
+@@ -18,7 +18,7 @@ async function maybeUploadFingerprintAsync({ hash, fingerprint, graphqlClient, l
+         };
+     }
+     await fs_extra_1.default.mkdirp((0, paths_1.getTmpDirectory)());
+-    const fingerprintLocation = path_1.default.join((0, paths_1.getTmpDirectory)(), `${(0, uuid_1.v4)()}-runtime-fingerprint.json`);
++    const fingerprintLocation = path_1.default.join((0, paths_1.getTmpDirectory)(), `${node_crypto_1.randomUUID()}-runtime-fingerprint.json`);
+     await fs_extra_1.default.writeJSON(fingerprintLocation, {
+         hash,
+         sources: fingerprint.fingerprintSources,
+diff --git a/node_modules/eas-cli/build/submit/ArchiveSource.js b/node_modules/eas-cli/build/submit/ArchiveSource.js
+index 95a5915..e0e4e92 100644
+--- a/node_modules/eas-cli/build/submit/ArchiveSource.js
++++ b/node_modules/eas-cli/build/submit/ArchiveSource.js
+@@ -7,7 +7,8 @@ const tslib_1 = require("tslib");
+ const eas_build_job_1 = require("@expo/eas-build-job");
+ const chalk_1 = tslib_1.__importDefault(require("chalk"));
+ const url_1 = require("url");
+-const uuid = tslib_1.__importStar(require("uuid"));
++const node_crypto_1 = require("crypto");
++const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+ const builds_1 = require("./utils/builds");
+ const files_1 = require("./utils/files");
+ const generated_1 = require("../graphql/generated");
+@@ -408,5 +409,5 @@ function validateUrl(url) {
+     }
+ }
+ function isUuidV4(s) {
+-    return uuid.validate(s) && uuid.version(s) === 4;
++    return typeof s === "string" && UUID_V4_RE.test(s);
+ }
+diff --git a/node_modules/eas-cli/build/submit/context.js b/node_modules/eas-cli/build/submit/context.js
+index 96beb28..88df6c2 100644
+--- a/node_modules/eas-cli/build/submit/context.js
++++ b/node_modules/eas-cli/build/submit/context.js
+@@ -2,7 +2,7 @@
+ Object.defineProperty(exports, "__esModule", { value: true });
+ exports.createSubmissionContextAsync = createSubmissionContextAsync;
+ const eas_build_job_1 = require("@expo/eas-build-job");
+-const uuid_1 = require("uuid");
++const node_crypto_1 = require("crypto");
+ const AnalyticsManager_1 = require("../analytics/AnalyticsManager");
+ const context_1 = require("../credentials/context");
+ const projectUtils_1 = require("../project/projectUtils");
+@@ -34,7 +34,7 @@ async function createSubmissionContextAsync(params) {
+         groups = undefined;
+     }
+     const analyticsEventProperties = {
+-        tracking_id: (0, uuid_1.v4)(),
++        tracking_id: node_crypto_1.randomUUID(),
+         platform: params.platform,
+         ...(accountId && { account_id: accountId }),
+         project_id: projectId,
+diff --git a/node_modules/eas-cli/build/utils/download.js b/node_modules/eas-cli/build/utils/download.js
+index 94e88aa..2257c5b 100644
+--- a/node_modules/eas-cli/build/utils/download.js
++++ b/node_modules/eas-cli/build/utils/download.js
+@@ -10,7 +10,7 @@ const path_1 = tslib_1.__importDefault(require("path"));
+ const stream_1 = require("stream");
+ const tar_1 = require("tar");
+ const util_1 = require("util");
+-const uuid_1 = require("uuid");
++const node_crypto_1 = require("crypto");
+ const files_1 = require("./files");
+ const paths_1 = require("./paths");
+ const progress_1 = require("./progress");
+@@ -86,17 +86,17 @@ async function maybeCacheAppAsync(appPath, cachedAppPath) {
+     return appPath;
+ }
+ async function downloadAndMaybeExtractAppAsync(url, platform, cachedAppPath) {
+-    const outputDir = path_1.default.join((0, paths_1.getTmpDirectory)(), (0, uuid_1.v4)());
++    const outputDir = path_1.default.join((0, paths_1.getTmpDirectory)(), node_crypto_1.randomUUID());
+     await fs_extra_1.default.promises.mkdir(outputDir, { recursive: true });
+     if (url.endsWith('apk')) {
+-        const apkFilePath = path_1.default.join(outputDir, `${(0, uuid_1.v4)()}.apk`);
++        const apkFilePath = path_1.default.join(outputDir, `${node_crypto_1.randomUUID()}.apk`);
+         await downloadFileWithProgressTrackerAsync(url, apkFilePath, (ratio, total) => `Downloading app (${(0, files_1.formatBytes)(total * ratio)} / ${(0, files_1.formatBytes)(total)})`, 'Successfully downloaded app');
+         return await maybeCacheAppAsync(apkFilePath, cachedAppPath);
+     }
+     else {
+-        const tmpArchivePathDir = path_1.default.join((0, paths_1.getTmpDirectory)(), (0, uuid_1.v4)());
++        const tmpArchivePathDir = path_1.default.join((0, paths_1.getTmpDirectory)(), node_crypto_1.randomUUID());
+         await fs_extra_1.default.mkdir(tmpArchivePathDir, { recursive: true });
+-        const tmpArchivePath = path_1.default.join(tmpArchivePathDir, `${(0, uuid_1.v4)()}.tar.gz`);
++        const tmpArchivePath = path_1.default.join(tmpArchivePathDir, `${node_crypto_1.randomUUID()}.tar.gz`);
+         await downloadFileWithProgressTrackerAsync(url, tmpArchivePath, (ratio, total) => `Downloading app archive (${(0, files_1.formatBytes)(total * ratio)} / ${(0, files_1.formatBytes)(total)})`, 'Successfully downloaded app archive');
+         await tarExtractAsync(tmpArchivePath, outputDir);
+         const appPath = await getAppPathAsync(outputDir, platform === generated_1.AppPlatform.Ios ? 'app' : 'apk');
+@@ -104,7 +104,7 @@ async function downloadAndMaybeExtractAppAsync(url, platform, cachedAppPath) {
+     }
+ }
+ async function extractAppFromLocalArchiveAsync(appArchivePath, platform) {
+-    const outputDir = path_1.default.join((0, paths_1.getTmpDirectory)(), (0, uuid_1.v4)());
++    const outputDir = path_1.default.join((0, paths_1.getTmpDirectory)(), node_crypto_1.randomUUID());
+     await fs_extra_1.default.promises.mkdir(outputDir, { recursive: true });
+     await tarExtractAsync(appArchivePath, outputDir);
+     return await getAppPathAsync(outputDir, platform === generated_1.AppPlatform.Android ? 'apk' : 'app');
+diff --git a/node_modules/eas-cli/package.json b/node_modules/eas-cli/package.json
+--- a/node_modules/eas-cli/package.json
++++ b/node_modules/eas-cli/package.json
+@@ -42,7 +42,7 @@
+     "chalk": "4.1.2",
+     "cli-progress": "3.12.0",
+     "dateformat": "4.6.3",
+-    "diff": "7.0.0",
++    "diff": "8.0.4",
+     "dotenv": "16.3.1",
+     "env-paths": "2.2.0",
+     "envinfo": "7.11.0",

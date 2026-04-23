@@ -24,8 +24,7 @@
         "backgroundColor": "#ffffff"
       },
       "permissions": ["android.permission.DETECT_SCREEN_CAPTURE"],
-      "package": "com.anonymous.beakerstack",
-      "googleServicesFile": "./google-services.json"
+      "package": "com.anonymous.beakerstack"
     },
     "plugins": [
       [

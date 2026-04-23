@@ -281,6 +281,44 @@ ensure_branch_and_channel() {
   run_eas channel:edit "${channel}" --branch "${channel}" --non-interactive >/dev/null 2>&1 || true
 }
 
+# GitHub Actions runs `eas update` / Metro export on the runner (not on EAS workers),
+# so eas-build-pre-install never runs. Generate google-services.json here when
+# GOOGLE_SERVICES_* are present so android.googleServicesFile resolves during export.
+ensure_google_services_json() {
+  local gen_script="${PROJECT_DIR}/scripts/generate-google-services.js"
+  if [[ ! -f "${gen_script}" ]]; then
+    log "WARN" "generate-google-services.js not found at ${gen_script}; skipping."
+    return 0
+  fi
+  log "INFO" "Generating google-services.json for Expo export (if GOOGLE_SERVICES_* are set)..."
+  if (cd "${PROJECT_DIR}" && node ./scripts/generate-google-services.js); then
+    log "INFO" "google-services.json is ready under ${PROJECT_DIR}"
+    return 0
+  fi
+  if [[ "${DRY_RUN}" == true ]]; then
+    log "WARN" "google-services.json generation failed; continuing dry-run."
+    return 0
+  fi
+  log "ERROR" "google-services.json generation failed. Set GOOGLE_SERVICES_* for PR preview (see docs/MOBILE_BUILD_TESTING.md)."
+  exit 1
+}
+
+# Surface common EAS cloud build failures that are easy to misread in long logs.
+log_eas_build_failure_hints() {
+  local output="${1:-}"
+  [[ -z "${output}" ]] && return 0
+  if echo "${output}" | grep -qF "100% of your included build credits"; then
+    log "ERROR" "EAS included build credits look exhausted. Check billing / pay-as-you-go: https://expo.dev/accounts/artificer-innovations-llc/settings/billing"
+  fi
+  if echo "${output}" | grep -qF "Failed to upload the project tarball"; then
+    if echo "${output}" | grep -qE "408|Request Timeout"; then
+      log "ERROR" "Tarball upload hit HTTP 408 (timeout)—usually transient. Retry the build; try a different network or VPN off briefly; large repos can take longer to compress and upload."
+    else
+      log "ERROR" "EAS could not upload the project tarball (quota, network, or eas-cli). After fixing billing, retry; if it persists, try upgrading eas-cli or use eas build --local."
+    fi
+  fi
+}
+
 publish_update() {
   local channel
   channel="$(channel_name)"
@@ -303,11 +341,13 @@ get_expo_project_id() {
     fi
   fi
 
-  # Try to get from app.config.ts
-  if [[ -f "${PROJECT_DIR}/app.config.ts" ]]; then
+  local _mobile_app_config="${PROJECT_DIR}/app.config.js"
+  [[ -f "${_mobile_app_config}" ]] || _mobile_app_config="${PROJECT_DIR}/app.config.ts"
+  # Try to get from app.config.js (or legacy app.config.ts)
+  if [[ -f "${_mobile_app_config}" ]]; then
     local project_id
     # Look for projectId in eas.projectId or extra.eas.projectId
-    project_id="$(grep -E "(projectId|eas.*projectId)" "${PROJECT_DIR}/app.config.ts" | grep -oE "'[a-f0-9-]+'|\"[a-f0-9-]+\"" | head -1 | tr -d "'\"")"
+    project_id="$(grep -E "(projectId|eas.*projectId)" "${_mobile_app_config}" | grep -oE "'[a-f0-9-]+'|\"[a-f0-9-]+\"" | head -1 | tr -d "'\"")"
     if [[ -n "${project_id}" ]]; then
       echo "${project_id}"
       return
@@ -337,10 +377,12 @@ get_expo_project_id() {
 }
 
 get_expo_owner() {
-  # Try to get owner from app.config.ts first
-  if [[ -f "${PROJECT_DIR}/app.config.ts" ]]; then
+  local _mobile_app_config="${PROJECT_DIR}/app.config.js"
+  [[ -f "${_mobile_app_config}" ]] || _mobile_app_config="${PROJECT_DIR}/app.config.ts"
+  # Try to get owner from app config first
+  if [[ -f "${_mobile_app_config}" ]]; then
     local owner
-    owner="$(grep -E "^\s*owner\s*:" "${PROJECT_DIR}/app.config.ts" | sed -E "s/.*owner\s*:\s*['\"]([^'\"]+)['\"].*/\1/" | head -1)"
+    owner="$(grep -E "^\s*owner\s*:" "${_mobile_app_config}" | sed -E "s/.*owner\s*:\s*['\"]([^'\"]+)['\"].*/\1/" | head -1)"
     if [[ -n "${owner}" ]]; then
       echo "${owner}"
       return
@@ -660,7 +702,9 @@ build_native_app() {
     
     # Extract JSON from output (EAS CLI outputs progress messages, then JSON array at the end)
     # The JSON is an array like [{...}] and appears after all progress messages
-    local ios_json
+    # Must be initialized: with set -u, a bare `local ios_json` is unset until assigned; if no JSON
+    # line is found we still test -n "${ios_json}" below.
+    local ios_json=""
     # Find the line number where JSON array starts (last occurrence of [)
     local json_start_line
     json_start_line="$(echo "${ios_build_output}" | grep -n '^\[' | tail -1 | cut -d: -f1 2>/dev/null || true)"
@@ -686,6 +730,7 @@ build_native_app() {
     
     if [[ -z "${ios_build_id}" || "${ios_build_id}" == "null" ]]; then
       log "ERROR" "Failed to start iOS build or extract build ID"
+      log_eas_build_failure_hints "${ios_build_output}"
       log "ERROR" "Build output: ${ios_build_output}"
       log "WARN" "Continuing with Android build even though iOS failed..."
       ios_build_id=""
@@ -739,7 +784,7 @@ build_native_app() {
     
     # Extract JSON from output (EAS CLI outputs progress messages, then JSON array at the end)
     # The JSON is an array like [{...}] and appears after all progress messages
-    local android_json
+    local android_json=""
     # Find the line number where JSON array starts (last occurrence of [)
     local json_start_line
     json_start_line="$(echo "${android_build_output}" | grep -n '^\[' | tail -1 | cut -d: -f1 2>/dev/null || true)"
@@ -765,6 +810,7 @@ build_native_app() {
     
     if [[ -z "${android_build_id}" || "${android_build_id}" == "null" ]]; then
       log "ERROR" "Failed to start Android build or extract build ID"
+      log_eas_build_failure_hints "${android_build_output}"
       log "ERROR" "Build output: ${android_build_output}"
       android_build_id=""
     else
@@ -897,14 +943,15 @@ main() {
 
   ensure_project_configured
   ensure_branch_and_channel
-  
+  ensure_google_services_json
+
   # Always publish OTA update
   publish_update
   fetch_latest_update_urls
   
-  # Conditionally build native apps if requested
+  # Conditionally build native apps if requested (fail the script on error so CI does not pass silently)
   if [[ "${BUILD_NATIVE}" == true ]]; then
-    build_native_app || log "WARN" "Native build completed with errors"
+    build_native_app
   fi
 
   log "INFO" "Mobile preview deployment completed."
