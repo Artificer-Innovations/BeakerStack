@@ -74,7 +74,7 @@ This guide explains how OAuth works in the mobile app (iOS and Android) vs the w
 
 **Issue: OAuth opens browser but app doesn't reopen after auth**
 
-- Solution: Verify `scheme: "beaker-stack"` is configured in your Expo app (`app.config.ts` or `app.json`)
+- Solution: Verify `scheme: "beaker-stack"` is configured in your Expo app (`app.config.js` or `app.json`)
 - Solution: Restart Expo dev server after changing `app.json`
 
 **Issue: "redirect_uri_mismatch" error in mobile**

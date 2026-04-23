@@ -271,6 +271,8 @@ supabase/logs
 
 # Maestro
 maestro.log
+# takeScreenshot outputs (written to repo root by default when running e2e flows)
+after-signup.png
 apps/mobile/google-services.json
 
 # Android build artifacts and keystores

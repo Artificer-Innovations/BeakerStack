@@ -1,0 +1,22 @@
+diff --git a/node_modules/xcode/lib/pbxProject.js b/node_modules/xcode/lib/pbxProject.js
+index 068548a..8b203d6 100644
+--- a/node_modules/xcode/lib/pbxProject.js
++++ b/node_modules/xcode/lib/pbxProject.js
+@@ -19,7 +19,7 @@ var util = require('util'),
+     f = util.format,
+     EventEmitter = require('events').EventEmitter,
+     path = require('path'),
+-    uuid = require('uuid'),
++    crypto = require('crypto'),
+     fork = require('child_process').fork,
+     pbxWriter = require('./pbxWriter'),
+     pbxFile = require('./pbxFile'),
+@@ -87,7 +87,7 @@ pbxProject.prototype.allUuids = function() {
+ }
+ 
+ pbxProject.prototype.generateUuid = function() {
+-    var id = uuid.v4()
++    var id = crypto.randomUUID()
+         .replace(/-/g, '')
+         .substr(0, 24)
+         .toUpperCase()

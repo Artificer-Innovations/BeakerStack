@@ -205,6 +205,7 @@ jobs:
           MOBILE_IOS_DOWNLOAD_URL: ${{ steps.mobile.outputs.PREVIEW_MOBILE_IOS_DOWNLOAD_URL }}
           MOBILE_ANDROID_DOWNLOAD_URL: ${{ steps.mobile.outputs.PREVIEW_MOBILE_ANDROID_DOWNLOAD_URL }}
           NEEDS_NATIVE_BUILD: ${{ steps.native-changes.outputs.needs_native_build }}
+          MOBILE_DEPLOY_OUTCOME: ${{ steps.mobile.outcome }}
         with:
           script: |
             const marker = '<!-- pr-preview-links -->';
@@ -251,11 +252,21 @@ jobs:
               } else if (needsNativeBuild) {
                 lines.push('### 📱 Mobile Preview Builds');
                 lines.push('');
-                lines.push('⚠️ **Native build in progress...**');
-                lines.push('');
-                lines.push('Native code changes were detected, so a new build is being created. This may take 10-15 minutes.');
-                lines.push('Check back in a few minutes for download links.');
-                lines.push('');
+                const mobileOutcome = process.env.MOBILE_DEPLOY_OUTCOME || '';
+                if (mobileOutcome === 'failure') {
+                  lines.push('❌ **Native preview build failed in CI.**');
+                  lines.push('');
+                  lines.push('The OTA update may still be on the channel above. Open the **deploy-preview** workflow run for this PR and inspect the **Deploy mobile preview** step logs (EAS / Expo errors, `google-services.json`, etc.).');
+                  lines.push('');
+                  lines.push('Re-run the workflow after fixing the failure; the PR comment will update when the job succeeds.');
+                  lines.push('');
+                } else {
+                  lines.push('⚠️ **Native build in progress or not finished in this job...**');
+                  lines.push('');
+                  lines.push('Native code changes were detected. If the **deploy-preview** job is still running, EAS builds may take 10–15 minutes after the job completes.');
+                  lines.push('If the job already finished without download links, check the workflow logs and the [Expo builds dashboard](https://expo.dev/accounts/artificer-innovations-llc/projects/beaker-stack/builds).');
+                  lines.push('');
+                }
               } else {
                 lines.push('### 📱 Mobile Preview (OTA Updates)');
                 lines.push('');

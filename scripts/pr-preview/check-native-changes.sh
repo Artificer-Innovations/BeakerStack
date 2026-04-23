@@ -21,7 +21,7 @@ log() {
 # Files and directories that indicate native code changes
 NATIVE_PATTERNS=(
   "apps/mobile/package.json"
-  "apps/mobile/app.config.ts"
+  "apps/mobile/app.config.js"
   "apps/mobile/eas.json"
   "apps/mobile/patches/"
   "apps/mobile/android/"

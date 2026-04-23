@@ -164,7 +164,7 @@ const PHASE_INTROS = {
     body: [
       'Ensures apps/mobile is not stuck on the template EAS project; may run eas init or link by UUID.',
       'Prepare: Expo account; run eas login in Terminal.app if the IDE terminal fails; EXPO_TOKEN for CI.',
-      'After eas init, the script reads the new project id from apps/mobile/.eas/project.json (and app.config.ts), not only from CLI text.',
+      'After eas init, the script reads the new project id from apps/mobile/.eas/project.json (and app.config.js), not only from CLI text.',
     ],
   },
   google: {
@@ -261,7 +261,7 @@ export function printManualInstructions(ctx, phaseId) {
     case 'expo':
       logInfo('1. cd apps/mobile && npx eas-cli login');
       logInfo('2. npx eas-cli init (or link an existing project UUID)');
-      logInfo('3. If dynamic app.config.ts: set extra.eas.projectId, updates.url, and .eas/project.json');
+      logInfo('3. If dynamic app.config.js: set extra.eas.projectId, updates.url, and .eas/project.json');
       logInfo('4. Set EXPO_TOKEN, EXPO_PROJECT_ID, EXPO_ACCOUNT for GitHub (see workflows)');
       logInfo('5. https://docs.expo.dev/eas/');
       break;

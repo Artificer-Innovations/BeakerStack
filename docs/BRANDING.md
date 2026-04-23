@@ -131,7 +131,7 @@ To change the app name, update the text in both header components.
 
 ### Configuration Files
 
-- **Mobile**: `apps/mobile/app.config.ts` - `name` and `slug` fields
+- **Mobile**: `apps/mobile/app.config.js` - `name` and `slug` fields
 - **Mobile**: `apps/mobile/app.json` - `name` field (legacy, may be auto-generated)
 
 ## Display Strings
@@ -199,7 +199,7 @@ When updating branding:
 - [ ] Run `expo prebuild --clean` for mobile
 - [ ] Rebuild mobile apps completely
 - [ ] Update app name in header components (web and mobile)
-- [ ] Update app name in `app.config.ts` (mobile)
+- [ ] Update app name in `app.config.js` (mobile)
 - [ ] Update string constants in `packages/shared/src/utils/strings.ts`
 - [ ] Update colors in Tailwind config (web) and StyleSheets (mobile)
 - [ ] Test on both web and mobile platforms
