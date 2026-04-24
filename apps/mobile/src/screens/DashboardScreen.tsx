@@ -8,9 +8,12 @@ import {
   ScrollView,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useAuthContext } from '@shared/contexts/AuthContext';
-import { DASHBOARD_TITLE, DASHBOARD_SUBTITLE } from '@shared/utils/strings';
-import { AppHeader } from '@shared/components/navigation/AppHeader.native';
+import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
+import {
+  DASHBOARD_TITLE,
+  DASHBOARD_SUBTITLE,
+} from '@beakerstack/shared/utils/strings';
+import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.native';
 import { supabase } from '../lib/supabase';
 
 type RootStackParamList = {

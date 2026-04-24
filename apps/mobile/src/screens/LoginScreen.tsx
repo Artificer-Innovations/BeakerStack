@@ -11,8 +11,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useAuthContext } from '@shared/contexts/AuthContext';
-import { AppHeader } from '@shared/components/navigation/AppHeader.native';
+import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
+import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.native';
 import { supabase } from '../lib/supabase';
 import { SocialLoginButton } from '../components/SocialLoginButton';
 import { useFeatureFlags } from '../config/featureFlags';

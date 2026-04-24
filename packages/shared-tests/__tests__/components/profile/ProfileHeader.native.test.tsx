@@ -1,8 +1,8 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ProfileHeader } from '@shared/src/components/profile/ProfileHeader.native';
-import type { UserProfile } from '@shared/src/types/profile';
+import { ProfileHeader } from '@beakerstack/shared/components/profile/ProfileHeader.native';
+import type { UserProfile } from '@beakerstack/shared/types/profile';
 
 // Mock Linking
 jest.mock('react-native', () => {
@@ -16,18 +16,23 @@ jest.mock('react-native', () => {
 });
 
 // Mock Logger
-jest.mock('@shared/src/utils/logger', () => ({
+jest.mock('@beakerstack/shared/utils/logger', () => ({
   Logger: {
     warn: jest.fn(),
   },
 }));
 
 // Mock ProfileAvatar
-jest.mock('@shared/src/components/profile/ProfileAvatar.native', () => ({
-  ProfileAvatar: ({ profile }: { profile: UserProfile | null }) => (
-    <div data-testid='profile-avatar'>{profile?.display_name || 'Avatar'}</div>
-  ),
-}));
+jest.mock(
+  '@beakerstack/shared/components/profile/ProfileAvatar.native',
+  () => ({
+    ProfileAvatar: ({ profile }: { profile: UserProfile | null }) => (
+      <div data-testid='profile-avatar'>
+        {profile?.display_name || 'Avatar'}
+      </div>
+    ),
+  })
+);
 
 describe('ProfileHeader (Native)', () => {
   beforeEach(() => {

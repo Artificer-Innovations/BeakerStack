@@ -3,10 +3,10 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import DashboardPage from '../DashboardPage';
-import { AuthProvider } from '@shared/contexts/AuthContext';
-import { ProfileProvider } from '@shared/contexts/ProfileContext';
+import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
+import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { BRANDING, brandNameRegex } from '@shared/config/branding';
+import { BRANDING, brandNameRegex } from '@beakerstack/shared/config/branding';
 
 const mockNavigate = vi.fn();
 

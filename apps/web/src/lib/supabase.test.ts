@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Logger } from '@shared/utils/logger';
+import { Logger } from '@beakerstack/shared/utils/logger';
 
 const url = import.meta.env?.VITE_SUPABASE_URL;
 const anonKey = import.meta.env?.VITE_SUPABASE_ANON_KEY;

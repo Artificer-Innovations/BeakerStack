@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import AuthCallbackPage from '../AuthCallbackPage';
-import { AuthProvider } from '@shared/contexts/AuthContext';
-import { ProfileProvider } from '@shared/contexts/ProfileContext';
+import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
+import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Mock the supabase client

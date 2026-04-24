@@ -1,13 +1,13 @@
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { AvatarUpload } from '@shared/src/components/profile/AvatarUpload.web';
+import { AvatarUpload } from '@beakerstack/shared/components/profile/AvatarUpload.web';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Mock useAvatarUpload hook
 const mockUploadAvatar = jest.fn();
 const mockRemoveAvatar = jest.fn();
 
-jest.mock('@shared/src/hooks/useAvatarUpload', () => ({
+jest.mock('@beakerstack/shared/hooks/useAvatarUpload', () => ({
   useAvatarUpload: jest.fn(() => ({
     uploading: false,
     progress: 0,
@@ -66,7 +66,9 @@ describe('AvatarUpload', () => {
   });
 
   it('handles file selection and upload', async () => {
-    const { useAvatarUpload } = require('@shared/src/hooks/useAvatarUpload');
+    const {
+      useAvatarUpload,
+    } = require('@beakerstack/shared/hooks/useAvatarUpload');
     useAvatarUpload.mockReturnValue({
       uploading: false,
       progress: 0,
@@ -105,7 +107,9 @@ describe('AvatarUpload', () => {
   });
 
   it('shows upload progress when uploading', () => {
-    const { useAvatarUpload } = require('@shared/src/hooks/useAvatarUpload');
+    const {
+      useAvatarUpload,
+    } = require('@beakerstack/shared/hooks/useAvatarUpload');
     useAvatarUpload.mockReturnValue({
       uploading: true,
       progress: 50,
@@ -129,7 +133,9 @@ describe('AvatarUpload', () => {
   });
 
   it('displays error message when upload fails', () => {
-    const { useAvatarUpload } = require('@shared/src/hooks/useAvatarUpload');
+    const {
+      useAvatarUpload,
+    } = require('@beakerstack/shared/hooks/useAvatarUpload');
     useAvatarUpload.mockReturnValue({
       uploading: false,
       progress: 0,
@@ -175,7 +181,9 @@ describe('AvatarUpload', () => {
   });
 
   it('disables buttons when uploading', () => {
-    const { useAvatarUpload } = require('@shared/src/hooks/useAvatarUpload');
+    const {
+      useAvatarUpload,
+    } = require('@beakerstack/shared/hooks/useAvatarUpload');
     useAvatarUpload.mockReturnValue({
       uploading: true,
       progress: 50,
@@ -229,7 +237,9 @@ describe('AvatarUpload', () => {
   });
 
   it('should display uploadedUrl over currentAvatarUrl when a new image is uploaded', () => {
-    const { useAvatarUpload } = require('@shared/src/hooks/useAvatarUpload');
+    const {
+      useAvatarUpload,
+    } = require('@beakerstack/shared/hooks/useAvatarUpload');
     const oldAvatarUrl = 'https://example.com/old-avatar.jpg';
     const newAvatarUrl =
       'https://example.com/new-avatar.jpg?t=1234567890&v=abc123';
@@ -260,7 +270,9 @@ describe('AvatarUpload', () => {
   });
 
   it('should display new image when uploading a second image', async () => {
-    const { useAvatarUpload } = require('@shared/src/hooks/useAvatarUpload');
+    const {
+      useAvatarUpload,
+    } = require('@beakerstack/shared/hooks/useAvatarUpload');
     const firstAvatarUrl =
       'https://example.com/avatar1.jpg?t=1111111111&v=xyz789';
     const secondAvatarUrl =
@@ -328,7 +340,9 @@ describe('AvatarUpload', () => {
   });
 
   it('should prioritize uploadedUrl over currentAvatarUrl for immediate display', () => {
-    const { useAvatarUpload } = require('@shared/src/hooks/useAvatarUpload');
+    const {
+      useAvatarUpload,
+    } = require('@beakerstack/shared/hooks/useAvatarUpload');
     const currentAvatarUrl = 'https://example.com/current-avatar.jpg';
     const uploadedUrl =
       'https://example.com/uploaded-avatar.jpg?t=1234567890&v=abc123';
@@ -359,7 +373,9 @@ describe('AvatarUpload', () => {
   });
 
   it('should update image src when URL changes to force browser re-render', () => {
-    const { useAvatarUpload } = require('@shared/src/hooks/useAvatarUpload');
+    const {
+      useAvatarUpload,
+    } = require('@beakerstack/shared/hooks/useAvatarUpload');
     const firstUrl = 'https://example.com/avatar1.jpg?t=1111111111&v=xyz789';
     const secondUrl = 'https://example.com/avatar2.jpg?t=2222222222&v=def456';
 
@@ -421,7 +437,9 @@ describe('AvatarUpload', () => {
   });
 
   it('should add cache-busting to currentAvatarUrl to prevent stale image display', () => {
-    const { useAvatarUpload } = require('@shared/src/hooks/useAvatarUpload');
+    const {
+      useAvatarUpload,
+    } = require('@beakerstack/shared/hooks/useAvatarUpload');
     const currentAvatarUrl = 'https://example.com/avatar.jpg';
 
     useAvatarUpload.mockReturnValue({
@@ -469,7 +487,9 @@ describe('AvatarUpload', () => {
   });
 
   it('should update image src when currentAvatarUrl changes to force reload', () => {
-    const { useAvatarUpload } = require('@shared/src/hooks/useAvatarUpload');
+    const {
+      useAvatarUpload,
+    } = require('@beakerstack/shared/hooks/useAvatarUpload');
     const firstUrl = 'https://example.com/avatar1.jpg';
     const secondUrl = 'https://example.com/avatar2.jpg';
 

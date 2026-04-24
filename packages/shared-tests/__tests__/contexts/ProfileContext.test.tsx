@@ -4,10 +4,10 @@ import '@testing-library/jest-dom';
 import {
   ProfileProvider,
   useProfileContext,
-} from '@shared/src/contexts/ProfileContext';
-import { AuthProvider } from '@shared/src/contexts/AuthContext';
+} from '@beakerstack/shared/contexts/ProfileContext';
+import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import type { SupabaseClient, User, Session } from '@supabase/supabase-js';
-import type { UserProfile } from '@shared/src/types/profile';
+import type { UserProfile } from '@beakerstack/shared/types/profile';
 
 // Mock profile data
 const mockProfile: UserProfile = {

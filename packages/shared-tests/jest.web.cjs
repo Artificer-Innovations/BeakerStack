@@ -11,7 +11,7 @@ module.exports = {
   rootDir: root,
   setupFilesAfterEnv: [path.join(__dirname, "jest.setup.web.ts")],
   moduleNameMapper: {
-    "^@shared/src/(.*)$": path.join(sharedSrcPath, "$1"),
+    "^@beakerstack/shared/(.*)$": path.join(sharedSrcPath, "$1"),
     "^react-native$": "react-native-web",
     "^react-router-dom$": path.join(__dirname, "__mocks__/react-router-dom.tsx")
   },

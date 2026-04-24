@@ -1,5 +1,5 @@
 {
-  "name": "@shared/components-tests",
+  "name": "@beakerstack/shared-tests",
   "version": "0.0.0",
   "private": true,
   "scripts": {

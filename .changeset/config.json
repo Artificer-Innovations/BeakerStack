@@ -13,8 +13,8 @@
   "ignore": [
     "web",
     "mobile-app",
-    "@shared/components",
-    "@shared/components-tests"
+    "@beakerstack/shared",
+    "@beakerstack/shared-tests"
   ],
   "privatePackages": {
     "version": false,

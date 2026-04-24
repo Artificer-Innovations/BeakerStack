@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { useAuthContext } from '@shared/contexts/AuthContext';
-import { useProfileContext } from '@shared/contexts/ProfileContext';
+import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
+import { useProfileContext } from '@beakerstack/shared/contexts/ProfileContext';
 import { supabase } from '@/lib/supabase';
-import { AppHeader } from '@shared/components/navigation/AppHeader.web';
+import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
 // Import Profile Display Components - Vite will automatically resolve .web.tsx files
-import { ProfileHeader } from '@shared/components/profile/ProfileHeader.web';
-import { ProfileStats } from '@shared/components/profile/ProfileStats.web';
+import { ProfileHeader } from '@beakerstack/shared/components/profile/ProfileHeader.web';
+import { ProfileStats } from '@beakerstack/shared/components/profile/ProfileStats.web';
 // Import ProfileEditor - Vite will automatically resolve .web.tsx file
-import { ProfileEditor } from '@shared/components/profile/ProfileEditor.web';
-import { Logger } from '@shared/utils/logger';
+import { ProfileEditor } from '@beakerstack/shared/components/profile/ProfileEditor.web';
+import { Logger } from '@beakerstack/shared/utils/logger';
 
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);

@@ -36,7 +36,7 @@ jest.mock('@supabase/supabase-js', () => ({
 // Mock Logger
 const mockLoggerDebug = jest.fn();
 const mockLoggerInfo = jest.fn();
-jest.mock('@shared/utils/logger', () => ({
+jest.mock('@beakerstack/shared/utils/logger', () => ({
   Logger: {
     debug: mockLoggerDebug,
     info: mockLoggerInfo,

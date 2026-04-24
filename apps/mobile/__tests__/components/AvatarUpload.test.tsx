@@ -5,7 +5,7 @@ import {
   fireEvent,
   waitFor,
 } from '@testing-library/react-native';
-import { AvatarUpload } from '@shared/components/profile/AvatarUpload.native';
+import { AvatarUpload } from '@beakerstack/shared/components/profile/AvatarUpload.native';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
@@ -31,7 +31,7 @@ jest.mock('expo-file-system', () => ({
 const mockUploadAvatar = jest.fn();
 const mockRemoveAvatar = jest.fn();
 
-jest.mock('@shared/hooks/useAvatarUpload', () => ({
+jest.mock('@beakerstack/shared/hooks/useAvatarUpload', () => ({
   useAvatarUpload: jest.fn(() => ({
     uploading: false,
     progress: 0,

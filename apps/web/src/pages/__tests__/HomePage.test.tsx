@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import HomePage from '../HomePage';
-import { AuthProvider } from '@shared/contexts/AuthContext';
-import { ProfileProvider } from '@shared/contexts/ProfileContext';
+import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
+import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { HOME_TITLE, HOME_SUBTITLE } from '@shared/utils/strings';
+import { HOME_TITLE, HOME_SUBTITLE } from '@beakerstack/shared/utils/strings';
 
 // Mock environment variables to prevent real Supabase client creation
 vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost:54321');

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthContext } from '@shared/contexts/AuthContext';
+import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 
 export default function AuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);

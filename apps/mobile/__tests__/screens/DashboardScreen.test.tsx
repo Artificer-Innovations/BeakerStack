@@ -1,10 +1,13 @@
 import React from 'react';
 import { render, waitFor } from '@testing-library/react-native';
 import DashboardScreen from '../../src/screens/DashboardScreen';
-import { AuthProvider } from '@shared/contexts/AuthContext';
-import { ProfileProvider } from '@shared/contexts/ProfileContext';
+import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
+import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { DASHBOARD_TITLE, DASHBOARD_SUBTITLE } from '@shared/utils/strings';
+import {
+  DASHBOARD_TITLE,
+  DASHBOARD_SUBTITLE,
+} from '@beakerstack/shared/utils/strings';
 
 // Mock expo-constants
 jest.mock('expo-constants', () => ({
@@ -24,7 +27,7 @@ jest.mock('../../src/lib/supabase', () => ({
 }));
 
 // Mock AppHeader
-jest.mock('@shared/components/navigation/AppHeader.native', () => ({
+jest.mock('@beakerstack/shared/components/navigation/AppHeader.native', () => ({
   AppHeader: () => null,
 }));
 

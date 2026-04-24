@@ -62,11 +62,11 @@ import React from 'react';
 import { render, waitFor } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import HomeScreen from '../../src/screens/HomeScreen';
-import { AuthProvider } from '@shared/contexts/AuthContext';
-import { ProfileProvider } from '@shared/contexts/ProfileContext';
+import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
+import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { HOME_TITLE, HOME_SUBTITLE } from '@shared/utils/strings';
-import { BRANDING } from '@shared/config/branding';
+import { HOME_TITLE, HOME_SUBTITLE } from '@beakerstack/shared/utils/strings';
+import { BRANDING } from '@beakerstack/shared/config/branding';
 
 describe('HomeScreen', () => {
   let mockSupabaseClient: Partial<SupabaseClient>;

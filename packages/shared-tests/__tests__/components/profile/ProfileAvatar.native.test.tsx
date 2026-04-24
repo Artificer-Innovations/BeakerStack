@@ -1,11 +1,11 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ProfileAvatar } from '@shared/src/components/profile/ProfileAvatar.native';
-import type { UserProfile } from '@shared/src/types/profile';
+import { ProfileAvatar } from '@beakerstack/shared/components/profile/ProfileAvatar.native';
+import type { UserProfile } from '@beakerstack/shared/types/profile';
 
 // Mock Logger
-jest.mock('@shared/src/utils/logger', () => ({
+jest.mock('@beakerstack/shared/utils/logger', () => ({
   Logger: {
     warn: jest.fn(),
   },

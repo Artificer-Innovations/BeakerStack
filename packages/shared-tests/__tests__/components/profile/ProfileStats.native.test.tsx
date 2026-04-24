@@ -1,8 +1,8 @@
 import { describe, it, expect } from '@jest/globals';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ProfileStats } from '@shared/src/components/profile/ProfileStats.native';
-import type { UserProfile } from '@shared/src/types/profile';
+import { ProfileStats } from '@beakerstack/shared/components/profile/ProfileStats.native';
+import type { UserProfile } from '@beakerstack/shared/types/profile';
 
 describe('ProfileStats (Native)', () => {
   it('renders member since date', () => {

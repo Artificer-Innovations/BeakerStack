@@ -1,11 +1,11 @@
 import '@testing-library/jest-dom';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { ProfileEditor } from '@shared/src/components/profile/ProfileEditor.native';
+import { ProfileEditor } from '@beakerstack/shared/components/profile/ProfileEditor.native';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
-import type { UserProfile } from '@shared/src/types/profile';
+import type { UserProfile } from '@beakerstack/shared/types/profile';
 
 // Mock the form components
-jest.mock('@shared/src/components/forms/FormInput.native', () => ({
+jest.mock('@beakerstack/shared/components/forms/FormInput.native', () => ({
   FormInput: ({
     label,
     value,
@@ -32,7 +32,7 @@ jest.mock('@shared/src/components/forms/FormInput.native', () => ({
   ),
 }));
 
-jest.mock('@shared/src/components/forms/FormButton.native', () => ({
+jest.mock('@beakerstack/shared/components/forms/FormButton.native', () => ({
   FormButton: ({ title, onPress, loading, disabled }: any) => (
     <button
       onClick={onPress}
@@ -44,7 +44,7 @@ jest.mock('@shared/src/components/forms/FormButton.native', () => ({
   ),
 }));
 
-jest.mock('@shared/src/components/forms/FormError.native', () => ({
+jest.mock('@beakerstack/shared/components/forms/FormError.native', () => ({
   FormError: ({ message }: any) =>
     message ? <div data-testid='form-error'>{message}</div> : null,
 }));
@@ -53,7 +53,7 @@ jest.mock('@shared/src/components/forms/FormError.native', () => ({
 let mockOnUploadComplete: ((url: string) => Promise<void>) | null = null;
 let mockOnRemove: (() => Promise<void>) | null = null;
 
-jest.mock('@shared/src/components/profile/AvatarUpload.native', () => ({
+jest.mock('@beakerstack/shared/components/profile/AvatarUpload.native', () => ({
   AvatarUpload: ({ onUploadComplete, onRemove }: any) => {
     mockOnUploadComplete = onUploadComplete;
     mockOnRemove = onRemove;
@@ -76,7 +76,7 @@ jest.mock('@shared/src/components/profile/AvatarUpload.native', () => ({
 }));
 
 // Mock Logger
-jest.mock('@shared/src/utils/logger', () => ({
+jest.mock('@beakerstack/shared/utils/logger', () => ({
   Logger: {
     debug: jest.fn(),
     warn: jest.fn(),
@@ -121,11 +121,11 @@ const createContextValue = (
     ...overrides,
   }) as ReturnType<typeof useProfileContext>;
 
-jest.mock('@shared/src/contexts/ProfileContext', () => ({
+jest.mock('@beakerstack/shared/contexts/ProfileContext', () => ({
   useProfileContext: jest.fn(),
 }));
 
-import { useProfileContext } from '@shared/src/contexts/ProfileContext';
+import { useProfileContext } from '@beakerstack/shared/contexts/ProfileContext';
 
 describe('ProfileEditor (Native)', () => {
   const mockUseProfileContext = useProfileContext as jest.MockedFunction<
