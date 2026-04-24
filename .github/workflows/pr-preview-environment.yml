@@ -2,6 +2,9 @@ name: PR Preview Environments
 
 on:
   pull_request:
+    # Previews only for PRs into develop (not release PRs into main / hotfix→main).
+    branches:
+      - develop
     types:
       - opened
       - reopened
@@ -20,7 +23,8 @@ concurrency:
 
 jobs:
   preview-scope:
-    if: github.event.action != 'closed'
+    # Skip main→develop sync PRs (no feature preview; diff would match everything on develop).
+    if: github.event.action != 'closed' && (github.base_ref != 'develop' || github.head_ref != 'main')
     runs-on: ubuntu-latest
     outputs:
       run_deploy: ${{ steps.check.outputs.run_deploy }}
@@ -44,7 +48,7 @@ jobs:
         run: echo "Skipping PR preview deploy (no app/package/supabase/pr-preview changes)."
 
   deploy-preview:
-    if: github.event.action != 'closed' && needs.preview-scope.outputs.run_deploy == 'true'
+    if: github.event.action != 'closed' && needs.preview-scope.outputs.run_deploy == 'true' && (github.base_ref != 'develop' || github.head_ref != 'main')
     needs: preview-scope
     runs-on: ubuntu-latest
     env:
@@ -334,7 +338,7 @@ jobs:
             }
 
   teardown-preview:
-    if: github.event.action == 'closed'
+    if: github.event.action == 'closed' && (github.base_ref != 'develop' || github.head_ref != 'main')
     runs-on: ubuntu-latest
     env:
       PREVIEW_STACK_NAME: ${{ vars.PR_PREVIEW_STACK_NAME }}
