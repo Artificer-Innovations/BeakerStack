@@ -1,0 +1,12 @@
+# Prevent local secrets and generated env from being indexed into LLM context
+.env
+.env.*
+**/.env
+**/.env.*
+**/.env.local
+**/.env.*.local
+*.secrets.json
+*.secrets.tmp
+.setup-state.json
+.env.aws.generated.local
+.env.cloud.generated.local

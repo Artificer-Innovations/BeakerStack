@@ -10,6 +10,22 @@ Our mobile app uses **Expo EAS Updates** for over-the-air (OTA) JavaScript updat
 - **Staging**: Channel `staging`
 - **Production**: Channel `production`
 
+## PR preview on GitHub Actions
+
+The **deploy-preview** job runs [`scripts/pr-preview/deploy-mobile.sh`](https://github.com/Artificer-Innovations/BeakerStack/blob/develop/scripts/pr-preview/deploy-mobile.sh) from the repo root. A few things often confuse people when native preview builds fail:
+
+1. **When native EAS builds run**  
+   If [`scripts/pr-preview/check-native-changes.sh`](https://github.com/Artificer-Innovations/BeakerStack/blob/develop/scripts/pr-preview/check-native-changes.sh) sees changes under paths like `apps/mobile/package.json`, `app.config.js`, `eas.json`, `patches/`, `android/`, or `ios/`, the workflow passes **`--build-native`**, which starts **cloud** `eas build` (iOS and Android preview profiles). PRs that only touch JS under `src/` usually get **OTA-only** updates (no new native binaries in that run).
+
+2. **`google-services.json` (gitignored)**  
+   `eas update` exports the bundle **on GitHub’s runner**, not on EAS workers, so `eas-build-pre-install` does not run there. The deploy script runs **`apps/mobile/scripts/generate-google-services.js`** before publishing when secrets provide **`GOOGLE_SERVICES_*`**. Those values must exist as GitHub Actions secrets (and are mirrored into EAS secrets for cloud builds). The file lives at **`apps/mobile/google-services.json`** and is gitignored. For **cloud** `eas build`, Expo’s **Read app config** step runs before `eas-build-pre-install` can create that file, so **`app.config.js` only sets `android.googleServicesFile` when the file already exists**; the install hook then generates it from **`GOOGLE_SERVICES_*`** on the EAS worker. If cloud Android fails in “Read app config”, confirm those variables exist on the build’s environment (e.g. EAS **development** project secrets).
+
+3. **EAS build credits and billing**  
+   Cloud `eas build` uses your Expo plan’s **build credits**. If logs mention **100% of included build credits**, enable pay-as-you-go or wait for the cycle; see [Expo billing](https://expo.dev/accounts/artificer-innovations-llc/settings/billing). Failures like **Failed to upload the project tarball** often appear alongside quota or network issues; after billing is fixed, retry. **HTTP 408 / Request Timeout** on upload is usually transient—retry, try another network, or temporarily disable a slow VPN. If upload errors persist, try upgrading **`eas-cli`** in `apps/mobile` and regenerating the root lockfile, or use **`eas build --local`** for debugging.
+
+4. **`EXPO_PROJECT_ID`**  
+   Set the **`EXPO_PROJECT_ID`** GitHub Actions secret to your Expo project UUID so CI does not depend only on checked-in `.eas/project.json` for project resolution.
+
 ## Important: Development Build Required
 
 ⚠️ **Our app includes native modules (Google OAuth), so Expo Go will NOT work.**
@@ -38,8 +54,10 @@ You only need to do this **once** (or when native dependencies change). After th
 # Build in the cloud (recommended, takes ~10-15 minutes)
 npm run mobile:build:dev:ios
 
-# Or build locally (faster but requires Xcode and Fastlane setup)
-# Install Fastlane first: sudo gem install fastlane
+# Or build locally (faster but requires Xcode, CocoaPods, and Fastlane)
+# - CocoaPods: install so `pod` is on your PATH (e.g. `brew install cocoapods`).
+#   If the build fails with `spawn pod ENOENT`, the installer cannot find `pod`.
+# - Fastlane: sudo gem install fastlane
 npm run mobile:build:dev:ios:local
 ```
 
@@ -133,7 +151,7 @@ The URL format is: `https://u.expo.dev/{PROJECT_ID}?channel-name={CHANNEL_NAME}`
 To find your project ID:
 
 1. Check `apps/mobile/.eas/project.json` → `projectId` field (most reliable)
-2. Check `apps/mobile/app.config.ts` → `extra.eas.projectId` field
+2. Check `apps/mobile/app.config.js` → `extra.eas.projectId` field
 3. Run: `cd apps/mobile && npx eas project:info` and look for the `id` field
 4. Visit your Expo dashboard and check the project settings
 

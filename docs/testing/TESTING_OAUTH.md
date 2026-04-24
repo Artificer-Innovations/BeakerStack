@@ -95,7 +95,7 @@ This is **expected behavior** until OAuth credentials are configured.
 
 ### With OAuth Credentials (After Setup)
 
-Follow the setup instructions in `OAUTH_SETUP.md` first, then:
+Follow the setup instructions in [OAuth setup for production](../oauth/OAUTH_SETUP.md) first, then:
 
 #### Test Google OAuth
 
@@ -323,7 +323,7 @@ cd apps/web && npm test -- --coverage
 **Possible Causes**:
 
 1. OAuth not configured in Supabase
-   - **Fix**: Follow `OAUTH_SETUP.md`
+   - **Fix**: Follow [../oauth/OAUTH_SETUP.md](../oauth/OAUTH_SETUP.md)
 2. Redirect URL mismatch
    - **Fix**: Ensure redirect URLs match in Google/Apple console and Supabase
 3. Popup blocked
@@ -372,7 +372,7 @@ After testing OAuth:
 
 1. ✅ Verify all unit tests pass
 2. ✅ Test email/password authentication
-3. ⏸️ Configure OAuth credentials (see `OAUTH_SETUP.md`)
+3. ⏸️ Configure OAuth credentials (see [../oauth/OAUTH_SETUP.md](../oauth/OAUTH_SETUP.md))
 4. ⏸️ Test OAuth authentication with real credentials
 5. ⏸️ Implement mobile OAuth (Task 3.4)
 6. ⏸️ Add protected routes
@@ -388,7 +388,7 @@ If you encounter issues:
 1. Check browser console for errors
 2. Check Supabase logs in Studio
 3. Verify environment variables are set
-4. Review `OAUTH_SETUP.md` for configuration
+4. Review [../oauth/OAUTH_SETUP.md](../oauth/OAUTH_SETUP.md) for configuration
 5. Check `packages/shared/src/hooks/useAuth.ts` for auth logic
 
 **Common Gotchas**:

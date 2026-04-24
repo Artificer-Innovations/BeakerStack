@@ -85,7 +85,7 @@ if (missingVars.length > 0) {
   }
 }
 
-// Package name from app.config.ts or environment
+// Package name from app.config.js or environment
 const packageName =
   process.env.ANDROID_PACKAGE_NAME || 'com.anonymous.beakerstack';
 const bundleId = process.env.IOS_BUNDLE_ID || 'com.anonymous.beakerstack';

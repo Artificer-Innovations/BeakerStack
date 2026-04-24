@@ -1,0 +1,71 @@
+diff --git a/node_modules/@expo/steps/dist_commonjs/BuildStep.cjs b/node_modules/@expo/steps/dist_commonjs/BuildStep.cjs
+index 801d076..133f4ec 100644
+--- a/node_modules/@expo/steps/dist_commonjs/BuildStep.cjs
++++ b/node_modules/@expo/steps/dist_commonjs/BuildStep.cjs
+@@ -8,7 +8,7 @@ const assert_1 = __importDefault(require("assert"));
+ const promises_1 = __importDefault(require("fs/promises"));
+ const path_1 = __importDefault(require("path"));
+ const buffer_1 = require("buffer");
+-const uuid_1 = require("uuid");
++const node_crypto_1 = require("crypto");
+ const BuildStepInput_js_1 = require("./BuildStepInput.cjs");
+ const BuildStepOutput_js_1 = require("./BuildStepOutput.cjs");
+ const bin_js_1 = require("./utils/shell/bin.cjs");
+@@ -76,7 +76,7 @@ class BuildStepOutputAccessor {
+ exports.BuildStepOutputAccessor = BuildStepOutputAccessor;
+ class BuildStep extends BuildStepOutputAccessor {
+     static getNewId(userDefinedId) {
+-        return userDefinedId !== null && userDefinedId !== void 0 ? userDefinedId : (0, uuid_1.v4)();
++        return userDefinedId !== null && userDefinedId !== void 0 ? userDefinedId : node_crypto_1.randomUUID();
+     }
+     static getDisplayName({ id, name, command, }) {
+         if (name) {
+@@ -114,7 +114,7 @@ class BuildStep extends BuildStepOutputAccessor {
+         this.shell = shell !== null && shell !== void 0 ? shell : (0, command_js_1.getDefaultShell)();
+         this.ifCondition = ifCondition;
+         this.status = BuildStepStatus.NEW;
+-        this.internalId = (0, uuid_1.v4)();
++        this.internalId = node_crypto_1.randomUUID();
+         const logger = ctx.baseLogger.child({
+             buildStepInternalId: this.internalId,
+             buildStepId: this.id,
+diff --git a/node_modules/@expo/steps/dist_commonjs/BuildStepContext.cjs b/node_modules/@expo/steps/dist_commonjs/BuildStepContext.cjs
+index ac073e6..89112ec 100644
+--- a/node_modules/@expo/steps/dist_commonjs/BuildStepContext.cjs
++++ b/node_modules/@expo/steps/dist_commonjs/BuildStepContext.cjs
+@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
+ exports.BuildStepContext = exports.BuildStepGlobalContext = void 0;
+ const os_1 = __importDefault(require("os"));
+ const path_1 = __importDefault(require("path"));
+-const uuid_1 = require("uuid");
++const node_crypto_1 = require("crypto");
+ const BuildStep_js_1 = require("./BuildStep.cjs");
+ const template_js_1 = require("./utils/template.cjs");
+ const errors_js_1 = require("./errors.cjs");
+@@ -17,7 +17,7 @@ class BuildStepGlobalContext {
+         this.didCheckOut = false;
+         this._hasAnyPreviousStepFailed = false;
+         this.stepById = {};
+-        this.stepsInternalBuildDirectory = path_1.default.join(os_1.default.tmpdir(), 'eas-build', (0, uuid_1.v4)());
++        this.stepsInternalBuildDirectory = path_1.default.join(os_1.default.tmpdir(), 'eas-build', node_crypto_1.randomUUID());
+         this.runtimePlatform = provider.runtimePlatform;
+         this.baseLogger = provider.logger;
+         this._hasAnyPreviousStepFailed = false;
+diff --git a/node_modules/@expo/steps/dist_commonjs/BuildTemporaryFiles.cjs b/node_modules/@expo/steps/dist_commonjs/BuildTemporaryFiles.cjs
+index 8507e43..7884869 100644
+--- a/node_modules/@expo/steps/dist_commonjs/BuildTemporaryFiles.cjs
++++ b/node_modules/@expo/steps/dist_commonjs/BuildTemporaryFiles.cjs
+@@ -9,11 +9,11 @@ exports.getTemporaryOutputsDirPath = getTemporaryOutputsDirPath;
+ exports.getTemporaryEnvsDirPath = getTemporaryEnvsDirPath;
+ const path_1 = __importDefault(require("path"));
+ const promises_1 = __importDefault(require("fs/promises"));
+-const uuid_1 = require("uuid");
++const node_crypto_1 = require("crypto");
+ async function saveScriptToTemporaryFileAsync(ctx, stepId, scriptContents) {
+     const scriptsDir = getTemporaryScriptsDirPath(ctx, stepId);
+     await promises_1.default.mkdir(scriptsDir, { recursive: true });
+-    const temporaryScriptPath = path_1.default.join(scriptsDir, `${(0, uuid_1.v4)()}.sh`);
++    const temporaryScriptPath = path_1.default.join(scriptsDir, `${node_crypto_1.randomUUID()}.sh`);
+     await promises_1.default.writeFile(temporaryScriptPath, scriptContents);
+     return temporaryScriptPath;
+ }

@@ -5,6 +5,7 @@ import path from 'node:path';
 import process from 'node:process';
 import url from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { createInterface } from 'node:readline/promises';
 
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -162,7 +163,9 @@ function parseArgs(argv) {
     strict: false,
     skipSupabaseCheck: false,
     from: undefined,
-    to: undefined
+    to: undefined,
+    fromLegal: undefined,
+    toLegal: undefined,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -206,6 +209,28 @@ function parseArgs(argv) {
 
     if (value === '--to') {
       args.to = argv[i + 1];
+      i += 1;
+      continue;
+    }
+
+    if (value.startsWith('--from-legal=')) {
+      args.fromLegal = value.slice('--from-legal='.length);
+      continue;
+    }
+
+    if (value === '--from-legal') {
+      args.fromLegal = argv[i + 1];
+      i += 1;
+      continue;
+    }
+
+    if (value.startsWith('--to-legal=')) {
+      args.toLegal = value.slice('--to-legal='.length);
+      continue;
+    }
+
+    if (value === '--to-legal') {
+      args.toLegal = argv[i + 1];
       i += 1;
       continue;
     }
@@ -339,21 +364,34 @@ async function collectRemainingMatches(files, patterns) {
 
 function logUsage() {
   const relativeScript = path.relative(repoRoot, __filename);
-  console.log(`Usage: npm run rename -- --from "Old Name" --to "New Name" [--dry-run] [--strict] [--verbose]`);
+  console.log(
+    `Usage: npm run rename -- --from "Old Name" --to "New Name" [--from-legal "…"] [--to-legal "…"] [--dry-run] [--strict] [--verbose]`,
+  );
   console.log('');
   console.log('Options:');
   console.log('  --from "Old Name"     Existing project name (display form).');
   console.log('  --to "New Name"       Replacement project name (display form).');
+  console.log('  --from-legal "…"      Optional exact string to replace (e.g. legal entity in package.json).');
+  console.log('  --to-legal "…"        Replacement for --from-legal (both required if either set).');
   console.log('  --dry-run             Show files that would change without writing.');
   console.log('  --strict              Exit with failure if any legacy names remain.');
-  console.log('  --no-supabase-check   Skip the running Supabase instance guard.');
+  console.log('  --no-supabase-check   Skip the running Supabase instance guard (required in CI / no TTY).');
   console.log('  --verbose             Print detailed progress information.');
   console.log('');
   console.log(`Example: npm run rename -- --from "Beaker Stack" --to "Acme App"`);
+  console.log(
+    `Example: npm run rename -- --from "Beaker Stack" --to "Acme App" --from-legal "Artificer Innovations, LLC" --to-legal "Acme Corp"`,
+  );
   console.log(`Script: ${relativeScript}`);
 }
 
-function checkSupabaseStatus(verbose = false) {
+/**
+ * @param {{ verbose?: boolean; cwd?: string }} [opts]
+ * @returns {{ projectId: string | null; running: { name?: string }[] } | null}
+ */
+export function checkSupabaseStatus(opts = {}) {
+  const verbose = Boolean(opts.verbose);
+  const cwd = opts.cwd ?? process.cwd();
   const logVerbose = (message) => {
     if (verbose) {
       console.log(`[supabase-check] ${message}`);
@@ -364,6 +402,7 @@ function checkSupabaseStatus(verbose = false) {
     let jsonResult = null;
     try {
       jsonResult = spawnSync('supabase', ['status', '--output', 'json'], {
+        cwd,
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe']
       });
@@ -394,6 +433,7 @@ function checkSupabaseStatus(verbose = false) {
     }
 
     const textResult = spawnSync('supabase', ['status'], {
+      cwd,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe']
     });
@@ -442,6 +482,80 @@ function checkSupabaseStatus(verbose = false) {
   }
 }
 
+/**
+ * @param {{ verbose: boolean; cwd: string }} ctx
+ * @returns {Promise<'ok' | 'abort'>}
+ */
+async function resolveSupabaseForRename(ctx) {
+  let status = checkSupabaseStatus({ verbose: ctx.verbose, cwd: ctx.cwd });
+  if (!status?.running?.length) {
+    return 'ok';
+  }
+
+  const projectIdText = status.projectId ? ` (project ID: ${status.projectId})` : '';
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    console.error(`Supabase services appear to be running${projectIdText}.`);
+    console.error(
+      'Stop them before renaming (for example `supabase stop`), or pass --no-supabase-check when stdin is not a TTY (e.g. CI).',
+    );
+    return 'abort';
+  }
+
+  console.error('');
+  console.error(
+    `A local Supabase instance appears to be running${projectIdText}. Clones often share the same supabase/config.toml project_id,`,
+  );
+  console.error('so this can refer to a stack started from another directory on this machine.');
+  console.error('');
+  console.error(
+    'If you are renaming this checkout and the running stack belongs to this tree, stop it before continuing.',
+  );
+  console.error(
+    'If you are rebranding a new template in this directory and the stack is only from elsewhere, you may proceed without stopping.',
+  );
+  console.error('');
+
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    for (;;) {
+      const raw = await rl.question('(S)top local Supabase now / (P)roceed anyway / (Q)uit [S]: ');
+      const line = raw.trim().toLowerCase();
+      const key = line === '' ? 's' : line[0];
+      if (key === 'q') {
+        return 'abort';
+      }
+      if (key === 'p') {
+        return 'ok';
+      }
+      if (key === 's') {
+        const pid = status.projectId;
+        const stopArgs = pid ? ['stop', '--project-id', String(pid)] : ['stop'];
+        spawnSync('supabase', stopArgs, { cwd: ctx.cwd, stdio: 'inherit', encoding: 'utf8' });
+        status = checkSupabaseStatus({ verbose: ctx.verbose, cwd: ctx.cwd });
+        if (!status?.running?.length) {
+          return 'ok';
+        }
+        console.error('');
+        console.error('Supabase still reports running services after stop.');
+        console.error('');
+        continue;
+      }
+      console.log('Enter S (stop), P (proceed), or Q (quit).');
+    }
+  } finally {
+    rl.close();
+  }
+}
+
+function mergeLegalAndNameReplacements(fromLegal, toLegal, nameReplacements) {
+  const list = [];
+  if (fromLegal && toLegal && fromLegal !== toLegal) {
+    list.push({ from: fromLegal, to: toLegal, description: 'Legal entity (literal)' });
+  }
+  list.push(...nameReplacements);
+  return uniquePairs(list);
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
 
@@ -452,28 +566,23 @@ async function main() {
     return;
   }
 
+  if ((args.fromLegal || args.toLegal) && (!args.fromLegal || !args.toLegal)) {
+    console.error('Error: both --from-legal and --to-legal are required when renaming a legal string.');
+    logUsage();
+    process.exitCode = 1;
+    return;
+  }
+
   if (!args.skipSupabaseCheck) {
-    const supabaseStatus = checkSupabaseStatus(args.verbose);
-    if (supabaseStatus?.running?.length) {
-      const projectIdText = supabaseStatus.projectId
-        ? ` (project ID: ${supabaseStatus.projectId})`
-        : '';
-      console.error(
-        `Supabase services appear to be running${projectIdText}. Please stop them before renaming.`
-      );
-      console.error(
-        'Recommended: `supabase stop` or `supabase stop --project-id <your-project>`; ' +
-          'then rerun this command.'
-      );
-      console.error(
-        'Use --no-supabase-check to bypass this safety check if you are sure Supabase is not needed.'
-      );
+    const gate = await resolveSupabaseForRename({ verbose: args.verbose, cwd: repoRoot });
+    if (gate === 'abort') {
       process.exitCode = 1;
       return;
     }
   }
 
-  const { replacements, variants } = buildReplacementPairs(args.from, args.to);
+  const { replacements: nameReplacements, variants } = buildReplacementPairs(args.from, args.to);
+  const replacements = mergeLegalAndNameReplacements(args.fromLegal, args.toLegal, nameReplacements);
   const files = await walkDirectory(repoRoot);
 
   const stats = {

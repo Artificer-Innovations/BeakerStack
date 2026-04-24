@@ -67,6 +67,12 @@ jspm_packages/
 .env.production.local
 .env.local
 
+# Full setup orchestrator (may reference completed steps; never commit)
+.setup-state.json
+.env.aws.generated.local
+.env.cloud.generated.local
+*.secrets.tmp
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
@@ -265,6 +271,8 @@ supabase/logs
 
 # Maestro
 maestro.log
+# takeScreenshot outputs (written to repo root by default when running e2e flows)
+after-signup.png
 apps/mobile/google-services.json
 
 # Android build artifacts and keystores
