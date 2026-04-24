@@ -2,6 +2,7 @@
   "name": "@shared/components",
   "version": "1.0.0",
   "description": "Shared components, hooks, and utilities for cross-platform development",
+  "private": true,
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {

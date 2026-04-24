@@ -1,12 +1,55 @@
 {
-  "name": "demo-app",
+  "name": "beakerstack",
   "version": "1.0.0",
-  "description": "Full-stack monorepo with React Native mobile app, React web app, and Supabase backend",
+  "description": "Opinionated monorepo template for Supabase-backed apps shipping to web (React + Vite) and mobile (React Native + Expo), with PR previews, staged deploys, and shared business logic across surfaces.",
   "private": true,
   "workspaces": [
     "packages/*",
     "apps/*"
   ],
+  "keywords": [
+    "beakerstack",
+    "monorepo",
+    "template",
+    "starter",
+    "boilerplate",
+    "full-stack",
+    "fullstack",
+    "supabase",
+    "react",
+    "react-native",
+    "expo",
+    "vite",
+    "typescript",
+    "web",
+    "mobile",
+    "cross-platform",
+    "pr-previews",
+    "ci-cd",
+    "aws",
+    "open-source"
+  ],
+  "homepage": "https://github.com/Artificer-Innovations/BeakerStack#readme",
+  "bugs": {
+    "url": "https://github.com/Artificer-Innovations/BeakerStack/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Artificer-Innovations/BeakerStack.git"
+  },
+  "author": "Artificer Innovations, LLC",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "contributors": [
+    "Brad Hefta-Gaub <brad@hefta-gaub.com> (https://github.com/ZappoMan)"
+  ],
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/Artificer-Innovations"
+  },
   "scripts": {
     "sync-icons": "node scripts/sync-icon-assets.js",
     "generate-favicons": "node scripts/generate-favicons.js",
@@ -89,6 +132,8 @@
   },
   "devDependencies": {
     "@babel/plugin-transform-runtime": "^7.28.3",
+    "@changesets/changelog-github": "0.6.0",
+    "@changesets/cli": "2.31.0",
     "@types/jest": "^29.5.8",
     "@types/node": "^20.10.0",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
@@ -148,24 +193,5 @@
     },
     "uuid": "14.0.0",
     "diff": "^8.0.2"
-  },
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/your-org/demo-app.git"
-  },
-  "keywords": [
-    "react-native",
-    "react",
-    "supabase",
-    "monorepo",
-    "typescript",
-    "mobile",
-    "web"
-  ],
-  "author": "Artificer Innovations, LLC",
-  "license": "MIT"
+  }
 }
