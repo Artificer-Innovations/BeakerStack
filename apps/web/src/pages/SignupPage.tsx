@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuthContext } from '@shared/contexts/AuthContext';
-import { AppHeader } from '@shared/components/navigation/AppHeader.web';
+import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
+import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
 import { supabase } from '@/lib/supabase';
 import { SocialLoginButton } from '../components/SocialLoginButton';
 

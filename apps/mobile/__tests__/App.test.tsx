@@ -29,7 +29,7 @@ jest.mock('expo-updates', () => ({
 
 // Mock configureGoogleSignIn (added in our auth changes)
 // Note: App.tsx imports from useAuth.native, not useAuth
-jest.mock('@shared/hooks/useAuth.native', () => ({
+jest.mock('@beakerstack/shared/hooks/useAuth.native', () => ({
   configureGoogleSignIn: jest.fn().mockResolvedValue(undefined),
   useAuth: jest.fn(),
 }));
@@ -64,7 +64,7 @@ jest.mock('../src/lib/supabase', () => {
 });
 
 // Mock AuthContext to avoid needing the full provider setup in tests
-jest.mock('@shared/contexts/AuthContext', () => ({
+jest.mock('@beakerstack/shared/contexts/AuthContext', () => ({
   AuthProvider: ({ children }: any) => children,
   useAuthContext: () => ({
     user: null,
@@ -79,7 +79,7 @@ jest.mock('@shared/contexts/AuthContext', () => ({
 }));
 
 // Mock ProfileContext to avoid needing the full provider setup in tests
-jest.mock('@shared/contexts/ProfileContext', () => ({
+jest.mock('@beakerstack/shared/contexts/ProfileContext', () => ({
   ProfileProvider: ({ children }: any) => children,
   useProfileContext: () => ({
     profile: null,
@@ -124,12 +124,12 @@ jest.mock('@react-navigation/native-stack', () => {
 });
 
 // Mock ProtectedRoute to avoid React Native component issues in tests
-jest.mock('@shared/components/auth/ProtectedRoute', () => ({
+jest.mock('@beakerstack/shared/components/auth/ProtectedRoute', () => ({
   ProtectedRoute: ({ children }: any) => children,
 }));
 
 // Mock form components to avoid StyleSheet.create() native bridge issues in tests
-jest.mock('@shared/components/forms/FormInput.native', () => ({
+jest.mock('@beakerstack/shared/components/forms/FormInput.native', () => ({
   FormInput: ({ label, value, onChange, ...props }: any) => {
     const React = require('react');
     const { TextInput, View, Text } = require('react-native');
@@ -142,7 +142,7 @@ jest.mock('@shared/components/forms/FormInput.native', () => ({
   },
 }));
 
-jest.mock('@shared/components/forms/FormButton.native', () => ({
+jest.mock('@beakerstack/shared/components/forms/FormButton.native', () => ({
   FormButton: ({ title, onPress, ...props }: any) => {
     const React = require('react');
     const { TouchableOpacity, Text } = require('react-native');
@@ -154,7 +154,7 @@ jest.mock('@shared/components/forms/FormButton.native', () => ({
   },
 }));
 
-jest.mock('@shared/components/forms/FormError.native', () => ({
+jest.mock('@beakerstack/shared/components/forms/FormError.native', () => ({
   FormError: ({ message }: any) => {
     const React = require('react');
     const { Text } = require('react-native');
@@ -166,7 +166,7 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { describe, it, expect } from '@jest/globals';
 import App from '../App';
-import { HOME_TITLE, HOME_SUBTITLE } from '@shared/utils/strings';
+import { HOME_TITLE, HOME_SUBTITLE } from '@beakerstack/shared/utils/strings';
 
 describe('Mobile App', () => {
   it('renders without crashing', () => {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
 import { SocialLoginButton } from '../SocialLoginButton';
-import { Logger } from '@shared/utils/logger';
+import { Logger } from '@beakerstack/shared/utils/logger';
 
 describe('SocialLoginButton', () => {
   const mockOnPress = jest.fn<Promise<void>, []>();

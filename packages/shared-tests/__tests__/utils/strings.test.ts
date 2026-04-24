@@ -5,8 +5,8 @@ import {
   HOME_SUBTITLE,
   DASHBOARD_TITLE,
   DASHBOARD_SUBTITLE,
-} from '@shared/src/utils/strings';
-import { BRANDING } from '@shared/src/config/branding';
+} from '@beakerstack/shared/utils/strings';
+import { BRANDING } from '@beakerstack/shared/config/branding';
 
 describe('strings', () => {
   describe('HOME_STRINGS', () => {

@@ -5,7 +5,7 @@ import {
   profileFormSchema,
   transformFormToInsert,
   transformFormToUpdate,
-} from '@shared/src/validation/profileSchema';
+} from '@beakerstack/shared/validation/profileSchema';
 
 describe('profileInsertSchema', () => {
   it('should accept valid profile data', () => {

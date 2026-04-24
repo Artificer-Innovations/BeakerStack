@@ -1,8 +1,8 @@
 import React from 'react';
 import { Alert } from 'react-native';
 import { DebugTools } from '../../src/components/DebugTools';
-import { AuthProvider } from '@shared/contexts/AuthContext';
-import { ProfileProvider } from '@shared/contexts/ProfileContext';
+import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
+import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import renderer from 'react-test-renderer';
 
@@ -31,7 +31,7 @@ jest.mock('../../src/lib/supabase', () => ({
 }));
 
 // Mock Logger
-jest.mock('@shared/utils/logger', () => ({
+jest.mock('@beakerstack/shared/utils/logger', () => ({
   Logger: {
     debug: jest.fn(),
     warn: jest.fn(),
@@ -41,38 +41,47 @@ jest.mock('@shared/utils/logger', () => ({
 
 // Mock useProfile hook
 const mockUseProfile = jest.fn();
-jest.mock('@shared/hooks/useProfile', () => ({
+jest.mock('@beakerstack/shared/hooks/useProfile', () => ({
   useProfile: () => mockUseProfile(),
 }));
 
 // Mock ProfileEditor.native
-jest.mock('@shared/components/profile/ProfileEditor.native', () => ({
-  ProfileEditor: () => <div data-testid='profile-editor'>Profile Editor</div>,
-}));
+jest.mock(
+  '@beakerstack/shared/components/profile/ProfileEditor.native',
+  () => ({
+    ProfileEditor: () => <div data-testid='profile-editor'>Profile Editor</div>,
+  })
+);
 
 // Mock form components
-jest.mock('@shared/components/forms/FormInput.native', () => ({
+jest.mock('@beakerstack/shared/components/forms/FormInput.native', () => ({
   FormInput: () => <div data-testid='form-input'>Form Input</div>,
 }));
 
-jest.mock('@shared/components/forms/FormButton.native', () => ({
+jest.mock('@beakerstack/shared/components/forms/FormButton.native', () => ({
   FormButton: () => <div data-testid='form-button'>Form Button</div>,
 }));
 
-jest.mock('@shared/components/forms/FormError.native', () => ({
+jest.mock('@beakerstack/shared/components/forms/FormError.native', () => ({
   FormError: () => <div data-testid='form-error'>Form Error</div>,
 }));
 
 // Mock profile display components
-jest.mock('@shared/components/profile/ProfileAvatar.native', () => ({
-  ProfileAvatar: () => <div data-testid='profile-avatar'>Avatar</div>,
-}));
+jest.mock(
+  '@beakerstack/shared/components/profile/ProfileAvatar.native',
+  () => ({
+    ProfileAvatar: () => <div data-testid='profile-avatar'>Avatar</div>,
+  })
+);
 
-jest.mock('@shared/components/profile/ProfileHeader.native', () => ({
-  ProfileHeader: () => <div data-testid='profile-header'>Header</div>,
-}));
+jest.mock(
+  '@beakerstack/shared/components/profile/ProfileHeader.native',
+  () => ({
+    ProfileHeader: () => <div data-testid='profile-header'>Header</div>,
+  })
+);
 
-jest.mock('@shared/components/profile/ProfileStats.native', () => ({
+jest.mock('@beakerstack/shared/components/profile/ProfileStats.native', () => ({
   ProfileStats: () => <div data-testid='profile-stats'>Stats</div>,
 }));
 

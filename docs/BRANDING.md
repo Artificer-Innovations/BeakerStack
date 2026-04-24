@@ -153,7 +153,7 @@ All user-facing strings are centralized in:
 2. Import and use it in your components:
 
 ```typescript
-import { HOME_TITLE } from '@shared/utils/strings';
+import { HOME_TITLE } from '@beakerstack/shared/utils/strings';
 ```
 
 ## Colors

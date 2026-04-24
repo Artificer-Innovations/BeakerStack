@@ -2,13 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import ProfilePage from '../ProfilePage';
-import { AuthProvider } from '@shared/contexts/AuthContext';
-import { ProfileProvider } from '@shared/contexts/ProfileContext';
+import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
+import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { ProfileHeaderProps } from '@shared/components/profile/ProfileHeader.web';
-import type { ProfileStatsProps } from '@shared/components/profile/ProfileStats.web';
-import type { ProfileEditorProps } from '@shared/components/profile/ProfileEditor.web';
-import { BRANDING, brandNameRegex } from '@shared/config/branding';
+import type { ProfileHeaderProps } from '@beakerstack/shared/components/profile/ProfileHeader.web';
+import type { ProfileStatsProps } from '@beakerstack/shared/components/profile/ProfileStats.web';
+import type { ProfileEditorProps } from '@beakerstack/shared/components/profile/ProfileEditor.web';
+import { BRANDING, brandNameRegex } from '@beakerstack/shared/config/branding';
 
 const mockNavigate = vi.fn();
 
@@ -66,7 +66,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Mock the profile display components
-vi.mock('@shared/components/profile/ProfileHeader.web', () => ({
+vi.mock('@beakerstack/shared/components/profile/ProfileHeader.web', () => ({
   ProfileHeader: ({ profile }: ProfileHeaderProps) => (
     <div data-testid='profile-header'>
       {profile
@@ -76,12 +76,12 @@ vi.mock('@shared/components/profile/ProfileHeader.web', () => ({
   ),
 }));
 
-vi.mock('@shared/components/profile/ProfileStats.web', () => ({
+vi.mock('@beakerstack/shared/components/profile/ProfileStats.web', () => ({
   ProfileStats: ({ profile }: ProfileStatsProps) =>
     profile ? <div data-testid='profile-stats'>Stats</div> : null,
 }));
 
-vi.mock('@shared/components/profile/ProfileEditor.web', () => ({
+vi.mock('@beakerstack/shared/components/profile/ProfileEditor.web', () => ({
   ProfileEditor: (_props: ProfileEditorProps) => (
     <div data-testid='profile-editor'>Editor</div>
   ),

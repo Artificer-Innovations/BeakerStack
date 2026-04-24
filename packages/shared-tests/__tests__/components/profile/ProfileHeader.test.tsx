@@ -1,10 +1,10 @@
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import { ProfileHeader } from '@shared/src/components/profile/ProfileHeader.web';
-import type { UserProfile } from '@shared/src/types/profile';
+import { ProfileHeader } from '@beakerstack/shared/components/profile/ProfileHeader.web';
+import type { UserProfile } from '@beakerstack/shared/types/profile';
 
 // Mock ProfileAvatar
-jest.mock('@shared/src/components/profile/ProfileAvatar.web', () => ({
+jest.mock('@beakerstack/shared/components/profile/ProfileAvatar.web', () => ({
   ProfileAvatar: ({ profile }: any) => (
     <div data-testid='profile-avatar'>
       {profile?.avatar_url ? 'Avatar' : 'No Avatar'}

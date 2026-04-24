@@ -1,7 +1,7 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { AvatarUpload } from '@shared/src/components/profile/AvatarUpload.native';
+import { AvatarUpload } from '@beakerstack/shared/components/profile/AvatarUpload.native';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Mock expo-image-picker
@@ -39,7 +39,7 @@ const mockUploadAvatar = jest
   .mockResolvedValue('https://example.com/avatar.jpg');
 const mockRemoveAvatar = jest.fn().mockResolvedValue(undefined);
 
-jest.mock('@shared/src/hooks/useAvatarUpload', () => ({
+jest.mock('@beakerstack/shared/hooks/useAvatarUpload', () => ({
   useAvatarUpload: jest.fn(() => ({
     uploading: false,
     progress: 0,
@@ -51,7 +51,7 @@ jest.mock('@shared/src/hooks/useAvatarUpload', () => ({
 }));
 
 // Mock Logger
-jest.mock('@shared/src/utils/logger', () => ({
+jest.mock('@beakerstack/shared/utils/logger', () => ({
   Logger: {
     debug: jest.fn(),
     warn: jest.fn(),
@@ -173,7 +173,9 @@ describe('AvatarUpload (Native)', () => {
   });
 
   it('shows upload progress when uploading', () => {
-    const { useAvatarUpload } = require('@shared/src/hooks/useAvatarUpload');
+    const {
+      useAvatarUpload,
+    } = require('@beakerstack/shared/hooks/useAvatarUpload');
     useAvatarUpload.mockReturnValue({
       uploading: true,
       progress: 50,
@@ -198,7 +200,9 @@ describe('AvatarUpload (Native)', () => {
   });
 
   it('displays error message when upload fails', () => {
-    const { useAvatarUpload } = require('@shared/src/hooks/useAvatarUpload');
+    const {
+      useAvatarUpload,
+    } = require('@beakerstack/shared/hooks/useAvatarUpload');
     useAvatarUpload.mockReturnValue({
       uploading: false,
       progress: 0,
@@ -541,7 +545,9 @@ describe('AvatarUpload (Native)', () => {
   });
 
   it('handles uploadedUrl from hook', () => {
-    const { useAvatarUpload } = require('@shared/src/hooks/useAvatarUpload');
+    const {
+      useAvatarUpload,
+    } = require('@beakerstack/shared/hooks/useAvatarUpload');
     useAvatarUpload.mockReturnValue({
       uploading: false,
       progress: 0,
@@ -625,7 +631,7 @@ describe('AvatarUpload (Native)', () => {
   });
 
   it.skip('handles image load error', () => {
-    const { Logger } = require('@shared/src/utils/logger');
+    const { Logger } = require('@beakerstack/shared/utils/logger');
     const warnSpy = jest.spyOn(Logger, 'warn');
 
     render(
@@ -653,7 +659,7 @@ describe('AvatarUpload (Native)', () => {
   });
 
   it.skip('handles image load success', () => {
-    const { Logger } = require('@shared/src/utils/logger');
+    const { Logger } = require('@beakerstack/shared/utils/logger');
     const debugSpy = jest.spyOn(Logger, 'debug');
 
     render(
@@ -716,7 +722,9 @@ describe('AvatarUpload (Native)', () => {
   });
 
   it('handles button disabled state during upload', () => {
-    const { useAvatarUpload } = require('@shared/src/hooks/useAvatarUpload');
+    const {
+      useAvatarUpload,
+    } = require('@beakerstack/shared/hooks/useAvatarUpload');
     useAvatarUpload.mockReturnValue({
       uploading: true,
       progress: 50,

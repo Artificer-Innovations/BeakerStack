@@ -2,11 +2,11 @@ import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
-import { AuthProvider } from '@shared/contexts/AuthContext';
-import { ProfileProvider } from '@shared/contexts/ProfileContext';
+import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
+import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 // Import from native-specific file for correct types
-import { configureGoogleSignIn } from '@shared/hooks/useAuth.native';
-import { Logger } from '@shared/utils/logger';
+import { configureGoogleSignIn } from '@beakerstack/shared/hooks/useAuth.native';
+import { Logger } from '@beakerstack/shared/utils/logger';
 import { supabase } from './src/lib/supabase';
 import { AppNavigator } from './src/navigation/AppNavigator';
 

@@ -1,7 +1,7 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useProfile } from '@shared/src/hooks/useProfile';
+import { useProfile } from '@beakerstack/shared/hooks/useProfile';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
-import type { UserProfile } from '@shared/src/types/profile';
+import type { UserProfile } from '@beakerstack/shared/types/profile';
 
 // Mock Supabase client
 const createMockSupabaseClient = () => {

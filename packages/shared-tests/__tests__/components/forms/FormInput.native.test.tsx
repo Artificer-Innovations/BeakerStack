@@ -1,7 +1,7 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { FormInput } from '@shared/src/components/forms/FormInput.native';
+import { FormInput } from '@beakerstack/shared/components/forms/FormInput.native';
 
 describe('FormInput (Native)', () => {
   beforeEach(() => {

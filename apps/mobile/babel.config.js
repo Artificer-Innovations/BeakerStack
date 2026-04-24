@@ -10,7 +10,7 @@ module.exports = function (api) {
           root: ['./src'],
           alias: {
             '@': './src',
-            '@shared': '../../packages/shared/src',
+            '@beakerstack/shared': '../../packages/shared/src',
           },
           extensions: ['.native.tsx', '.native.ts', '.ios.js', '.android.js', '.js', '.ts', '.tsx', '.json']
         }
