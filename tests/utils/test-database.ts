@@ -20,7 +20,10 @@ export function getTestSupabaseConfig() {
   const supabaseAnonKey =
     process.env['SUPABASE_ANON_KEY'] || LOCAL_SUPABASE_DEMO_ANON_KEY;
 
-  if (!process.env['SUPABASE_ANON_KEY']) {
+  // Run the local guard whenever the resolved key is the public CLI demo JWT,
+  // including when someone copies it into the environment alongside a
+  // non-local SUPABASE_URL (which would otherwise bypass the check).
+  if (supabaseAnonKey === LOCAL_SUPABASE_DEMO_ANON_KEY) {
     assertLocalSupabaseEnvironment(supabaseUrl);
   }
 
@@ -72,11 +75,15 @@ export function generateTestEmail(): string {
 
 /**
  * Generate a unique test username.
- * Uses crypto.randomUUID() (with hyphens stripped) to avoid collisions in
- * parallel test runs while keeping the username syntactically simple.
+ * Uses random hex from a UUID so parallel runs rarely collide. The value is
+ * capped at 30 characters to satisfy DB / profile schema limits (see
+ * packages/shared/src/validation/profileSchema.ts).
  */
 export function generateTestUsername(): string {
-  return `testuser_${randomUUID().replace(/-/g, '')}`;
+  const prefix = 'testuser_';
+  const hex = randomUUID().replace(/-/g, '');
+  const suffix = hex.slice(0, 30 - prefix.length);
+  return `${prefix}${suffix}`;
 }
 
 /**

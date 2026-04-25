@@ -55,7 +55,7 @@ export function createServiceRoleClient(): SupabaseClient {
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     LOCAL_SUPABASE_DEMO_SERVICE_ROLE_KEY;
 
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (serviceRoleKey === LOCAL_SUPABASE_DEMO_SERVICE_ROLE_KEY) {
     assertLocalSupabaseEnvironment(supabaseUrl);
   }
 
