@@ -279,7 +279,7 @@ describe('AvatarUpload (Native)', () => {
   it('handles Android platform', async () => {
     const { Platform } = require('react-native');
     Platform.OS = 'android';
-    // @ts-ignore
+    // @ts-expect-error test-only assignment to global __DEV__
     global.__DEV__ = true;
 
     const { launchImageLibraryAsync } = require('expo-image-picker');
@@ -608,7 +608,7 @@ describe('AvatarUpload (Native)', () => {
   it('fixes URL for Android emulator in dev mode', () => {
     const { Platform } = require('react-native');
     Platform.OS = 'android';
-    // @ts-ignore
+    // @ts-expect-error test-only assignment to global __DEV__
     global.__DEV__ = true;
 
     render(
@@ -626,7 +626,7 @@ describe('AvatarUpload (Native)', () => {
     expect(images.length).toBeGreaterThan(0);
 
     Platform.OS = 'ios';
-    // @ts-ignore
+    // @ts-expect-error test-only assignment to global __DEV__
     global.__DEV__ = false;
   });
 

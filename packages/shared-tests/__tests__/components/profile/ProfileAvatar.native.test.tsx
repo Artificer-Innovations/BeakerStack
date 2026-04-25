@@ -1,5 +1,5 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ProfileAvatar } from '@beakerstack/shared/components/profile/ProfileAvatar.native';
 import type { UserProfile } from '@beakerstack/shared/types/profile';

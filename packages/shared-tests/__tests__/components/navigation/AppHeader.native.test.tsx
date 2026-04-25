@@ -31,9 +31,13 @@ jest.mock('react-native', () => {
 
 // Mock UserMenu
 jest.mock('@beakerstack/shared/components/navigation/UserMenu.native', () => ({
-  UserMenu: ({ user, profile }: { user: any; profile: any }) => (
-    <div data-testid='user-menu'>User Menu</div>
-  ),
+  UserMenu: ({
+    user: _user,
+    profile: _profile,
+  }: {
+    user: any;
+    profile: any;
+  }) => <div data-testid='user-menu'>User Menu</div>,
 }));
 
 // react-native-svg is mocked via moduleNameMapper

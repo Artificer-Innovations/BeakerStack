@@ -253,7 +253,7 @@ describe('AvatarUpload', () => {
       uploadedUrl: newAvatarUrl, // New uploaded URL
     });
 
-    const { rerender } = render(
+    render(
       <AvatarUpload
         currentAvatarUrl={oldAvatarUrl}
         onUploadComplete={mockOnUploadComplete}

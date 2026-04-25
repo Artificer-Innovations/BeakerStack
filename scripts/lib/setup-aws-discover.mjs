@@ -146,7 +146,6 @@ export async function discoverRoute53PublicZonesForApex(apexDomain, awsProfileAr
     return { ok: false, error: 'Invalid JSON from list-hosted-zones-by-name', zones: [] };
   }
   const list = Array.isArray(data.HostedZones) ? data.HostedZones : [];
-  const wantName = `${apex}.`;
   /** @type { { id: string; name: string }[] } */
   const zones = [];
   for (const z of list) {

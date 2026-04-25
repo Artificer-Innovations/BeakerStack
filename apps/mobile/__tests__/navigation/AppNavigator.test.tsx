@@ -1,6 +1,4 @@
-import React from 'react';
 import { render } from '@testing-library/react-native';
-import { NavigationContainer } from '@react-navigation/native';
 import { AppNavigator } from '../../src/navigation/AppNavigator';
 import { useFeatureFlags } from '../../src/config/featureFlags';
 
@@ -11,7 +9,6 @@ jest.mock('../../src/config/featureFlags', () => ({
 
 // Mock screens
 jest.mock('../../src/screens/HomeScreen', () => {
-  const React = require('react');
   const { View, Text } = require('react-native');
   return () => (
     <View testID='home-screen'>
@@ -21,7 +18,6 @@ jest.mock('../../src/screens/HomeScreen', () => {
 });
 
 jest.mock('../../src/screens/LoginScreen', () => {
-  const React = require('react');
   const { View, Text } = require('react-native');
   return () => (
     <View testID='login-screen'>
@@ -31,7 +27,6 @@ jest.mock('../../src/screens/LoginScreen', () => {
 });
 
 jest.mock('../../src/screens/SignupScreen', () => {
-  const React = require('react');
   const { View, Text } = require('react-native');
   return () => (
     <View testID='signup-screen'>
@@ -41,7 +36,6 @@ jest.mock('../../src/screens/SignupScreen', () => {
 });
 
 jest.mock('../../src/screens/DashboardScreen', () => {
-  const React = require('react');
   const { View, Text } = require('react-native');
   return () => (
     <View testID='dashboard-screen'>
@@ -51,7 +45,6 @@ jest.mock('../../src/screens/DashboardScreen', () => {
 });
 
 jest.mock('../../src/screens/ProfileScreen', () => {
-  const React = require('react');
   const { View, Text } = require('react-native');
   return () => (
     <View testID='profile-screen'>
@@ -84,7 +77,7 @@ describe('AppNavigator', () => {
 
   it('exposes navigation ref in dev mode', () => {
     const originalDev = __DEV__;
-    // @ts-ignore
+    // @ts-expect-error test-only assignment to global __DEV__
     global.__DEV__ = true;
 
     render(<AppNavigator />);
@@ -92,14 +85,14 @@ describe('AppNavigator', () => {
     // Navigation ref should be exposed to global scope in dev mode
     expect((global as any).navigationRef).toBeDefined();
 
-    // @ts-ignore
+    // @ts-expect-error test-only assignment to global __DEV__
     global.__DEV__ = originalDev;
   });
 
   it.skip('does not expose navigation ref in production', () => {
     // Skip - __DEV__ is read-only in Jest environment
     const originalDev = __DEV__;
-    // @ts-ignore
+    // @ts-expect-error test-only assignment to global __DEV__
     global.__DEV__ = false;
 
     render(<AppNavigator />);
@@ -107,7 +100,7 @@ describe('AppNavigator', () => {
     // Navigation ref should not be exposed in production
     expect((global as any).navigationRef).toBeUndefined();
 
-    // @ts-ignore
+    // @ts-expect-error test-only assignment to global __DEV__
     global.__DEV__ = originalDev;
   });
 });

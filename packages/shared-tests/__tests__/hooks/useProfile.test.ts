@@ -539,7 +539,7 @@ describe('useProfile', () => {
   });
 
   it('should handle unsubscribe error gracefully', async () => {
-    const { mockClient, mockProfile } = createMockSupabaseClient();
+    const { mockClient } = createMockSupabaseClient();
     const mockUser = createMockUser();
 
     const mockChannel = {

@@ -93,7 +93,6 @@ jest.mock(
   '@beakerstack/shared/components/profile/ProfileHeader.native',
   () => ({
     ProfileHeader: ({ profile }: any) => {
-      const React = require('react');
       const { View, Text } = require('react-native');
       return (
         <View testID='profile-header'>
@@ -110,7 +109,6 @@ jest.mock(
 
 jest.mock('@beakerstack/shared/components/profile/ProfileStats.native', () => ({
   ProfileStats: ({ profile }: any) => {
-    const React = require('react');
     const { View, Text } = require('react-native');
     return profile ? (
       <View testID='profile-stats'>
@@ -124,7 +122,6 @@ jest.mock(
   '@beakerstack/shared/components/profile/ProfileEditor.native',
   () => ({
     ProfileEditor: ({ user }: any) => {
-      const React = require('react');
       const { View, Text } = require('react-native');
       return (
         <View testID='profile-editor'>
