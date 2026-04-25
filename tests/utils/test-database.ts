@@ -4,6 +4,7 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
+import { generateTestPassword } from './test-helpers';
 
 /**
  * Get Supabase URL and anon key from environment variables
@@ -30,7 +31,7 @@ export async function cleanupTestUser(
     // Sign in as the user to delete their profile
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: `test-${userId}@example.com`,
-      password: 'TestPassword123!',
+      password: generateTestPassword(),
     });
 
     if (!signInError) {

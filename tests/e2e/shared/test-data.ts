@@ -3,17 +3,14 @@
  * Provides reusable test data that can be used across E2E test flows
  */
 
+import { generateTestPassword } from '../../utils/test-helpers';
+
 /**
  * Generate a unique test email
  */
 export function generateTestEmail(): string {
   return `e2e-test-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`;
 }
-
-/**
- * Standard test password for E2E tests
- */
-export const TEST_PASSWORD = 'TestPassword123!';
 
 /**
  * Test user credentials
@@ -29,7 +26,7 @@ export interface TestUser {
 export function createTestUser(): TestUser {
   return {
     email: generateTestEmail(),
-    password: TEST_PASSWORD,
+    password: generateTestPassword(),
   };
 }
 
@@ -39,7 +36,7 @@ export function createTestUser(): TestUser {
 export const TestUsers = {
   valid: {
     email: 'e2e-valid@example.com',
-    password: TEST_PASSWORD,
+    password: generateTestPassword(),
   },
   invalid: {
     email: 'invalid-email',

@@ -243,9 +243,9 @@ describe('Auth Flow Integration', () => {
    # Set web URL (for web tests) - defaults to http://localhost:5173 if not set
    export WEB_URL="http://localhost:5173"
 
-   # Set test credentials
+   # Set test credentials (password optional — npm scripts and run-e2e.sh pick a random one if unset)
    export TEST_EMAIL="e2e-test-$(date +%s)@example.com"
-   export TEST_PASSWORD="TestPassword123!"
+   export TEST_PASSWORD="E2e_$(openssl rand -hex 16)_Aa1"
 
    # Set mobile app ID (for mobile tests)
    export MOBILE_APP_ID="com.anonymous.beakerstack"
@@ -303,7 +303,7 @@ export PATH="$PATH:$HOME/.maestro/bin"
 maestro test tests/e2e/mobile/flows/home.yaml \
  --env MOBILE_APP_ID="com.anonymous.beakerstack" \
   --env TEST_EMAIL="e2e-test-$(date +%s)@example.com" \
-  --env TEST_PASSWORD="TestPassword123!"
+  --env TEST_PASSWORD="E2e_$(openssl rand -hex 16)_Aa1"
 
 # Run against specific environment (script sets env vars automatically)
 ./scripts/run-e2e.sh local
@@ -613,8 +613,8 @@ describe('Profile Sync', () => {
     const webClient = createWebTestClient();
     const mobileClient = createMobileTestClient();
 
-    const { userId, email } = await createTestUser(webClient);
-    await signInTestUser(mobileClient, email, 'TestPassword123!');
+    const { userId, email, password } = await createTestUser(webClient);
+    await signInTestUser(mobileClient, email, password);
 
     // Update profile on web
     await webClient
@@ -754,7 +754,7 @@ appId: ${WEB_URL}
 - **Solution:** Maestro doesn't support `runScript`. Set environment variables before running tests:
   ```bash
   export TEST_EMAIL="e2e-test-$(date +%s)@example.com"
-  export TEST_PASSWORD="TestPassword123!"
+  export TEST_PASSWORD="E2e_$(openssl rand -hex 16)_Aa1"
   npm run test:e2e:web
   ```
 

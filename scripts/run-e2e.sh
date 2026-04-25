@@ -57,7 +57,7 @@ fi
 export WEB_URL="$WEB_URL"
 export MOBILE_APP_ID="$MOBILE_APP_ID"
 export TEST_EMAIL="e2e-test-${RANDOM}@example.com"
-export TEST_PASSWORD="TestPassword123!"
+export TEST_PASSWORD="${TEST_PASSWORD:-E2e_$(openssl rand -hex 16)_Aa1}"
 
 echo ""
 echo "📋 Test Configuration:"
