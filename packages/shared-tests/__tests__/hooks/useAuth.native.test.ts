@@ -147,7 +147,7 @@ const createMockSupabaseClient = (hasStorage = false) => {
 describe('useAuth (Native)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // @ts-ignore
+    // @ts-expect-error test-only assignment to global __DEV__
     global.__DEV__ = false;
   });
 

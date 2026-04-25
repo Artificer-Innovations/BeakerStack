@@ -50,13 +50,8 @@ jest.mock('@beakerstack/shared/components/forms/FormError.native', () => ({
 }));
 
 // Mock AvatarUpload component
-let mockOnUploadComplete: ((url: string) => Promise<void>) | null = null;
-let mockOnRemove: (() => Promise<void>) | null = null;
-
 jest.mock('@beakerstack/shared/components/profile/AvatarUpload.native', () => ({
   AvatarUpload: ({ onUploadComplete, onRemove }: any) => {
-    mockOnUploadComplete = onUploadComplete;
-    mockOnRemove = onRemove;
     return (
       <div data-testid='avatar-upload'>
         <button

@@ -25,9 +25,9 @@ on:
       - '**/babel.config.*'
       - '**/metro.config.*'
       - '**/vite.config.*'
-      # Test-related scripts (if they change, tests might be affected)
-      - 'scripts/merge-coverage.js'
-      - 'scripts/format-ci-summary.mjs'
+      # Scripts and repo lint config (lint covers scripts/**)
+      - 'scripts/**'
+      - '.eslintrc.js'
       # Workflow file itself
       - '.github/workflows/test.yml'
 

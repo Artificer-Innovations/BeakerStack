@@ -84,7 +84,7 @@ describe('useAuth', () => {
   });
 
   it('should handle sign in with email and password', async () => {
-    const { mockClient, mockUser, mockSession } = createMockSupabaseClient();
+    const { mockClient } = createMockSupabaseClient();
     const { result } = renderHook(() => useAuth(mockClient));
 
     await waitFor(() => {

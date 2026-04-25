@@ -1052,7 +1052,7 @@ function createPromptInterface() {
  * @param {CliFlags} flags
  * @param {import('node:readline/promises').ReadLine} rl
  */
-async function phasePrereqs(flags, rl) {
+async function phasePrereqs(_flags, _rl) {
   const need = ['node', 'npm'];
   const optional = ['supabase', 'aws', 'gh'];
   for (const b of need) {

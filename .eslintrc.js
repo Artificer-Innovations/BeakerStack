@@ -38,4 +38,44 @@ module.exports = {
     '*.config.js',
     '*.config.ts',
   ],
+  overrides: [
+    {
+      files: ['**/*.cjs', 'scripts/**/*.js'],
+      rules: {
+        '@typescript-eslint/no-var-requires': 'off',
+      },
+    },
+    {
+      files: [
+        '**/__tests__/**/*.{ts,tsx}',
+        '**/*.test.{ts,tsx}',
+        '**/__mocks__/**/*.{ts,tsx}',
+      ],
+      env: {
+        jest: true,
+      },
+      rules: {
+        '@typescript-eslint/no-var-requires': 'off',
+      },
+    },
+    {
+      files: ['scripts/**/*.mjs'],
+      rules: {
+        'no-console': 'off',
+      },
+    },
+    {
+      files: [
+        'tests/**/*.{ts,tsx}',
+        'packages/shared-tests/**/*.{ts,tsx}',
+        'apps/mobile/__tests__/**/*.{ts,tsx}',
+        'scripts/**/*.js',
+      ],
+      rules: {
+        'no-console': 'off',
+        '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-non-null-assertion': 'off',
+      },
+    },
+  ],
 };

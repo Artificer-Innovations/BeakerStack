@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import { BrowserRouter, MemoryRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
@@ -25,22 +25,6 @@ const createMockSupabaseClient = (): SupabaseClient => {
       signInWithOAuth: jest.fn(),
     },
   } as unknown as SupabaseClient;
-};
-
-const renderWithProviders = (
-  component: React.ReactElement,
-  initialEntries: string[] = ['/']
-) => {
-  const mockClient = createMockSupabaseClient();
-  return render(
-    <MemoryRouter initialEntries={initialEntries}>
-      <AuthProvider supabaseClient={mockClient}>
-        <ProfileProvider supabaseClient={mockClient}>
-          {component}
-        </ProfileProvider>
-      </AuthProvider>
-    </MemoryRouter>
-  );
 };
 
 describe('AppHeader (Web)', () => {

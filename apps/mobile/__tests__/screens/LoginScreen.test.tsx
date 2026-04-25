@@ -256,7 +256,7 @@ describe('LoginScreen', () => {
 
   it('redirects to Dashboard if already authenticated', async () => {
     const mockClient = createMockSupabaseClient(true);
-    const { getByText } = renderWithProviders(
+    renderWithProviders(
       <LoginScreen navigation={mockNavigation} />,
       mockClient
     );

@@ -29,7 +29,10 @@ export function getResolvedTestPassword(): string {
  * Uses {@link getResolvedTestPassword} so the password matches `TEST_PASSWORD` when Maestro sets it.
  */
 export function getPredefinedValidLoginUser(): TestUser {
-  return { email: PREDEFINED_VALID_USER_EMAIL, password: getResolvedTestPassword() };
+  return {
+    email: PREDEFINED_VALID_USER_EMAIL,
+    password: getResolvedTestPassword(),
+  };
 }
 
 /**

@@ -37,9 +37,7 @@ describe('FormInput (Native)', () => {
     );
 
     const input = screen.getByPlaceholderText('Enter username');
-    // react-native-web renders TextInput - need to trigger onChangeText
-    // For react-native-web, we can use the native event
-    const nativeEvent = { target: { value: 'newvalue' } };
+    // react-native-web renders TextInput - fire changeText directly
     fireEvent(input, 'changeText', 'newvalue');
 
     expect(mockOnChange).toHaveBeenCalledWith('newvalue');
