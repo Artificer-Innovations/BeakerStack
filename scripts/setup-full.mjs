@@ -152,19 +152,23 @@ function parseArgv(argv) {
   return flags;
 }
 
-function redactForLog(message) {
+export function redactForLog(message) {
   return String(message)
     .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[jwt]')
     .replace(/postgresql:\/\/[^:]+:[^@]+@/g, 'postgresql://postgres:[redacted]@')
     .replace(/(api_key|apikey|secret|password|token)=([^\s&]+)/gi, '$1=[redacted]');
 }
 
+export function formatSetupLogMessage(msg) {
+  return `[setup] ${redactForLog(msg)}`;
+}
+
 function logInfo(msg) {
-  console.log(`[setup] ${msg}`);
+  console.log(formatSetupLogMessage(msg));
 }
 
 function logWarn(msg) {
-  console.warn(`[setup] ${redactForLog(msg)}`);
+  console.warn(formatSetupLogMessage(msg));
 }
 
 /**
@@ -2001,7 +2005,9 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error('[setup] Fatal:', redactForLog(String(err && err.stack ? err.stack : err)));
-  process.exit(1);
-});
+if (import.meta.url === url.pathToFileURL(process.argv[1] || '').href) {
+  main().catch((err) => {
+    console.error('[setup] Fatal:', redactForLog(String(err && err.stack ? err.stack : err)));
+    process.exit(1);
+  });
+}
