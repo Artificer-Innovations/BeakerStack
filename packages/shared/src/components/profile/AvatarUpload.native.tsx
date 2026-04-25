@@ -253,7 +253,7 @@ export function AvatarUpload({
         blob = new Blob([uint8Array], { type: mimeType });
 
         // Verify blob has content
-        if (!blob || blob.size === 0) {
+        if (blob.size === 0) {
           throw new Error('Image file is empty or could not be converted');
         }
 

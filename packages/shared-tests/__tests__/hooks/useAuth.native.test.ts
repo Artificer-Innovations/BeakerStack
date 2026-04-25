@@ -555,12 +555,12 @@ describe('useAuth (Native)', () => {
       name: 'AuthError',
       status: 401,
     };
+    const { mockClient } = createMockSupabaseClient();
     (mockClient.auth.signInWithIdToken as jest.Mock).mockResolvedValueOnce({
       data: { user: null, session: null },
       error: authError,
     });
 
-    const { mockClient } = createMockSupabaseClient();
     const { result } = renderHook(() => useAuth(mockClient));
 
     await waitFor(() => {
