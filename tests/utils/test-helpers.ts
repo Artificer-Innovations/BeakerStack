@@ -3,7 +3,13 @@
  * Provides reusable functions for test setup, teardown, and assertions
  */
 
+import { randomBytes } from 'crypto';
 import { SupabaseClient } from '@supabase/supabase-js';
+
+/** Random password for disposable test users (avoids fixed strings in the repo). */
+export function generateTestPassword(): string {
+  return `E2e_${randomBytes(16).toString('hex')}_Aa1`;
+}
 
 /**
  * Sleep for a specified number of milliseconds
@@ -19,13 +25,14 @@ export function sleep(ms: number): Promise<void> {
 export async function createTestUser(
   supabase: SupabaseClient,
   email?: string,
-  password = 'TestPassword123!'
-): Promise<{ userId: string; email: string }> {
+  password?: string
+): Promise<{ userId: string; email: string; password: string }> {
   const testEmail = email || `test-${Date.now()}@example.com`;
+  const resolvedPassword = password ?? generateTestPassword();
 
   const { data, error } = await supabase.auth.signUp({
     email: testEmail,
-    password,
+    password: resolvedPassword,
   });
 
   if (error || !data.user) {
@@ -34,7 +41,7 @@ export async function createTestUser(
     );
   }
 
-  return { userId: data.user.id, email: testEmail };
+  return { userId: data.user.id, email: testEmail, password: resolvedPassword };
 }
 
 /**
@@ -43,7 +50,7 @@ export async function createTestUser(
 export async function signInTestUser(
   supabase: SupabaseClient,
   email: string,
-  password = 'TestPassword123!'
+  password: string
 ): Promise<void> {
   const { error } = await supabase.auth.signInWithPassword({
     email,
@@ -166,6 +173,6 @@ export const TestData = {
     `test-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`,
   username: () =>
     `testuser_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-  password: () => 'TestPassword123!',
+  password: () => generateTestPassword(),
   bio: () => `Test bio ${Date.now()}`,
 };

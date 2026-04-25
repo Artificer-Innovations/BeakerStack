@@ -1,4 +1,14 @@
 /**
+ * Escape a value for use inside double quotes in a dotenv line (backslashes first, then quotes).
+ * Compatible with common dotenv loaders that interpret `\\` and `\"` inside quoted values.
+ * @param {string} s
+ * @returns {string}
+ */
+export function escapeDotEnvDoubleQuotedValue(s) {
+  return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+/**
  * Minimal dotenv parsing for setup scripts (KEY=value, # comments, quoted values).
  * @param {string} content
  * @returns {Record<string, string>}
