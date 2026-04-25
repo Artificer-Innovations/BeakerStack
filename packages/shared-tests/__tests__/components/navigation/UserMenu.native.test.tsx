@@ -1,17 +1,22 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { UserMenu } from '@shared/src/components/navigation/UserMenu.native';
-import { AuthProvider } from '@shared/src/contexts/AuthContext';
+import { UserMenu } from '@beakerstack/shared/components/navigation/UserMenu.native';
+import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
-import type { UserProfile } from '@shared/src/types/profile';
+import type { UserProfile } from '@beakerstack/shared/types/profile';
 
 // Mock ProfileAvatar
-jest.mock('@shared/src/components/profile/ProfileAvatar.native', () => ({
-  ProfileAvatar: ({ profile }: { profile: UserProfile | null }) => (
-    <div data-testid='profile-avatar'>{profile?.display_name || 'Avatar'}</div>
-  ),
-}));
+jest.mock(
+  '@beakerstack/shared/components/profile/ProfileAvatar.native',
+  () => ({
+    ProfileAvatar: ({ profile }: { profile: UserProfile | null }) => (
+      <div data-testid='profile-avatar'>
+        {profile?.display_name || 'Avatar'}
+      </div>
+    ),
+  })
+);
 
 // Mock Alert and Platform
 jest.mock('react-native', () => {

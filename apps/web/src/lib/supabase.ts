@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@shared/types/database';
-import { Logger } from '@shared/utils/logger';
+import type { Database } from '@beakerstack/shared/types/database';
+import { Logger } from '@beakerstack/shared/utils/logger';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;

@@ -1,7 +1,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { FormError } from '@shared/src/components/forms/FormError.native';
+import { FormError } from '@beakerstack/shared/components/forms/FormError.native';
 
 describe('FormError (Native)', () => {
   it('renders error message when message is provided', () => {

@@ -740,10 +740,10 @@ export function useAuth() {
 
 ```typescript
 // apps/mobile/src/screens/ProfileScreen.tsx
-import { useAuth } from '@shared/hooks/useAuth';
+import { useAuth } from '@beakerstack/shared/hooks/useAuth';
 
 // apps/web/src/pages/ProfilePage.tsx
-import { useAuth } from '@shared/hooks/useAuth';
+import { useAuth } from '@beakerstack/shared/hooks/useAuth';
 ```
 
 #### 2. Validation & Business Rules (100% shareable)
@@ -947,9 +947,9 @@ Components that handle data fetching and business logic can be almost entirely s
 ```typescript
 // packages/shared/src/components/profile/ProfileEditor.tsx
 import React, { useState } from 'react'
-import { useProfile } from '@shared/hooks/useProfile'
-import { profileSchema } from '@shared/validation/schemas'
-import type { ProfileFormData } from '@shared/validation/schemas'
+import { useProfile } from '@beakerstack/shared/hooks/useProfile'
+import { profileSchema } from '@beakerstack/shared/validation/schemas'
+import type { ProfileFormData } from '@beakerstack/shared/validation/schemas'
 
 // UI components are platform-specific, but business logic is shared
 import { FormInput, FormButton, FormError } from '../forms'
@@ -1039,7 +1039,7 @@ Each app configures path aliases to import from shared package:
 {
   "compilerOptions": {
     "paths": {
-      "@shared/*": ["../../packages/shared/src/*"]
+      "@beakerstack/shared/*": ["../../packages/shared/src/*"]
     }
   }
 }
@@ -1048,7 +1048,7 @@ Each app configures path aliases to import from shared package:
 {
   "compilerOptions": {
     "paths": {
-      "@shared/*": ["../../packages/shared/src/*"]
+      "@beakerstack/shared/*": ["../../packages/shared/src/*"]
     }
   }
 }
@@ -1218,9 +1218,9 @@ Usage:
 
 ```typescript
 // Both apps can import the same way
-import { useAuth } from '@shared/hooks/useAuth';
-import { ProfileEditor } from '@shared/components/profile/ProfileEditor';
-import { profileSchema } from '@shared/validation/schemas';
+import { useAuth } from '@beakerstack/shared/hooks/useAuth';
+import { ProfileEditor } from '@beakerstack/shared/components/profile/ProfileEditor';
+import { profileSchema } from '@beakerstack/shared/validation/schemas';
 ```
 
 ### Shared Package Configuration
@@ -1228,7 +1228,7 @@ import { profileSchema } from '@shared/validation/schemas';
 ```json
 // packages/shared/package.json
 {
-  "name": "@shared/components",
+  "name": "@beakerstack/shared",
   "version": "1.0.0",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -2818,7 +2818,10 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
-        '@shared': path.resolve(__dirname, '../../packages/shared/src'),
+        '@beakerstack/shared': path.resolve(
+          __dirname,
+          '../../packages/shared/src'
+        ),
       },
     },
     build: {

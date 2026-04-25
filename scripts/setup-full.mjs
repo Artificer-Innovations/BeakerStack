@@ -34,7 +34,7 @@ import {
   resolveValueForGithub,
   SETUP_FROM_PHASE_ALIASES,
 } from './lib/setup-manifest.mjs';
-import { parseDotEnv } from './lib/setup-dotenv.mjs';
+import { escapeDotEnvDoubleQuotedValue, parseDotEnv } from './lib/setup-dotenv.mjs';
 import { readMaskedLineIfTty, resolveSecretInputLine } from './lib/setup-secret-input.mjs';
 import { envVarsFromGoogleServicesJson } from './lib/setup-google-services.mjs';
 import {
@@ -152,19 +152,23 @@ function parseArgv(argv) {
   return flags;
 }
 
-function redactForLog(message) {
+export function redactForLog(message) {
   return String(message)
     .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[jwt]')
     .replace(/postgresql:\/\/[^:]+:[^@]+@/g, 'postgresql://postgres:[redacted]@')
     .replace(/(api_key|apikey|secret|password|token)=([^\s&]+)/gi, '$1=[redacted]');
 }
 
+export function formatSetupLogMessage(msg) {
+  return `[setup] ${redactForLog(msg)}`;
+}
+
 function logInfo(msg) {
-  console.log(`[setup] ${msg}`);
+  console.log(formatSetupLogMessage(msg));
 }
 
 function logWarn(msg) {
-  console.warn(`[setup] ${redactForLog(msg)}`);
+  console.warn(formatSetupLogMessage(msg));
 }
 
 /**
@@ -335,7 +339,9 @@ function stringifyDotEnv(record) {
     const v = record[k];
     if (v === undefined || v === null) continue;
     const needsQuote = /[\s#]/.test(v) || v === '';
-    lines.push(needsQuote ? `${k}="${String(v).replace(/"/g, '\\"')}"` : `${k}=${v}`);
+    lines.push(
+      needsQuote ? `${k}="${escapeDotEnvDoubleQuotedValue(v)}"` : `${k}=${v}`,
+    );
   }
   lines.push('');
   return lines.join('\n');
@@ -2001,7 +2007,9 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error('[setup] Fatal:', redactForLog(String(err && err.stack ? err.stack : err)));
-  process.exit(1);
-});
+if (import.meta.url === url.pathToFileURL(process.argv[1] || '').href) {
+  main().catch((err) => {
+    console.error('[setup] Fatal:', redactForLog(String(err && err.stack ? err.stack : err)));
+    process.exit(1);
+  });
+}

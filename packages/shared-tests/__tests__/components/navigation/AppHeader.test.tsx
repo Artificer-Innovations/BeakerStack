@@ -2,11 +2,11 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
-import { AppHeader } from '@shared/src/components/navigation/AppHeader.web';
-import { AuthProvider } from '@shared/src/contexts/AuthContext';
-import { ProfileProvider } from '@shared/src/contexts/ProfileContext';
+import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
+import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
+import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { BRANDING } from '@shared/src/config/branding';
+import { BRANDING } from '@beakerstack/shared/config/branding';
 
 // Mock Supabase client
 const createMockSupabaseClient = (): SupabaseClient => {

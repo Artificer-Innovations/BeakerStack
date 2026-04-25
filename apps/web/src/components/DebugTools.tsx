@@ -1,20 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
-import { useAuthContext } from '@shared/contexts/AuthContext';
-import { useProfile } from '@shared/hooks/useProfile';
+import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
+import { useProfile } from '@beakerstack/shared/hooks/useProfile';
 import { supabase } from '@/lib/supabase';
 import {
   profileFormSchema,
   type ProfileFormInput,
-} from '@shared/validation/profileSchema';
+} from '@beakerstack/shared/validation/profileSchema';
 import { ZodError } from 'zod';
-import { FormInput } from '@shared/components/forms/FormInput.web';
-import { FormButton } from '@shared/components/forms/FormButton.web';
-import { FormError } from '@shared/components/forms/FormError.web';
-import { ProfileEditor } from '@shared/components/profile/ProfileEditor.web';
-import { ProfileAvatar } from '@shared/components/profile/ProfileAvatar.web';
-import { ProfileHeader } from '@shared/components/profile/ProfileHeader.web';
-import { ProfileStats } from '@shared/components/profile/ProfileStats.web';
-import { Logger } from '@shared/utils/logger';
+import { FormInput } from '@beakerstack/shared/components/forms/FormInput.web';
+import { FormButton } from '@beakerstack/shared/components/forms/FormButton.web';
+import { FormError } from '@beakerstack/shared/components/forms/FormError.web';
+import { ProfileEditor } from '@beakerstack/shared/components/profile/ProfileEditor.web';
+import { ProfileAvatar } from '@beakerstack/shared/components/profile/ProfileAvatar.web';
+import { ProfileHeader } from '@beakerstack/shared/components/profile/ProfileHeader.web';
+import { ProfileStats } from '@beakerstack/shared/components/profile/ProfileStats.web';
+import { Logger } from '@beakerstack/shared/utils/logger';
 
 export function DebugTools() {
   const [isVisible, setIsVisible] = useState(false);

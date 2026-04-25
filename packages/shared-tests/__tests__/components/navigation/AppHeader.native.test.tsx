@@ -1,11 +1,11 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { AppHeader } from '@shared/src/components/navigation/AppHeader.native';
-import { AuthProvider } from '@shared/src/contexts/AuthContext';
-import { ProfileProvider } from '@shared/src/contexts/ProfileContext';
+import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.native';
+import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
+import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { BRANDING } from '@shared/src/config/branding';
+import { BRANDING } from '@beakerstack/shared/config/branding';
 
 // Mock React Navigation
 const mockNavigate = jest.fn();
@@ -30,7 +30,7 @@ jest.mock('react-native', () => {
 });
 
 // Mock UserMenu
-jest.mock('@shared/src/components/navigation/UserMenu.native', () => ({
+jest.mock('@beakerstack/shared/components/navigation/UserMenu.native', () => ({
   UserMenu: ({ user, profile }: { user: any; profile: any }) => (
     <div data-testid='user-menu'>User Menu</div>
   ),

@@ -9,19 +9,19 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useAuthContext } from '@shared/contexts/AuthContext';
-import { useProfileContext } from '@shared/contexts/ProfileContext';
-import { Logger } from '@shared/utils/logger';
+import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
+import { useProfileContext } from '@beakerstack/shared/contexts/ProfileContext';
+import { Logger } from '@beakerstack/shared/utils/logger';
 import { supabase } from '../lib/supabase';
-import { AppHeader } from '@shared/components/navigation/AppHeader.native';
+import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.native';
 // Import Profile Display Components - Metro will automatically resolve .native.tsx files
-import { ProfileHeader } from '@shared/components/profile/ProfileHeader.native';
-import { ProfileStats } from '@shared/components/profile/ProfileStats.native';
+import { ProfileHeader } from '@beakerstack/shared/components/profile/ProfileHeader.native';
+import { ProfileStats } from '@beakerstack/shared/components/profile/ProfileStats.native';
 // ProfileEditor imported lazily to avoid StyleSheet.create() native bridge errors
 // Dynamic import is used here, which is supported by Metro bundler
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - Dynamic imports are supported by Metro, TypeScript error is a false positive
-import type { ProfileEditorProps } from '@shared/components/profile/ProfileEditor.native';
+import type { ProfileEditorProps } from '@beakerstack/shared/components/profile/ProfileEditor.native';
 let ProfileEditor: React.ComponentType<ProfileEditorProps> | null = null;
 
 type RootStackParamList = {
@@ -91,7 +91,7 @@ function ProfileScreenContent({ navigation: _navigation }: Props) {
       // Dynamic imports are supported by Metro bundler
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore - TypeScript doesn't recognize dynamic imports but Metro supports them
-      import('@shared/components/profile/ProfileEditor.native')
+      import('@beakerstack/shared/components/profile/ProfileEditor.native')
         .then(module => {
           ProfileEditor = module.ProfileEditor;
           setComponentsLoaded(true);

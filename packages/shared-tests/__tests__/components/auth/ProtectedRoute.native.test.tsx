@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ProtectedRoute } from '@shared/src/components/auth/ProtectedRoute.native';
-import { AuthProvider } from '@shared/src/contexts/AuthContext';
+import { ProtectedRoute } from '@beakerstack/shared/components/auth/ProtectedRoute.native';
+import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Mock React Navigation

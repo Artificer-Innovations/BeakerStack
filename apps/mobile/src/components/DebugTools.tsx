@@ -10,15 +10,15 @@ import {
   ActivityIndicator,
   SafeAreaView,
 } from 'react-native';
-import { useAuthContext } from '@shared/contexts/AuthContext';
-import { useProfileContext } from '@shared/contexts/ProfileContext';
-import { useProfile } from '@shared/hooks/useProfile';
+import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
+import { useProfileContext } from '@beakerstack/shared/contexts/ProfileContext';
+import { useProfile } from '@beakerstack/shared/hooks/useProfile';
 import { supabase } from '../lib/supabase';
-import { Logger } from '@shared/utils/logger';
+import { Logger } from '@beakerstack/shared/utils/logger';
 import {
   profileFormSchema,
   type ProfileFormInput,
-} from '@shared/validation/profileSchema';
+} from '@beakerstack/shared/validation/profileSchema';
 import { ZodError } from 'zod';
 import { TextInput } from 'react-native';
 
@@ -640,13 +640,13 @@ function FormComponentsTestMobile() {
   const [componentsLoaded, setComponentsLoaded] = useState(false);
   const [FormComponents, setFormComponents] = useState<{
     FormInput: React.ComponentType<
-      import('@shared/components/forms/FormInput.native').FormInputProps
+      import('@beakerstack/shared/components/forms/FormInput.native').FormInputProps
     >;
     FormButton: React.ComponentType<
-      import('@shared/components/forms/FormButton.native').FormButtonProps
+      import('@beakerstack/shared/components/forms/FormButton.native').FormButtonProps
     >;
     FormError: React.ComponentType<
-      import('@shared/components/forms/FormError.native').FormErrorProps
+      import('@beakerstack/shared/components/forms/FormError.native').FormErrorProps
     >;
   } | null>(null);
 
@@ -656,9 +656,9 @@ function FormComponentsTestMobile() {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore - TypeScript doesn't recognize dynamic imports but Metro supports them
       Promise.all([
-        import('@shared/components/forms/FormInput.native'),
-        import('@shared/components/forms/FormButton.native'),
-        import('@shared/components/forms/FormError.native'),
+        import('@beakerstack/shared/components/forms/FormInput.native'),
+        import('@beakerstack/shared/components/forms/FormButton.native'),
+        import('@beakerstack/shared/components/forms/FormError.native'),
       ])
         .then(([FormInputModule, FormButtonModule, FormErrorModule]) => {
           setFormComponents({
@@ -808,12 +808,12 @@ function ProfileEditorTestMobile() {
   const user = profileContext.currentUser ?? auth.user;
   const [componentsLoaded, setComponentsLoaded] = useState(false);
   const [ProfileEditor, setProfileEditor] = useState<React.ComponentType<
-    import('@shared/components/profile/ProfileEditor.native').ProfileEditorProps
+    import('@beakerstack/shared/components/profile/ProfileEditor.native').ProfileEditorProps
   > | null>(null);
 
   useEffect(() => {
     if (!componentsLoaded) {
-      import('@shared/components/profile/ProfileEditor.native')
+      import('@beakerstack/shared/components/profile/ProfileEditor.native')
         .then(module => {
           setProfileEditor(() => module.ProfileEditor);
           setComponentsLoaded(true);
@@ -863,25 +863,25 @@ function ProfileEditorTestMobile() {
 function ProfileDisplayTestMobile({
   profile,
 }: {
-  profile: import('@shared/types/profile').UserProfile;
+  profile: import('@beakerstack/shared/types/profile').UserProfile;
 }) {
   const [componentsLoaded, setComponentsLoaded] = useState(false);
   const [ProfileAvatar, setProfileAvatar] = useState<React.ComponentType<
-    import('@shared/components/profile/ProfileAvatar.native').ProfileAvatarProps
+    import('@beakerstack/shared/components/profile/ProfileAvatar.native').ProfileAvatarProps
   > | null>(null);
   const [ProfileHeader, setProfileHeader] = useState<React.ComponentType<
-    import('@shared/components/profile/ProfileHeader.native').ProfileHeaderProps
+    import('@beakerstack/shared/components/profile/ProfileHeader.native').ProfileHeaderProps
   > | null>(null);
   const [ProfileStats, setProfileStats] = useState<React.ComponentType<
-    import('@shared/components/profile/ProfileStats.native').ProfileStatsProps
+    import('@beakerstack/shared/components/profile/ProfileStats.native').ProfileStatsProps
   > | null>(null);
 
   useEffect(() => {
     if (!componentsLoaded) {
       Promise.all([
-        import('@shared/components/profile/ProfileAvatar.native'),
-        import('@shared/components/profile/ProfileHeader.native'),
-        import('@shared/components/profile/ProfileStats.native'),
+        import('@beakerstack/shared/components/profile/ProfileAvatar.native'),
+        import('@beakerstack/shared/components/profile/ProfileHeader.native'),
+        import('@beakerstack/shared/components/profile/ProfileStats.native'),
       ])
         .then(([avatarModule, headerModule, statsModule]) => {
           setProfileAvatar(() => avatarModule.ProfileAvatar);

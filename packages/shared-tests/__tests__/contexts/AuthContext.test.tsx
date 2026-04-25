@@ -7,7 +7,10 @@ import {
   act,
 } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { AuthProvider, useAuthContext } from '@shared/src/contexts/AuthContext';
+import {
+  AuthProvider,
+  useAuthContext,
+} from '@beakerstack/shared/contexts/AuthContext';
 import type { SupabaseClient, User, Session } from '@supabase/supabase-js';
 
 // Mock Supabase client

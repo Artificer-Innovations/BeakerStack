@@ -2,8 +2,8 @@ import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import LoginScreen from '../../src/screens/LoginScreen';
-import { AuthProvider } from '@shared/contexts/AuthContext';
-import { ProfileProvider } from '@shared/contexts/ProfileContext';
+import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
+import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Mock expo-constants
@@ -24,7 +24,7 @@ jest.mock('../../src/lib/supabase', () => ({
 }));
 
 // Mock AppHeader
-jest.mock('@shared/components/navigation/AppHeader.native', () => ({
+jest.mock('@beakerstack/shared/components/navigation/AppHeader.native', () => ({
   AppHeader: () => null,
 }));
 

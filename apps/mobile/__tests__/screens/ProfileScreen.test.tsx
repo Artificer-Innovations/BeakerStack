@@ -2,10 +2,10 @@ import React from 'react';
 import { render, waitFor, fireEvent } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import ProfileScreen from '../../src/screens/ProfileScreen';
-import { AuthProvider } from '@shared/contexts/AuthContext';
-import { ProfileProvider } from '@shared/contexts/ProfileContext';
+import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
+import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { BRANDING } from '@shared/config/branding';
+import { BRANDING } from '@beakerstack/shared/config/branding';
 
 // Mock expo-constants
 jest.mock('expo-constants', () => ({
@@ -89,23 +89,26 @@ const mockNavigation = {
 } as any;
 
 // Mock the profile display components
-jest.mock('@shared/components/profile/ProfileHeader.native', () => ({
-  ProfileHeader: ({ profile }: any) => {
-    const React = require('react');
-    const { View, Text } = require('react-native');
-    return (
-      <View testID='profile-header'>
-        <Text>
-          {profile
-            ? `Profile: ${profile.display_name || profile.username}`
-            : 'No profile'}
-        </Text>
-      </View>
-    );
-  },
-}));
+jest.mock(
+  '@beakerstack/shared/components/profile/ProfileHeader.native',
+  () => ({
+    ProfileHeader: ({ profile }: any) => {
+      const React = require('react');
+      const { View, Text } = require('react-native');
+      return (
+        <View testID='profile-header'>
+          <Text>
+            {profile
+              ? `Profile: ${profile.display_name || profile.username}`
+              : 'No profile'}
+          </Text>
+        </View>
+      );
+    },
+  })
+);
 
-jest.mock('@shared/components/profile/ProfileStats.native', () => ({
+jest.mock('@beakerstack/shared/components/profile/ProfileStats.native', () => ({
   ProfileStats: ({ profile }: any) => {
     const React = require('react');
     const { View, Text } = require('react-native');
@@ -117,17 +120,20 @@ jest.mock('@shared/components/profile/ProfileStats.native', () => ({
   },
 }));
 
-jest.mock('@shared/components/profile/ProfileEditor.native', () => ({
-  ProfileEditor: ({ user }: any) => {
-    const React = require('react');
-    const { View, Text } = require('react-native');
-    return (
-      <View testID='profile-editor'>
-        <Text>{user ? 'Editor' : 'No user'}</Text>
-      </View>
-    );
-  },
-}));
+jest.mock(
+  '@beakerstack/shared/components/profile/ProfileEditor.native',
+  () => ({
+    ProfileEditor: ({ user }: any) => {
+      const React = require('react');
+      const { View, Text } = require('react-native');
+      return (
+        <View testID='profile-editor'>
+          <Text>{user ? 'Editor' : 'No user'}</Text>
+        </View>
+      );
+    },
+  })
+);
 
 describe('ProfileScreen', () => {
   let mockSupabaseClient: Partial<SupabaseClient>;

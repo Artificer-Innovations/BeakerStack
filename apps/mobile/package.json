@@ -95,7 +95,7 @@
     ],
     "testEnvironment": "node",
     "moduleNameMapper": {
-      "^@shared/(.*)$": "<rootDir>/../../packages/shared/src/$1",
+      "^@beakerstack/shared/(.*)$": "<rootDir>/../../packages/shared/src/$1",
       "^react-native-svg$": "<rootDir>/__mocks__/react-native-svg.ts"
     },
     "collectCoverageFrom": [

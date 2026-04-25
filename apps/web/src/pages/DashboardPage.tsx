@@ -1,5 +1,8 @@
-import { AppHeader } from '@shared/components/navigation/AppHeader.web';
-import { DASHBOARD_TITLE, DASHBOARD_SUBTITLE } from '@shared/utils/strings';
+import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
+import {
+  DASHBOARD_TITLE,
+  DASHBOARD_SUBTITLE,
+} from '@beakerstack/shared/utils/strings';
 import { supabase } from '@/lib/supabase';
 
 export default function DashboardPage() {

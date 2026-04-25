@@ -1,10 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeAll } from 'vitest';
-import { AuthProvider } from '@shared/contexts/AuthContext';
-import { ProfileProvider } from '@shared/contexts/ProfileContext';
+import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
+import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import App from '../src/App';
-import { HOME_TITLE } from '@shared/utils/strings';
+import { HOME_TITLE } from '@beakerstack/shared/utils/strings';
 
 // Mock environment variables to prevent real Supabase client creation
 beforeAll(() => {

@@ -1,5 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
-import { ProtectedRoute } from '@shared/components/auth/ProtectedRoute.web';
+import { ProtectedRoute } from '@beakerstack/shared/components/auth/ProtectedRoute.web';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';

@@ -24,13 +24,22 @@ export function getTestSupabaseConfig() {
  */
 export async function cleanupTestUser(
   supabase: SupabaseClient,
-  userId: string
+  userId: string,
+  credentials?: { email?: string; password?: string }
 ): Promise<void> {
   try {
+    const email = credentials?.email ?? `test-${userId}@example.com`;
+    const password = credentials?.password ?? process.env.TEST_PASSWORD;
+
+    // Without a stable password source we cannot authenticate for profile cleanup.
+    if (!password) {
+      return;
+    }
+
     // Sign in as the user to delete their profile
     const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: `test-${userId}@example.com`,
-      password: 'TestPassword123!',
+      email,
+      password,
     });
 
     if (!signInError) {

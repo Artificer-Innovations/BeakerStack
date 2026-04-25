@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import { ProfileStats } from '@shared/src/components/profile/ProfileStats.web';
-import type { UserProfile } from '@shared/src/types/profile';
+import { ProfileStats } from '@beakerstack/shared/components/profile/ProfileStats.web';
+import type { UserProfile } from '@beakerstack/shared/types/profile';
 
 describe('ProfileStats', () => {
   const mockProfile: UserProfile = {

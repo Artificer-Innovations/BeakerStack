@@ -1,4 +1,4 @@
-import { BRANDING, brandNameRegex } from '@shared/src/config/branding';
+import { BRANDING, brandNameRegex } from '@beakerstack/shared/config/branding';
 
 describe('branding', () => {
   describe('BRANDING constants', () => {

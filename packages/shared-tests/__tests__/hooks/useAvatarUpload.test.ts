@@ -1,5 +1,5 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useAvatarUpload } from '@shared/src/hooks/useAvatarUpload';
+import { useAvatarUpload } from '@beakerstack/shared/hooks/useAvatarUpload';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Mock Supabase storage client

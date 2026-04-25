@@ -1,4 +1,4 @@
-import { Logger, log } from '@shared/src/utils/logger';
+import { Logger, log } from '@beakerstack/shared/utils/logger';
 
 describe('Logger', () => {
   let consoleDebugSpy: jest.SpyInstance;

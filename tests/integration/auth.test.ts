@@ -17,7 +17,7 @@ import {
 describe('Authentication Integration Tests', () => {
   let supabase: SupabaseClient;
   let testEmail: string;
-  const testPassword = TestData.password();
+  let testPassword: string;
   let testUserId: string;
 
   beforeAll(() => {
@@ -36,6 +36,7 @@ describe('Authentication Integration Tests', () => {
       const result = await createTestUser(supabase);
       testEmail = result.email;
       testUserId = result.userId;
+      testPassword = result.password;
 
       expect(testUserId).toBeDefined();
       expect(testEmail).toBeDefined();

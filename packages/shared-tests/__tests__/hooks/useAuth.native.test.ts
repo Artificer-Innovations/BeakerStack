@@ -2,7 +2,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import {
   useAuth,
   configureGoogleSignIn,
-} from '@shared/src/hooks/useAuth.native';
+} from '@beakerstack/shared/hooks/useAuth.native';
 import type { SupabaseClient, User, Session } from '@supabase/supabase-js';
 
 // Mock expo-constants
@@ -54,7 +54,7 @@ jest.mock(
 );
 
 // Mock Logger
-jest.mock('@shared/src/utils/logger', () => ({
+jest.mock('@beakerstack/shared/utils/logger', () => ({
   Logger: {
     debug: jest.fn(),
     warn: jest.fn(),
@@ -399,7 +399,7 @@ describe('useAuth (Native)', () => {
     const { mockClient } = createMockSupabaseClient();
     const {
       useAuth: useAuthNative,
-    } = require('@shared/src/hooks/useAuth.native');
+    } = require('@beakerstack/shared/hooks/useAuth.native');
     const { result } = renderHook(() => useAuthNative(mockClient));
 
     await waitFor(() => {
@@ -455,7 +455,7 @@ describe('useAuth (Native)', () => {
     const { mockClient } = createMockSupabaseClient();
     const {
       useAuth: useAuthNative,
-    } = require('@shared/src/hooks/useAuth.native');
+    } = require('@beakerstack/shared/hooks/useAuth.native');
     const { result } = renderHook(() => useAuthNative(mockClient));
 
     await waitFor(() => {
@@ -652,7 +652,7 @@ describe('useAuth (Native)', () => {
     });
 
     it('should warn when webClientId is missing', () => {
-      const { Logger } = require('@shared/src/utils/logger');
+      const { Logger } = require('@beakerstack/shared/utils/logger');
       configureGoogleSignIn({});
       expect(Logger.warn).toHaveBeenCalledWith(
         '[useAuth] Google Sign-In not configured: webClientId is missing',
@@ -671,7 +671,7 @@ describe('useAuth (Native)', () => {
         throw new Error('Module not found');
       });
 
-      const { Logger } = require('@shared/src/utils/logger');
+      const { Logger } = require('@beakerstack/shared/utils/logger');
       configureGoogleSignIn({ webClientId: 'test-web-client-id' });
 
       await waitFor(() => {

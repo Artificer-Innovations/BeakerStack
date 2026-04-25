@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SocialLoginButton } from '../SocialLoginButton';
-import { Logger } from '@shared/utils/logger';
+import { Logger } from '@beakerstack/shared/utils/logger';
 
 const createDeferred = () => {
   let innerResolve: (() => void) | undefined;
