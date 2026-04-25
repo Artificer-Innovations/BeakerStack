@@ -20,12 +20,7 @@
  * or `NODE_ENV=production` will trip the guard below.
  */
 
-const LOOPBACK_HOSTS = new Set([
-  '127.0.0.1',
-  'localhost',
-  '0.0.0.0',
-  '::1',
-]);
+const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '0.0.0.0', '::1']);
 
 /** Public Supabase CLI anon JWT. See file banner. */
 export const LOCAL_SUPABASE_DEMO_ANON_KEY =
