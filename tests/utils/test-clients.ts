@@ -5,6 +5,10 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { getTestSupabaseConfig } from './test-database';
+import {
+  LOCAL_SUPABASE_DEMO_SERVICE_ROLE_KEY,
+  assertLocalSupabaseEnvironment,
+} from './supabase-cli-defaults';
 
 /**
  * Create a Supabase client for web testing
@@ -49,7 +53,11 @@ export function createServiceRoleClient(): SupabaseClient {
   const supabaseUrl = process.env.SUPABASE_URL || 'http://127.0.0.1:54321';
   const serviceRoleKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+    LOCAL_SUPABASE_DEMO_SERVICE_ROLE_KEY;
+
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    assertLocalSupabaseEnvironment(supabaseUrl);
+  }
 
   return createClient(supabaseUrl, serviceRoleKey, {
     auth: {

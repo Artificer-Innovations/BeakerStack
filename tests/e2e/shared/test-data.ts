@@ -3,6 +3,7 @@
  * Provides reusable test data that can be used across E2E test flows
  */
 
+import { randomUUID } from 'node:crypto';
 import { generateTestPassword } from '../../utils/test-helpers';
 
 /** Email for the seeded “valid login” E2E user (password from {@link getResolvedTestPassword}). */
@@ -36,10 +37,11 @@ export function getPredefinedValidLoginUser(): TestUser {
 }
 
 /**
- * Generate a unique test email
+ * Generate a unique test email.
+ * Uses crypto.randomUUID() to avoid collisions in parallel test runs.
  */
 export function generateTestEmail(): string {
-  return `e2e-test-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`;
+  return `e2e-test-${randomUUID()}@example.com`;
 }
 
 /**
@@ -61,13 +63,28 @@ export function createTestUser(): TestUser {
 }
 
 /**
- * Predefined test users for different scenarios
+ * Predefined test users for different scenarios.
+ *
+ * The previous combined `invalid` entry has been split into three named
+ * scenarios so each negative-path test can target a specific validation
+ * failure rather than relying on a single ambiguous fixture.
  */
 export const TestUsers = {
   get valid(): TestUser {
     return getPredefinedValidLoginUser();
   },
-  invalid: {
+  /** Malformed email format with an otherwise acceptable password. */
+  invalidEmail: {
+    email: 'invalid-email',
+    password: getResolvedTestPassword(),
+  },
+  /** Valid email format with a weak password value. */
+  weakPassword: {
+    email: PREDEFINED_VALID_USER_EMAIL,
+    password: 'weak',
+  },
+  /** Both email and password are invalid. */
+  invalidBoth: {
     email: 'invalid-email',
     password: 'weak',
   },

@@ -52,6 +52,7 @@
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.9.26",
     "@supabase/supabase-js": "^2.38.0",
+    "buffer": "^6.0.3",
     "expo": "~50.0.0",
     "expo-constants": "~15.4.6",
     "expo-dev-client": "~3.3.12",

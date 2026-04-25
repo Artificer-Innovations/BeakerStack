@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
+import { Buffer } from 'buffer';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   useAvatarUpload,
@@ -125,21 +126,19 @@ export function AvatarUpload({
 
       Logger.debug('[AvatarUpload] Launching image picker...');
 
-      // Launch image picker with timeout to prevent hanging
-      // On Android 13+, the system picker handles permissions automatically
+      // Launch image picker with timeout to prevent hanging.
+      // On Android 13+, the system picker handles permissions automatically.
       const pickerOptions: ImagePicker.ImagePickerOptions = {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
-        // Android-specific options
         allowsMultipleSelection: false,
       };
-      // iOS presentation style (type definition may not include all iOS options)
       if (Platform.OS === 'ios') {
-        (
-          pickerOptions as unknown as { presentationStyle?: string }
-        ).presentationStyle = 'pageSheet';
+        // Use the public expo-image-picker enum (its string value is "pageSheet").
+        pickerOptions.presentationStyle =
+          ImagePicker.UIImagePickerPresentationStyle.PAGE_SHEET;
       }
       const pickerPromise = ImagePicker.launchImageLibraryAsync(pickerOptions);
 
@@ -210,37 +209,15 @@ export function AvatarUpload({
         // Determine MIME type from asset or default to jpeg
         const mimeType = asset.mimeType || 'image/jpeg';
 
-        // Convert base64 to Uint8Array, then to Blob
-        // React Native doesn't have atob, so we decode base64 manually
-        // Simple base64 decoder for React Native
-        const base64Chars =
-          'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-        const bytes: number[] = [];
-
-        // Remove any whitespace or invalid characters
+        // React Native doesn't have a native atob, so we use the `buffer`
+        // polyfill to decode base64 into a byte array. Strip any stray
+        // characters that the encoder may have inserted (whitespace, etc.).
         const cleanBase64 = base64.replace(/[^A-Za-z0-9+/=]/g, '');
-
-        for (let i = 0; i < cleanBase64.length; i += 4) {
-          const enc1 = base64Chars.indexOf(cleanBase64.charAt(i));
-          const enc2 = base64Chars.indexOf(cleanBase64.charAt(i + 1));
-          const enc3 = base64Chars.indexOf(cleanBase64.charAt(i + 2));
-          const enc4 = base64Chars.indexOf(cleanBase64.charAt(i + 3));
-
-          const byte1 = (enc1 << 2) | (enc2 >> 4);
-          bytes.push(byte1);
-
-          if (enc3 !== 64) {
-            const byte2 = ((enc2 & 15) << 4) | (enc3 >> 2);
-            bytes.push(byte2);
-          }
-
-          if (enc4 !== 64) {
-            const byte3 = ((enc3 & 3) << 6) | enc4;
-            bytes.push(byte3);
-          }
+        const decoded = Buffer.from(cleanBase64, 'base64');
+        if (decoded.length === 0) {
+          throw new Error('Image file is empty or could not be converted');
         }
-
-        const uint8Array = new Uint8Array(bytes);
+        const uint8Array = new Uint8Array(decoded);
 
         // Convert Uint8Array to ArrayBuffer for Supabase upload
         // ArrayBuffer is more reliable than Blob in React Native
