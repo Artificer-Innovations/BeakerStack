@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  renderHook,
-  render,
-  screen,
-  waitFor,
-  act,
-} from '@testing-library/react';
+import { renderHook, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import {
   AuthProvider,
@@ -180,7 +174,7 @@ describe('AuthContext', () => {
   });
 
   it('should provide session state to children', async () => {
-    const { mockClient, mockSession } = createMockSupabaseClient();
+    const { mockClient } = createMockSupabaseClient();
 
     function TestComponent() {
       const auth = useAuthContext();

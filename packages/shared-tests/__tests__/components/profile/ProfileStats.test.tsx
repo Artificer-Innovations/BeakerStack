@@ -82,7 +82,7 @@ describe('ProfileStats', () => {
       ...mockProfile,
       created_at: null,
     };
-    const { container } = render(<ProfileStats profile={profileWithoutDate} />);
+    render(<ProfileStats profile={profileWithoutDate} />);
     // Should still render because completion > 0
     expect(screen.getByText(/Profile completion:/)).toBeInTheDocument();
     expect(screen.queryByText(/Member since:/)).not.toBeInTheDocument();

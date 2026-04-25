@@ -251,7 +251,7 @@ export function clearExpoKeysFromAcc(acc) {
  */
 export async function ensureNonTemplateEasProject(ctx) {
   const templateId = ctx.templateId || TEMPLATE_EAS_PROJECT_ID;
-  let resolved = await readResolvedEasProjectId({ repoRoot: ctx.repoRoot, templateId });
+  const resolved = await readResolvedEasProjectId({ repoRoot: ctx.repoRoot, templateId });
   if (resolved && resolved.toLowerCase() !== templateId.toLowerCase()) {
     ctx.logInfo('Mobile app is already linked to a non-template EAS project.');
     if (!ctx.dryRun) {

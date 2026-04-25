@@ -56,7 +56,7 @@ describe('AvatarUpload.native', () => {
   });
 
   it('renders with current avatar URL', () => {
-    const { UNSAFE_getByType } = render(
+    render(
       <AvatarUpload
         currentAvatarUrl='https://example.com/avatar.jpg'
         onUploadComplete={mockOnUploadComplete}

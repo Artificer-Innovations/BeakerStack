@@ -11,7 +11,8 @@ const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 
-const ANSI_PATTERN = /\u001B\[[0-9;]*[A-Za-z]/g;
+// Match ANSI escape sequences (ESC = U+001B) without control chars in the regex literal (eslint no-control-regex).
+const ANSI_PATTERN = new RegExp(`${String.fromCharCode(0x1b)}\\[[0-9;]*[A-Za-z]`, 'g');
 
 function stripAnsi(value) {
   if (!value) {
@@ -581,7 +582,7 @@ async function main() {
     }
   }
 
-  const { replacements: nameReplacements, variants } = buildReplacementPairs(args.from, args.to);
+  const { replacements: nameReplacements } = buildReplacementPairs(args.from, args.to);
   const replacements = mergeLegalAndNameReplacements(args.fromLegal, args.toLegal, nameReplacements);
   const files = await walkDirectory(repoRoot);
 

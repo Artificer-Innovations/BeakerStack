@@ -208,7 +208,7 @@ Object.entries(summary.byPackage).forEach(([name, stats]) => {
 
 console.log(`\n✅ Coverage summary saved to: ${outputFile}`);
 console.log(`\n📄 Individual reports available at:`);
-coverageDirs.forEach(({ name, path: coveragePath }) => {
+coverageDirs.forEach(({ path: coveragePath }) => {
   const indexPath = path.join(coveragePath, 'index.html');
   const fullPath = path.join(__dirname, '..', indexPath);
   if (fs.existsSync(fullPath)) {

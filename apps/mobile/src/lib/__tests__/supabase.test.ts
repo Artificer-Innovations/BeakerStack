@@ -73,7 +73,6 @@ describe('supabase.ts', () => {
     (global as any).__DEV__ = false;
     Platform.OS = 'ios';
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { supabase } = require('../supabase');
 
     expect(mockCreateClient).toHaveBeenCalledWith(
@@ -92,7 +91,6 @@ describe('supabase.ts', () => {
   });
 
   it('should export supabase client', () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const module = require('../supabase');
 
     expect(module).toHaveProperty('supabase');

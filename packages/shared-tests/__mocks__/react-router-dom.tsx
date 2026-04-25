@@ -12,7 +12,7 @@ export const MemoryRouter = ({ children }: { children: ReactNode }) => (
   <div>{children}</div>
 );
 
-export const useNavigate = () => (path: string) => {
+export const useNavigate = () => (_path: string) => {
   /* noop for tests */
 };
 
