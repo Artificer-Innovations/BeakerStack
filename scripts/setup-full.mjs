@@ -34,7 +34,7 @@ import {
   resolveValueForGithub,
   SETUP_FROM_PHASE_ALIASES,
 } from './lib/setup-manifest.mjs';
-import { parseDotEnv } from './lib/setup-dotenv.mjs';
+import { escapeDotEnvDoubleQuotedValue, parseDotEnv } from './lib/setup-dotenv.mjs';
 import { readMaskedLineIfTty, resolveSecretInputLine } from './lib/setup-secret-input.mjs';
 import { envVarsFromGoogleServicesJson } from './lib/setup-google-services.mjs';
 import {
@@ -339,7 +339,9 @@ function stringifyDotEnv(record) {
     const v = record[k];
     if (v === undefined || v === null) continue;
     const needsQuote = /[\s#]/.test(v) || v === '';
-    lines.push(needsQuote ? `${k}="${String(v).replace(/"/g, '\\"')}"` : `${k}=${v}`);
+    lines.push(
+      needsQuote ? `${k}="${escapeDotEnvDoubleQuotedValue(v)}"` : `${k}=${v}`,
+    );
   }
   lines.push('');
   return lines.join('\n');
