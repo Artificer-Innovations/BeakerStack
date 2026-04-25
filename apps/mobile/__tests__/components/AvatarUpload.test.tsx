@@ -17,6 +17,16 @@ jest.mock('expo-image-picker', () => ({
   MediaTypeOptions: {
     Images: 'Images',
   },
+  UIImagePickerPresentationStyle: {
+    FULL_SCREEN: 'fullScreen',
+    PAGE_SHEET: 'pageSheet',
+    FORM_SHEET: 'formSheet',
+    CURRENT_CONTEXT: 'currentContext',
+    OVER_FULL_SCREEN: 'overFullScreen',
+    OVER_CURRENT_CONTEXT: 'overCurrentContext',
+    POPOVER: 'popover',
+    AUTOMATIC: 'automatic',
+  },
 }));
 
 // Mock expo-file-system
