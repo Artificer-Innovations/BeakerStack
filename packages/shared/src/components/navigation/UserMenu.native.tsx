@@ -21,6 +21,7 @@ type RootStackParamList = {
   Signup: undefined;
   Dashboard: undefined;
   Profile: undefined;
+  Billing: undefined;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -62,7 +63,7 @@ export function UserMenu({ user, profile, navigation }: UserMenuProps) {
     ]);
   };
 
-  const handleNavigate = (route: 'Profile' | 'Dashboard') => {
+  const handleNavigate = (route: 'Profile' | 'Dashboard' | 'Billing') => {
     setIsOpen(false);
     navigation.navigate(route);
   };
@@ -135,6 +136,13 @@ export function UserMenu({ user, profile, navigation }: UserMenuProps) {
                 activeOpacity={0.7}
               >
                 <Text style={styles.menuItemText}>Profile</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleNavigate('Billing')}
+                style={styles.menuItem}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.menuItemText}>Billing</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => handleNavigate('Dashboard')}

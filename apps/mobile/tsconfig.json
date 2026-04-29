@@ -8,10 +8,22 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@beakerstack/shared/*": ["../../packages/shared/src/*"]
+      "@beakerstack/shared/*": ["../../packages/shared/src/*"],
+      "@beakerstack/billing": ["../../packages/billing/src/index.ts"],
+      "@beakerstack/billing/web": ["../../packages/billing/src/web.ts"],
+      "@beakerstack/billing/native": ["../../packages/billing/src/native.ts"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "../../packages/billing/src/**/*.ts",
+    "../../packages/billing/src/**/*.tsx"
+  ],
+  "exclude": [
+    "../../packages/billing/src/**/*.test.ts",
+    "../../packages/billing/src/**/*.test.tsx"
+  ],
   "references": [
     {
       "path": "../../packages/shared"

@@ -283,3 +283,9 @@ apps/mobile/google-services.json
 
 # AWS build artifacts
 .aws-build/
+
+# Agent / IDE skill trees (Stripe docs mirror + symlinks); install locally, do not commit
+.agents/
+.augment/skills/
+.claude/skills/
+skills-lock.json

@@ -550,10 +550,12 @@ You can:
 
 ### Migration Development Workflow
 
+Schema migrations live **only** under **`supabase/migrations/` at the repository root**. Author migrations (`supabase migration new …`), run **`supabase start`** and **`supabase db reset`** from the **repo root**, even when you are only working on the mobile app. The `apps/mobile/supabase/` tree can keep a mobile-specific `config.toml` for local auth callbacks; it does not hold a second copy of SQL migrations (see `apps/mobile/supabase/migrations/README.md`).
+
 #### For Simple Migrations (New Columns, Indexes)
 
 ```bash
-# 1. Develop locally
+# 1. Develop locally (from repository root)
 supabase start
 supabase migration new add_user_bio
 

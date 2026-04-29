@@ -5,6 +5,7 @@
  * - apps/web/coverage (Vitest)
  * - apps/mobile/coverage (Jest)
  * - packages/shared-tests/coverage (Jest)
+ * - packages/billing/coverage (Vitest)
  */
 
 const fs = require('fs');
@@ -14,6 +15,7 @@ const coverageDirs = [
   { name: 'web', path: 'apps/web/coverage' },
   { name: 'mobile', path: 'apps/mobile/coverage' },
   { name: 'shared', path: 'packages/shared-tests/coverage' },
+  { name: 'billing', path: 'packages/billing/coverage' },
 ];
 
 const outputDir = path.join(__dirname, '..', 'coverage');

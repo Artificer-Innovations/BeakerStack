@@ -9,6 +9,7 @@ import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import BillingScreen from '../screens/BillingScreen';
 import { useFeatureFlags } from '../config/featureFlags';
 
 type RootStackParamList = {
@@ -17,6 +18,7 @@ type RootStackParamList = {
   Signup: undefined;
   Dashboard: undefined;
   Profile: undefined;
+  Billing: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -53,6 +55,11 @@ export const AppNavigator = () => {
         <Stack.Screen name='Signup' component={SignupScreen} />
         <Stack.Screen name='Dashboard' component={DashboardScreen} />
         <Stack.Screen name='Profile' component={ProfileScreen} />
+        <Stack.Screen
+          name='Billing'
+          component={BillingScreen}
+          options={{ title: 'Billing' }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

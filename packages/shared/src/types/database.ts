@@ -78,6 +78,306 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_products: {
+        Row: {
+          id: string
+          display_name: string
+          description: string | null
+          created_at: string
+        }
+        Insert: {
+          id: string
+          display_name: string
+          description?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          display_name?: string
+          description?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      billing_plans: {
+        Row: {
+          id: string
+          product_id: string
+          display_name: string
+          description: string | null
+          price_cents: number
+          billing_period: string
+          stripe_price_id_monthly: string | null
+          stripe_price_id_annual: string | null
+          stripe_product_id: string | null
+          features: Json
+          usage_limits: Json
+          trial_period_days: number
+          is_public: boolean
+          display_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          product_id: string
+          display_name: string
+          description?: string | null
+          price_cents?: number
+          billing_period: string
+          stripe_price_id_monthly?: string | null
+          stripe_price_id_annual?: string | null
+          stripe_product_id?: string | null
+          features?: Json
+          usage_limits?: Json
+          trial_period_days?: number
+          is_public?: boolean
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          display_name?: string
+          description?: string | null
+          price_cents?: number
+          billing_period?: string
+          stripe_price_id_monthly?: string | null
+          stripe_price_id_annual?: string | null
+          stripe_product_id?: string | null
+          features?: Json
+          usage_limits?: Json
+          trial_period_days?: number
+          is_public?: boolean
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      billing_subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          product_id: string
+          plan_id: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          stripe_price_id: string | null
+          status: string
+          current_period_start: string | null
+          current_period_end: string | null
+          cancel_at_period_end: boolean
+          canceled_at: string | null
+          trial_start: string | null
+          trial_end: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          product_id: string
+          plan_id: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          stripe_price_id?: string | null
+          status: string
+          current_period_start?: string | null
+          current_period_end?: string | null
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          trial_start?: string | null
+          trial_end?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          product_id?: string
+          plan_id?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          stripe_price_id?: string | null
+          status?: string
+          current_period_start?: string | null
+          current_period_end?: string | null
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          trial_start?: string | null
+          trial_end?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      billing_invoices: {
+        Row: {
+          id: string
+          user_id: string
+          stripe_invoice_id: string
+          stripe_customer_id: string
+          stripe_subscription_id: string | null
+          amount_due: number
+          amount_paid: number
+          currency: string
+          status: string
+          description: string | null
+          hosted_invoice_url: string | null
+          invoice_pdf_url: string | null
+          period_start: string | null
+          period_end: string | null
+          created_at: string
+          finalized_at: string | null
+          paid_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          stripe_invoice_id: string
+          stripe_customer_id: string
+          stripe_subscription_id?: string | null
+          amount_due: number
+          amount_paid: number
+          currency: string
+          status: string
+          description?: string | null
+          hosted_invoice_url?: string | null
+          invoice_pdf_url?: string | null
+          period_start?: string | null
+          period_end?: string | null
+          created_at?: string
+          finalized_at?: string | null
+          paid_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          stripe_invoice_id?: string
+          stripe_customer_id?: string
+          stripe_subscription_id?: string | null
+          amount_due?: number
+          amount_paid?: number
+          currency?: string
+          status?: string
+          description?: string | null
+          hosted_invoice_url?: string | null
+          invoice_pdf_url?: string | null
+          period_start?: string | null
+          period_end?: string | null
+          created_at?: string
+          finalized_at?: string | null
+          paid_at?: string | null
+        }
+        Relationships: []
+      }
+      billing_usage_events: {
+        Row: {
+          id: string
+          user_id: string
+          product_id: string
+          event_type: string
+          quantity: number
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          product_id: string
+          event_type: string
+          quantity?: number
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          product_id?: string
+          event_type?: string
+          quantity?: number
+          metadata?: Json
+          created_at?: string
+        }
+        Relationships: []
+      }
+      billing_usage_aggregates: {
+        Row: {
+          user_id: string
+          product_id: string
+          event_type: string
+          period_start: string
+          period_end: string
+          count: number
+        }
+        Insert: {
+          user_id: string
+          product_id: string
+          event_type: string
+          period_start: string
+          period_end: string
+          count?: number
+        }
+        Update: {
+          user_id?: string
+          product_id?: string
+          event_type?: string
+          period_start?: string
+          period_end?: string
+          count?: number
+        }
+        Relationships: []
+      }
+      billing_webhook_events: {
+        Row: {
+          id: string
+          stripe_event_id: string
+          event_type: string
+          payload: Json
+          processed: boolean
+          processed_at: string | null
+          error: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          stripe_event_id: string
+          event_type: string
+          payload: Json
+          processed?: boolean
+          processed_at?: string | null
+          error?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          stripe_event_id?: string
+          event_type?: string
+          payload?: Json
+          processed?: boolean
+          processed_at?: string | null
+          error?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      billing_system_flags: {
+        Row: {
+          key: string
+          value: boolean
+        }
+        Insert: {
+          key: string
+          value: boolean
+        }
+        Update: {
+          key?: string
+          value?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -85,6 +385,52 @@ export type Database = {
     Functions: {
       generate_username: { Args: never; Returns: string }
       is_valid_email: { Args: { email: string }; Returns: boolean }
+      ensure_billing_subscription: {
+        Args: { p_product_id: string }
+        Returns: Json
+      }
+      billing_record_usage_event: {
+        Args: {
+          p_product_id: string
+          p_event_type: string
+          p_quantity?: number
+          p_metadata?: Json
+        }
+        Returns: undefined
+      }
+      billing_get_remaining_usage: {
+        Args: { p_product_id: string; p_event_type: string }
+        Returns: Json
+      }
+      billing_has_exceeded_limit: {
+        Args: { p_product_id: string; p_event_type: string }
+        Returns: boolean
+      }
+      billing_demo_mode_enabled: { Args: never; Returns: boolean }
+      billing_demo_simulate_upgrade: {
+        Args: { p_product_id: string; p_plan_id: string }
+        Returns: Json
+      }
+      billing_demo_reset_usage: {
+        Args: { p_product_id: string; p_event_type: string }
+        Returns: undefined
+      }
+      billing_demo_get_collections: {
+        Args: { p_product_id: string }
+        Returns: { id: string; item_count: number }[]
+      }
+      billing_demo_add_collection: {
+        Args: { p_product_id: string }
+        Returns: string
+      }
+      billing_demo_add_item: {
+        Args: { p_product_id: string; p_collection_id: string }
+        Returns: number
+      }
+      billing_demo_delete_collection: {
+        Args: { p_product_id: string; p_collection_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

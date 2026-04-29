@@ -1,0 +1,40 @@
+{
+  "productId": "beakerstack",
+  "stripeProductName": "BeakerStack (template)",
+  "plans": [
+    {
+      "planId": "beakerstack_pro",
+      "prices": [
+        {
+          "unitAmount": 1900,
+          "currency": "usd",
+          "interval": "month",
+          "lookupKey": "beakerstack_pro_monthly"
+        },
+        {
+          "unitAmount": 19000,
+          "currency": "usd",
+          "interval": "year",
+          "lookupKey": "beakerstack_pro_annual"
+        }
+      ]
+    },
+    {
+      "planId": "beakerstack_max",
+      "prices": [
+        {
+          "unitAmount": 4900,
+          "currency": "usd",
+          "interval": "month",
+          "lookupKey": "beakerstack_max_monthly"
+        },
+        {
+          "unitAmount": 49000,
+          "currency": "usd",
+          "interval": "year",
+          "lookupKey": "beakerstack_max_annual"
+        }
+      ]
+    }
+  ]
+}

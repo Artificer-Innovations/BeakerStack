@@ -47,6 +47,7 @@
     "install:preview:android:local": "sh -c 'LATEST_BUILD=$(ls -t build-*.apk 2>/dev/null | head -1); if [ -z \"$LATEST_BUILD\" ]; then echo \"❌ No local build found. Run: npm run build:preview:android:local\"; exit 1; fi; ./install-local-device-android.sh \"$LATEST_BUILD\"'"
   },
   "dependencies": {
+    "@beakerstack/billing": "^1.0.0",
     "@react-native-async-storage/async-storage": "1.21.0",
     "@react-native-google-signin/google-signin": "13.3.1",
     "@react-navigation/native": "^6.1.18",
@@ -96,7 +97,8 @@
     "testEnvironment": "node",
     "moduleNameMapper": {
       "^@beakerstack/shared/(.*)$": "<rootDir>/../../packages/shared/src/$1",
-      "^react-native-svg$": "<rootDir>/__mocks__/react-native-svg.ts"
+      "^react-native-svg$": "<rootDir>/__mocks__/react-native-svg.ts",
+      "^expo/virtual/env$": "<rootDir>/jest/expo-virtual-env-mock.cjs"
     },
     "collectCoverageFrom": [
       "src/**/*.{ts,tsx}",
