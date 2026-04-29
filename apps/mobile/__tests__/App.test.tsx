@@ -158,6 +158,31 @@ jest.mock('@beakerstack/shared/components/forms/FormError.native', () => ({
   },
 }));
 
+// Avoid loading @beakerstack/billing in Jest (package uses TS paths Jest does not resolve like Metro)
+jest.mock('../src/screens/BillingScreen', () => {
+  const { View, Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => (
+      <View testID='billing-screen'>
+        <Text>Billing</Text>
+      </View>
+    ),
+  };
+});
+
+jest.mock('../src/screens/DashboardScreen', () => {
+  const { View, Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => (
+      <View testID='dashboard-screen'>
+        <Text>Dashboard</Text>
+      </View>
+    ),
+  };
+});
+
 import { render } from '@testing-library/react-native';
 import { describe, it, expect } from '@jest/globals';
 import App from '../App';

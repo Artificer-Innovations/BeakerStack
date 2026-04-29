@@ -13,7 +13,7 @@ export default function HomePage() {
       <AppHeader supabaseClient={supabase} />
 
       {/* Main Content */}
-      <div className='max-w-[800px] mx-auto py-12 px-4 sm:px-6 lg:px-8'>
+      <div className='max-w-[1024px] mx-auto py-12 px-4 sm:px-6 lg:px-8'>
         <div className='text-center mb-12'>
           <h1 className='text-4xl font-bold text-gray-900 mb-4'>
             {HOME_TITLE}

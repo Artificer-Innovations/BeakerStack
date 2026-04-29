@@ -25,6 +25,7 @@ type RootStackParamList = {
   Signup: undefined;
   Dashboard: undefined;
   Profile: undefined;
+  Billing: undefined;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;

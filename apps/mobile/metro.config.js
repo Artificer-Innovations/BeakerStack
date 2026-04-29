@@ -1,10 +1,12 @@
 const { getDefaultConfig } = require('expo/metro-config');
 const exclusionList = require('metro-config/src/defaults/exclusionList');
+const fs = require('fs');
 const path = require('path');
 
 const projectRoot = __dirname;
 const workspaceRoot = path.resolve(projectRoot, '../..');
 const sharedPkg = path.resolve(projectRoot, '../../packages/shared');
+const billingPkg = path.resolve(projectRoot, '../../packages/billing');
 
 const config = getDefaultConfig(projectRoot);
 
@@ -23,7 +25,7 @@ config.resolver.sourceExts = [
 ];
 
 // Only watch what we need
-config.watchFolders = [sharedPkg];
+config.watchFolders = [sharedPkg, billingPkg];
 
 // Resolve node_modules (mobile first, then root)
 config.resolver.nodeModulesPaths = [
@@ -60,6 +62,30 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       filePath: path.resolve(projectRoot, 'shims/expo-virtual-env.js'),
       type: 'sourceFile',
     };
+  }
+
+  // TypeScript ESM style: `from './foo.js'` in source; Metro looks for a real .js file.
+  // Map to .ts / .tsx (and platform .native.*) when present (e.g. packages/billing).
+  if (
+    typeof moduleName === 'string' &&
+    moduleName.startsWith('.') &&
+    moduleName.endsWith('.js') &&
+    context.originModulePath
+  ) {
+    const originDir = path.dirname(context.originModulePath);
+    const stem = moduleName.replace(/\.js$/, '');
+    const relativeCandidates = [
+      `${stem}.ts`,
+      `${stem}.tsx`,
+      `${stem}.native.ts`,
+      `${stem}.native.tsx`,
+    ];
+    for (const rel of relativeCandidates) {
+      const candidate = path.normalize(path.join(originDir, rel));
+      if (fs.existsSync(candidate)) {
+        return { filePath: candidate, type: 'sourceFile' };
+      }
+    }
   }
 
   // Fall back to default Expo resolver for everything else

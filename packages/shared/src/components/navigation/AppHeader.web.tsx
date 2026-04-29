@@ -32,7 +32,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
 
   return (
     <div className='bg-white shadow'>
-      <div className='max-w-[800px] mx-auto px-4 sm:px-6 lg:px-8'>
+      <div className='max-w-[1024px] mx-auto px-4 sm:px-6 lg:px-8'>
         <div className='flex justify-between items-center h-16'>
           {/* Left side: App icon and title */}
           <div className='flex items-center space-x-3'>
