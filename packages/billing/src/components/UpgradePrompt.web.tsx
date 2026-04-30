@@ -17,7 +17,7 @@ export function UpgradePrompt<P extends ProductBillingConfig>({
   const onUpgrade = async () => {
     if (!planId) return;
     const r = await startCheckout(planId);
-    if (r?.checkoutUrl) {
+    if (r?.checkoutUrl && typeof window !== 'undefined') {
       window.location.href = r.checkoutUrl;
     }
   };

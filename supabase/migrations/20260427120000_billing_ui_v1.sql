@@ -49,9 +49,6 @@ CREATE TABLE IF NOT EXISTS public.billing_invoices (
 CREATE INDEX IF NOT EXISTS idx_billing_invoices_user_id_created
   ON public.billing_invoices (user_id, created_at DESC);
 
-CREATE INDEX IF NOT EXISTS idx_billing_invoices_stripe_id
-  ON public.billing_invoices (stripe_invoice_id);
-
 ALTER TABLE public.billing_invoices ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "billing_invoices_select_own"
