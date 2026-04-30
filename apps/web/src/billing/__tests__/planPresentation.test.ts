@@ -1,0 +1,275 @@
+import { describe, expect, it } from 'vitest';
+import type { Plan } from '@beakerstack/billing';
+import type { ProductBillingConfig } from '@beakerstack/billing';
+import {
+  applyTemplate,
+  booleanFeatureLabel,
+  DEFAULT_PLAN_FEATURE_ROWS,
+  exclusiveBooleanFeaturePlanName,
+  mergeDowngradeConstraintCopy,
+  mergePlanFeatureRows,
+  mergeUsageLimitsCopy,
+  mergeUsageMeterCopy,
+  planFeatureLine,
+} from '../planPresentation';
+
+const basePlan = (over: Partial<Plan>): Plan => ({
+  id: 'p1',
+  product_id: 'prod',
+  display_name: 'Test',
+  description: null,
+  price_cents: 0,
+  billing_period: 'free',
+  stripe_price_id_monthly: null,
+  stripe_price_id_annual: null,
+  stripe_product_id: null,
+  features: {},
+  usage_limits: {},
+  trial_period_days: 0,
+  is_public: true,
+  display_order: 1,
+  ...over,
+});
+
+const minimalConfig = (
+  overrides: Partial<ProductBillingConfig> = {}
+): ProductBillingConfig => ({
+  productId: 'demo',
+  displayName: 'Demo',
+  plans: [
+    {
+      id: 'free',
+      displayName: 'Free',
+      priceCents: 0,
+      billingPeriod: 'free',
+      features: { feature_a: false, feature_b: false, x: 0 },
+      usageLimits: { ai_summarize: 10 },
+    },
+  ],
+  ...overrides,
+});
+
+describe('applyTemplate', () => {
+  it('replaces known placeholders', () => {
+    expect(applyTemplate('a {b} c', { b: 2 })).toBe('a 2 c');
+  });
+
+  it('uses empty string for missing keys', () => {
+    expect(applyTemplate('{missing}', { other: 1 })).toBe('');
+  });
+});
+
+describe('mergePlanFeatureRows', () => {
+  it('returns defaults when planFeatureRows is omitted', () => {
+    const cfg = minimalConfig();
+    expect(mergePlanFeatureRows(cfg)).toEqual(DEFAULT_PLAN_FEATURE_ROWS);
+  });
+
+  it('returns defaults when planFeatureRows is empty', () => {
+    const cfg = minimalConfig({ planFeatureRows: [] });
+    expect(mergePlanFeatureRows(cfg)).toEqual(DEFAULT_PLAN_FEATURE_ROWS);
+  });
+
+  it('returns custom rows when provided', () => {
+    const rows = [
+      {
+        id: '1',
+        featureKey: 'feature_a',
+        kind: 'boolean' as const,
+        label: 'Custom A',
+      },
+    ];
+    expect(
+      mergePlanFeatureRows(minimalConfig({ planFeatureRows: rows }))
+    ).toEqual(rows);
+  });
+});
+
+describe('mergeDowngradeConstraintCopy', () => {
+  it('fills defaults for missing fields', () => {
+    const m = mergeDowngradeConstraintCopy(minimalConfig());
+    expect(m.collectionsOverCap).toContain('{current}');
+    expect(m.booleanFeatureLoss).toContain('{featureLabel}');
+    expect(m.booleanFeatureLoss).toContain('{targetPlanName}');
+    expect(m.meterOverCap).toContain('{used}');
+    expect(m.itemsPerCollectionOverCap).toContain('{maxItems}');
+  });
+
+  it('merges partial overrides', () => {
+    const m = mergeDowngradeConstraintCopy(
+      minimalConfig({
+        downgradeConstraintCopy: {
+          meterOverCap: 'Custom {used}',
+        },
+      })
+    );
+    expect(m.meterOverCap).toBe('Custom {used}');
+    expect(m.collectionsOverCap).toContain('collections');
+  });
+});
+
+describe('planFeatureLine', () => {
+  const plan = basePlan({
+    features: {
+      feature_a: true,
+      feature_b: false,
+      cap: 5,
+      unlimited: -1,
+      zero: 0,
+      bad: 'x' as unknown as number,
+    },
+  });
+
+  it('handles boolean rows', () => {
+    expect(
+      planFeatureLine(plan, {
+        id: 'a',
+        featureKey: 'feature_a',
+        kind: 'boolean',
+        label: 'A',
+      })
+    ).toEqual({ ok: true, text: 'A' });
+    expect(
+      planFeatureLine(plan, {
+        id: 'b',
+        featureKey: 'feature_b',
+        kind: 'boolean',
+        label: 'B',
+      })
+    ).toEqual({ ok: false, text: 'B' });
+  });
+
+  it('treats -1 as unlimited for number rows', () => {
+    expect(
+      planFeatureLine(plan, {
+        id: 'u',
+        featureKey: 'unlimited',
+        kind: 'number',
+        unlimitedLabel: 'All',
+        limitedLabelTemplate: 'Up to {count}',
+      })
+    ).toEqual({ ok: true, text: 'All' });
+  });
+
+  it('formats positive caps', () => {
+    expect(
+      planFeatureLine(plan, {
+        id: 'c',
+        featureKey: 'cap',
+        kind: 'number',
+        unlimitedLabel: 'All',
+        limitedLabelTemplate: '{count} max',
+      })
+    ).toEqual({ ok: true, text: '5 max' });
+  });
+
+  it('treats zero and non-number as not ok with limited template', () => {
+    expect(
+      planFeatureLine(plan, {
+        id: 'z',
+        featureKey: 'zero',
+        kind: 'number',
+        unlimitedLabel: 'All',
+        limitedLabelTemplate: '{count} max',
+      })
+    ).toEqual({ ok: false, text: '0 max' });
+
+    expect(
+      planFeatureLine(plan, {
+        id: 'bad',
+        featureKey: 'bad',
+        kind: 'number',
+        unlimitedLabel: 'All',
+        limitedLabelTemplate: '{count} max',
+      })
+    ).toEqual({ ok: false, text: '0 max' });
+  });
+});
+
+describe('booleanFeatureLabel', () => {
+  it('returns row label when present', () => {
+    expect(booleanFeatureLabel(minimalConfig(), 'feature_a')).toBe('Feature A');
+  });
+
+  it('falls back to feature key when no boolean row matches', () => {
+    expect(booleanFeatureLabel(minimalConfig(), 'unknown_key')).toBe(
+      'unknown_key'
+    );
+  });
+});
+
+describe('exclusiveBooleanFeaturePlanName', () => {
+  const plans: Plan[] = [
+    basePlan({
+      id: '1',
+      display_name: 'Low',
+      display_order: 1,
+      features: { feature_b: false },
+    }),
+    basePlan({
+      id: '2',
+      display_name: 'High',
+      display_order: 3,
+      features: { feature_b: true },
+    }),
+    basePlan({
+      id: '3',
+      display_name: 'Mid',
+      display_order: 2,
+      features: { feature_b: 1 },
+    }),
+  ];
+
+  it('returns null when no plan has the feature', () => {
+    expect(exclusiveBooleanFeaturePlanName([plans[0]], 'feature_b')).toBeNull();
+  });
+
+  it('picks highest display_order among holders', () => {
+    expect(exclusiveBooleanFeaturePlanName(plans, 'feature_b')).toBe('High');
+  });
+
+  it('returns null when top holder has no display name', () => {
+    const holderNoName = basePlan({
+      id: 'top',
+      display_name: null as unknown as string,
+      display_order: 9,
+      features: { feature_b: true },
+    });
+    expect(
+      exclusiveBooleanFeaturePlanName([holderNoName], 'feature_b')
+    ).toBeNull();
+  });
+});
+
+describe('mergeUsageMeterCopy', () => {
+  it('starts from defaults and merges overrides', () => {
+    const m = mergeUsageMeterCopy(minimalConfig());
+    expect(m.ai_summarize?.label).toBe('AI summarize');
+
+    const m2 = mergeUsageMeterCopy(
+      minimalConfig({
+        usageMeterCopy: {
+          ai_summarize: { label: 'Renamed', description: 'D' },
+          other: { label: 'Other' },
+        },
+      })
+    );
+    expect(m2.ai_summarize).toEqual({
+      label: 'Renamed',
+      description: 'D',
+    });
+    expect(m2.other).toEqual({ label: 'Other' });
+  });
+});
+
+describe('mergeUsageLimitsCopy', () => {
+  it('merges over defaults', () => {
+    const m = mergeUsageLimitsCopy(
+      minimalConfig({
+        usageLimitsCopy: { collectionsRowName: 'Cols' },
+      })
+    );
+    expect(m.collectionsRowName).toBe('Cols');
+    expect(m.itemsRowName).toContain('Items');
+  });
+});
