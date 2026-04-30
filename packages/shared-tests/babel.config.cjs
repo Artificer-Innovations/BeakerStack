@@ -6,6 +6,8 @@ module.exports = function(api) {
   if (process.env.NATIVE_TESTS === 'true' || process.env.JEST_WORKER_ID) {
     return {
       presets: ['babel-preset-expo'],
+      // Jest cannot evaluate native dynamic import(); compile to require().
+      plugins: ['babel-plugin-dynamic-import-node'],
     };
   }
   
