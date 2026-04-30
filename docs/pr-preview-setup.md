@@ -89,25 +89,22 @@ variables → Actions) before enabling the workflow.
 
 ### Secrets
 
-| Secret                                 | Purpose                                                               |
-| -------------------------------------- | --------------------------------------------------------------------- |
-| `AWS_ACCESS_KEY_ID`                    | Deployer credentials (CloudFormation, S3, CloudFront).                |
-| `AWS_SECRET_ACCESS_KEY`                | Matches above.                                                        |
-| `AWS_SESSION_TOKEN`                    | Optional if using temporary credentials.                              |
-| `PR_PREVIEW_CERTIFICATE_ARN`           | ACM certificate ARN (`us-east-1`).                                    |
-| `SUPABASE_PREVIEW_PROJECT_REF`         | Target Supabase project ref (dedicated preview project).              |
-| `SUPABASE_PREVIEW_DB_PASSWORD`         | Database password for the preview project.                            |
-| `SUPABASE_PREVIEW_DB_URL`              | Connection URI (used for teardown schema drop).                       |
-| `SUPABASE_ACCESS_TOKEN`                | Supabase personal access token (CLI authentication).                  |
-| `PREVIEW_SUPABASE_URL`                 | Supabase API URL (Settings → API → Project URL).                      |
-| `PREVIEW_SUPABASE_ANON_KEY`            | Supabase anon key (Settings → API → anon public key).                 |
-| `PREVIEW_STRIPE_SECRET_KEY`            | Stripe test secret key used by preview Edge billing functions.        |
-| `PREVIEW_STRIPE_WEBHOOK_SECRET`        | Stripe signing secret (`whsec_...`) for the preview webhook endpoint. |
-| `PR_TESTING_SUPABASE_SERVICE_ROLE_KEY` | Service role key used when setting preview Edge billing secrets.      |
-| `PRODUCTION_SUPABASE_URL`              | _(optional)_ Production Supabase URL for production deployments.      |
-| `PRODUCTION_SUPABASE_ANON_KEY`         | _(optional)_ Production Supabase anon key.                            |
-| `STAGING_SUPABASE_URL`                 | _(optional)_ Staging Supabase URL for staging deployments.            |
-| `STAGING_SUPABASE_ANON_KEY`            | _(optional)_ Staging Supabase anon key.                               |
+| Secret                         | Purpose                                                          |
+| ------------------------------ | ---------------------------------------------------------------- |
+| `AWS_ACCESS_KEY_ID`            | Deployer credentials (CloudFormation, S3, CloudFront).           |
+| `AWS_SECRET_ACCESS_KEY`        | Matches above.                                                   |
+| `AWS_SESSION_TOKEN`            | Optional if using temporary credentials.                         |
+| `PR_PREVIEW_CERTIFICATE_ARN`   | ACM certificate ARN (`us-east-1`).                               |
+| `SUPABASE_PREVIEW_PROJECT_REF` | Target Supabase project ref (dedicated preview project).         |
+| `SUPABASE_PREVIEW_DB_PASSWORD` | Database password for the preview project.                       |
+| `SUPABASE_PREVIEW_DB_URL`      | Connection URI (used for teardown schema drop).                  |
+| `SUPABASE_ACCESS_TOKEN`        | Supabase personal access token (CLI authentication).             |
+| `PREVIEW_SUPABASE_URL`         | Supabase API URL (Settings → API → Project URL).                 |
+| `PREVIEW_SUPABASE_ANON_KEY`    | Supabase anon key (Settings → API → anon public key).            |
+| `PRODUCTION_SUPABASE_URL`      | _(optional)_ Production Supabase URL for production deployments. |
+| `PRODUCTION_SUPABASE_ANON_KEY` | _(optional)_ Production Supabase anon key.                       |
+| `STAGING_SUPABASE_URL`         | _(optional)_ Staging Supabase URL for staging deployments.       |
+| `STAGING_SUPABASE_ANON_KEY`    | _(optional)_ Staging Supabase anon key.                          |
 
 ### Variables
 
@@ -138,16 +135,13 @@ Triggered for `opened`, `reopened`, `synchronize`, `ready_for_review`.
    - Resets migrations + seed data.
    - Generates TypeScript types for all packages.
    - Uses `--skip-if-unchanged` to avoid contacting Supabase when no migrations changed.
-5. Deploy billing Edge functions for preview:
-   - Sets preview project Edge secrets (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`).
-   - Deploys `stripe-webhook` and `billing-stripe`.
 
-6. Run `scripts/pr-preview/deploy-web.sh`
+5. Run `scripts/pr-preview/deploy-web.sh`
    - Builds Vite web app with `VITE_BASE_PATH="/pr-<number>"`.
    - Syncs to `s3://beakerstack.com-deploy/pr-<number>/`.
    - Invalidates CloudFront path `/pr-<number>/*` on deploy distribution.
    - Performs `curl` check on `https://deploy.<domain>/pr-<number>/`.
-7. Post/update PR comment with web preview link.
+6. Post/update PR comment with web preview link.
 
 ### Teardown (`teardown-preview` job)
 

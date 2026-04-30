@@ -22,7 +22,3 @@ Use these when native projects are stale, simulators lost the app, or native mod
 | `npm run prebuild:clean`                              | Regenerate `ios/` and `android/` with Expo prebuild (destructive; review diffs)                |
 
 For EAS builds, dev-client install flows, and CI-driven previews, see [MOBILE_BUILD_TESTING.md](../MOBILE_BUILD_TESTING.md) and [oauth/MOBILE_OAUTH_SETUP.md](../oauth/MOBILE_OAUTH_SETUP.md).
-
-## Local Supabase schema
-
-Database migrations live only under **`supabase/migrations/`** at the repository root. Run `supabase start`, `supabase migration new …`, and `supabase db reset` from the repo root — not only from `apps/mobile`. Details: [`apps/mobile/supabase/migrations/README.md`](../../apps/mobile/supabase/migrations/README.md).
