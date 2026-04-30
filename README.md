@@ -32,12 +32,11 @@ The specific machinery (tiered Supabase, AWS static hosting with PR paths, EAS c
 
 **[Get started → QUICKSTART.md](QUICKSTART.md)** — **Use this template**, local “hello world” in minutes, full-cloud checklist when you are ready.
 
-| Need                  | Doc                                                          |
-| --------------------- | ------------------------------------------------------------ |
-| Full topic index      | [docs/README.md](docs/README.md)                             |
-| Stripe billing setup  | [docs/stripe-billing-setup.md](docs/stripe-billing-setup.md) |
-| Environments & design | [ARCHITECTURE.md](ARCHITECTURE.md)                           |
-| Contributing          | [CONTRIBUTING.md](CONTRIBUTING.md)                           |
+| Need                  | Doc                                |
+| --------------------- | ---------------------------------- |
+| Full topic index      | [docs/README.md](docs/README.md)   |
+| Environments & design | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| Contributing          | [CONTRIBUTING.md](CONTRIBUTING.md) |
 
 ## Features
 
@@ -101,7 +100,6 @@ BeakerStack/
 
 ### Database
 
-- **`supabase/migrations/` is canonical at the repo root** — run `supabase migration new …`, `supabase start`, and `supabase db reset` from the repository root (mobile developers: see [`apps/mobile/supabase/migrations/README.md`](apps/mobile/supabase/migrations/README.md)).
 - `supabase start` / `supabase stop` — Local Supabase
 - `npm run gen:types` — TypeScript types from DB
 - `supabase db reset` — Reset local DB

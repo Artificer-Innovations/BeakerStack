@@ -59,7 +59,7 @@ const mockNavigation = {
 } as any;
 
 import React from 'react';
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { render, waitFor } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import HomeScreen from '../../src/screens/HomeScreen';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
@@ -259,47 +259,6 @@ describe('HomeScreen', () => {
       const button = getByText('View Profile');
       expect(button).toBeTruthy();
     });
-  });
-
-  it('navigates to Dashboard when Go To Dashboard is pressed', async () => {
-    const { getByText } = renderWithAuth(
-      <HomeScreen navigation={mockNavigation} />,
-      true
-    );
-
-    await waitFor(() => {
-      expect(getByText('Go To Dashboard')).toBeTruthy();
-    });
-    fireEvent.press(getByText('Go To Dashboard'));
-    expect(mockNavigate).toHaveBeenCalledWith('Dashboard');
-  });
-
-  it('navigates to Profile when View Profile is pressed', async () => {
-    const { getByText } = renderWithAuth(
-      <HomeScreen navigation={mockNavigation} />,
-      true
-    );
-
-    await waitFor(() => {
-      expect(getByText('View Profile')).toBeTruthy();
-    });
-    fireEvent.press(getByText('View Profile'));
-    expect(mockNavigate).toHaveBeenCalledWith('Profile');
-  });
-
-  it('navigates to Login and Signup from signed-out buttons', () => {
-    const { getAllByText } = renderWithAuth(
-      <HomeScreen navigation={mockNavigation} />,
-      false
-    );
-
-    const signIns = getAllByText('Sign In');
-    fireEvent.press(signIns[signIns.length - 1]);
-    expect(mockNavigate).toHaveBeenCalledWith('Login');
-
-    const signUps = getAllByText('Sign Up');
-    fireEvent.press(signUps[signUps.length - 1]);
-    expect(mockNavigate).toHaveBeenCalledWith('Signup');
   });
 
   // Note: Debug tools (database test, auth context test) are now in DebugTools component

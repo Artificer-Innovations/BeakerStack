@@ -10,7 +10,6 @@ Start on the repo root **[README.md](../README.md)** and **[QUICKSTART.md](../QU
 | [pr-preview-setup.md](pr-preview-setup.md)                                   | AWS PR previews, DNS, CloudFormation                                           |
 | [supabase-staging-production-setup.md](supabase-staging-production-setup.md) | Remote staging/production Supabase projects                                    |
 | [supabase-preview-setup.md](supabase-preview-setup.md)                       | Shared PR preview database and redirects                                       |
-| [stripe-billing-setup.md](stripe-billing-setup.md)                           | Stripe + Supabase Edge billing (keys, webhooks, sync, local vs hosted)         |
 | [reference/github-actions-secrets.md](reference/github-actions-secrets.md)   | Actions secret/variable names (regenerate with `npm run docs:actions-secrets`) |
 | [branch-protection-setup.md](branch-protection-setup.md)                     | Branch rules                                                                   |
 
@@ -42,14 +41,12 @@ Start on the repo root **[README.md](../README.md)** and **[QUICKSTART.md](../QU
 
 ## Guides
 
-| Document                                                         | Purpose                                                                    |
-| ---------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| [stripe-billing-setup.md](stripe-billing-setup.md)               | Stripe account → webhooks → Edge secrets → price sync                      |
-| [guides/billing-plan-catalog.md](guides/billing-plan-catalog.md) | Plan `features` / `usage_limits`, `billing:apply-plans`, rollout checklist |
-| [guides/MOBILE.md](guides/MOBILE.md)                             | Native rebuilds, dev client                                                |
-| [guides/DEBUGGING_NAVIGATION.md](guides/DEBUGGING_NAVIGATION.md) | Navigation debugging notes                                                 |
-| [mobile-ios-patching.md](mobile-ios-patching.md)                 | iOS-specific patches                                                       |
-| [REALTIME_DEVELOPMENT.md](REALTIME_DEVELOPMENT.md)               | Realtime dev notes                                                         |
+| Document                                                         | Purpose                     |
+| ---------------------------------------------------------------- | --------------------------- |
+| [guides/MOBILE.md](guides/MOBILE.md)                             | Native rebuilds, dev client |
+| [guides/DEBUGGING_NAVIGATION.md](guides/DEBUGGING_NAVIGATION.md) | Navigation debugging notes  |
+| [mobile-ios-patching.md](mobile-ios-patching.md)                 | iOS-specific patches        |
+| [REALTIME_DEVELOPMENT.md](REALTIME_DEVELOPMENT.md)               | Realtime dev notes          |
 
 ## Architecture
 
