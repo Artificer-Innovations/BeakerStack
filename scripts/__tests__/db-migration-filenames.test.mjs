@@ -2,8 +2,11 @@ import assert from 'node:assert/strict';
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
-const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..');
+const THIS_FILE = fileURLToPath(import.meta.url);
+const THIS_DIR = path.dirname(THIS_FILE);
+const REPO_ROOT = path.resolve(THIS_DIR, '..', '..');
 const MIGRATIONS_DIR = path.join(REPO_ROOT, 'supabase', 'migrations');
 const MIGRATION_FILENAME_RE = /^(\d{14})_(.+)\.sql$/;
 
