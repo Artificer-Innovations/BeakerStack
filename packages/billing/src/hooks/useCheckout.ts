@@ -21,7 +21,6 @@ export function useCheckout<
     checkoutSuccessUrl,
     checkoutCancelUrl,
     stripeFunctionName,
-    refreshSubscription,
   } = useBillingContext<P>();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<BillingError | null>(null);
@@ -60,7 +59,6 @@ export function useCheckout<
             'Missing checkoutUrl from billing-stripe function'
           );
         }
-        await refreshSubscription();
         return { checkoutUrl };
       } catch (e) {
         setError(mapUnknownError(e));
@@ -75,7 +73,6 @@ export function useCheckout<
       config.productId,
       checkoutSuccessUrl,
       checkoutCancelUrl,
-      refreshSubscription,
     ]
   );
 

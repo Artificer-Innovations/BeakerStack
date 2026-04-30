@@ -23,14 +23,14 @@ Server: `billing_system_flags` row `demo_billing_mode = true` enables `billing_d
 Derived in `packages/billing/src/hooks/useBillingState.ts` and reflected in `Banner` / badges on the billing pages:
 
 1. **loading** — no subscription data yet; skeletons/loading UI.
-2. **free** — on free plan (no active paid sub).
-3. **active** — paid subscription, status `active`.
-4. **cancelled_pending** — `cancel_at_period_end` and still in paid period.
-5. **payment_failed** — `past_due` / failed payment.
-6. **trial_active** — in trial.
-7. **trial_ending** — trial ends soon (when surfaced by backend/data).
-8. **downgrade_pending** — schedule to lower tier (when applicable).
-9. (Implicit) **cancelled** — no longer subscribed after period end; often collapses to **free** in UI.
+2. **no_subscription** — no current subscription row; free-tier/post-cancellation state before/without a `free` row.
+3. **free** — explicit free subscription state.
+4. **paid_active** — paid subscription (`active`, and currently also `paused`/`incomplete`/`unpaid` in derive logic).
+5. **cancelled_pending** — `cancel_at_period_end` and still in paid period.
+6. **payment_failed** — `past_due` / failed payment.
+7. **trialing** — in trial.
+8. **trial_ending** — trial ends soon (derived from `trial_end` threshold).
+9. **downgrade_pending** — `cancel_at_period_end` with `pending_target_plan_id` set.
 
 Use **Stripe** for realistic transitions where possible; use **demo RPCs** to jump plans without a card when `demo_billing_mode` is on.
 

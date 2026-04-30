@@ -24,6 +24,28 @@ const sizeToMax: Record<ModalSize, string> = {
   lg: 'max-w-lg',
 };
 
+function getFocusableElements(container: HTMLElement): HTMLElement[] {
+  const nodes = container.querySelectorAll<HTMLElement>(
+    [
+      'a[href]',
+      'area[href]',
+      'button:not([disabled])',
+      'input:not([disabled]):not([type="hidden"])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      'iframe',
+      '[tabindex]:not([tabindex="-1"])',
+      '[contenteditable="true"]',
+    ].join(', ')
+  );
+  return Array.from(nodes).filter(
+    element =>
+      !element.hasAttribute('disabled') &&
+      element.tabIndex !== -1 &&
+      element.getAttribute('aria-hidden') !== 'true'
+  );
+}
+
 function getPortalRoot(): Element | null {
   if (typeof document === 'undefined') return null;
   return document.body;
@@ -70,6 +92,41 @@ export function Modal({
       if (e.key === 'Escape') {
         e.preventDefault();
         onClose();
+        return;
+      }
+
+      if (e.key !== 'Tab') return;
+      const panel = panelRef.current;
+      if (!panel) return;
+      const focusable = getFocusableElements(panel);
+      if (focusable.length === 0) {
+        e.preventDefault();
+        panel.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first || !last) {
+        e.preventDefault();
+        panel.focus();
+        return;
+      }
+      const active = document.activeElement as HTMLElement | null;
+      const isShift = e.shiftKey;
+
+      if (!active || !panel.contains(active)) {
+        e.preventDefault();
+        (isShift ? last : first).focus();
+        return;
+      }
+
+      if (!isShift && active === last) {
+        e.preventDefault();
+        first.focus();
+      } else if (isShift && active === first) {
+        e.preventDefault();
+        last.focus();
       }
     };
     document.addEventListener('keydown', onKey);
