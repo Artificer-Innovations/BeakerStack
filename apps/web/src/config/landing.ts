@@ -6,6 +6,7 @@ import {
   Code2,
   Smartphone,
   CreditCard,
+  Github,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -87,6 +88,7 @@ export interface LandingConfig {
   pricing: {
     heading: string;
     subhead: string;
+    disclaimer?: string;
   };
   faq: {
     heading: string;
@@ -166,6 +168,13 @@ export const landingConfig: LandingConfig = {
         title: 'Usage metering',
         body: 'Track feature usage per user, enforce limits, and surface quota data in the UI.',
       },
+      {
+        icon: Github,
+        title: 'Free and open source',
+        body: 'MIT licensed. Fork it, own the code, and ship your product. No vendor lock-in, no royalties.',
+        ctaLabel: 'View on GitHub',
+        ctaHref: 'https://github.com/Artificer-Innovations/BeakerStack',
+      } as FeatureGridItem & { ctaLabel: string; ctaHref: string },
     ],
   },
   featureRows: [
@@ -199,10 +208,16 @@ export const landingConfig: LandingConfig = {
   pricing: {
     heading: 'Simple, transparent pricing.',
     subhead: 'Start free. Upgrade when you need more.',
+    disclaimer:
+      'BeakerStack itself is free and open-source (MIT) — clone it and ship your product at no cost. The plans below are a live demo of the billing system built into the template. Stripe is running in test mode for this preview; no real charges are made.',
   },
   faq: {
     heading: 'Frequently asked questions',
     items: [
+      {
+        q: 'Is BeakerStack free to use?',
+        a: 'Yes — BeakerStack is free and open source under the MIT license. You can clone the repository, build your product on top of it, and ship commercially with no fees or attribution requirements. The pricing plans shown in the demo are an example of what you can build with the template; they are not a cost to use BeakerStack itself.',
+      },
       {
         q: 'What is BeakerStack?',
         a: 'BeakerStack is an opinionated full-stack template built on React, React Native, Supabase, and Stripe. It gives you auth, billing, and a cross-platform foundation ready to customize for your product.',

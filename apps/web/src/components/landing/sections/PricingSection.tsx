@@ -41,6 +41,11 @@ export function PricingSection({ config }: PricingSectionProps) {
             }}
           />
         </BillingProvider>
+        {config.disclaimer && (
+          <p className='mt-8 text-center text-sm text-gray-500 dark:text-gray-400 max-w-2xl mx-auto'>
+            {config.disclaimer}
+          </p>
+        )}
       </div>
     </section>
   );

@@ -28,9 +28,13 @@ vi.mock('@/lib/supabase', () => ({
   },
 }));
 
-vi.mock('@beakerstack/billing', () => ({
-  BillingProvider: ({ children }: { children: ReactNode }) => children,
-}));
+vi.mock('@beakerstack/billing', async importOriginal => {
+  const actual = await importOriginal<typeof import('@beakerstack/billing')>();
+  return {
+    ...actual,
+    BillingProvider: ({ children }: { children: ReactNode }) => children,
+  };
+});
 
 vi.mock('@beakerstack/billing/web', () => ({
   PricingTable: () => null,
@@ -57,7 +61,7 @@ vi.mock('../../config/landing', () => ({
 }));
 
 vi.mock('../../../billing/beakerstackBillingConfig', () => ({
-  beakerstackBillingConfig: { plans: [] },
+  beakerstackBillingConfig: { plans: [], productId: 'test', displayName: 'Test' },
 }));
 
 describe('HomePage', () => {
