@@ -54,6 +54,7 @@ export function Hero({ config }: HeroProps) {
               width={600}
               height={338}
               decoding='async'
+              {...({ fetchPriority: 'high' } as object)}
             />
           </div>
         </div>

@@ -5,6 +5,7 @@ import HomePage from '../HomePage';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { ReactNode } from 'react';
 
 vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost:54321');
 vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-anon-key');
@@ -25,6 +26,14 @@ vi.mock('@/lib/supabase', () => ({
     }),
     removeChannel: vi.fn().mockResolvedValue({ status: 'ok', error: null }),
   },
+}));
+
+vi.mock('@beakerstack/billing', () => ({
+  BillingProvider: ({ children }: { children: ReactNode }) => children,
+}));
+
+vi.mock('@beakerstack/billing/web', () => ({
+  PricingTable: () => null,
 }));
 
 // Stub the landing config so tests don't depend on placehold.co or Lucide icons
