@@ -19,7 +19,7 @@ import {
   profileFormSchema,
   type ProfileFormInput,
 } from '@beakerstack/shared/validation/profileSchema';
-import { ZodError } from 'zod';
+import { ZodError, type ZodIssue } from 'zod';
 import { TextInput } from 'react-native';
 
 export function DebugTools() {
@@ -462,7 +462,9 @@ function ValidationTestFormMobile() {
       });
     } catch (err) {
       if (err instanceof ZodError) {
-        const fieldError = err.errors.find(e => e.path.includes(field));
+        const fieldError = err.issues.find((issue: ZodIssue) =>
+          issue.path.includes(field)
+        );
         if (fieldError) {
           setErrors(prev => ({ ...prev, [field]: fieldError.message }));
         }
@@ -479,14 +481,14 @@ function ValidationTestFormMobile() {
     } catch (err) {
       if (err instanceof ZodError) {
         const newErrors: Record<string, string> = {};
-        err.errors.forEach(error => {
-          const field = error.path[0] as string;
+        err.issues.forEach((issue: ZodIssue) => {
+          const field = issue.path[0] as string;
           if (field) {
-            newErrors[field] = error.message;
+            newErrors[field] = issue.message;
           }
         });
         setErrors(newErrors);
-        const errorCount = err.errors.length;
+        const errorCount = err.issues.length;
         Alert.alert(
           'Validation Failed',
           `❌ Validation failed: ${errorCount} error(s)`
