@@ -15,6 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import Stripe from 'stripe';
+import WebSocket from 'ws';
 
 function parseArgs(argv) {
   const out = { config: null };
@@ -77,7 +78,12 @@ async function main() {
   }
 
   const stripe = new Stripe(sk, { apiVersion: '2023-10-16' });
-  const supabase = createClient(url, serviceKey);
+  const supabase = createClient(url, serviceKey, {
+    realtime: {
+      // Node.js < 22 has no global WebSocket; Realtime still initializes at client construction.
+      transport: WebSocket,
+    },
+  });
 
   let stripeProductId;
   const existing = await stripe.products.list({ active: true, limit: 100 });
