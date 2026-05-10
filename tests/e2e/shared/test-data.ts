@@ -18,7 +18,7 @@ let resolvedTestPassword: string | undefined;
  */
 export function getResolvedTestPassword(): string {
   if (resolvedTestPassword === undefined) {
-    const fromEnv = process.env['TEST_PASSWORD']?.trim();
+    const fromEnv = process.env.TEST_PASSWORD?.trim();
     resolvedTestPassword =
       fromEnv && fromEnv.length > 0 ? fromEnv : generateTestPassword();
   }
