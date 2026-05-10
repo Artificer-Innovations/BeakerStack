@@ -31,16 +31,15 @@ function App() {
   return (
     <div className='bg-gray-50'>
       <Routes>
-        {/* LandingPage ships its own footer — keep home route outside RootLayout */}
-        <Route
-          path='/'
-          element={
-            <Suspense fallback={null}>
-              <HomePage />
-            </Suspense>
-          }
-        />
         <Route element={<RootLayout />}>
+          <Route
+            path='/'
+            element={
+              <Suspense fallback={null}>
+                <HomePage />
+              </Suspense>
+            }
+          />
           <Route path='/login' element={<LoginPage />} />
           <Route path='/signup' element={<SignupPage />} />
           <Route path='/terms' element={<PolicyPage policy='terms' />} />

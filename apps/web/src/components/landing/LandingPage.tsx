@@ -7,7 +7,6 @@ import { SocialProof } from './sections/SocialProof';
 import { PricingSection } from './sections/PricingSection';
 import { FAQ } from './sections/FAQ';
 import { FinalCTA } from './sections/FinalCTA';
-import { LandingFooter } from './sections/LandingFooter';
 
 export function LandingPage() {
   const config = landingConfig;
@@ -24,7 +23,6 @@ export function LandingPage() {
         <FAQ config={config.faq} />
         <FinalCTA config={config.finalCta} />
       </main>
-      <LandingFooter config={config.footer} brand={config.brand} />
     </div>
   );
 }
