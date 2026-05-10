@@ -3,7 +3,7 @@
  * Provides reusable test data that can be used across E2E test flows
  */
 
-import { randomUUID } from 'node:crypto';
+import { generateE2ETestEmail } from '../../utils/test-emails';
 import { generateTestPassword } from '../../utils/test-helpers';
 
 /** Email for the seeded “valid login” E2E user (password from {@link getResolvedTestPassword}). */
@@ -18,7 +18,7 @@ let resolvedTestPassword: string | undefined;
  */
 export function getResolvedTestPassword(): string {
   if (resolvedTestPassword === undefined) {
-    const fromEnv = process.env['TEST_PASSWORD']?.trim();
+    const fromEnv = process.env.TEST_PASSWORD?.trim();
     resolvedTestPassword =
       fromEnv && fromEnv.length > 0 ? fromEnv : generateTestPassword();
   }
@@ -37,11 +37,11 @@ export function getPredefinedValidLoginUser(): TestUser {
 }
 
 /**
- * Generate a unique test email.
- * Uses crypto.randomUUID() to avoid collisions in parallel test runs.
+ * Generate a unique test email for E2E flows.
+ * Uses {@link generateE2ETestEmail}; integration tests use {@link generateIntegrationTestEmail}.
  */
 export function generateTestEmail(): string {
-  return `e2e-test-${randomUUID()}@example.com`;
+  return generateE2ETestEmail();
 }
 
 /**

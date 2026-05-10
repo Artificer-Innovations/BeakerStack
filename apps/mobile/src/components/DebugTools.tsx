@@ -55,7 +55,7 @@ export function DebugTools() {
         clearTimeout(clickTimeoutRef.current);
       }
     };
-  }, [clickCount]);
+  }, []);
 
   if (!isVisible) {
     return (
@@ -441,9 +441,14 @@ function ValidationTestFormMobile() {
   >(null);
 
   const handleFieldChange = (field: keyof ProfileFormInput, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev =>
+      prev[field] === value ? prev : { ...prev, [field]: value }
+    );
     if (errors[field]) {
       setErrors(prev => {
+        if (!prev[field]) {
+          return prev;
+        }
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
@@ -456,6 +461,9 @@ function ValidationTestFormMobile() {
     try {
       profileFormSchema.parse({ ...formData, [field]: value });
       setErrors(prev => {
+        if (!prev[field]) {
+          return prev;
+        }
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
