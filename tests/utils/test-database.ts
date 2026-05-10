@@ -5,6 +5,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { generateIntegrationTestEmail } from './test-emails';
 import {
   LOCAL_SUPABASE_DEMO_ANON_KEY,
   assertLocalSupabaseEnvironment,
@@ -16,9 +17,9 @@ import {
  * local `supabase start` instance (see ./supabase-cli-defaults.ts).
  */
 export function getTestSupabaseConfig() {
-  const supabaseUrl = process.env['SUPABASE_URL'] || 'http://127.0.0.1:54321';
+  const supabaseUrl = process.env.SUPABASE_URL || 'http://127.0.0.1:54321';
   const supabaseAnonKey =
-    process.env['SUPABASE_ANON_KEY'] || LOCAL_SUPABASE_DEMO_ANON_KEY;
+    process.env.SUPABASE_ANON_KEY || LOCAL_SUPABASE_DEMO_ANON_KEY;
 
   // Run the local guard whenever the resolved key is the public CLI demo JWT,
   // including when someone copies it into the environment alongside a
@@ -41,7 +42,7 @@ export async function cleanupTestUser(
 ): Promise<void> {
   try {
     const email = credentials?.email ?? `test-${userId}@example.com`;
-    const password = credentials?.password ?? process.env['TEST_PASSWORD'];
+    const password = credentials?.password ?? process.env.TEST_PASSWORD;
 
     // Without a stable password source we cannot authenticate for profile cleanup.
     if (!password) {
@@ -66,11 +67,11 @@ export async function cleanupTestUser(
 }
 
 /**
- * Generate a unique test email.
- * Uses crypto.randomUUID() to avoid collisions in parallel test runs.
+ * Generate a unique test email for integration tests.
+ * Uses {@link generateIntegrationTestEmail}; E2E uses {@link generateE2ETestEmail} in test-emails.
  */
 export function generateTestEmail(): string {
-  return `test-${randomUUID()}@example.com`;
+  return generateIntegrationTestEmail();
 }
 
 /**

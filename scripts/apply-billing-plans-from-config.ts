@@ -7,6 +7,7 @@
  *   npm run billing:apply-plans -- --dry-run
  */
 import { createClient } from '@supabase/supabase-js';
+import WebSocket from 'ws';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 import process from 'node:process';
@@ -54,7 +55,14 @@ async function main() {
     process.exit(1);
   }
 
-  const supabase = url && serviceKey ? createClient(url, serviceKey) : null;
+  const supabase =
+    url && serviceKey
+      ? createClient(url, serviceKey, {
+          realtime: {
+            transport: WebSocket,
+          },
+        })
+      : null;
 
   for (const plan of config.plans) {
     const payload = {

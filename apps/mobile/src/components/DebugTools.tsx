@@ -19,7 +19,7 @@ import {
   profileFormSchema,
   type ProfileFormInput,
 } from '@beakerstack/shared/validation/profileSchema';
-import { ZodError } from 'zod';
+import { ZodError, type ZodIssue } from 'zod';
 import { TextInput } from 'react-native';
 
 export function DebugTools() {
@@ -55,7 +55,7 @@ export function DebugTools() {
         clearTimeout(clickTimeoutRef.current);
       }
     };
-  }, [clickCount]);
+  }, []);
 
   if (!isVisible) {
     return (
@@ -441,9 +441,14 @@ function ValidationTestFormMobile() {
   >(null);
 
   const handleFieldChange = (field: keyof ProfileFormInput, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev =>
+      prev[field] === value ? prev : { ...prev, [field]: value }
+    );
     if (errors[field]) {
       setErrors(prev => {
+        if (!prev[field]) {
+          return prev;
+        }
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
@@ -456,13 +461,18 @@ function ValidationTestFormMobile() {
     try {
       profileFormSchema.parse({ ...formData, [field]: value });
       setErrors(prev => {
+        if (!prev[field]) {
+          return prev;
+        }
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
       });
     } catch (err) {
       if (err instanceof ZodError) {
-        const fieldError = err.errors.find(e => e.path.includes(field));
+        const fieldError = err.issues.find((issue: ZodIssue) =>
+          issue.path.includes(field)
+        );
         if (fieldError) {
           setErrors(prev => ({ ...prev, [field]: fieldError.message }));
         }
@@ -479,14 +489,14 @@ function ValidationTestFormMobile() {
     } catch (err) {
       if (err instanceof ZodError) {
         const newErrors: Record<string, string> = {};
-        err.errors.forEach(error => {
-          const field = error.path[0] as string;
+        err.issues.forEach((issue: ZodIssue) => {
+          const field = issue.path[0] as string;
           if (field) {
-            newErrors[field] = error.message;
+            newErrors[field] = issue.message;
           }
         });
         setErrors(newErrors);
-        const errorCount = err.errors.length;
+        const errorCount = err.issues.length;
         Alert.alert(
           'Validation Failed',
           `❌ Validation failed: ${errorCount} error(s)`

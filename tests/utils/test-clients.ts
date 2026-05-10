@@ -4,6 +4,7 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import WebSocket from 'ws';
 import { getTestSupabaseConfig } from './test-database';
 import {
   LOCAL_SUPABASE_DEMO_SERVICE_ROLE_KEY,
@@ -18,6 +19,7 @@ export function createWebTestClient(): SupabaseClient {
   const { supabaseUrl, supabaseAnonKey } = getTestSupabaseConfig();
 
   return createClient(supabaseUrl, supabaseAnonKey, {
+    realtime: { transport: WebSocket },
     auth: {
       autoRefreshToken: true,
       persistSession: false, // Don't persist in tests
@@ -37,6 +39,7 @@ export function createMobileTestClient(): SupabaseClient {
   // For testing, we use the same config as web since we're in Node.js
   // In real mobile tests, you'd need to mock AsyncStorage
   return createClient(supabaseUrl, supabaseAnonKey, {
+    realtime: { transport: WebSocket },
     auth: {
       autoRefreshToken: true,
       persistSession: false, // Don't persist in tests
@@ -60,6 +63,7 @@ export function createServiceRoleClient(): SupabaseClient {
   }
 
   return createClient(supabaseUrl, serviceRoleKey, {
+    realtime: { transport: WebSocket },
     auth: {
       autoRefreshToken: false,
       persistSession: false,
