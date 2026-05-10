@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto';
 
 /**
  * Unique email for integration / API tests.
- * Thin wrapper target: `generateTestEmail` in `./test-database`.
+ * Thin wrapper target: {@link generateTestEmail} in `./test-database`.
  */
 export function generateIntegrationTestEmail(): string {
   return `test-${randomUUID()}@example.com`;
