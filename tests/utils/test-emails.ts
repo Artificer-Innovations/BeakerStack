@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto';
 
 /**
  * Unique email for integration / API tests.
- * Thin wrapper target: {@link generateTestEmail} in `./test-database`.
+ * Thin wrapper target: {@link generateIntegrationTestEmail}; see `./test-database`.
  */
 export function generateIntegrationTestEmail(): string {
   return `test-${randomUUID()}@example.com`;
@@ -17,7 +17,7 @@ export function generateIntegrationTestEmail(): string {
 
 /**
  * Unique email for Playwright/Maestro E2E flows.
- * Thin wrapper target: {@link generateTestEmail} in `../e2e/shared/test-data`.
+ * Thin wrapper target: {@link generateE2ETestEmail} in `../e2e/shared/test-data`.
  */
 export function generateE2ETestEmail(): string {
   return `e2e-test-${randomUUID()}@example.com`;
