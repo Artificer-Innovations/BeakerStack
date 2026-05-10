@@ -1,0 +1,50 @@
+{
+  "name": "@beakerstack/billing",
+  "version": "1.0.0",
+  "description": "Supabase + Stripe billing, entitlements, and React/RN UI for BeakerStack",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts",
+    "./web": "./src/web.ts",
+    "./native": "./src/native.ts"
+  },
+  "scripts": {
+    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "type-check": "tsc --noEmit",
+    "test": "NODE_OPTIONS=--max-old-space-size=8192 vitest --run",
+    "test:coverage": "vitest --coverage --run"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.0",
+    "zod": "^3.22.0"
+  },
+  "peerDependencies": {
+    "react": "18.2.0",
+    "react-native": ">=0.73.0"
+  },
+  "peerDependenciesMeta": {
+    "react-native": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.4.2",
+    "@testing-library/react": "^14.1.2",
+    "@types/react": "18.2.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "jsdom": "^26.1.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-native-web": "^0.21.2",
+    "typescript": "^5.3.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "vitest": "^3.2.4"
+  }
+}

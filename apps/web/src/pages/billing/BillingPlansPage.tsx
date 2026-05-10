@@ -1,0 +1,327 @@
+import type { Plan } from '@beakerstack/billing';
+import {
+  resolveCadence,
+  useBillingState,
+  useBillingStripeActions,
+  useCheckout,
+  usePlan,
+  usePlanCatalog,
+  useSubscription,
+  useUsage,
+} from '@beakerstack/billing';
+import { useCallback, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import {
+  beakerstackBillingConfig,
+  BEAKERSTACK_METER_AI_SUMMARIZE,
+} from '../../billing/beakerstackBillingConfig';
+import {
+  annualListCentsFromSync,
+  formatSavingsCalloutFromCopy,
+  planAnnualSavingsCopy,
+} from '../../billing/billingSyncDisplay';
+import {
+  computeDowngradeBlockers,
+  type DowngradeBlockersResult,
+} from '../../billing/constraintBlockers';
+import { useDemoCollectionCount } from '../../billing/useDemoCollectionCount';
+import {
+  CadenceToggle,
+  getCadenceFromSearch,
+} from '../../components/billing/CadenceToggle.web';
+import { BillingPageShell } from '../../components/billing/BillingPageShell.web';
+import { BillingTabs } from '../../components/billing/BillingTabs.web';
+import { ConfirmDowngradeModal } from '../../components/billing/ConfirmDowngradeModal.web';
+import { PlanCard } from '../../components/billing/PlanCard.web';
+
+type Primary = {
+  label: string;
+  onClick: () => void;
+  disabled: boolean;
+  loading: boolean;
+  variant?: 'primary' | 'secondary';
+};
+
+export default function BillingPlansPage() {
+  const [search] = useSearchParams();
+  const cadence = getCadenceFromSearch(search);
+  const { plans, loading: catLoad } =
+    usePlanCatalog<typeof beakerstackBillingConfig>();
+  const { data: current } = usePlan<typeof beakerstackBillingConfig>();
+  const { data: subscription } =
+    useSubscription<typeof beakerstackBillingConfig>();
+  const { kind: billingKind } =
+    useBillingState<typeof beakerstackBillingConfig>();
+  const { startCheckout, pending: checkoutPend } =
+    useCheckout<typeof beakerstackBillingConfig>();
+  const {
+    updateSubscription,
+    scheduleCancelToFree,
+    pending: actionPend,
+  } = useBillingStripeActions<typeof beakerstackBillingConfig>();
+  const { used: aiUsed } = useUsage<
+    typeof beakerstackBillingConfig,
+    typeof BEAKERSTACK_METER_AI_SUMMARIZE
+  >(BEAKERSTACK_METER_AI_SUMMARIZE);
+  const { count: colCount = 0, maxItemsInAnyCollection = 0 } =
+    useDemoCollectionCount();
+
+  const [modal, setModal] = useState(false);
+  const pending = checkoutPend || actionPend;
+
+  const currentCadence = useMemo(
+    () =>
+      current && subscription ? resolveCadence(current, subscription) : null,
+    [current, subscription]
+  );
+  const hasPaidStripe = Boolean(subscription?.stripe_subscription_id);
+
+  const emptyBlockers = (): DowngradeBlockersResult => ({
+    hard: [],
+    soft: [],
+  });
+
+  const blockers = useCallback(
+    (target: Plan) => {
+      if (!current) return emptyBlockers();
+      if (target.id === current.id) return emptyBlockers();
+      if (
+        target.id === 'beakerstack_free' &&
+        (current.id !== 'beakerstack_free' || hasPaidStripe)
+      ) {
+        return computeDowngradeBlockers(
+          current,
+          target,
+          {
+            collectionCount: colCount ?? 0,
+            maxItemsInAnyCollection: maxItemsInAnyCollection ?? 0,
+            aiUsedThisPeriod: aiUsed ?? 0,
+          },
+          plans,
+          beakerstackBillingConfig
+        );
+      }
+      if (
+        (target.display_order ?? 0) < (current.display_order ?? 0) &&
+        target.id !== 'beakerstack_free'
+      ) {
+        return computeDowngradeBlockers(
+          current,
+          target,
+          {
+            collectionCount: colCount ?? 0,
+            maxItemsInAnyCollection: maxItemsInAnyCollection ?? 0,
+            aiUsedThisPeriod: aiUsed ?? 0,
+          },
+          plans,
+          beakerstackBillingConfig
+        );
+      }
+      return emptyBlockers();
+    },
+    [current, colCount, maxItemsInAnyCollection, aiUsed, hasPaidStripe, plans]
+  );
+
+  const getPrimary = useCallback(
+    (p: Plan): Primary => {
+      if (!current) {
+        return {
+          label: '…',
+          onClick: () => {},
+          disabled: true,
+          loading: false,
+        };
+      }
+      const b = blockers(p);
+      const hasHardBlock = b.hard.length > 0;
+      if (p.id === current.id) {
+        if (p.price_cents === 0 || p.id === 'beakerstack_free') {
+          return {
+            label: 'Current plan',
+            onClick: () => {},
+            disabled: true,
+            loading: false,
+          };
+        }
+        if (currentCadence === cadence) {
+          return {
+            label: 'Current plan',
+            onClick: () => {},
+            disabled: true,
+            loading: false,
+          };
+        }
+        return {
+          label:
+            cadence === 'annual' ? 'Switch to annual' : 'Switch to monthly',
+          onClick: async () => {
+            const r = await updateSubscription(p.id, cadence);
+            if (r) window.location.reload();
+          },
+          disabled: false,
+          loading: pending,
+        };
+      }
+      if (!hasPaidStripe && p.price_cents > 0) {
+        const trialDays = p.trial_period_days ?? 0;
+        const label =
+          trialDays > 0
+            ? `Start ${trialDays}-day free trial`
+            : `Upgrade to ${p.display_name}`;
+        return {
+          label,
+          onClick: async () => {
+            const r = await startCheckout(p.id, cadence);
+            if (r?.checkoutUrl) window.location.href = r.checkoutUrl;
+          },
+          disabled: false,
+          loading: pending,
+        };
+      }
+      if (p.id === 'beakerstack_free' && hasPaidStripe) {
+        return {
+          label: 'Downgrade to Free',
+          onClick: () => {
+            if (hasHardBlock) return;
+            setModal(true);
+          },
+          disabled: hasHardBlock,
+          loading: false,
+          variant: 'secondary',
+        };
+      }
+      if (hasPaidStripe && p.price_cents > 0) {
+        if ((p.display_order ?? 0) > (current.display_order ?? 0)) {
+          return {
+            label: `Upgrade to ${p.display_name}`,
+            onClick: () =>
+              void updateSubscription(p.id, cadence).then(() =>
+                window.location.reload()
+              ),
+            disabled: false,
+            loading: pending,
+          };
+        }
+        if ((p.display_order ?? 0) < (current.display_order ?? 0)) {
+          return {
+            label: `Downgrade to ${p.display_name}`,
+            onClick: () =>
+              void updateSubscription(p.id, cadence).then(() =>
+                window.location.reload()
+              ),
+            disabled: hasHardBlock,
+            loading: pending,
+            variant: 'secondary',
+          };
+        }
+      }
+      return {
+        label: 'Current plan',
+        onClick: () => {},
+        disabled: true,
+        loading: false,
+      };
+    },
+    [
+      current,
+      blockers,
+      currentCadence,
+      cadence,
+      hasPaidStripe,
+      startCheckout,
+      updateSubscription,
+      pending,
+    ]
+  );
+
+  return (
+    <BillingPageShell maxWidthClass='max-w-[1024px]'>
+      <h1 className='text-2xl font-bold text-gray-900'>Billing</h1>
+      <div className='mt-4'>
+        <BillingTabs />
+      </div>
+      <h2 className='mt-6 text-xl font-semibold text-gray-900'>
+        Choose a plan
+      </h2>
+      <p className='mt-1 text-sm text-gray-600'>
+        Switch plans or update your billing cadence anytime.
+      </p>
+      <div className='mt-6'>
+        <CadenceToggle />
+      </div>
+      {catLoad ? (
+        <p className='mt-8 text-sm text-gray-500'>Loading plans…</p>
+      ) : (
+        <div className='mt-8 grid grid-cols-1 gap-6 md:grid-cols-3'>
+          {plans.map(p => {
+            const displayCents =
+              p.price_cents === 0
+                ? 0
+                : cadence === 'annual'
+                  ? annualListCentsFromSync(p.id, p.price_cents)
+                  : p.price_cents;
+            const head =
+              p.price_cents === 0
+                ? 'US$0'
+                : new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    maximumFractionDigits: 0,
+                  }).format(displayCents / 100);
+            const sub =
+              p.price_cents === 0
+                ? 'Free forever'
+                : cadence === 'monthly'
+                  ? 'per month'
+                  : 'per year, billed annually';
+            const pr = getPrimary(p);
+            const savingsCallout =
+              cadence === 'annual' && p.price_cents > 0
+                ? formatSavingsCalloutFromCopy(
+                    planAnnualSavingsCopy(p.id, p.price_cents)
+                  )
+                : null;
+            return (
+              <PlanCard
+                key={p.id}
+                plan={p}
+                priceHeadline={head}
+                priceSubline={sub}
+                savingsCallout={savingsCallout}
+                billingCadence={cadence}
+                blockers={blockers(p)}
+                primary={pr}
+                mode='authenticated'
+                supplementalBadge={
+                  billingKind === 'downgrade_pending' &&
+                  subscription?.pending_target_plan_id === p.id
+                    ? 'Scheduled'
+                    : undefined
+                }
+              />
+            );
+          })}
+        </div>
+      )}
+      <p className='mt-8 text-center text-xs text-gray-500'>
+        All plans billed in USD. Taxes calculated at checkout where applicable.
+        Cancel anytime. Plans with a trial convert to paid at trial end unless
+        you cancel before then (manage in Stripe customer portal).
+      </p>
+      <ConfirmDowngradeModal
+        open={modal}
+        onClose={() => setModal(false)}
+        onConfirm={async () => {
+          const ok = await scheduleCancelToFree();
+          if (ok) {
+            setModal(false);
+            window.location.reload();
+          }
+        }}
+        planName='Free'
+        bodyText="Your paid subscription is scheduled to cancel. You'll be on the Free plan when the current period ends."
+        pending={actionPend}
+      />
+    </BillingPageShell>
+  );
+}

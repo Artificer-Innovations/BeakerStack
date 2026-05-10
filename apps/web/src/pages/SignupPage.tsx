@@ -54,7 +54,7 @@ export default function SignupPage() {
   return (
     <div className='min-h-screen bg-gray-50'>
       <AppHeader supabaseClient={supabase} />
-      <div className='max-w-[800px] mx-auto py-12 px-4 sm:px-6 lg:px-8'>
+      <div className='max-w-[1024px] mx-auto py-12 px-4 sm:px-6 lg:px-8'>
         <div className='w-full space-y-8'>
           <div>
             <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900'>

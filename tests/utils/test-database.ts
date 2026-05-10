@@ -3,17 +3,29 @@
  * Provides helpers for database operations, cleanup, and test data management
  */
 
+import { randomUUID } from 'node:crypto';
 import { SupabaseClient } from '@supabase/supabase-js';
+import {
+  LOCAL_SUPABASE_DEMO_ANON_KEY,
+  assertLocalSupabaseEnvironment,
+} from './supabase-cli-defaults';
 
 /**
- * Get Supabase URL and anon key from environment variables
- * Falls back to local defaults if not set
+ * Get Supabase URL and anon key from environment variables.
+ * Falls back to the public Supabase CLI demo keys when running against a
+ * local `supabase start` instance (see ./supabase-cli-defaults.ts).
  */
 export function getTestSupabaseConfig() {
   const supabaseUrl = process.env['SUPABASE_URL'] || 'http://127.0.0.1:54321';
   const supabaseAnonKey =
-    process.env['SUPABASE_ANON_KEY'] ||
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+    process.env['SUPABASE_ANON_KEY'] || LOCAL_SUPABASE_DEMO_ANON_KEY;
+
+  // Run the local guard whenever the resolved key is the public CLI demo JWT,
+  // including when someone copies it into the environment alongside a
+  // non-local SUPABASE_URL (which would otherwise bypass the check).
+  if (supabaseAnonKey === LOCAL_SUPABASE_DEMO_ANON_KEY) {
+    assertLocalSupabaseEnvironment(supabaseUrl);
+  }
 
   return { supabaseUrl, supabaseAnonKey };
 }
@@ -54,17 +66,24 @@ export async function cleanupTestUser(
 }
 
 /**
- * Generate a unique test email
+ * Generate a unique test email.
+ * Uses crypto.randomUUID() to avoid collisions in parallel test runs.
  */
 export function generateTestEmail(): string {
-  return `test-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`;
+  return `test-${randomUUID()}@example.com`;
 }
 
 /**
- * Generate a unique test username
+ * Generate a unique test username.
+ * Uses random hex from a UUID so parallel runs rarely collide. The value is
+ * capped at 30 characters to satisfy DB / profile schema limits (see
+ * packages/shared/src/validation/profileSchema.ts).
  */
 export function generateTestUsername(): string {
-  return `testuser_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  const prefix = 'testuser_';
+  const hex = randomUUID().replace(/-/g, '');
+  const suffix = hex.slice(0, 30 - prefix.length);
+  return `${prefix}${suffix}`;
 }
 
 /**

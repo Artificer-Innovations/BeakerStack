@@ -59,6 +59,25 @@ export const GITHUB_SECRETS = [
   },
   {
     type: 'secret',
+    name: 'STAGING_STRIPE_SECRET_KEY',
+    envKeys: ['STAGING_STRIPE_SECRET_KEY'],
+    group: 'staging',
+  },
+  {
+    type: 'secret',
+    name: 'STAGING_STRIPE_WEBHOOK_SECRET',
+    envKeys: ['STAGING_STRIPE_WEBHOOK_SECRET'],
+    group: 'staging',
+  },
+  {
+    type: 'secret',
+    name: 'STAGING_BILLING_ALLOWED_ORIGINS',
+    envKeys: ['STAGING_BILLING_ALLOWED_ORIGINS'],
+    optional: true,
+    group: 'staging',
+  },
+  {
+    type: 'secret',
     name: 'PRODUCTION_SUPABASE_URL',
     envKeys: ['PRODUCTION_SUPABASE_URL'],
     group: 'production',
@@ -79,6 +98,25 @@ export const GITHUB_SECRETS = [
     type: 'secret',
     name: 'PRODUCTION_SUPABASE_DB_PASSWORD',
     envKeys: ['PRODUCTION_SUPABASE_DB_PASSWORD'],
+    group: 'production',
+  },
+  {
+    type: 'secret',
+    name: 'PRODUCTION_STRIPE_SECRET_KEY',
+    envKeys: ['PRODUCTION_STRIPE_SECRET_KEY'],
+    group: 'production',
+  },
+  {
+    type: 'secret',
+    name: 'PRODUCTION_STRIPE_WEBHOOK_SECRET',
+    envKeys: ['PRODUCTION_STRIPE_WEBHOOK_SECRET'],
+    group: 'production',
+  },
+  {
+    type: 'secret',
+    name: 'PRODUCTION_BILLING_ALLOWED_ORIGINS',
+    envKeys: ['PRODUCTION_BILLING_ALLOWED_ORIGINS'],
+    optional: true,
     group: 'production',
   },
   {
@@ -109,6 +147,25 @@ export const GITHUB_SECRETS = [
     type: 'secret',
     name: 'SUPABASE_PREVIEW_DB_URL',
     envKeys: ['SUPABASE_PREVIEW_DB_URL'],
+    group: 'preview',
+  },
+  {
+    type: 'secret',
+    name: 'PREVIEW_STRIPE_SECRET_KEY',
+    envKeys: ['PREVIEW_STRIPE_SECRET_KEY'],
+    group: 'preview',
+  },
+  {
+    type: 'secret',
+    name: 'PREVIEW_STRIPE_WEBHOOK_SECRET',
+    envKeys: ['PREVIEW_STRIPE_WEBHOOK_SECRET'],
+    group: 'preview',
+  },
+  {
+    type: 'secret',
+    name: 'PREVIEW_BILLING_ALLOWED_ORIGINS',
+    envKeys: ['PREVIEW_BILLING_ALLOWED_ORIGINS'],
+    optional: true,
     group: 'preview',
   },
   {

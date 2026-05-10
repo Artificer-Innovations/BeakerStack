@@ -37,6 +37,14 @@ let statusCodes: GoogleStatusCodes | null = null;
 let isConfigured = false;
 let configurePromise: Promise<void> | null = null;
 
+/** Clears lazy Google Sign-In module state (for unit tests only). */
+export function resetGoogleSignInModuleStateForTests(): void {
+  GoogleSignin = null;
+  statusCodes = null;
+  isConfigured = false;
+  configurePromise = null;
+}
+
 async function getGoogleSignIn(): Promise<{
   GoogleSignin: GoogleSignInModule | null;
   statusCodes: GoogleStatusCodes | null;
