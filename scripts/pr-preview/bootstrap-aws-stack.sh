@@ -233,13 +233,9 @@ if not stripped.startswith("function"):
     )
     sys.exit(1)
 
-body = {
-    "Name": name,
-    "IfMatch": etag,
-    "FunctionConfig": fc,
-    "FunctionCode": code,
-}
-json.dump(body, sys.stdout, ensure_ascii=False)
+body = {"Name": name, "IfMatch": etag, "FunctionConfig": fc, "FunctionCode": code}
+json.dump(body, sys.stdout)
+
 ' <<<"${desc}" >"${update_json}" 2>"${err}"; then
     log "WARN" "Could not build update-function payload for ${function_id}: $(tr '\n' ' ' <"${err}")"
     rm -f "${err}" "${update_json}"
