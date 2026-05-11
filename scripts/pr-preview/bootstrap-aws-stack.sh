@@ -215,10 +215,7 @@ if not kv or int(kv.get("Quantity") or 0) == 0:
 else:
     fc["KeyValueStoreAssociations"] = kv
 
-with open(rendered_path, encoding="utf-8") as fp:
-    code = fp.read()
-
-body = {"Name": name, "IfMatch": etag, "FunctionConfig": fc, "FunctionCode": code}
+body = {"Name": name, "IfMatch": etag, "FunctionConfig": fc, "FunctionCode": "fileb://" + os.path.abspath(rendered_path)}
 json.dump(body, sys.stdout)
 ' <<<"${desc}" >"${update_json}" 2>"${err}"; then
     log "WARN" "Could not build update-function payload for ${function_id}: $(tr '\n' ' ' <"${err}")"
