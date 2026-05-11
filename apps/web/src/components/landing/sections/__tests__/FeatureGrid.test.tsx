@@ -1,23 +1,22 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { Zap } from 'lucide-react';
 import { FeatureGrid } from '../FeatureGrid';
-
-const TestIcon = () => <svg data-testid='icon' />;
 
 const config = {
   heading: 'Everything you need',
   subhead: 'A complete toolkit for modern SaaS.',
   items: [
-    { icon: TestIcon, title: 'Auth', body: 'Secure authentication out of the box.' },
+    { icon: Zap, title: 'Auth', body: 'Secure authentication out of the box.' },
     {
-      icon: TestIcon,
+      icon: Zap,
       title: 'Billing',
       body: 'Stripe-powered subscriptions.',
       ctaLabel: 'Learn more',
       ctaHref: '#billing',
     },
     {
-      icon: TestIcon,
+      icon: Zap,
       title: 'Docs',
       body: 'Full documentation included.',
       ctaLabel: 'View docs',
