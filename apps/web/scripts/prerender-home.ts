@@ -61,5 +61,14 @@ const out = withHomeMeta.replace(
   `<div id="root">${html}</div>`
 );
 
+// Verify the mount-point injection landed — catches a silent no-op if the
+// root div markup ever changes (e.g. id renamed from "root" to "app").
+if (out.includes('<div id="root"></div>')) {
+  console.error(
+    'pre-render smoke check: mount point injection failed — <div id="root"></div> still empty in output'
+  );
+  process.exit(1);
+}
+
 writeFileSync(join(webRoot, 'dist', 'prerender-home.html'), out);
 console.log(`pre-render complete — ${html.length} chars`);
