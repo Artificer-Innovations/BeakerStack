@@ -204,7 +204,7 @@ export const landingConfig: LandingConfig = {
     },
     {
       title: 'Web and mobile from a single codebase.',
-      body: 'Shared auth logic. Shared billing hooks. Shared business rules. Your React web app and React Native mobile app stay in sync without duplicated work. About 40–60% of the codebase is shared across platforms.',
+      body: 'Shared auth logic. Shared billing hooks. Shared business rules. Your React web app and React Native mobile app stay in sync without duplicating work. About 40–60% of the codebase is shared across platforms.',
       ctaLabel: 'Learn about mobile',
       ctaHref: '#features',
       mediaSrc: 'https://placehold.co/560x315?text=Mobile+App',
