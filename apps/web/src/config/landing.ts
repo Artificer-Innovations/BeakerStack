@@ -1,12 +1,14 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   Zap,
-  Shield,
   BarChart3,
   Code2,
   Smartphone,
   CreditCard,
   Github,
+  GitBranch,
+  TestTube,
+  Database,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -25,6 +27,8 @@ export interface FeatureGridItem {
   icon: LucideIcon;
   title: string;
   body: string;
+  ctaLabel?: string;
+  ctaHref?: string;
 }
 
 export interface FeatureRow {
@@ -99,6 +103,7 @@ export interface LandingConfig {
     subhead: string;
     ctaLabel: string;
     ctaHref: string;
+    secondaryCta?: Cta;
   };
   footer: {
     columns: FooterColumn[];
@@ -127,7 +132,7 @@ export const landingConfig: LandingConfig = {
     eyebrow: 'Open source SaaS template',
     headline: 'Everything you need to ship a real product.',
     subhead:
-      'BeakerStack gives you auth, billing, and a cross-platform React foundation — wired together and ready to customize.',
+      'BeakerStack gives you auth, billing, and a cross-platform React foundation — with a three-environment CI/CD pipeline, PR previews, and a layered test suite ready for production.',
     primaryCta: { label: 'Get started free', href: '/signup' },
     secondaryCta: { label: 'See features', href: '#features' },
     mediaSrc: 'https://placehold.co/600x338?text=BeakerStack',
@@ -154,9 +159,9 @@ export const landingConfig: LandingConfig = {
         body: 'Shared business logic between your React web app and React Native mobile app.',
       },
       {
-        icon: Shield,
-        title: 'Row-level security',
-        body: 'Supabase RLS policies pre-configured for multi-tenant data isolation.',
+        icon: Database,
+        title: 'Supabase backend',
+        body: 'Postgres, Auth, Storage, and Edge Functions — with RLS-oriented patterns, migrations at repo root, generated TypeScript types from the schema, and local Supabase via Docker for dev/test parity.',
       },
       {
         icon: Code2,
@@ -169,12 +174,22 @@ export const landingConfig: LandingConfig = {
         body: 'Track feature usage per user, enforce limits, and surface quota data in the UI.',
       },
       {
+        icon: GitBranch,
+        title: 'CI/CD pipeline',
+        body: 'Path-based PR previews on S3/CloudFront, a staging environment on the develop branch, and production on main — with EAS Update channels aligned for mobile.',
+      },
+      {
+        icon: TestTube,
+        title: 'Test discipline',
+        body: 'Unit, integration, E2E, and database test layers — colocated with the code they test and documented with a clear decision matrix.',
+      },
+      {
         icon: Github,
         title: 'Free and open source',
         body: 'MIT licensed. Fork it, own the code, and ship your product. No vendor lock-in, no royalties.',
         ctaLabel: 'View on GitHub',
         ctaHref: 'https://github.com/Artificer-Innovations/BeakerStack',
-      } as FeatureGridItem & { ctaLabel: string; ctaHref: string },
+      },
     ],
   },
   featureRows: [
@@ -189,20 +204,38 @@ export const landingConfig: LandingConfig = {
     },
     {
       title: 'Web and mobile from a single codebase.',
-      body: 'Shared auth logic, shared billing hooks, shared business rules — your React web app and React Native mobile app stay in sync without duplicating code.',
+      body: 'Shared auth logic, shared billing hooks, shared business rules — your React web app and React Native mobile app stay in sync without duplicating code. 40–60% of the codebase is shared across platforms.',
       ctaLabel: 'Learn about mobile',
       ctaHref: '#features',
       mediaSrc: 'https://placehold.co/560x315?text=Mobile+App',
       mediaAlt: 'Mobile app screenshot',
       mediaSide: 'left',
     },
+    {
+      title: 'Environments that match your shipping workflow.',
+      body: 'Three Supabase databases — local Docker, shared PR testing, and staging — mirror your branching model so migrations are validated before they touch production. PR previews deploy to path-based S3/CloudFront URLs automatically. EAS Update channels give mobile the same preview → staging → production story.',
+      ctaLabel: 'Read the architecture docs',
+      ctaHref: 'https://github.com/Artificer-Innovations/BeakerStack/blob/main/ARCHITECTURE.md',
+      mediaSrc: 'https://placehold.co/560x315?text=Environments',
+      mediaAlt: 'Three-environment pipeline diagram',
+      mediaSide: 'right',
+    },
+    {
+      title: 'Set up in minutes. Documented for the long haul.',
+      body: 'A single `npm run setup` command provisions your local environment. QUICKSTART, ARCHITECTURE, and per-topic guides (OAuth, Stripe, testing) cover every decision. Environment variables and secrets follow a consistent layout that maps directly to GitHub Actions — no hunting for where a key goes.',
+      ctaLabel: 'Read the quickstart',
+      ctaHref: 'https://github.com/Artificer-Innovations/BeakerStack/blob/main/QUICKSTART.md',
+      mediaSrc: 'https://placehold.co/560x315?text=Setup',
+      mediaAlt: 'Setup guide screenshot',
+      mediaSide: 'left',
+    },
   ],
   socialProof: {
     kind: 'metrics',
     items: [
-      { metric: '3 platforms', label: 'Web, iOS, and Android from one repo' },
-      { metric: '< 5 minutes', label: 'From clone to running locally' },
-      { metric: '100% open source', label: 'MIT licensed, no vendor lock-in' },
+      { metric: '40–60%', label: 'Code shared between web and mobile' },
+      { metric: '3 environments', label: 'PR preview, staging, and production' },
+      { metric: 'MIT licensed', label: '100% open source, no vendor lock-in' },
     ],
   },
   pricing: {
@@ -249,6 +282,10 @@ export const landingConfig: LandingConfig = {
     subhead: 'Clone BeakerStack, swap the config, and ship your product.',
     ctaLabel: 'Get started free',
     ctaHref: '/signup',
+    secondaryCta: {
+      label: 'View on GitHub',
+      href: 'https://github.com/Artificer-Innovations/BeakerStack',
+    },
   },
   footer: {
     columns: [
