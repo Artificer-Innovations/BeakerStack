@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { PricingTable } from '../PricingTable.web';
 
-vi.mock('../hooks/usePlanCatalog.js', () => ({
+vi.mock('../../hooks/usePlanCatalog.js', () => ({
   usePlanCatalog: () => ({
     plans: [
       { id: 'plan_free', display_name: 'Free', price_cents: 0, billing_period: 'free' },
@@ -13,7 +13,7 @@ vi.mock('../hooks/usePlanCatalog.js', () => ({
   }),
 }));
 
-vi.mock('../hooks/usePlan.js', () => ({
+vi.mock('../../hooks/usePlan.js', () => ({
   usePlan: () => ({ data: { id: 'plan_pro' } }),
 }));
 
