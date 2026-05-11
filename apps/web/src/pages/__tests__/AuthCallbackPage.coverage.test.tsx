@@ -36,10 +36,27 @@ vi.mock('@beakerstack/shared/contexts/AuthContext', () => ({
 
 describe('AuthCallbackPage (URL + auth branches)', () => {
   const original = window.location;
+  const memStore: Record<string, string> = {};
+
+  const storageMock = {
+    getItem: (k: string) => (k in memStore ? memStore[k] : null),
+    setItem: (k: string, v: string) => {
+      memStore[k] = v;
+    },
+    removeItem: (k: string) => {
+      delete memStore[k];
+    },
+    clear: () => {
+      for (const k of Object.keys(memStore)) delete memStore[k];
+    },
+  };
 
   beforeEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
+    Object.keys(memStore).forEach(k => delete memStore[k]);
+    vi.stubGlobal('sessionStorage', storageMock);
+    vi.stubGlobal('localStorage', storageMock);
     auth.user = null;
     auth.loading = true;
     Object.defineProperty(window, 'location', {
@@ -54,6 +71,7 @@ describe('AuthCallbackPage (URL + auth branches)', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllGlobals();
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: original,
@@ -150,9 +168,6 @@ describe('AuthCallbackPage (URL + auth branches)', () => {
       );
     });
 
-    await act(async () => {
-      vi.advanceTimersByTime(1000);
-    });
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard', {
       replace: true,
     });
@@ -181,7 +196,7 @@ describe('AuthCallbackPage (URL + auth branches)', () => {
     });
 
     await act(async () => {
-      vi.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(1200);
     });
     expect(screen.getByText(/session not established/i)).toBeInTheDocument();
 

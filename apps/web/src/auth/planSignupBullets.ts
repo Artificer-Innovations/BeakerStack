@@ -1,0 +1,43 @@
+import { beakerstackBillingConfig } from '../billing/beakerstackBillingConfig';
+
+/** Up to 3 human-readable lines for signup plan context (from template billing config). */
+export function planSignupBullets(planId: string): string[] {
+  const cfg = beakerstackBillingConfig.plans.find(p => p.id === planId);
+  if (!cfg) return [];
+
+  const out: string[] = [];
+  if (cfg.trialPeriodDays > 0) {
+    out.push(
+      `Includes a ${cfg.trialPeriodDays}-day trial, then billed at this rate.`
+    );
+  }
+
+  const feats = cfg.features as Record<string, number | boolean>;
+  for (const row of beakerstackBillingConfig.planFeatureRows) {
+    if (out.length >= 3) break;
+    const val = feats[row.featureKey];
+    if (row.kind === 'boolean') {
+      if (val === true) out.push(row.label);
+    } else {
+      const n = val as number;
+      if (n === -1) out.push(row.unlimitedLabel);
+      else out.push(row.limitedLabelTemplate.replace('{count}', String(n)));
+    }
+  }
+
+  const ai = cfg.usageLimits?.ai_summarize;
+  if (out.length < 3 && typeof ai === 'number') {
+    const label = beakerstackBillingConfig.usageMeterCopy.ai_summarize?.label;
+    if (ai === -1) {
+      out.push(label ? `Unlimited ${label}` : 'Unlimited AI summarize');
+    } else {
+      out.push(
+        label
+          ? `${ai} ${label} / billing period`
+          : `${ai} AI summarize requests / billing period`
+      );
+    }
+  }
+
+  return out.slice(0, 3);
+}

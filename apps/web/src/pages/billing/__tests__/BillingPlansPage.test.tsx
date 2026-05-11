@@ -175,6 +175,7 @@ describe('BillingPlansPage', () => {
     );
 
   beforeEach(() => {
+    Element.prototype.scrollIntoView = vi.fn();
     plansState.catLoading = false;
     plansState.currentNull = false;
     checkoutSpies.startCheckout.mockReset();
@@ -412,5 +413,18 @@ describe('BillingPlansPage', () => {
     const dots = screen.getAllByRole('button', { name: '…' });
     expect(dots.length).toBeGreaterThan(0);
     expect(dots[0]).toBeDisabled();
+  });
+
+  it('exposes plan-card-{id} anchors for scroll targeting', () => {
+    renderPage();
+    expect(document.getElementById('plan-card-beakerstack_pro')).toBeTruthy();
+    expect(document.getElementById('plan-card-beakerstack_max')).toBeTruthy();
+  });
+
+  it('shows post-signup funnel banner when welcome=1 and plan is in catalog', async () => {
+    renderPage('/billing/plans?plan=beakerstack_pro&welcome=1');
+    expect(
+      await screen.findByText(/You.*re almost there/i)
+    ).toBeInTheDocument();
   });
 });

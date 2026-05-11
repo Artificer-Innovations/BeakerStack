@@ -1,19 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
+import {
+  POST_AUTH_REDIRECT_KEY,
+  parseStoredPostAuthRedirect,
+} from '../auth/postAuthRedirect';
 
 export default function AuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const auth = useAuthContext();
+  const navigatedRef = useRef(false);
+  const authRef = useRef(auth);
+  authRef.current = auth;
 
   useEffect(() => {
-    // Supabase OAuth callbacks can come as hash fragments (#access_token=...) or query params (?error=...)
-    // Check hash fragment first (successful OAuth)
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get('access_token');
+    if (navigatedRef.current) return;
 
-    // Check query params for errors
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const queryParams = new URLSearchParams(window.location.search);
     const errorParam = queryParams.get('error') || hashParams.get('error');
     const errorDescription =
@@ -22,39 +26,58 @@ export default function AuthCallbackPage() {
 
     if (errorParam) {
       setError(errorDescription || 'Authentication failed. Please try again.');
-      // Redirect to login after showing error
-      setTimeout(() => {
+      const t = setTimeout(() => {
+        navigatedRef.current = true;
         navigate('/login', { replace: true });
       }, 3000);
+      return () => clearTimeout(t);
+    }
+
+    if (auth.loading) return;
+
+    if (auth.user) {
+      navigatedRef.current = true;
+      const rawS = sessionStorage.getItem(POST_AUTH_REDIRECT_KEY);
+      const rawL = localStorage.getItem(POST_AUTH_REDIRECT_KEY);
+      sessionStorage.removeItem(POST_AUTH_REDIRECT_KEY);
+      localStorage.removeItem(POST_AUTH_REDIRECT_KEY);
+      const stored =
+        parseStoredPostAuthRedirect(rawS) ?? parseStoredPostAuthRedirect(rawL);
+      navigate(stored ?? '/dashboard', { replace: true });
       return;
     }
 
-    // If we have an access token in the hash, Supabase client will pick it up automatically
-    // Wait for auth state to update, then redirect
-    if (accessToken) {
-      // Give Supabase client time to process the token
-      const timer = setTimeout(() => {
-        if (auth.user && !auth.loading) {
-          navigate('/dashboard', { replace: true });
-        } else if (!auth.loading) {
-          // If we got a token but no user after loading completes, there might be an issue
-          setError(
-            'Authentication completed but session not established. Please try again.'
-          );
-          setTimeout(() => {
-            navigate('/login', { replace: true });
-          }, 3000);
-        }
-      }, 1000);
-
-      return () => clearTimeout(timer);
+    const accessToken =
+      hashParams.get('access_token') || queryParams.get('access_token');
+    if (!accessToken) {
+      return;
     }
 
-    // If user is already authenticated (OAuth callback completed)
-    if (auth.user && !auth.loading) {
-      // Successful OAuth login, redirect to dashboard
-      navigate('/dashboard', { replace: true });
-    }
+    const timer = setTimeout(() => {
+      if (navigatedRef.current) return;
+      const a = authRef.current;
+      if (a.user && !a.loading) {
+        navigatedRef.current = true;
+        const rawS = sessionStorage.getItem(POST_AUTH_REDIRECT_KEY);
+        const rawL = localStorage.getItem(POST_AUTH_REDIRECT_KEY);
+        sessionStorage.removeItem(POST_AUTH_REDIRECT_KEY);
+        localStorage.removeItem(POST_AUTH_REDIRECT_KEY);
+        const stored =
+          parseStoredPostAuthRedirect(rawS) ??
+          parseStoredPostAuthRedirect(rawL);
+        navigate(stored ?? '/dashboard', { replace: true });
+      } else if (!a.loading) {
+        setError(
+          'Authentication completed but session not established. Please try again.'
+        );
+        setTimeout(() => {
+          navigatedRef.current = true;
+          navigate('/login', { replace: true });
+        }, 3000);
+      }
+    }, 1200);
+
+    return () => clearTimeout(timer);
   }, [auth.user, auth.loading, navigate]);
 
   if (error) {
