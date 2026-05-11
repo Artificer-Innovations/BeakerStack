@@ -2,18 +2,20 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@beakerstack/shared/types/database';
 import { Logger } from '@beakerstack/shared/utils/logger';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl) {
-  throw new Error('Missing VITE_SUPABASE_URL environment variable');
-}
-
-if (!supabaseAnonKey) {
-  throw new Error('Missing VITE_SUPABASE_ANON_KEY environment variable');
-}
+// Defensive fallback allows the module to load in the vite-node pre-render
+// context where env vars may be absent. No Supabase calls are made during
+// renderToStaticMarkup, so placeholder values are safe.
+const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL ?? 'https://placeholder.supabase.co';
+const supabaseAnonKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ?? 'placeholder-anon-key';
 
 if (import.meta.env.DEV) {
+  if (!import.meta.env.VITE_SUPABASE_URL) {
+    Logger.warn(
+      '[web.supabase] VITE_SUPABASE_URL not set — using placeholder (pre-render only)'
+    );
+  }
   const realtimeUrl = supabaseUrl.replace(
     /^http(s?)/,
     (_: string, secure: string) => (secure ? 'wss' : 'ws')
