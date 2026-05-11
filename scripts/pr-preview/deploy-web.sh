@@ -254,7 +254,7 @@ build_web_app() {
   fi
   
   # Check for critical files that should always be present
-  local required_files=("index.html" "assets")
+  local required_files=("index.html" "prerender-home.html" "assets")
   local missing_required=()
   for file in "${required_files[@]}"; do
     if [[ ! -e "${BUILD_DIR}/${file}" ]]; then
@@ -303,7 +303,7 @@ sync_to_s3() {
       ;;
   esac
 
-  log "INFO" "Syncing assets (excluding index.html) to ${s3_uri} with long cache TTL..."
+  log "INFO" "Syncing assets (excluding HTML entry points) to ${s3_uri} with long cache TTL..."
   log "INFO" "Build directory contents:"
   if [[ -d "${BUILD_DIR}" ]]; then
     find "${BUILD_DIR}" -maxdepth 1 -type f -printf '%f\n' 2>/dev/null | while read -r file; do
@@ -316,36 +316,45 @@ sync_to_s3() {
     exit 1
   fi
   
+  # Exclude both HTML entry points from long-TTL sync; they are uploaded
+  # separately below with a short TTL so deploys take effect promptly.
   run_cmd aws s3 sync "${BUILD_DIR}/" "${s3_uri}/" \
     --delete \
     --exclude "index.html" \
+    --exclude "prerender-home.html" \
     --cache-control "public,max-age=31536000,immutable" \
     --region "${AWS_REGION}" \
     --exact-timestamps
 
-  log "INFO" "Ensuring SPA fallback (index.html) is cached with short TTL..."
+  log "INFO" "Uploading index.html (SPA fallback) with short TTL..."
   run_cmd aws s3 cp "${BUILD_DIR}/index.html" "${s3_uri}/index.html" \
+    --cache-control "public,max-age=60" \
+    --content-type "text/html; charset=utf-8" \
+    --region "${AWS_REGION}"
+
+  log "INFO" "Uploading prerender-home.html (home page pre-render) with short TTL..."
+  run_cmd aws s3 cp "${BUILD_DIR}/prerender-home.html" "${s3_uri}/prerender-home.html" \
     --cache-control "public,max-age=60" \
     --content-type "text/html; charset=utf-8" \
     --region "${AWS_REGION}"
   
   log "INFO" "Verifying all static assets are deployed..."
   
-  # Dynamically discover all static files in build output (excluding index.html and assets directory)
+  # Dynamically discover all static files in build output (excluding HTML entry points and assets directory)
   local missing_files=()
   local verified_count=0
   local files_to_verify=()
   
   if [[ "${DRY_RUN}" != true ]]; then
-    # First, collect all files to verify (excluding index.html and assets directory)
+    # First, collect all files to verify (excluding HTML entry points and assets directory)
     # Use a more robust approach that handles edge cases
     if [[ -d "${BUILD_DIR}" ]]; then
       while IFS= read -r -d '' file; do
         # Get relative path from BUILD_DIR
         local rel_path="${file#${BUILD_DIR}/}"
         
-        # Skip index.html (handled separately) and anything in assets/ directory
-        if [[ "${rel_path}" == "index.html" ]] || [[ "${rel_path}" == assets/* ]]; then
+        # Skip HTML entry points (handled separately) and anything in assets/ directory
+        if [[ "${rel_path}" == "index.html" ]] || [[ "${rel_path}" == "prerender-home.html" ]] || [[ "${rel_path}" == assets/* ]]; then
           continue
         fi
         
@@ -375,7 +384,7 @@ sync_to_s3() {
         fi
       done
     else
-      log "WARN" "No files found to verify (excluding index.html and assets)"
+      log "WARN" "No files found to verify (excluding HTML entry points and assets)"
     fi
     
     if [[ ${#missing_files[@]} -gt 0 ]]; then
@@ -388,6 +397,65 @@ sync_to_s3() {
   fi
 
   write_output "PREVIEW_S3_PREFIX" "${prefix:-/}"
+}
+
+# Ensures the CloudFront distribution's default root object is set to
+# prerender-home.html so that bare / requests receive pre-rendered HTML.
+# Only applies to prod and staging; preview environments use path prefixes.
+configure_cloudfront_root_object() {
+  if [[ "${ENVIRONMENT}" != "prod" && "${ENVIRONMENT}" != "staging" ]]; then
+    return 0
+  fi
+
+  local expected_root="prerender-home.html"
+  log "INFO" "Ensuring CloudFront default root object is '${expected_root}'..."
+
+  if [[ "${DRY_RUN}" == true ]]; then
+    log "DRY" "aws cloudfront update-distribution --id ${CLOUDFRONT_DISTRIBUTION_ID} (set DefaultRootObject=${expected_root})"
+    return 0
+  fi
+
+  local config_json current_root etag
+  config_json="$(aws cloudfront get-distribution-config \
+    --id "${CLOUDFRONT_DISTRIBUTION_ID}" \
+    --output json)"
+
+  current_root="$(echo "${config_json}" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+print(data['DistributionConfig'].get('DefaultRootObject', ''))
+")"
+
+  if [[ "${current_root}" == "${expected_root}" ]]; then
+    log "INFO" "CloudFront default root object is already '${expected_root}'."
+    return 0
+  fi
+
+  log "INFO" "Updating CloudFront default root object from '${current_root}' to '${expected_root}'..."
+
+  etag="$(echo "${config_json}" | python3 -c "
+import sys, json
+print(json.load(sys.stdin)['ETag'])
+")"
+
+  local updated_config
+  updated_config="$(echo "${config_json}" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+data['DistributionConfig']['DefaultRootObject'] = '${expected_root}'
+print(json.dumps(data['DistributionConfig']))
+")"
+
+  echo "${updated_config}" > /tmp/cloudfront-dist-config.json
+
+  run_cmd aws cloudfront update-distribution \
+    --id "${CLOUDFRONT_DISTRIBUTION_ID}" \
+    --distribution-config "file:///tmp/cloudfront-dist-config.json" \
+    --if-match "${etag}" \
+    --output text > /dev/null
+
+  rm -f /tmp/cloudfront-dist-config.json
+  log "INFO" "CloudFront default root object updated to '${expected_root}'."
 }
 
 create_invalidation() {
@@ -483,6 +551,7 @@ main() {
 
   build_web_app
   sync_to_s3
+  configure_cloudfront_root_object
   create_invalidation
   verify_preview_url
 
@@ -490,4 +559,3 @@ main() {
 }
 
 main "$@"
-
