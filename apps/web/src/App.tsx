@@ -1,8 +1,8 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Outlet } from 'react-router-dom';
 import { ProtectedRoute } from '@beakerstack/shared/components/auth/ProtectedRoute.web';
 import { BillingProviderLayout } from './billing/BillingProviderLayout';
 import { AppFooter } from './components/AppFooter';
-import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
@@ -13,6 +13,8 @@ import BillingOverviewPage from './pages/billing/BillingOverviewPage';
 import BillingUsagePage from './pages/billing/BillingUsagePage';
 import BillingPlansPage from './pages/billing/BillingPlansPage';
 import BillingInvoicesPage from './pages/billing/BillingInvoicesPage';
+
+const HomePage = lazy(() => import('./pages/HomePage'));
 
 function RootLayout() {
   return (
@@ -30,7 +32,14 @@ function App() {
     <div className='bg-gray-50'>
       <Routes>
         <Route element={<RootLayout />}>
-          <Route path='/' element={<HomePage />} />
+          <Route
+            path='/'
+            element={
+              <Suspense fallback={null}>
+                <HomePage />
+              </Suspense>
+            }
+          />
           <Route path='/login' element={<LoginPage />} />
           <Route path='/signup' element={<SignupPage />} />
           <Route path='/terms' element={<PolicyPage policy='terms' />} />
