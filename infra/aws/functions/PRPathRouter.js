@@ -3,11 +3,12 @@
  *
  * For deploy.beakerstack.com:
  *   - Routes `/pr-<N>/*` paths to S3 prefix `pr-<N>/*`
+ *   - Home path (`/pr-<N>` or `/pr-<N>/`) → `pr-<N>/prerender-home.html`
  *   - Handles SPA fallback: `/pr-<N>/some/route` → `pr-<N>/index.html`
  *   - Supports both file paths (with extensions) and directory-like paths
  *
  * Example URIs:
- *   - `/pr-123/` → `pr-123/index.html`
+ *   - `/pr-123/` → `pr-123/prerender-home.html` (pre-rendered landing page)
  *   - `/pr-123/static/js/main.js` → `pr-123/static/js/main.js`
  *   - `/pr-123/dashboard` → `pr-123/index.html` (SPA routing)
  *   - `/pr-123/dashboard/settings` → `pr-123/index.html` (SPA routing)
@@ -34,9 +35,10 @@ function handler(event) {
     var sanitizedPrefix = prPrefix.replace(/^\/+|\/+$/g, '');
     var sanitizedPath = (restOfPath || '/').replace(/^\/+/, '');
 
-    // If no path or just a slash, serve index.html
+    // Home path (no sub-path or just a slash) → pre-rendered landing page.
+    // Mirrors the CloudFront Default Root Object used for prod/staging.
     if (!sanitizedPath || sanitizedPath === '' || sanitizedPath === '/') {
-      return sanitizedPrefix + '/index.html';
+      return sanitizedPrefix + '/prerender-home.html';
     }
 
     // If path doesn't have a file extension, treat as SPA route
