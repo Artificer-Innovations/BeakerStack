@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Nav } from '../Nav';
 
@@ -68,14 +68,13 @@ describe('Nav', () => {
     renderNav();
     fireEvent.click(screen.getByRole('button', { name: 'Toggle menu' }));
     const mobileNav = screen.getByRole('navigation', { name: 'Mobile' });
-    const featuresLink = mobileNav.querySelector('a[href="#features"]')!;
-    fireEvent.click(featuresLink);
+    fireEvent.click(within(mobileNav).getByRole('link', { name: 'Features' }));
     expect(screen.queryByRole('navigation', { name: 'Mobile' })).not.toBeInTheDocument();
   });
 
   it('adds shadow class after scrolling past threshold', () => {
-    const { container } = renderNav();
-    const header = container.querySelector('header')!;
+    renderNav();
+    const header = screen.getByRole('banner');
     expect(header.className).not.toContain('shadow-sm');
 
     act(() => {
@@ -87,8 +86,8 @@ describe('Nav', () => {
   });
 
   it('removes shadow class when scrolled back to top', () => {
-    const { container } = renderNav();
-    const header = container.querySelector('header')!;
+    renderNav();
+    const header = screen.getByRole('banner');
 
     act(() => {
       Object.defineProperty(window, 'scrollY', { value: 50, writable: true, configurable: true });

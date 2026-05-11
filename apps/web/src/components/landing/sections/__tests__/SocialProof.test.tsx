@@ -59,4 +59,11 @@ describe('SocialProof', () => {
     expect(screen.getByText('Carol')).toBeInTheDocument();
     expect(screen.queryByText(/,/)).not.toBeInTheDocument();
   });
+
+  it('renders nothing for unsupported kind', () => {
+    const { container } = render(
+      <SocialProof config={{ kind: 'logos' as 'metrics', items: [] }} />
+    );
+    expect(container.firstChild).toBeNull();
+  });
 });
