@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type {
@@ -48,6 +48,28 @@ const plansState = vi.hoisted(() => {
     is_public: true,
     display_order: 2,
   };
+  /** Same display tier as Pro — exercises getPrimary fallback when orders tie but ids differ. */
+  const proTwinPlan: Plan = {
+    id: 'beakerstack_pro_twin',
+    product_id: 'beakerstack',
+    display_name: 'Pro Twin',
+    description: null,
+    price_cents: 2900,
+    billing_period: 'monthly',
+    stripe_price_id_monthly: null,
+    stripe_price_id_annual: null,
+    stripe_product_id: null,
+    features: {
+      feature_a: true,
+      feature_b: false,
+      containers_per_account_max: -1,
+      items_per_container_max: 25,
+    },
+    usage_limits: { ai_summarize: 500 },
+    trial_period_days: 0,
+    is_public: true,
+    display_order: 2,
+  };
   const maxPlan: Plan = {
     id: 'beakerstack_max',
     product_id: 'beakerstack',
@@ -72,6 +94,7 @@ const plansState = vi.hoisted(() => {
   return {
     freePlan,
     proPlan,
+    proTwinPlan,
     maxPlan,
     current: proPlan,
     catLoading: false,
@@ -109,7 +132,12 @@ vi.mock('@beakerstack/billing', async importOriginal => {
     ...actual,
     useBillingConfig: () => beakerstackBillingConfig,
     usePlanCatalog: () => ({
-      plans: [plansState.freePlan, plansState.proPlan, plansState.maxPlan],
+      plans: [
+        plansState.freePlan,
+        plansState.proPlan,
+        plansState.proTwinPlan,
+        plansState.maxPlan,
+      ],
       loading: plansState.catLoading,
       error: null,
       refresh: vi.fn(),
@@ -313,6 +341,165 @@ describe('BillingPlansPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('reloads the page after cadence switch when updateSubscription returns success', async () => {
+    const user = userEvent.setup();
+    const reload = vi.fn();
+    vi.stubGlobal('location', { ...window.location, reload });
+
+    plansState.current = {
+      ...plansState.proPlan,
+      stripe_price_id_monthly: 'price_pro_monthly',
+      stripe_price_id_annual: 'price_pro_annual',
+    };
+    plansState.subscription = {
+      id: 's_paid',
+      user_id: 'u1',
+      product_id: 'beakerstack',
+      plan_id: 'beakerstack_pro',
+      stripe_customer_id: 'cus_paid',
+      stripe_subscription_id: 'sub_paid',
+      stripe_price_id: 'price_pro_monthly',
+      status: 'active',
+      current_period_start: null,
+      current_period_end: null,
+      cancel_at_period_end: false,
+      pending_target_plan_id: null,
+      canceled_at: null,
+      trial_start: null,
+      trial_end: null,
+    };
+    checkoutSpies.updateSubscription.mockResolvedValue(true);
+
+    renderPage('/billing/plans?cadence=annual');
+
+    await user.click(screen.getByRole('button', { name: 'Switch to annual' }));
+
+    await waitFor(() => {
+      expect(checkoutSpies.updateSubscription).toHaveBeenCalledWith(
+        'beakerstack_pro',
+        'annual'
+      );
+    });
+    expect(reload).toHaveBeenCalled();
+  });
+
+  it('does not reload when cadence switch returns no success flag', async () => {
+    const user = userEvent.setup();
+    const reload = vi.fn();
+    vi.stubGlobal('location', { ...window.location, reload });
+
+    plansState.current = {
+      ...plansState.proPlan,
+      stripe_price_id_monthly: 'price_pro_monthly',
+      stripe_price_id_annual: 'price_pro_annual',
+    };
+    plansState.subscription = {
+      id: 's_paid',
+      user_id: 'u1',
+      product_id: 'beakerstack',
+      plan_id: 'beakerstack_pro',
+      stripe_customer_id: 'cus_paid',
+      stripe_subscription_id: 'sub_paid',
+      stripe_price_id: 'price_pro_monthly',
+      status: 'active',
+      current_period_start: null,
+      current_period_end: null,
+      cancel_at_period_end: false,
+      pending_target_plan_id: null,
+      canceled_at: null,
+      trial_start: null,
+      trial_end: null,
+    };
+    checkoutSpies.updateSubscription.mockResolvedValue(false);
+
+    renderPage('/billing/plans?cadence=annual');
+
+    await user.click(screen.getByRole('button', { name: 'Switch to annual' }));
+
+    await waitFor(() => {
+      expect(checkoutSpies.updateSubscription).toHaveBeenCalledWith(
+        'beakerstack_pro',
+        'annual'
+      );
+    });
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it('shows disabled Current plan on paid tier when toggle cadence matches subscription cadence', () => {
+    plansState.current = {
+      ...plansState.proPlan,
+      stripe_price_id_monthly: 'price_pro_monthly',
+      stripe_price_id_annual: 'price_pro_annual',
+    };
+    plansState.subscription = {
+      id: 's_paid',
+      user_id: 'u1',
+      product_id: 'beakerstack',
+      plan_id: 'beakerstack_pro',
+      stripe_customer_id: 'cus_paid',
+      stripe_subscription_id: 'sub_paid',
+      stripe_price_id: 'price_pro_monthly',
+      status: 'active',
+      current_period_start: null,
+      current_period_end: null,
+      cancel_at_period_end: false,
+      pending_target_plan_id: null,
+      canceled_at: null,
+      trial_start: null,
+      trial_end: null,
+    };
+
+    renderPage('/billing/plans');
+
+    const proSection = document.getElementById('plan-card-beakerstack_pro');
+    expect(proSection).toBeTruthy();
+    expect(
+      within(proSection as HTMLElement).getByRole('button', {
+        name: 'Current plan',
+      })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Switch to annual/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Switch to monthly/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it('uses fallback Current plan CTA when paid tiers tie on display_order but ids differ', () => {
+    plansState.current = {
+      ...plansState.proPlan,
+      stripe_price_id_monthly: 'price_pro_monthly',
+      stripe_price_id_annual: 'price_pro_annual',
+    };
+    plansState.subscription = {
+      id: 's_paid',
+      user_id: 'u1',
+      product_id: 'beakerstack',
+      plan_id: 'beakerstack_pro',
+      stripe_customer_id: 'cus_paid',
+      stripe_subscription_id: 'sub_paid',
+      stripe_price_id: 'price_pro_monthly',
+      status: 'active',
+      current_period_start: null,
+      current_period_end: null,
+      cancel_at_period_end: false,
+      pending_target_plan_id: null,
+      canceled_at: null,
+      trial_start: null,
+      trial_end: null,
+    };
+
+    renderPage('/billing/plans');
+
+    const twinSection = document.getElementById('plan-card-beakerstack_pro_twin');
+    expect(twinSection).toBeTruthy();
+    const cta = within(twinSection as HTMLElement).getByRole('button', {
+      name: 'Current plan',
+    });
+    expect(cta).toBeDisabled();
+  });
+
   it('shows Scheduled on target plan when downgrade is pending', () => {
     plansState.billingKind = 'downgrade_pending';
     plansState.subscription = {
@@ -353,7 +540,9 @@ describe('BillingPlansPage', () => {
       checkoutUrl: 'https://checkout.example/session',
     });
     renderPage();
-    await user.click(screen.getByRole('button', { name: /Upgrade to Pro/i }));
+    await user.click(
+      screen.getByRole('button', { name: /^Upgrade to Pro$/i })
+    );
     await waitFor(() => {
       expect(hrefSpy).toHaveBeenCalledWith('https://checkout.example/session');
     });
@@ -370,6 +559,41 @@ describe('BillingPlansPage', () => {
         'monthly'
       );
     });
+  });
+
+  it('calls updateSubscription when downgrading from Max to Pro', async () => {
+    const user = userEvent.setup();
+    const reload = vi.fn();
+    vi.stubGlobal('location', { ...window.location, reload });
+    plansState.current = plansState.maxPlan;
+    plansState.subscription = {
+      id: 's_max',
+      user_id: 'u1',
+      product_id: 'beakerstack',
+      plan_id: 'beakerstack_max',
+      stripe_customer_id: 'cus',
+      stripe_subscription_id: 'sub_max',
+      stripe_price_id: 'price',
+      status: 'active',
+      current_period_start: null,
+      current_period_end: null,
+      cancel_at_period_end: false,
+      pending_target_plan_id: null,
+      canceled_at: null,
+      trial_start: null,
+      trial_end: null,
+    };
+    renderPage();
+    await user.click(
+      screen.getByRole('button', { name: /^Downgrade to Pro$/i })
+    );
+    await waitFor(() => {
+      expect(checkoutSpies.updateSubscription).toHaveBeenCalledWith(
+        'beakerstack_pro',
+        'monthly'
+      );
+    });
+    expect(reload).toHaveBeenCalled();
   });
 
   it('confirms downgrade to Free via modal', async () => {

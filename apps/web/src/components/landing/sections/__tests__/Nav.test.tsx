@@ -26,6 +26,35 @@ function renderNav() {
 }
 
 describe('Nav', () => {
+  it('prefixes default logo path with PR preview base when pathname matches', () => {
+    const originalPath = window.location.pathname;
+    const configNoLogo = {
+      ...config,
+      brand: {
+        name: 'BeakerStack',
+        tagline: 'Ship your SaaS faster.',
+      },
+    };
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        ...window.location,
+        pathname: '/pr-42/dashboard',
+      },
+    });
+    render(
+      <MemoryRouter>
+        <Nav config={configNoLogo} />
+      </MemoryRouter>
+    );
+    const img = screen.getByRole('img', { name: 'BeakerStack' });
+    expect(img.getAttribute('src')).toBe('/pr-42/demo-flask-icon.svg');
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...window.location, pathname: originalPath },
+    });
+  });
+
   it('renders the brand name', () => {
     renderNav();
     expect(screen.getByText('BeakerStack')).toBeInTheDocument();

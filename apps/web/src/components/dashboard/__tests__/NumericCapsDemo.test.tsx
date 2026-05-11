@@ -125,6 +125,16 @@ describe('NumericCapsDemo', () => {
     expect(limits[0]).toBeDisabled();
   });
 
+  it('surfaces Error rejects from addCollection', async () => {
+    const user = userEvent.setup();
+    demo.addCollection.mockRejectedValue(new Error('quota'));
+    render(<NumericCapsDemo />);
+    await user.click(screen.getByRole('button', { name: /Add collection/i }));
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('quota');
+    });
+  });
+
   it('surfaces non-Error rejects from addItem', async () => {
     const user = userEvent.setup();
     demo.collections = [{ id: 'c9', item_count: 0 }];

@@ -58,6 +58,16 @@ describe('useDemoCollections', () => {
     expect(result.current.collections).toEqual([]);
   });
 
+  it('surfaces Error message when fetch fails with Error', async () => {
+    rpc.mockRejectedValue(new Error('network'));
+    const { result } = renderHook(() => useDemoCollections());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(result.current.error).toBe('network');
+    expect(result.current.collections).toEqual([]);
+  });
+
   it('refresh refetches after initial load', async () => {
     rpc
       .mockResolvedValueOnce({

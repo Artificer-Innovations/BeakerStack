@@ -66,6 +66,11 @@ export default defineConfig(({ mode }) => {
       coverage: {
         provider: 'v8',
         reporter: ['text', 'json', 'html', 'lcov'],
+        // Line/statement ~99.1% with integration-heavy pages (billing matrix, OAuth stash).
+        thresholds: {
+          statements: 99,
+          lines: 99,
+        },
         exclude: [
           'node_modules/',
           'src/test/',
