@@ -10,6 +10,7 @@ export function FeatureRows({ config }: FeatureRowsProps) {
       <div className='max-w-[1200px] mx-auto px-6 space-y-24'>
         {config.map(row => {
           const imageFirst = row.mediaSide === 'left';
+          const isExternal = row.ctaHref.startsWith('http');
           return (
             <div
               key={row.title}
@@ -38,6 +39,9 @@ export function FeatureRows({ config }: FeatureRowsProps) {
                 </p>
                 <a
                   href={row.ctaHref}
+                  {...(isExternal
+                    ? { target: '_blank', rel: 'noopener noreferrer' }
+                    : {})}
                   className='text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline'
                 >
                   {row.ctaLabel} →
