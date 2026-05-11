@@ -17,15 +17,19 @@ if (typeof globalThis.WebSocket === 'undefined') {
 
 const { createElement } = await import('react');
 const { renderToStaticMarkup } = await import('react-dom/server');
-const { StaticRouter } = await import('react-router-dom/server');
+// MemoryRouter comes from the same react-router-dom instance as <Link> and other
+// router-aware components in LandingPage, so they share the same NavigationContext.
+// StaticRouter (from react-router-dom/server) is a separate sub-package with its
+// own bundled context, causing a null-context mismatch in vite-node's module graph.
+const { MemoryRouter } = await import('react-router-dom');
 const { LandingPage } = await import('../src/components/landing/LandingPage');
 
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const html = renderToStaticMarkup(
   createElement(
-    StaticRouter,
-    { location: '/' },
+    MemoryRouter,
+    { initialEntries: ['/'] },
     createElement(LandingPage)
   )
 );
