@@ -1,7 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   Zap,
-  Shield,
   BarChart3,
   Code2,
   Smartphone,
