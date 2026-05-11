@@ -111,6 +111,10 @@ ensure_prereqs() {
     log "ERROR" "curl is required to verify preview URL."
     exit 1
   }
+  command -v python3 >/dev/null 2>&1 || {
+    log "ERROR" "python3 is required for CloudFront config parsing."
+    exit 1
+  }
 }
 
 parse_args() {
@@ -446,15 +450,17 @@ data['DistributionConfig']['DefaultRootObject'] = '${expected_root}'
 print(json.dumps(data['DistributionConfig']))
 ")"
 
-  echo "${updated_config}" > /tmp/cloudfront-dist-config.json
+  local tmp_config
+  tmp_config="$(mktemp)"
+  echo "${updated_config}" > "${tmp_config}"
 
   run_cmd aws cloudfront update-distribution \
     --id "${CLOUDFRONT_DISTRIBUTION_ID}" \
-    --distribution-config "file:///tmp/cloudfront-dist-config.json" \
+    --distribution-config "file://${tmp_config}" \
     --if-match "${etag}" \
     --output text > /dev/null
 
-  rm -f /tmp/cloudfront-dist-config.json
+  rm -f "${tmp_config}"
   log "INFO" "CloudFront default root object updated to '${expected_root}'."
 }
 
