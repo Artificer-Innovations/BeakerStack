@@ -58,6 +58,7 @@ Outputs:
 
 Environment variables for build:
   VITE_BASE_PATH                 Base path for React Router (set automatically based on --environment)
+  VITE_PUBLIC_SITE_ORIGIN        Public site origin for pre-render canonical/og:url (set automatically)
   VITE_SUPABASE_URL              Supabase API URL (should be set externally)
   VITE_SUPABASE_ANON_KEY         Supabase anon key (should be set externally)
 EOF
@@ -247,7 +248,21 @@ build_web_app() {
 
   # Set VITE_BASE_PATH for the build
   export VITE_BASE_PATH="${base_path}"
-  
+
+  # Pre-render canonical / og:url (scripts/prerender-home.ts)
+  case "${ENVIRONMENT}" in
+    preview)
+      export VITE_PUBLIC_SITE_ORIGIN="https://deploy.${DOMAIN_NAME}"
+      ;;
+    staging)
+      export VITE_PUBLIC_SITE_ORIGIN="https://staging.${DOMAIN_NAME}"
+      ;;
+    prod)
+      export VITE_PUBLIC_SITE_ORIGIN="https://${DOMAIN_NAME}"
+      ;;
+  esac
+  log "INFO" "Using VITE_PUBLIC_SITE_ORIGIN=${VITE_PUBLIC_SITE_ORIGIN}"
+
   run_cmd npm run --workspace web build
   
   # Verify build output contains expected files
@@ -451,7 +466,8 @@ print(json.dumps(data['DistributionConfig']))
 ")"
 
   local tmp_config
-  tmp_config="$(mktemp)"
+  tmp_config="$(mktemp "${TMPDIR:-/tmp}/cloudfront-dist-config.XXXXXX.json")"
+  trap 'rm -f "${tmp_config}"' EXIT
   echo "${updated_config}" > "${tmp_config}"
 
   run_cmd aws cloudfront update-distribution \
@@ -460,6 +476,7 @@ print(json.dumps(data['DistributionConfig']))
     --if-match "${etag}" \
     --output text > /dev/null
 
+  trap - EXIT
   rm -f "${tmp_config}"
   log "INFO" "CloudFront default root object updated to '${expected_root}'."
 }

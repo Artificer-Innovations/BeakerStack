@@ -26,10 +26,23 @@ const { LandingPage } = await import('../src/components/landing/LandingPage');
 
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
+// Public home URL for canonical / og:url (set by deploy-web.sh per environment).
+const siteOrigin = (
+  process.env.VITE_PUBLIC_SITE_ORIGIN ?? 'https://beakerstack.com'
+).replace(/\/$/, '');
+let basePath = process.env.VITE_BASE_PATH ?? '/';
+if (!basePath.startsWith('/')) basePath = `/${basePath}`;
+basePath = basePath.replace(/\/+$/, '');
+const homePath = basePath === '' ? '/' : `${basePath}/`;
+const publicHomeUrl = `${siteOrigin}${homePath === '/' ? '/' : homePath}`;
+
+const routerBasename =
+  basePath === '' || basePath === '/' ? undefined : basePath;
+
 const html = renderToStaticMarkup(
   createElement(
     MemoryRouter,
-    { initialEntries: ['/'] },
+    { basename: routerBasename, initialEntries: ['/'] },
     createElement(LandingPage)
   )
 );
@@ -50,11 +63,22 @@ const template = readFileSync(join(webRoot, 'dist', 'index.html'), 'utf8');
 const withHomeMeta = template.replace(
   '</head>',
   [
-    '  <link rel="canonical" href="https://beakerstack.com/" />',
-    '  <meta property="og:url" content="https://beakerstack.com/" />',
+    `  <link rel="canonical" href="${publicHomeUrl}" />`,
+    `  <meta property="og:url" content="${publicHomeUrl}" />`,
     '  </head>',
   ].join('\n')
 );
+
+if (
+  withHomeMeta === template ||
+  !withHomeMeta.includes('rel="canonical"') ||
+  !withHomeMeta.includes('property="og:url"')
+) {
+  console.error(
+    'pre-render smoke check: </head> injection failed — dist/index.html may be missing </head> or markup changed'
+  );
+  process.exit(1);
+}
 
 const out = withHomeMeta.replace(
   '<div id="root"></div>',

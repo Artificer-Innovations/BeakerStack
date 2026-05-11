@@ -25,6 +25,11 @@ if (import.meta.env.DEV) {
       '[web.supabase] VITE_SUPABASE_URL not set — using placeholder (pre-render only)'
     );
   }
+  if (isNode && !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+    Logger.warn(
+      '[web.supabase] VITE_SUPABASE_ANON_KEY not set — using placeholder (pre-render only)'
+    );
+  }
   const realtimeUrl = supabaseUrl.replace(
     /^http(s?)/,
     (_: string, secure: string) => (secure ? 'wss' : 'ws')
