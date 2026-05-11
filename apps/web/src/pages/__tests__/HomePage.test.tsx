@@ -22,7 +22,10 @@ vi.mock('@/lib/supabase', () => ({
     }),
     channel: vi.fn().mockReturnValue({
       on: vi.fn().mockReturnThis(),
-      subscribe: vi.fn(cb => { cb('SUBSCRIBED'); return { unsubscribe: vi.fn().mockResolvedValue(undefined) }; }),
+      subscribe: vi.fn(cb => {
+        cb('SUBSCRIBED');
+        return { unsubscribe: vi.fn().mockResolvedValue(undefined) };
+      }),
     }),
     removeChannel: vi.fn().mockResolvedValue({ status: 'ok', error: null }),
   },
@@ -33,10 +36,14 @@ vi.mock('@beakerstack/billing', async importOriginal => {
   return {
     ...actual,
     BillingProvider: ({ children }: { children: ReactNode }) => children,
-    usePlanCatalog: () => ({ plans: [], loading: false, error: null, refresh: async () => {} }),
+    usePlanCatalog: () => ({
+      plans: [],
+      loading: false,
+      error: null,
+      refresh: async () => {},
+    }),
   };
 });
-
 
 // Stub the landing config so tests don't depend on placehold.co or Lucide icons
 vi.mock('../../config/landing', () => ({
@@ -54,12 +61,21 @@ vi.mock('../../config/landing', () => ({
     featureRows: [],
     pricing: { heading: 'Pricing', subhead: '' },
     faq: { heading: 'FAQ', items: [] },
-    finalCta: { headline: 'Ready?', subhead: '', ctaLabel: 'Start', ctaHref: '/signup' },
+    finalCta: {
+      headline: 'Ready?',
+      subhead: '',
+      ctaLabel: 'Start',
+      ctaHref: '/signup',
+    },
   },
 }));
 
 vi.mock('../../../billing/beakerstackBillingConfig', () => ({
-  beakerstackBillingConfig: { plans: [], productId: 'test', displayName: 'Test' },
+  beakerstackBillingConfig: {
+    plans: [],
+    productId: 'test',
+    displayName: 'Test',
+  },
 }));
 
 describe('HomePage', () => {
@@ -84,7 +100,10 @@ describe('HomePage', () => {
       }),
       channel: vi.fn().mockReturnValue({
         on: vi.fn().mockReturnThis(),
-        subscribe: vi.fn(cb => { cb('SUBSCRIBED'); return { unsubscribe: vi.fn().mockResolvedValue(undefined) }; }),
+        subscribe: vi.fn(cb => {
+          cb('SUBSCRIBED');
+          return { unsubscribe: vi.fn().mockResolvedValue(undefined) };
+        }),
       }),
       removeChannel: vi.fn().mockResolvedValue({ status: 'ok', error: null }),
     } as unknown as SupabaseClient;
@@ -92,7 +111,9 @@ describe('HomePage', () => {
 
   const renderWithAuth = async (authenticated = false) => {
     if (authenticated) {
-      (mockSupabaseClient.auth.getSession as ReturnType<typeof vi.fn>).mockResolvedValue({
+      (
+        mockSupabaseClient.auth.getSession as ReturnType<typeof vi.fn>
+      ).mockResolvedValue({
         data: {
           session: { user: { id: 'test-user-id', email: 'test@example.com' } },
         },
@@ -150,8 +171,12 @@ describe('HomePage', () => {
 
     it('renders the pricing cadence toggle with Monthly and Annually buttons', async () => {
       await renderWithAuth(false);
-      expect(screen.getByRole('button', { name: /monthly/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /annually/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /monthly/i })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /annually/i })
+      ).toBeInTheDocument();
     });
   });
 

@@ -14,8 +14,7 @@ const resolveCadenceMock = vi.hoisted(() =>
 );
 
 vi.mock('@beakerstack/billing', async importOriginal => {
-  const actual =
-    await importOriginal<typeof import('@beakerstack/billing')>();
+  const actual = await importOriginal<typeof import('@beakerstack/billing')>();
   return {
     ...actual,
     resolveCadence: (plan: Plan | null, sub: SubscriptionRow | null) =>

@@ -3,10 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { Plan } from '@beakerstack/billing';
 import type { PlanSavingsCopy } from '../../../billing/billingSyncDisplay';
-import {
-  LoginPlanSummary,
-  SignupPlanSummary,
-} from '../SignupPlanSummary';
+import { LoginPlanSummary, SignupPlanSummary } from '../SignupPlanSummary';
 
 const proPlan: Plan = {
   id: 'beakerstack_pro',
@@ -26,8 +23,7 @@ const proPlan: Plan = {
 };
 
 vi.mock('@beakerstack/billing', async importOriginal => {
-  const actual =
-    await importOriginal<typeof import('@beakerstack/billing')>();
+  const actual = await importOriginal<typeof import('@beakerstack/billing')>();
   return {
     ...actual,
     usePlanCatalog: vi.fn(),
@@ -111,7 +107,9 @@ describe('PlanIntentSummary', () => {
       pct: 17,
     });
     render(
-      <MemoryRouter initialEntries={['/signup?plan=beakerstack_pro&cadence=annual']}>
+      <MemoryRouter
+        initialEntries={['/signup?plan=beakerstack_pro&cadence=annual']}
+      >
         <SignupPlanSummary />
       </MemoryRouter>
     );

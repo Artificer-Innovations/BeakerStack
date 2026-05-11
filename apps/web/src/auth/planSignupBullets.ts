@@ -21,8 +21,7 @@ export function planSignupBullets(planId: string): string[] {
     } else {
       if (typeof val !== 'number') continue;
       if (val === -1) out.push(row.unlimitedLabel);
-      else
-        out.push(row.limitedLabelTemplate.replace('{count}', String(val)));
+      else out.push(row.limitedLabelTemplate.replace('{count}', String(val)));
     }
   }
 

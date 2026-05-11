@@ -28,16 +28,24 @@ const config = {
 describe('FeatureGrid', () => {
   it('renders the section heading and subhead', () => {
     render(<FeatureGrid config={config} />);
-    expect(screen.getByRole('heading', { name: 'Everything you need' })).toBeInTheDocument();
-    expect(screen.getByText('A complete toolkit for modern SaaS.')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Everything you need' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('A complete toolkit for modern SaaS.')
+    ).toBeInTheDocument();
   });
 
   it('renders all feature item titles and bodies', () => {
     render(<FeatureGrid config={config} />);
     expect(screen.getByText('Auth')).toBeInTheDocument();
-    expect(screen.getByText('Secure authentication out of the box.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Secure authentication out of the box.')
+    ).toBeInTheDocument();
     expect(screen.getByText('Billing')).toBeInTheDocument();
-    expect(screen.getByText('Stripe-powered subscriptions.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Stripe-powered subscriptions.')
+    ).toBeInTheDocument();
   });
 
   it('renders internal CTA link without target or rel', () => {

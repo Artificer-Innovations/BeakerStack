@@ -15,8 +15,7 @@ const invoicesHook = vi.hoisted(() => ({
 }));
 
 vi.mock('@beakerstack/billing', async importOriginal => {
-  const actual =
-    await importOriginal<typeof import('@beakerstack/billing')>();
+  const actual = await importOriginal<typeof import('@beakerstack/billing')>();
   return {
     ...actual,
     useInvoices: () => ({

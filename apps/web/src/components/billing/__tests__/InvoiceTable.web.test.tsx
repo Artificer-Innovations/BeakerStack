@@ -39,12 +39,7 @@ describe('InvoiceTable', () => {
 
   it('shows skeleton when loading with no items', () => {
     const { container } = renderTable(
-      <InvoiceTable
-        items={[]}
-        loading
-        hasMore={false}
-        onLoadMore={vi.fn()}
-      />
+      <InvoiceTable items={[]} loading hasMore={false} onLoadMore={vi.fn()} />
     );
     expect(container.querySelector('.animate-pulse')).toBeTruthy();
   });

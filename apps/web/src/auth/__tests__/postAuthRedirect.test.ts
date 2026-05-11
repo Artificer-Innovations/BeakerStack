@@ -19,9 +19,7 @@ describe('validateInternalPostAuthPath', () => {
   });
 
   it('rejects protocol-relative //evil.com', () => {
-    expect(
-      validateInternalPostAuthPath('//evil.com/path', ORIGIN)
-    ).toBeNull();
+    expect(validateInternalPostAuthPath('//evil.com/path', ORIGIN)).toBeNull();
   });
 
   it('rejects https://evil.com path when resolved as absolute', () => {
@@ -92,7 +90,9 @@ describe('parseStoredPostAuthRedirect', () => {
   });
 
   it('returns null for invalid JSON (no legacy raw-path fallback)', () => {
-    expect(parseStoredPostAuthRedirect('not-json', Date.now(), ORIGIN)).toBeNull();
+    expect(
+      parseStoredPostAuthRedirect('not-json', Date.now(), ORIGIN)
+    ).toBeNull();
   });
 });
 

@@ -6,9 +6,7 @@ export const POST_AUTH_REDIRECT_KEY = 'beakerstack:post_auth_redirect';
 export const POST_AUTH_REDIRECT_TTL_MS = 30 * 60 * 1000;
 
 const PUBLIC_PLAN_IDS: Set<string> = new Set(
-  beakerstackBillingConfig.plans
-    .filter(p => p.isPublic)
-    .map(p => p.id)
+  beakerstackBillingConfig.plans.filter(p => p.isPublic).map(p => p.id)
 );
 
 function configPlanById(planId: string) {
@@ -106,9 +104,7 @@ export function readAndClearPostAuthRedirect(): string | null {
       ? localStorage.getItem(POST_AUTH_REDIRECT_KEY)
       : null;
   clearPostAuthRedirectKeys();
-  return (
-    parseStoredPostAuthRedirect(rawS) ?? parseStoredPostAuthRedirect(rawL)
-  );
+  return parseStoredPostAuthRedirect(rawS) ?? parseStoredPostAuthRedirect(rawL);
 }
 
 export function hasPaidPlanIntent(searchParams: URLSearchParams): boolean {

@@ -26,7 +26,9 @@ describe('FAQ', () => {
 
   it('renders all FAQ answers', () => {
     render(<FAQ config={faqConfig} />);
-    expect(screen.getByText('An open-source SaaS template.')).toBeInTheDocument();
+    expect(
+      screen.getByText('An open-source SaaS template.')
+    ).toBeInTheDocument();
     expect(screen.getByText('Yes, MIT licensed.')).toBeInTheDocument();
     expect(screen.getByText('Yes, React Native included.')).toBeInTheDocument();
   });

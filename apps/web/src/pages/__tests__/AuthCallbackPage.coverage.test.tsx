@@ -228,10 +228,8 @@ describe('AuthCallbackPage (URL + auth branches)', () => {
   });
 
   it('redirects to stored post-auth path when session is ready', () => {
-    const dest =
-      '/billing/plans?plan=beakerstack_pro&welcome=1';
-    memSession[POST_AUTH_REDIRECT_KEY] =
-      serializePostAuthRedirectPayload(dest);
+    const dest = '/billing/plans?plan=beakerstack_pro&welcome=1';
+    memSession[POST_AUTH_REDIRECT_KEY] = serializePostAuthRedirectPayload(dest);
     auth.loading = false;
     auth.user = { id: 'u1' };
 
@@ -247,10 +245,8 @@ describe('AuthCallbackPage (URL + auth branches)', () => {
   });
 
   it('reads localStorage when sessionStorage is empty', () => {
-    const dest =
-      '/billing/plans?plan=beakerstack_max&welcome=1';
-    memLocal[POST_AUTH_REDIRECT_KEY] =
-      serializePostAuthRedirectPayload(dest);
+    const dest = '/billing/plans?plan=beakerstack_max&welcome=1';
+    memLocal[POST_AUTH_REDIRECT_KEY] = serializePostAuthRedirectPayload(dest);
     auth.loading = false;
     auth.user = { id: 'u1' };
 

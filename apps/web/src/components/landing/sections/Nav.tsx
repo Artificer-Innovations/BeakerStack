@@ -27,7 +27,9 @@ export function Nav({ config }: NavProps) {
   return (
     <header
       className={`sticky top-0 z-50 bg-white dark:bg-gray-950 transition-shadow ${
-        scrolled ? 'border-b border-gray-200 dark:border-gray-800 shadow-sm' : ''
+        scrolled
+          ? 'border-b border-gray-200 dark:border-gray-800 shadow-sm'
+          : ''
       }`}
     >
       <div className='max-w-[1200px] mx-auto px-6 flex items-center justify-between h-16'>
@@ -79,7 +81,11 @@ export function Nav({ config }: NavProps) {
                 stroke='currentColor'
                 strokeWidth={2}
               >
-                <path strokeLinecap='round' strokeLinejoin='round' d='M6 18L18 6M6 6l12 12' />
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  d='M6 18L18 6M6 6l12 12'
+                />
               </svg>
             ) : (
               <svg
@@ -90,7 +96,11 @@ export function Nav({ config }: NavProps) {
                 stroke='currentColor'
                 strokeWidth={2}
               >
-                <path strokeLinecap='round' strokeLinejoin='round' d='M4 6h16M4 12h16M4 18h16' />
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  d='M4 6h16M4 12h16M4 18h16'
+                />
               </svg>
             )}
           </button>

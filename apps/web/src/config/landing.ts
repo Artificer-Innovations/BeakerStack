@@ -141,7 +141,8 @@ export const landingConfig: LandingConfig = {
   },
   featureGrid: {
     heading: 'Everything wired. Nothing hidden.',
-    subhead: 'Stop stitching libraries together. BeakerStack ships the hard parts pre-integrated.',
+    subhead:
+      'Stop stitching libraries together. BeakerStack ships the hard parts pre-integrated.',
     items: [
       {
         icon: Zap,
@@ -215,7 +216,8 @@ export const landingConfig: LandingConfig = {
       title: 'Environments that match your shipping workflow.',
       body: 'Three Supabase databases—local Docker, shared PR testing, and staging—mirror your branching model. Migrations are validated before they touch production. PR previews deploy automatically to path-based S3/CloudFront URLs. EAS Update channels give mobile the same preview → staging → production flow.',
       ctaLabel: 'Read the architecture docs',
-      ctaHref: 'https://github.com/Artificer-Innovations/BeakerStack/blob/main/ARCHITECTURE.md',
+      ctaHref:
+        'https://github.com/Artificer-Innovations/BeakerStack/blob/main/ARCHITECTURE.md',
       mediaSrc: 'https://placehold.co/560x315?text=Environments',
       mediaAlt: 'Three-environment pipeline diagram',
       mediaSide: 'right',
@@ -224,7 +226,8 @@ export const landingConfig: LandingConfig = {
       title: 'Set up in minutes. Documented for the long haul.',
       body: 'Run `npm run setup` to provision your local environment in one step. QUICKSTART, ARCHITECTURE, and focused guides (OAuth, Stripe, testing) explain key decisions. Env vars and secrets use a consistent layout that maps directly to GitHub Actions.',
       ctaLabel: 'Read the quickstart',
-      ctaHref: 'https://github.com/Artificer-Innovations/BeakerStack/blob/main/QUICKSTART.md',
+      ctaHref:
+        'https://github.com/Artificer-Innovations/BeakerStack/blob/main/QUICKSTART.md',
       mediaSrc: 'https://placehold.co/560x315?text=Setup',
       mediaAlt: 'Setup guide screenshot',
       mediaSide: 'left',
@@ -234,7 +237,10 @@ export const landingConfig: LandingConfig = {
     kind: 'metrics',
     items: [
       { metric: '40–60%', label: 'Code shared between web and mobile' },
-      { metric: '3 environments', label: 'PR preview, staging, and production' },
+      {
+        metric: '3 environments',
+        label: 'PR preview, staging, and production',
+      },
       { metric: 'MIT licensed', label: '100% open source, no vendor lock-in' },
     ],
   },
@@ -242,7 +248,8 @@ export const landingConfig: LandingConfig = {
     heading: 'Simple, transparent pricing.',
     subhead:
       'BeakerStack itself is free and open-source (MIT) — clone it and ship your product at no cost. The plans below are a live demo of the billing system built into the template.',
-    disclaimer: 'Stripe is running in test mode for this preview; no real charges are made.',
+    disclaimer:
+      'Stripe is running in test mode for this preview; no real charges are made.',
   },
   faq: {
     heading: 'Frequently asked questions',
@@ -303,7 +310,10 @@ export const landingConfig: LandingConfig = {
         links: [
           { label: 'About', href: '#' },
           { label: 'Blog', href: '#' },
-          { label: 'GitHub', href: 'https://github.com/Artificer-Innovations/BeakerStack' },
+          {
+            label: 'GitHub',
+            href: 'https://github.com/Artificer-Innovations/BeakerStack',
+          },
         ],
       },
       {

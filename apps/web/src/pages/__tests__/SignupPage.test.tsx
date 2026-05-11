@@ -31,8 +31,7 @@ const mockCatalogPlans = vi.hoisted(() => {
 });
 
 vi.mock('@beakerstack/billing', async importOriginal => {
-  const actual =
-    await importOriginal<typeof import('@beakerstack/billing')>();
+  const actual = await importOriginal<typeof import('@beakerstack/billing')>();
   return {
     ...actual,
     BillingProvider: ({ children }: { children: React.ReactNode }) => (
@@ -59,8 +58,7 @@ const authClientMocks = vi.hoisted(() => ({
 const mockNavigate = vi.fn();
 
 vi.mock('react-router-dom', async importOriginal => {
-  const actual =
-    await importOriginal<typeof import('react-router-dom')>();
+  const actual = await importOriginal<typeof import('react-router-dom')>();
   return {
     ...actual,
     useNavigate: () => mockNavigate,
@@ -162,9 +160,7 @@ function installMemoryWebStorage() {
 /**
  * BillingProvider calls `getSession` before submit; return a session only after email `signUp`.
  */
-function mockGetSessionForAuthFlow(options: {
-  sessionAfterSignup: boolean;
-}) {
+function mockGetSessionForAuthFlow(options: { sessionAfterSignup: boolean }) {
   webSupabaseAuth.getSession.mockImplementation(async () => {
     if (!options.sessionAfterSignup) {
       return { data: { session: null }, error: null };
@@ -318,7 +314,11 @@ describe('SignupPage', () => {
     const user = userEvent.setup();
     authClientMocks.signUp.mockResolvedValueOnce({
       data: { user: null },
-      error: { message: 'User already registered', name: 'AuthApiError', status: 422 },
+      error: {
+        message: 'User already registered',
+        name: 'AuthApiError',
+        status: 422,
+      },
     });
 
     renderWithProviders(<SignupPage />);
@@ -352,10 +352,18 @@ describe('SignupPage', () => {
       initialEntries: ['/signup?plan=beakerstack_pro'],
     });
 
-    await user.type(screen.getByPlaceholderText('Email address'), 'new@example.com');
+    await user.type(
+      screen.getByPlaceholderText('Email address'),
+      'new@example.com'
+    );
     await user.type(screen.getByPlaceholderText('Password'), 'password123');
-    await user.type(screen.getByPlaceholderText('Confirm password'), 'password123');
-    await user.click(screen.getByRole('button', { name: /Continue with Pro/i }));
+    await user.type(
+      screen.getByPlaceholderText('Confirm password'),
+      'password123'
+    );
+    await user.click(
+      screen.getByRole('button', { name: /Continue with Pro/i })
+    );
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith(
@@ -371,13 +379,21 @@ describe('SignupPage', () => {
 
     renderWithProviders(<SignupPage />, { initialEntries: ['/signup'] });
 
-    await user.type(screen.getByPlaceholderText('Email address'), 'new@example.com');
+    await user.type(
+      screen.getByPlaceholderText('Email address'),
+      'new@example.com'
+    );
     await user.type(screen.getByPlaceholderText('Password'), 'password123');
-    await user.type(screen.getByPlaceholderText('Confirm password'), 'password123');
+    await user.type(
+      screen.getByPlaceholderText('Confirm password'),
+      'password123'
+    );
     await user.click(screen.getByRole('button', { name: /create account/i }));
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', {
+        replace: true,
+      });
     });
   });
 
@@ -388,10 +404,18 @@ describe('SignupPage', () => {
       initialEntries: ['/signup?plan=beakerstack_pro'],
     });
 
-    await user.type(screen.getByPlaceholderText('Email address'), 'pending@example.com');
+    await user.type(
+      screen.getByPlaceholderText('Email address'),
+      'pending@example.com'
+    );
     await user.type(screen.getByPlaceholderText('Password'), 'password123');
-    await user.type(screen.getByPlaceholderText('Confirm password'), 'password123');
-    await user.click(screen.getByRole('button', { name: /Continue with Pro/i }));
+    await user.type(
+      screen.getByPlaceholderText('Confirm password'),
+      'password123'
+    );
+    await user.click(
+      screen.getByRole('button', { name: /Continue with Pro/i })
+    );
 
     await waitFor(() => expect(authClientMocks.signUp).toHaveBeenCalled());
     expect(mockNavigate).not.toHaveBeenCalled();
@@ -410,13 +434,21 @@ describe('SignupPage', () => {
     const user = userEvent.setup();
     renderWithProviders(<SignupPage />, { initialEntries: ['/signup'] });
 
-    await user.type(screen.getByPlaceholderText('Email address'), 'confirm@example.com');
+    await user.type(
+      screen.getByPlaceholderText('Email address'),
+      'confirm@example.com'
+    );
     await user.type(screen.getByPlaceholderText('Password'), 'password123');
-    await user.type(screen.getByPlaceholderText('Confirm password'), 'password123');
+    await user.type(
+      screen.getByPlaceholderText('Confirm password'),
+      'password123'
+    );
     await user.click(screen.getByRole('button', { name: /create account/i }));
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', {
+        replace: true,
+      });
     });
   });
 
@@ -437,10 +469,14 @@ describe('SignupPage', () => {
       initialEntries: ['/signup?plan=beakerstack_pro'],
     });
 
-    await user.click(screen.getByRole('button', { name: /Sign up with Google/i }));
+    await user.click(
+      screen.getByRole('button', { name: /Sign up with Google/i })
+    );
 
     await waitFor(() => {
-      expect(screen.getByText('OAuth provider unavailable')).toBeInTheDocument();
+      expect(
+        screen.getByText('OAuth provider unavailable')
+      ).toBeInTheDocument();
     });
 
     expect(authClientMocks.signInWithOAuth).toHaveBeenCalled();

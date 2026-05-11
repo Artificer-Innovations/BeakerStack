@@ -46,8 +46,7 @@ export default function BillingPlansPage() {
   const [search, setSearchParams] = useSearchParams();
   const cadence = getCadenceFromSearch(search);
   const [welcomeSnapshot] = useState(() => ({
-    showBanner:
-      search.get('welcome') === '1' && Boolean(search.get('plan')),
+    showBanner: search.get('welcome') === '1' && Boolean(search.get('plan')),
     planId: search.get('plan'),
   }));
   const { plans, loading: catLoad } =

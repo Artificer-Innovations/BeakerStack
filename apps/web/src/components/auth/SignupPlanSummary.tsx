@@ -103,7 +103,9 @@ export function PlanIntentSummary({
         {catalogPlan.display_name}
       </h3>
       {savingsCallout ? (
-        <p className='mt-1 text-xs font-semibold text-amber-900'>{savingsCallout}</p>
+        <p className='mt-1 text-xs font-semibold text-amber-900'>
+          {savingsCallout}
+        </p>
       ) : null}
       <div className='mt-3'>
         <p

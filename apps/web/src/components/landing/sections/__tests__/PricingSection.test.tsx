@@ -11,8 +11,7 @@ const getCadenceFromSearchMock = vi.hoisted(() =>
 );
 
 vi.mock('react-router-dom', async importOriginal => {
-  const actual =
-    await importOriginal<typeof import('react-router-dom')>();
+  const actual = await importOriginal<typeof import('react-router-dom')>();
   return {
     ...actual,
     useNavigate: () => mockNavigate,
@@ -20,7 +19,9 @@ vi.mock('react-router-dom', async importOriginal => {
 });
 
 vi.mock('@beakerstack/billing', () => ({
-  BillingProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  BillingProvider: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
   usePlanCatalog: vi.fn(),
 }));
 vi.mock('../../../../lib/supabase', () => ({ supabase: {} }));
@@ -80,9 +81,10 @@ describe('PricingSection', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
     getCadenceFromSearchMock.mockReturnValue('monthly');
-    vi.mocked(usePlanCatalog).mockReturnValue(
-      { plans: mockPlans, loading: false } as unknown as ReturnType<typeof usePlanCatalog>
-    );
+    vi.mocked(usePlanCatalog).mockReturnValue({
+      plans: mockPlans,
+      loading: false,
+    } as unknown as ReturnType<typeof usePlanCatalog>);
   });
 
   it('renders heading and subhead', () => {
@@ -90,7 +92,9 @@ describe('PricingSection', () => {
     expect(
       screen.getByRole('heading', { name: 'Simple, transparent pricing' })
     ).toBeInTheDocument();
-    expect(screen.getByText('Start free. Scale as you grow.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Start free. Scale as you grow.')
+    ).toBeInTheDocument();
   });
 
   it('renders the cadence toggle', () => {
@@ -117,21 +121,29 @@ describe('PricingSection', () => {
     getCadenceFromSearchMock.mockReturnValue('annual');
     renderSection();
     await user.click(screen.getByTestId('plan-card-pro'));
-    expect(mockNavigate).toHaveBeenCalledWith('/signup?plan=pro&cadence=annual');
+    expect(mockNavigate).toHaveBeenCalledWith(
+      '/signup?plan=pro&cadence=annual'
+    );
   });
 
   it('shows loading message while plans are loading', () => {
-    vi.mocked(usePlanCatalog).mockReturnValue(
-      { plans: [], loading: true } as unknown as ReturnType<typeof usePlanCatalog>
-    );
+    vi.mocked(usePlanCatalog).mockReturnValue({
+      plans: [],
+      loading: true,
+    } as unknown as ReturnType<typeof usePlanCatalog>);
     renderSection();
     expect(screen.getByText(/Loading plans/)).toBeInTheDocument();
     expect(screen.queryByTestId('plan-card-free')).not.toBeInTheDocument();
   });
 
   it('renders disclaimer when provided', () => {
-    renderSection({ ...baseConfig, disclaimer: 'Prices in USD. Cancel anytime.' });
-    expect(screen.getByText('Prices in USD. Cancel anytime.')).toBeInTheDocument();
+    renderSection({
+      ...baseConfig,
+      disclaimer: 'Prices in USD. Cancel anytime.',
+    });
+    expect(
+      screen.getByText('Prices in USD. Cancel anytime.')
+    ).toBeInTheDocument();
   });
 
   it('does not render disclaimer when absent', () => {

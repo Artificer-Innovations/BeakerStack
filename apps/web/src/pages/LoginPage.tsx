@@ -85,7 +85,11 @@ function LoginPageContent() {
               : 'w-full space-y-8'
           }
         >
-          <div className={showPlanAside ? 'order-2 md:order-1 space-y-8' : 'space-y-8'}>
+          <div
+            className={
+              showPlanAside ? 'order-2 md:order-1 space-y-8' : 'space-y-8'
+            }
+          >
             <div>
               <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900 md:mt-0 md:text-left'>
                 Sign in to your account

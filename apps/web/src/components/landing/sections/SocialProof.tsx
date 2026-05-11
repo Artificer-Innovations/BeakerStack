@@ -17,7 +17,9 @@ export function SocialProof({ config }: SocialProofProps) {
                 <p className='text-3xl font-bold text-gray-900 dark:text-white mb-1'>
                   {item.metric}
                 </p>
-                <p className='text-sm text-gray-500 dark:text-gray-400'>{item.label}</p>
+                <p className='text-sm text-gray-500 dark:text-gray-400'>
+                  {item.label}
+                </p>
               </div>
             ))}
           </div>
@@ -40,9 +42,13 @@ export function SocialProof({ config }: SocialProofProps) {
                   "{item.quote}"
                 </p>
                 <footer className='text-sm'>
-                  <span className='font-semibold text-gray-900 dark:text-white'>{item.author}</span>
+                  <span className='font-semibold text-gray-900 dark:text-white'>
+                    {item.author}
+                  </span>
                   {item.role && (
-                    <span className='text-gray-500 dark:text-gray-400'>, {item.role}</span>
+                    <span className='text-gray-500 dark:text-gray-400'>
+                      , {item.role}
+                    </span>
                   )}
                 </footer>
               </blockquote>

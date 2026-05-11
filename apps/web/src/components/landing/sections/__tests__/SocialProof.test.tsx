@@ -34,13 +34,19 @@ describe('SocialProof', () => {
         config={{
           kind: 'testimonials',
           items: [
-            { quote: 'Best template I have used.', author: 'Alice', role: 'CTO' },
+            {
+              quote: 'Best template I have used.',
+              author: 'Alice',
+              role: 'CTO',
+            },
             { quote: 'Saved us weeks of work.', author: 'Bob' },
           ],
         }}
       />
     );
-    expect(screen.getByText(/"Best template I have used\."/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/"Best template I have used\."/)
+    ).toBeInTheDocument();
     expect(screen.getByText('Alice')).toBeInTheDocument();
     expect(screen.getByText(', CTO')).toBeInTheDocument();
     expect(screen.getByText(/"Saved us weeks of work\."/)).toBeInTheDocument();
