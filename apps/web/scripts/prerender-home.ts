@@ -39,10 +39,14 @@ const publicHomeUrl = `${siteOrigin}${homePath === '/' ? '/' : homePath}`;
 const routerBasename =
   basePath === '' || basePath === '/' ? undefined : basePath;
 
+// MemoryRouter matches locations against basename: with basename "/pr-N", "/" does not
+// match (RR warns and renders nothing). Use the same pathname as publicHomeUrl path.
+const initialEntries = [homePath];
+
 const html = renderToStaticMarkup(
   createElement(
     MemoryRouter,
-    { basename: routerBasename, initialEntries: ['/'] },
+    { basename: routerBasename, initialEntries },
     createElement(LandingPage)
   )
 );

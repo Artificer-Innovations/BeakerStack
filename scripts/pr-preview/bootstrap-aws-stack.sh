@@ -33,6 +33,9 @@ IF_STACK_EXISTS="deploy"
 ALLOW_CONFLICTING_NAMED_BUCKETS=false
 PRINT_PREFLIGHT_JSON=false
 DELETE_FAILED_CHANGE_SETS=false
+# When 1/true, finalize_stack_outputs skips publish_pr_path_router_function (CI uses this
+# so a failed web build cannot publish edge code before assets exist).
+SKIP_CLOUDFRONT_FUNCTION_PUBLISH=""
 
 # Populated by preflight_collect_data()
 PREFLIGHT_BUCKETS_PROD=""
@@ -69,6 +72,7 @@ Optional:
                                  but the stack is missing (orphaned retained buckets; deploy will likely fail)
   --print-preflight-json         Print one JSON object to stdout (no other stdout); then exit 0. For setup tooling.
   --delete-failed-change-sets    Delete FAILED CloudFormation change sets for --stack-name; then exit 0.
+  --skip-cloudfront-function-publish   Skip CloudFront PRPathRouter publish in finalize (stack outputs + error pages still run).
   --help                         Show this help message
 
 Environment exports:
@@ -215,8 +219,18 @@ if not kv or int(kv.get("Quantity") or 0) == 0:
 else:
     fc["KeyValueStoreAssociations"] = kv
 
-body = {"Name": name, "IfMatch": etag, "FunctionConfig": fc, "FunctionCode": "fileb://" + os.path.abspath(rendered_path)}
-json.dump(body, sys.stdout)
+with open(rendered_path, "r", encoding="utf-8") as fp:
+    code = fp.read()
+stripped = code.lstrip()
+if not stripped.startswith("function"):
+    print(
+        "invalid rendered CloudFront function (expected UTF-8 JS starting with function)",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+body = {"Name": name, "IfMatch": etag, "FunctionConfig": fc, "FunctionCode": code}
+json.dump(body, sys.stdout, ensure_ascii=True)
 ' <<<"${desc}" >"${update_json}" 2>"${err}"; then
     log "WARN" "Could not build update-function payload for ${function_id}: $(tr '\n' ' ' <"${err}")"
     rm -f "${err}" "${update_json}"
@@ -874,7 +888,12 @@ finalize_stack_outputs() {
     fi
   done
 
-  publish_pr_path_router_function
+  local skip_cf="${SKIP_CLOUDFRONT_FUNCTION_PUBLISH:-}"
+  if [[ "${skip_cf}" == "1" || "${skip_cf}" == "true" || "${skip_cf}" == "TRUE" ]]; then
+    log "INFO" "Skipping CloudFront function publish (--skip-cloudfront-function-publish or SKIP_CLOUDFRONT_FUNCTION_PUBLISH)."
+  else
+    publish_pr_path_router_function
+  fi
 
   write_exports "PR_PREVIEW_WEBSITE_BUCKET" "${deploy_bucket}"
   write_exports "PR_PREVIEW_LOGS_BUCKET" "${logs_bucket}"
@@ -959,6 +978,10 @@ parse_args() {
         ;;
       --delete-failed-change-sets)
         DELETE_FAILED_CHANGE_SETS=true
+        shift
+        ;;
+      --skip-cloudfront-function-publish)
+        SKIP_CLOUDFRONT_FUNCTION_PUBLISH=1
         shift
         ;;
       --help|-h)

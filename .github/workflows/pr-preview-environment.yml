@@ -103,7 +103,8 @@ jobs:
             --domain "${PREVIEW_DOMAIN}" \
             --hosted-zone-id "${PREVIEW_HOSTED_ZONE_ID}" \
             --certificate-arn "${PREVIEW_CERTIFICATE_ARN}" \
-            --preview-prefix "${PREVIEW_PREFIX_VALUE}"
+            --preview-prefix "${PREVIEW_PREFIX_VALUE}" \
+            --skip-cloudfront-function-publish
 
       - name: Prepare Supabase preview database
         id: supabase
@@ -191,6 +192,25 @@ jobs:
             --environment preview \
             --preview-prefix "${PREVIEW_PREFIX_VALUE}" \
             --region "${AWS_REGION_VALUE}"
+
+      # Publish edge routing only after a successful web build so a failed deploy cannot
+      # replace live CloudFront function code while leaving stale or missing S3 assets.
+      - name: Publish PR path router (CloudFront)
+        if: steps.web.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          STACK_NAME="${PREVIEW_STACK_NAME:-beakerstack-pr-preview}"
+          AWS_REGION_VALUE="${PREVIEW_AWS_REGION:-us-east-1}"
+          PREVIEW_PREFIX_VALUE="${PREVIEW_PREFIX:-pr-}"
+          ./scripts/pr-preview/bootstrap-aws-stack.sh \
+            --stack-name "${STACK_NAME}" \
+            --region "${AWS_REGION_VALUE}" \
+            --domain "${PREVIEW_DOMAIN}" \
+            --hosted-zone-id "${PREVIEW_HOSTED_ZONE_ID}" \
+            --certificate-arn "${PREVIEW_CERTIFICATE_ARN}" \
+            --preview-prefix "${PREVIEW_PREFIX_VALUE}" \
+            --if-stack-exists refresh-outputs
 
       - name: Check for native code changes
         id: native-changes
