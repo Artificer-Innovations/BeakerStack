@@ -1,10 +1,24 @@
-import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
-import { StaticRouter } from 'react-router-dom/server';
-import { LandingPage } from '../src/components/landing/LandingPage';
 import { readFileSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { join, dirname } from 'path';
+
+// Shim WebSocket for Node < 22 before any app module loads.
+// supabase-js checks globalThis.WebSocket at createClient() time (module load, not runtime).
+// renderToStaticMarkup never opens a socket, but the check throws on Node 20 without this.
+// Dynamic imports below ensure this assignment runs first (static imports are hoisted).
+if (typeof globalThis.WebSocket === 'undefined') {
+  (globalThis as any).WebSocket = class WebSocket {
+    constructor(_url: string) {}
+    close() {}
+    addEventListener() {}
+    removeEventListener() {}
+  };
+}
+
+const { createElement } = await import('react');
+const { renderToStaticMarkup } = await import('react-dom/server');
+const { StaticRouter } = await import('react-router-dom/server');
+const { LandingPage } = await import('../src/components/landing/LandingPage');
 
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
