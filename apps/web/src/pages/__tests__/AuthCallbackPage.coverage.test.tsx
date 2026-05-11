@@ -244,6 +244,25 @@ describe('AuthCallbackPage (URL + auth branches)', () => {
     expect(memLocal[POST_AUTH_REDIRECT_KEY]).toBeUndefined();
   });
 
+  it('does not navigate when no token is present and user is signed out', () => {
+    auth.loading = false;
+    auth.user = null;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        ...original,
+        hash: '',
+        search: '',
+      },
+    });
+    render(
+      <MemoryRouter>
+        <AuthCallbackPage />
+      </MemoryRouter>
+    );
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
   it('reads localStorage when sessionStorage is empty', () => {
     const dest = '/billing/plans?plan=beakerstack_max&welcome=1';
     memLocal[POST_AUTH_REDIRECT_KEY] = serializePostAuthRedirectPayload(dest);

@@ -7,6 +7,7 @@ import {
   serializePostAuthRedirectPayload,
   validateInternalPostAuthPath,
   POST_AUTH_REDIRECT_TTL_MS,
+  clearPostAuthRedirectKeys,
 } from '../postAuthRedirect';
 
 const ORIGIN = 'http://localhost:5173';
@@ -16,6 +17,23 @@ describe('validateInternalPostAuthPath', () => {
     expect(validateInternalPostAuthPath('/billing/plans?plan=x', ORIGIN)).toBe(
       '/billing/plans?plan=x'
     );
+  });
+
+  it('defaults origin when window is undefined', () => {
+    vi.stubGlobal('window', undefined as unknown as Window & typeof globalThis);
+    expect(validateInternalPostAuthPath('/dashboard')).toBe('/dashboard');
+    vi.unstubAllGlobals();
+  });
+
+  it('rejects empty or non-string paths', () => {
+    expect(validateInternalPostAuthPath('', ORIGIN)).toBeNull();
+    expect(
+      validateInternalPostAuthPath(null as unknown as string, ORIGIN)
+    ).toBeNull();
+  });
+
+  it('returns null when URL parsing fails', () => {
+    expect(validateInternalPostAuthPath('/ok', 'http://[')).toBeNull();
   });
 
   it('rejects protocol-relative //evil.com', () => {
@@ -94,6 +112,23 @@ describe('parseStoredPostAuthRedirect', () => {
       parseStoredPostAuthRedirect('not-json', Date.now(), ORIGIN)
     ).toBeNull();
   });
+
+  it('returns null for JSON missing structured fields', () => {
+    expect(
+      parseStoredPostAuthRedirect(
+        JSON.stringify({ path: '/ok' }),
+        Date.now(),
+        ORIGIN
+      )
+    ).toBeNull();
+    expect(
+      parseStoredPostAuthRedirect(
+        JSON.stringify({ ts: 1, path: 123 }),
+        Date.now(),
+        ORIGIN
+      )
+    ).toBeNull();
+  });
 });
 
 function storageMock(store: Record<string, string>) {
@@ -137,5 +172,31 @@ describe('readAndClearPostAuthRedirect', () => {
     memS[POST_AUTH_REDIRECT_KEY] = serializePostAuthRedirectPayload(a);
     memL[POST_AUTH_REDIRECT_KEY] = serializePostAuthRedirectPayload(b);
     expect(readAndClearPostAuthRedirect()).toBe(a);
+  });
+
+  it('parses localStorage when sessionStorage payload is invalid JSON', () => {
+    const dest = '/billing/plans?plan=beakerstack_max&welcome=1';
+    memS[POST_AUTH_REDIRECT_KEY] = '{broken';
+    memL[POST_AUTH_REDIRECT_KEY] = serializePostAuthRedirectPayload(dest);
+    expect(readAndClearPostAuthRedirect()).toBe(dest);
+  });
+
+  it('falls back to localStorage when sessionStorage is unavailable', () => {
+    vi.stubGlobal('sessionStorage', undefined as unknown as Storage);
+    const path = '/billing/plans?plan=beakerstack_pro&welcome=1';
+    memL[POST_AUTH_REDIRECT_KEY] = serializePostAuthRedirectPayload(path);
+    expect(readAndClearPostAuthRedirect()).toBe(path);
+  });
+});
+
+describe('clearPostAuthRedirectKeys', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('no-ops when storage globals are missing', () => {
+    vi.stubGlobal('sessionStorage', undefined as unknown as Storage);
+    vi.stubGlobal('localStorage', undefined as unknown as Storage);
+    expect(() => clearPostAuthRedirectKeys()).not.toThrow();
   });
 });

@@ -34,6 +34,10 @@ vi.mock('../../billing/CadenceToggle.web', () => ({
   getCadenceFromSearch: vi.fn(() => 'monthly'),
 }));
 
+vi.mock('../../../auth/planSignupBullets', () => ({
+  planSignupBullets: vi.fn(() => ['First bullet', 'Second bullet']),
+}));
+
 vi.mock('../../../billing/billingSyncDisplay', () => ({
   annualListCentsFromSync: vi.fn(() => 22_800),
   formatSavingsCalloutFromCopy: vi.fn((copy: PlanSavingsCopy) =>
@@ -49,6 +53,7 @@ vi.mock('../../../billing/billingSyncDisplay', () => ({
 import { usePlanCatalog } from '@beakerstack/billing';
 import { getCadenceFromSearch } from '../../billing/CadenceToggle.web';
 import * as billingSync from '../../../billing/billingSyncDisplay';
+import { planSignupBullets } from '../../../auth/planSignupBullets';
 
 describe('PlanIntentSummary', () => {
   beforeEach(() => {
@@ -62,6 +67,10 @@ describe('PlanIntentSummary', () => {
     vi.mocked(billingSync.planAnnualSavingsCopy).mockReturnValue({
       kind: 'none',
     });
+    vi.mocked(planSignupBullets).mockReturnValue([
+      'First bullet',
+      'Second bullet',
+    ]);
   });
 
   it('renders nothing when plan query is missing', () => {
@@ -97,7 +106,7 @@ describe('PlanIntentSummary', () => {
     expect(screen.getByText('Your selection')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Pro' })).toBeInTheDocument();
     expect(screen.getByText(/per month/i)).toBeInTheDocument();
-    expect(screen.getByText(/Feature A/i)).toBeInTheDocument();
+    expect(screen.getByText(/First bullet/i)).toBeInTheDocument();
   });
 
   it('shows savings callout when annual cadence and copy exists', () => {
@@ -130,6 +139,16 @@ describe('PlanIntentSummary', () => {
       </MemoryRouter>
     );
     expect(container.firstChild).toBeNull();
+  });
+
+  it('omits bullet list when planSignupBullets returns empty', () => {
+    vi.mocked(planSignupBullets).mockReturnValue([]);
+    render(
+      <MemoryRouter initialEntries={['/signup?plan=beakerstack_pro']}>
+        <SignupPlanSummary />
+      </MemoryRouter>
+    );
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
   });
 
   it('uses compact login styling and fewer bullets', () => {

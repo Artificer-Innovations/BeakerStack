@@ -44,6 +44,16 @@ describe('useDemoCollectionCount', () => {
     expect(result.current.maxItemsInAnyCollection).toBe(0);
   });
 
+  it('uses 0 max items when collections list is empty', async () => {
+    rpc.mockResolvedValue({ data: [], error: null });
+    const { result } = renderHook(() => useDemoCollectionCount());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(result.current.count).toBe(0);
+    expect(result.current.maxItemsInAnyCollection).toBe(0);
+  });
+
   it('refresh refetches and updates max items', async () => {
     rpc
       .mockResolvedValueOnce({

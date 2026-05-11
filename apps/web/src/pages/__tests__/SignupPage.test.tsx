@@ -452,6 +452,22 @@ describe('SignupPage', () => {
     });
   });
 
+  it('shows generic message when email signup throws non-Error', async () => {
+    const user = userEvent.setup();
+    authClientMocks.signUp.mockRejectedValueOnce('offline');
+    renderWithProviders(<SignupPage />);
+    await user.type(screen.getByPlaceholderText('Email address'), 'x@y.com');
+    await user.type(screen.getByPlaceholderText('Password'), 'password123');
+    await user.type(
+      screen.getByPlaceholderText('Confirm password'),
+      'password123'
+    );
+    await user.click(screen.getByRole('button', { name: /create account/i }));
+    await waitFor(() => {
+      expect(screen.getByText('Failed to create account')).toBeInTheDocument();
+    });
+  });
+
   it('clears OAuth stash and shows error when Google signup fails', async () => {
     const user = userEvent.setup();
     authClientMocks.signInWithOAuth.mockResolvedValueOnce({

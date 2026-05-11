@@ -80,6 +80,32 @@ describe('billingSyncDisplay', () => {
     expect(annualSavingsPercentForPlan('unknown_plan', 0)).toBeNull();
   });
 
+  it('annualSavingsPercentForPlan returns null when annual price equals monthly×12', () => {
+    expect(annualSavingsPercentForPlan('unknown_plan', 1000)).toBeNull();
+  });
+
+  it('cadenceAnnualSavingsFromPlans returns none when there are no paid plans', () => {
+    const plans: Plan[] = [
+      {
+        id: 'beakerstack_free',
+        product_id: 'beakerstack',
+        display_name: 'Free',
+        description: null,
+        price_cents: 0,
+        billing_period: 'free',
+        stripe_price_id_monthly: null,
+        stripe_price_id_annual: null,
+        stripe_product_id: null,
+        features: {},
+        usage_limits: {},
+        trial_period_days: 0,
+        is_public: true,
+        display_order: 1,
+      },
+    ];
+    expect(cadenceAnnualSavingsFromPlans(plans)).toEqual({ kind: 'none' });
+  });
+
   it('cadenceAnnualSavingsFromPlans aggregates paid plans', () => {
     const plans: Plan[] = [
       {

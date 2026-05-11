@@ -112,6 +112,26 @@ describe('PlanCard', () => {
     ).not.toBeDisabled();
   });
 
+  it('renders supplemental badge and savings callout when provided', () => {
+    render(
+      <PlanCard
+        plan={proPlan}
+        priceHeadline='US$19'
+        priceSubline='per month'
+        supplementalBadge='Scheduled'
+        savingsCallout='2 Months Free'
+        primary={{
+          label: 'Go Pro',
+          onClick: vi.fn(),
+          disabled: false,
+          loading: false,
+        }}
+      />
+    );
+    expect(screen.getByText('Scheduled')).toBeInTheDocument();
+    expect(screen.getByText('2 Months Free')).toBeInTheDocument();
+  });
+
   it('shows trial line when plan has trial_period_days', () => {
     const maxLike: Plan = {
       ...proPlan,

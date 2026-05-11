@@ -52,8 +52,8 @@ vi.mock('../../../billing/CadenceToggle.web', () => ({
 }));
 vi.mock('../../../../billing/billingSyncDisplay', () => ({
   annualListCentsFromSync: vi.fn(() => 22800),
-  planAnnualSavingsCopy: vi.fn(() => null),
-  formatSavingsCalloutFromCopy: vi.fn(() => null),
+  planAnnualSavingsCopy: vi.fn(() => ({ kind: 'months', months: 2 })),
+  formatSavingsCalloutFromCopy: vi.fn(() => '2 Months Free'),
 }));
 
 import { usePlanCatalog } from '@beakerstack/billing';
