@@ -219,9 +219,10 @@ if not kv or int(kv.get("Quantity") or 0) == 0:
 else:
     fc["KeyValueStoreAssociations"] = kv
 
-# Validate source before publish. Do NOT put raw JS in JSON as FunctionCode: AWS CLI
-# blob parameters must use fileb:// (see AWS CLI User Guide "Binary / blob"). Inline
-# strings are interpreted as base64 and corrupt the live function (binary gibberish).
+# IMPORTANT: when delivering FunctionCode via --cli-input-json, pass the JS source as a
+# plain UTF-8 string. Do NOT use a fileb:// prefix here — that prefix is only honored on
+# CLI argument values; inside --cli-input-json the CLI base64-decodes blob fields, so a
+# fileb:// literal becomes random binary in the live function ("gibberish").
 with open(rendered_path, "r", encoding="utf-8") as fp:
     code = fp.read()
 stripped = code.lstrip()
@@ -232,14 +233,13 @@ if not stripped.startswith("function"):
     )
     sys.exit(1)
 
-abs_src = os.path.abspath(rendered_path)
 body = {
     "Name": name,
     "IfMatch": etag,
     "FunctionConfig": fc,
-    "FunctionCode": "fileb://" + abs_src,
+    "FunctionCode": code,
 }
-json.dump(body, sys.stdout, ensure_ascii=True)
+json.dump(body, sys.stdout, ensure_ascii=False)
 ' <<<"${desc}" >"${update_json}" 2>"${err}"; then
     log "WARN" "Could not build update-function payload for ${function_id}: $(tr '\n' ' ' <"${err}")"
     rm -f "${err}" "${update_json}"
