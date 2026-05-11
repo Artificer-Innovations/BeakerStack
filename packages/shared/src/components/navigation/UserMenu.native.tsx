@@ -90,6 +90,7 @@ export function UserMenu({ user, profile, navigation }: UserMenuProps) {
       <View style={styles.container} ref={menuRef}>
         <View ref={avatarRef} collapsable={false}>
           <TouchableOpacity
+            accessibilityLabel='Open user menu'
             onPress={handleAvatarPress}
             style={styles.avatarButton}
             activeOpacity={0.7}

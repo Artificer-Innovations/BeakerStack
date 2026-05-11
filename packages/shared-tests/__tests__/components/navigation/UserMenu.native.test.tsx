@@ -6,39 +6,62 @@ import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 import type { UserProfile } from '@beakerstack/shared/types/profile';
 
-// Mock ProfileAvatar
-jest.mock(
-  '@beakerstack/shared/components/profile/ProfileAvatar.native',
-  () => ({
-    ProfileAvatar: ({ profile }: { profile: UserProfile | null }) => (
-      <div data-testid='profile-avatar'>
-        {profile?.display_name || 'Avatar'}
-      </div>
-    ),
-  })
-);
+jest.mock('@beakerstack/shared/components/profile/ProfileAvatar.native', () => {
+  const React = require('react');
+  const RN = require('react-native');
+  return {
+    ProfileAvatar: () =>
+      React.createElement(RN.View, { testID: 'profile-avatar' }),
+  };
+});
 
-// Mock Alert and Platform
 jest.mock('react-native', () => {
   const RN = jest.requireActual('react-native');
+  /** Must match `USER_MENU_TEST_PLATFORM_OS_KEY` below. */
+  const key = '__BeakerStack_UserMenuNativeTest_platformOs';
+  const platformOsRef = (): { current: string } => {
+    const g = globalThis as Record<string, { current: string } | undefined>;
+    if (!g[key]) {
+      g[key] = { current: 'ios' };
+    }
+    return g[key]!;
+  };
   return {
     ...RN,
     Alert: {
-      alert: jest.fn((title, message, buttons) => {
-        // Simulate button press for testing
-        if (buttons && buttons[1] && buttons[1].onPress) {
-          buttons[1].onPress();
+      alert: jest.fn(
+        (
+          _title: string,
+          _message: string,
+          buttons?: { text?: string; style?: string; onPress?: () => void }[]
+        ) => {
+          const signOut = buttons?.find(b => b?.style === 'destructive');
+          void signOut?.onPress?.();
         }
-      }),
+      ),
     },
     Platform: {
-      OS: 'ios',
+      ...RN.Platform,
+      get OS() {
+        return platformOsRef().current;
+      },
     },
   };
 });
 
-const createMockSupabaseClient = (): SupabaseClient => {
-  return {
+const USER_MENU_TEST_PLATFORM_OS_KEY =
+  '__BeakerStack_UserMenuNativeTest_platformOs';
+
+function userMenuPlatformOsRef(): { current: string } {
+  const g = globalThis as Record<string, { current: string } | undefined>;
+  if (!g[USER_MENU_TEST_PLATFORM_OS_KEY]) {
+    g[USER_MENU_TEST_PLATFORM_OS_KEY] = { current: 'ios' };
+  }
+  return g[USER_MENU_TEST_PLATFORM_OS_KEY]!;
+}
+
+const createMockSupabaseClient = (): SupabaseClient =>
+  ({
     auth: {
       getSession: jest.fn().mockResolvedValue({
         data: { session: null },
@@ -55,8 +78,7 @@ const createMockSupabaseClient = (): SupabaseClient => {
       }),
       signInWithOAuth: jest.fn(),
     },
-  } as unknown as SupabaseClient;
-};
+  }) as unknown as SupabaseClient;
 
 const createMockUser = (): User =>
   ({
@@ -93,196 +115,153 @@ const renderWithProviders = (
   );
 };
 
+/** RN-web measures layout asynchronously (setTimeout in UIManager.measure). */
+const openMenu = async () => {
+  fireEvent.click(screen.getByLabelText('Open user menu'));
+  await screen.findByText('Profile');
+};
+
 describe('UserMenu (Native)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    userMenuPlatformOsRef().current = 'ios';
   });
 
   it('renders user avatar', () => {
-    const mockUser = createMockUser();
-    const mockProfile = createMockProfile();
-
     renderWithProviders(
       <UserMenu
-        user={mockUser}
-        profile={mockProfile}
+        user={createMockUser()}
+        profile={createMockProfile()}
         navigation={mockNavigation}
       />
     );
-
     expect(screen.getByTestId('profile-avatar')).toBeInTheDocument();
   });
 
-  it('opens menu when avatar is pressed', () => {
-    const mockUser = createMockUser();
-    const mockProfile = createMockProfile();
-
+  it('opens menu when avatar is pressed', async () => {
     renderWithProviders(
       <UserMenu
-        user={mockUser}
-        profile={mockProfile}
+        user={createMockUser()}
+        profile={createMockProfile()}
         navigation={mockNavigation}
       />
     );
-
-    const avatarButton = screen.getByTestId('profile-avatar').closest('button');
-    if (avatarButton) {
-      fireEvent.click(avatarButton);
-    }
-
-    // Menu should be visible - wait for it
+    await openMenu();
     expect(screen.getByText('Test User')).toBeInTheDocument();
   });
 
-  it.skip('displays user email in menu', async () => {
-    const mockUser = createMockUser();
-    const mockProfile = createMockProfile();
-
+  it('displays user email in menu', async () => {
     renderWithProviders(
       <UserMenu
-        user={mockUser}
-        profile={mockProfile}
+        user={createMockUser()}
+        profile={createMockProfile()}
         navigation={mockNavigation}
       />
     );
-
-    const avatarButton = screen.getByTestId('profile-avatar').closest('button');
-    if (avatarButton) {
-      fireEvent.click(avatarButton);
-    }
-
-    // Wait for modal to open and content to be visible
-    await screen.findByText('test@example.com', {}, { timeout: 1000 });
+    await openMenu();
     expect(screen.getByText('test@example.com')).toBeInTheDocument();
   });
 
-  it.skip('displays display name fallback to username', async () => {
-    const mockUser = createMockUser();
+  it('displays display name fallback to username', async () => {
     const mockProfile: UserProfile = {
       ...createMockProfile(),
       display_name: null,
     };
-
     renderWithProviders(
       <UserMenu
-        user={mockUser}
+        user={createMockUser()}
         profile={mockProfile}
         navigation={mockNavigation}
       />
     );
-
-    const avatarButton = screen.getByTestId('profile-avatar').closest('button');
-    if (avatarButton) {
-      fireEvent.click(avatarButton);
-    }
-
-    await screen.findByText('testuser', {}, { timeout: 1000 });
+    await openMenu();
     expect(screen.getByText('testuser')).toBeInTheDocument();
   });
 
-  it.skip('displays email prefix when no display name or username', async () => {
-    const mockUser = createMockUser();
+  it('displays email prefix when no display name or username', async () => {
     const mockProfile: UserProfile = {
       ...createMockProfile(),
       display_name: null,
       username: null,
     };
-
     renderWithProviders(
       <UserMenu
-        user={mockUser}
+        user={createMockUser()}
         profile={mockProfile}
         navigation={mockNavigation}
       />
     );
-
-    const avatarButton = screen.getByTestId('profile-avatar').closest('button');
-    if (avatarButton) {
-      fireEvent.click(avatarButton);
-    }
-
-    await screen.findByText('test', {}, { timeout: 1000 }); // email prefix
-    expect(screen.getByText('test')).toBeInTheDocument();
+    await openMenu();
+    expect(screen.getByText(/^test$/)).toBeInTheDocument();
   });
 
-  it.skip('navigates to Profile when Profile is pressed', async () => {
-    const mockUser = createMockUser();
-    const mockProfile = createMockProfile();
-
+  it('navigates to Profile when Profile is pressed', async () => {
     renderWithProviders(
       <UserMenu
-        user={mockUser}
-        profile={mockProfile}
+        user={createMockUser()}
+        profile={createMockProfile()}
         navigation={mockNavigation}
       />
     );
-
-    const avatarButton = screen.getByTestId('profile-avatar').closest('button');
-    if (avatarButton) {
-      fireEvent.click(avatarButton);
-    }
-
-    const profileButton = await screen.findByText(
-      'Profile',
-      {},
-      { timeout: 1000 }
-    );
-    fireEvent.click(profileButton);
-
+    await openMenu();
+    fireEvent.click(screen.getByText('Profile'));
     expect(mockNavigate).toHaveBeenCalledWith('Profile');
   });
 
-  it.skip('navigates to Dashboard when Dashboard is pressed', async () => {
-    const mockUser = createMockUser();
-    const mockProfile = createMockProfile();
-
+  it('navigates to Billing when Billing is pressed', async () => {
     renderWithProviders(
       <UserMenu
-        user={mockUser}
-        profile={mockProfile}
+        user={createMockUser()}
+        profile={createMockProfile()}
         navigation={mockNavigation}
       />
     );
+    await openMenu();
+    fireEvent.click(screen.getByText('Billing'));
+    expect(mockNavigate).toHaveBeenCalledWith('Billing');
+  });
 
-    const avatarButton = screen.getByTestId('profile-avatar').closest('button');
-    if (avatarButton) {
-      fireEvent.click(avatarButton);
-    }
-
-    const dashboardButton = await screen.findByText(
-      'Dashboard',
-      {},
-      { timeout: 1000 }
+  it('navigates to Dashboard when Dashboard is pressed', async () => {
+    renderWithProviders(
+      <UserMenu
+        user={createMockUser()}
+        profile={createMockProfile()}
+        navigation={mockNavigation}
+      />
     );
-    fireEvent.click(dashboardButton);
-
+    await openMenu();
+    fireEvent.click(screen.getByText('Dashboard'));
     expect(mockNavigate).toHaveBeenCalledWith('Dashboard');
   });
 
-  it.skip('handles sign out', async () => {
+  it('signs out and navigates home after confirming', async () => {
     const mockClient = createMockSupabaseClient();
-    const mockUser = createMockUser();
-    const mockProfile = createMockProfile();
-
     renderWithProviders(
       <UserMenu
-        user={mockUser}
-        profile={mockProfile}
+        user={createMockUser()}
+        profile={createMockProfile()}
         navigation={mockNavigation}
       />,
       mockClient
     );
-
-    const avatarButton = screen.getByTestId('profile-avatar').closest('button');
-    if (avatarButton) {
-      fireEvent.click(avatarButton);
-    }
-
-    const signOutButton = screen.getByText('Sign Out');
-    fireEvent.click(signOutButton);
-
+    await openMenu();
+    fireEvent.click(screen.getByText('Sign Out'));
     await waitFor(() => {
       expect(mockClient.auth.signOut).toHaveBeenCalled();
     });
+    expect(mockNavigate).toHaveBeenCalledWith('Home');
+  });
+
+  it('uses Android-style menu positioning when Platform.OS is android', async () => {
+    userMenuPlatformOsRef().current = 'android';
+    renderWithProviders(
+      <UserMenu
+        user={createMockUser()}
+        profile={createMockProfile()}
+        navigation={mockNavigation}
+      />
+    );
+    await openMenu();
+    expect(screen.getByText('Profile')).toBeInTheDocument();
   });
 });

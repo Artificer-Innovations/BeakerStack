@@ -99,4 +99,14 @@ describe('ProfileAvatar', () => {
     expect(avatar).toBeInTheDocument();
     expect(avatar).toHaveTextContent('?');
   });
+
+  it('does not append cache-bust query when URL already has search params', () => {
+    const profileWithQuery: UserProfile = {
+      ...mockProfile,
+      avatar_url: 'https://example.com/avatar.jpg?v=1',
+    };
+    render(<ProfileAvatar profile={profileWithQuery} />);
+    const img = screen.getByRole('img');
+    expect(img).toHaveAttribute('src', 'https://example.com/avatar.jpg?v=1');
+  });
 });
