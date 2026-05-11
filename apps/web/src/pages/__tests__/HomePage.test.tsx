@@ -33,12 +33,10 @@ vi.mock('@beakerstack/billing', async importOriginal => {
   return {
     ...actual,
     BillingProvider: ({ children }: { children: ReactNode }) => children,
+    usePlanCatalog: () => ({ plans: [], loading: false, error: null, refresh: async () => {} }),
   };
 });
 
-vi.mock('@beakerstack/billing/web', () => ({
-  PricingTable: () => null,
-}));
 
 // Stub the landing config so tests don't depend on placehold.co or Lucide icons
 vi.mock('../../config/landing', () => ({

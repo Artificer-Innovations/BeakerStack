@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
@@ -88,37 +88,37 @@ const mockSupabaseClient = {
   removeChannel: vi.fn().mockResolvedValue({ status: 'ok', error: null }),
 } as any;
 
+function renderApp() {
+  return render(
+    <AuthProvider supabaseClient={mockSupabaseClient}>
+      <ProfileProvider supabaseClient={mockSupabaseClient}>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ProfileProvider>
+    </AuthProvider>
+  );
+}
+
 describe('App', () => {
   it('renders without crashing', async () => {
-    render(
-      <AuthProvider supabaseClient={mockSupabaseClient}>
-        <ProfileProvider supabaseClient={mockSupabaseClient}>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
-        </ProfileProvider>
-      </AuthProvider>
-    );
+    // act(async) flushes React.lazy's dynamic-import Promise and all
+    // subsequent React state updates before we query the DOM.
+    await act(async () => {
+      renderApp();
+    });
 
-    // Home route renders the landing page (mocked for test)
-    const signInLinks = await screen.findAllByRole('link', { name: /sign in/i });
+    const signInLinks = screen.getAllByRole('link', { name: /sign in/i });
     expect(signInLinks.length).toBeGreaterThan(0);
   });
 
   it('renders navigation links', async () => {
-    render(
-      <AuthProvider supabaseClient={mockSupabaseClient}>
-        <ProfileProvider supabaseClient={mockSupabaseClient}>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
-        </ProfileProvider>
-      </AuthProvider>
-    );
+    await act(async () => {
+      renderApp();
+    });
 
-    // Landing page nav has sign in and get started links
-    const signInLinks = await screen.findAllByRole('link', { name: /sign in/i });
-    const signUpLinks = await screen.findAllByRole('link', { name: /get started/i });
+    const signInLinks = screen.getAllByRole('link', { name: /sign in/i });
+    const signUpLinks = screen.getAllByRole('link', { name: /get started/i });
     expect(signInLinks.length).toBeGreaterThan(0);
     expect(signUpLinks.length).toBeGreaterThan(0);
   });
