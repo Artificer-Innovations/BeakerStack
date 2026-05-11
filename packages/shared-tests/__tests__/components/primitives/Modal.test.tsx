@@ -241,4 +241,44 @@ describe('Modal (Web)', () => {
     await user.tab();
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it('wraps Tab forward from last focusable back to first in panel', async () => {
+    const user = userEvent.setup({ delay: null });
+    const onClose = jest.fn();
+    render(
+      <Modal open onClose={onClose} title='Wrap forward'>
+        <button type='button'>First</button>
+        <button type='button'>Last</button>
+      </Modal>
+    );
+    act(() => {
+      jest.runAllTimers();
+    });
+    screen.getByRole('button', { name: 'Last' }).focus();
+    await user.tab();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Close dialog' })
+    );
+  });
+
+  it('wraps Shift+Tab backward from first focusable to last in panel', async () => {
+    const user = userEvent.setup({ delay: null });
+    const onClose = jest.fn();
+    render(
+      <Modal open onClose={onClose} title='Wrap back'>
+        <button type='button'>First</button>
+        <button type='button'>Last</button>
+      </Modal>
+    );
+    act(() => {
+      jest.runAllTimers();
+    });
+    screen.getByRole('button', { name: 'Close dialog' }).focus();
+    await user.tab({ shift: true });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Last' })
+    );
+  });
 });

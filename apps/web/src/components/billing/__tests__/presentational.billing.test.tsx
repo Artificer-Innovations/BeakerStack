@@ -107,6 +107,44 @@ describe('billing presentational components', () => {
     expect(screen.getByText('View all invoices →')).toBeInTheDocument();
   });
 
+  it('InvoiceList returns null when there are no invoices', () => {
+    render(
+      <MemoryRouter>
+        <InvoiceList items={[]} />
+      </MemoryRouter>
+    );
+    expect(screen.queryByText('Recent activity')).not.toBeInTheDocument();
+  });
+
+  it('InvoiceList omits view-all link when showViewAll is false', () => {
+    const inv = sampleInvoice();
+    render(
+      <MemoryRouter>
+        <InvoiceList items={[inv]} showViewAll={false} />
+      </MemoryRouter>
+    );
+    expect(screen.getByText('Recent activity')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /View all invoices/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it('InvoiceList uses description fallback and amount_due when paid is zero', () => {
+    const inv: BillingInvoiceRow = {
+      ...sampleInvoice(),
+      description: null,
+      amount_paid: 0,
+      amount_due: 2500,
+    };
+    render(
+      <MemoryRouter>
+        <InvoiceList items={[inv]} />
+      </MemoryRouter>
+    );
+    expect(screen.getByText('Subscription')).toBeInTheDocument();
+    expect(screen.getByText(/\$25\.00/)).toBeInTheDocument();
+  });
+
   it('InvoiceTable shows empty, loading, and row states', () => {
     const { rerender } = render(
       <MemoryRouter>

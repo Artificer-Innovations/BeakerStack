@@ -41,4 +41,16 @@ describe('PlanFeatureList', () => {
     expect(screen.getByText('Feature A')).toBeInTheDocument();
     expect(screen.getByText('Up to 2 collections')).toBeInTheDocument();
   });
+
+  it('renders X icon row when a boolean feature is off', () => {
+    const { container } = render(<PlanFeatureList plan={freePlan} />);
+    const featureAListItem = screen.getByText('Feature A').closest('li');
+    expect(featureAListItem?.querySelector('.text-gray-300')).toBeTruthy();
+    expect(container.querySelector('.text-green-600')).toBeTruthy();
+  });
+
+  it('accepts public mode without changing output', () => {
+    render(<PlanFeatureList plan={freePlan} mode='public' />);
+    expect(screen.getByText("What's included")).toBeInTheDocument();
+  });
 });

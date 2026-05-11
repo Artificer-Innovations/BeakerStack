@@ -1,6 +1,7 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { Platform } from 'react-native';
 import { ProfileAvatar } from '@beakerstack/shared/components/profile/ProfileAvatar.native';
 import type { UserProfile } from '@beakerstack/shared/types/profile';
 
@@ -127,8 +128,53 @@ describe('ProfileAvatar (Native)', () => {
     expect(screen.getByText('TU')).toBeInTheDocument();
   });
 
-  it.skip('handles image load error and shows fallback', async () => {
-    // Image error handling is complex to test with react-native-web
-    // The component handles errors internally via onError callback
+  it('merges cache buster when avatar URL already has query params', () => {
+    const profile: UserProfile = {
+      id: '1',
+      user_id: 'user-1',
+      username: 'testuser',
+      display_name: 'Test User',
+      avatar_url: 'https://example.com/a.jpg?v=1',
+      created_at: '2024-01-01',
+      updated_at: '2024-01-01',
+    };
+
+    render(<ProfileAvatar profile={profile} />);
+    const image = screen.getByRole('img');
+    const src = image.getAttribute('src') ?? '';
+    expect(src).toContain('?v=1');
+    expect(src).toContain('&t=');
+  });
+
+  it('rewrites localhost to Android emulator host in dev', () => {
+    const prev = Platform.OS;
+    try {
+      Object.defineProperty(Platform, 'OS', {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        value: 'android',
+      });
+      const profile: UserProfile = {
+        id: '1',
+        user_id: 'user-1',
+        username: 'testuser',
+        display_name: 'Test User',
+        avatar_url:
+          'http://127.0.0.1:54321/storage/v1/object/public/avatars/x.png',
+        created_at: '2024-01-01',
+        updated_at: '2024-01-01',
+      };
+      render(<ProfileAvatar profile={profile} />);
+      const image = screen.getByRole('img');
+      expect(image.getAttribute('src')).toContain('10.0.2.2');
+    } finally {
+      Object.defineProperty(Platform, 'OS', {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        value: prev,
+      });
+    }
   });
 });
