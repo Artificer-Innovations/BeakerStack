@@ -1,11 +1,34 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { Plan, SubscriptionRow } from '@beakerstack/billing';
 import { CurrentPlanCard } from '../CurrentPlanCard.web';
 
+type BillingCadence = 'monthly' | 'annual';
+
+const resolveCadenceMock = vi.hoisted(() =>
+  vi.fn(
+    (_plan: Plan | null, _sub: SubscriptionRow | null): BillingCadence | null =>
+      'monthly'
+  )
+);
+
+vi.mock('@beakerstack/billing', async importOriginal => {
+  const actual =
+    await importOriginal<typeof import('@beakerstack/billing')>();
+  return {
+    ...actual,
+    resolveCadence: (plan: Plan | null, sub: SubscriptionRow | null) =>
+      resolveCadenceMock(plan, sub),
+  };
+});
+
 vi.mock('@beakerstack/billing/web', () => ({
   SubscriptionStatusBadge: () => <span>badge</span>,
+}));
+
+vi.mock('../../../billing/billingSyncDisplay', () => ({
+  annualListCentsFromSync: vi.fn(() => 22_800),
 }));
 
 const plan: Plan = {
@@ -44,6 +67,10 @@ const subscription: SubscriptionRow = {
 };
 
 describe('CurrentPlanCard', () => {
+  beforeEach(() => {
+    resolveCadenceMock.mockReturnValue('monthly');
+  });
+
   it('returns null when plan is missing', () => {
     const { container } = render(
       <MemoryRouter>
@@ -106,5 +133,86 @@ describe('CurrentPlanCard', () => {
     expect(
       screen.queryByRole('button', { name: /Manage payment/i })
     ).not.toBeInTheDocument();
+  });
+
+  it('shows annual price when cadence resolves to annual', () => {
+    resolveCadenceMock.mockReturnValue('annual');
+    render(
+      <MemoryRouter>
+        <CurrentPlanCard
+          plan={plan}
+          subscription={subscription}
+          isFree={false}
+          onManagePayment={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+    expect(screen.getByText(/\$228\.00\/year/i)).toBeInTheDocument();
+  });
+
+  it('renders periodSubcopy when provided for paid subscription', () => {
+    render(
+      <MemoryRouter>
+        <CurrentPlanCard
+          plan={plan}
+          subscription={subscription}
+          isFree={false}
+          onManagePayment={vi.fn()}
+          periodSubcopy='Downgrade scheduled — ends Aug 1'
+        />
+      </MemoryRouter>
+    );
+    expect(
+      screen.getByText('Downgrade scheduled — ends Aug 1')
+    ).toBeInTheDocument();
+  });
+
+  it('shows Ends on when cancel_at_period_end', () => {
+    render(
+      <MemoryRouter>
+        <CurrentPlanCard
+          plan={plan}
+          subscription={{
+            ...subscription,
+            cancel_at_period_end: true,
+          }}
+          isFree={false}
+          onManagePayment={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+    expect(screen.getByText(/^Ends on /)).toBeInTheDocument();
+  });
+
+  it('shows Trial copy when status is trialing', () => {
+    render(
+      <MemoryRouter>
+        <CurrentPlanCard
+          plan={plan}
+          subscription={{
+            ...subscription,
+            status: 'trialing',
+            trial_end: new Date(Date.now() + 864e5 * 5).toISOString(),
+          }}
+          isFree={false}
+          onManagePayment={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+    expect(screen.getByText(/^Trial — ends /)).toBeInTheDocument();
+  });
+
+  it('shows Renews on by default for active paid subscription', () => {
+    render(
+      <MemoryRouter>
+        <CurrentPlanCard
+          plan={plan}
+          subscription={subscription}
+          isFree={false}
+          onManagePayment={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+    expect(screen.getByText(/^Renews on /)).toBeInTheDocument();
   });
 });

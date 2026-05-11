@@ -427,4 +427,11 @@ describe('BillingPlansPage', () => {
       await screen.findByText(/You.*re almost there/i)
     ).toBeInTheDocument();
   });
+
+  it('welcome banner copy reflects annual cadence when selected', async () => {
+    renderPage('/billing/plans?plan=beakerstack_pro&welcome=1&cadence=annual');
+    expect(
+      await screen.findByText(/Annual billing is selected below/i)
+    ).toBeInTheDocument();
+  });
 });

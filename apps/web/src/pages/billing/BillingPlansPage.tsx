@@ -85,14 +85,11 @@ export default function BillingPlansPage() {
   useEffect(() => {
     const sp = new URLSearchParams(searchKey);
     if (sp.get('welcome') !== '1' || !welcomePlanId || catLoad) return;
-    const raf = requestAnimationFrame(() => {
-      document
-        .getElementById(`plan-card-${welcomePlanId}`)
-        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
+    document
+      .getElementById(`plan-card-${welcomePlanId}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     sp.delete('welcome');
     setSearchParams(sp, { replace: true });
-    return () => cancelAnimationFrame(raf);
   }, [searchKey, setSearchParams, welcomePlanId, catLoad]);
 
   const welcomePlanMeta = useMemo(

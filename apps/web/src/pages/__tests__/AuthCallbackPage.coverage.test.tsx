@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import {
+  POST_AUTH_REDIRECT_KEY,
+  serializePostAuthRedirectPayload,
+} from '../../auth/postAuthRedirect';
 import AuthCallbackPage from '../AuthCallbackPage';
 
 const mockNavigate = vi.fn();
@@ -36,27 +40,28 @@ vi.mock('@beakerstack/shared/contexts/AuthContext', () => ({
 
 describe('AuthCallbackPage (URL + auth branches)', () => {
   const original = window.location;
-  const memStore: Record<string, string> = {};
+  const memSession: Record<string, string> = {};
+  const memLocal: Record<string, string> = {};
 
-  const storageMock = {
-    getItem: (k: string) => (k in memStore ? memStore[k] : null),
-    setItem: (k: string, v: string) => {
-      memStore[k] = v;
-    },
-    removeItem: (k: string) => {
-      delete memStore[k];
-    },
-    clear: () => {
-      for (const k of Object.keys(memStore)) delete memStore[k];
-    },
-  };
+  function storageMock(mem: Record<string, string>) {
+    return {
+      getItem: (k: string) => (k in mem ? mem[k] : null),
+      setItem: (k: string, v: string) => {
+        mem[k] = v;
+      },
+      removeItem: (k: string) => {
+        delete mem[k];
+      },
+    };
+  }
 
   beforeEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
-    Object.keys(memStore).forEach(k => delete memStore[k]);
-    vi.stubGlobal('sessionStorage', storageMock);
-    vi.stubGlobal('localStorage', storageMock);
+    Object.keys(memSession).forEach(k => delete memSession[k]);
+    Object.keys(memLocal).forEach(k => delete memLocal[k]);
+    vi.stubGlobal('sessionStorage', storageMock(memSession));
+    vi.stubGlobal('localStorage', storageMock(memLocal));
     auth.user = null;
     auth.loading = true;
     Object.defineProperty(window, 'location', {
@@ -220,5 +225,42 @@ describe('AuthCallbackPage (URL + auth branches)', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard', {
       replace: true,
     });
+  });
+
+  it('redirects to stored post-auth path when session is ready', () => {
+    const dest =
+      '/billing/plans?plan=beakerstack_pro&welcome=1';
+    memSession[POST_AUTH_REDIRECT_KEY] =
+      serializePostAuthRedirectPayload(dest);
+    auth.loading = false;
+    auth.user = { id: 'u1' };
+
+    render(
+      <MemoryRouter>
+        <AuthCallbackPage />
+      </MemoryRouter>
+    );
+
+    expect(mockNavigate).toHaveBeenCalledWith(dest, { replace: true });
+    expect(memSession[POST_AUTH_REDIRECT_KEY]).toBeUndefined();
+    expect(memLocal[POST_AUTH_REDIRECT_KEY]).toBeUndefined();
+  });
+
+  it('reads localStorage when sessionStorage is empty', () => {
+    const dest =
+      '/billing/plans?plan=beakerstack_max&welcome=1';
+    memLocal[POST_AUTH_REDIRECT_KEY] =
+      serializePostAuthRedirectPayload(dest);
+    auth.loading = false;
+    auth.user = { id: 'u1' };
+
+    render(
+      <MemoryRouter>
+        <AuthCallbackPage />
+      </MemoryRouter>
+    );
+
+    expect(mockNavigate).toHaveBeenCalledWith(dest, { replace: true });
+    expect(memLocal[POST_AUTH_REDIRECT_KEY]).toBeUndefined();
   });
 });

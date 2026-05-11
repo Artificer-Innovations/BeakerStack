@@ -8,15 +8,12 @@ import { SocialLoginButton } from '../components/SocialLoginButton';
 import { LoginPlanSummary } from '../components/auth/SignupPlanSummary';
 import { beakerstackBillingConfig } from '../billing/beakerstackBillingConfig';
 import {
+  clearPostAuthRedirectKeys,
   POST_AUTH_REDIRECT_KEY,
   resolvePostAuthDestination,
   serializePostAuthRedirectPayload,
 } from '../auth/postAuthRedirect';
-
-function appBasePath(): string {
-  if (typeof window === 'undefined') return '';
-  return `${window.location.origin}${(import.meta.env.BASE_URL || '/').replace(/\/$/, '')}`;
-}
+import { appBasePath } from '../lib/appBasePath';
 
 function LoginPageContent() {
   const [email, setEmail] = useState('');
@@ -53,7 +50,7 @@ function LoginPageContent() {
 
     try {
       await auth.signIn(email, password);
-      localStorage.removeItem(POST_AUTH_REDIRECT_KEY);
+      clearPostAuthRedirectKeys();
       navigate(postAuthPath, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in');
@@ -68,6 +65,7 @@ function LoginPageContent() {
       stashOAuthIntent();
       await auth.signInWithGoogle();
     } catch (err) {
+      sessionStorage.removeItem(POST_AUTH_REDIRECT_KEY);
       setError(
         err instanceof Error ? err.message : 'Failed to sign in with Google'
       );

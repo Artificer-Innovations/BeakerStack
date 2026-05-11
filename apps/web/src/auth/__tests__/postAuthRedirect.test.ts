@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import {
   parseStoredPostAuthRedirect,
+  POST_AUTH_REDIRECT_KEY,
+  readAndClearPostAuthRedirect,
   resolvePostAuthDestination,
   serializePostAuthRedirectPayload,
   validateInternalPostAuthPath,
@@ -87,5 +89,53 @@ describe('parseStoredPostAuthRedirect', () => {
       ts: Date.now() - POST_AUTH_REDIRECT_TTL_MS - 1,
     });
     expect(parseStoredPostAuthRedirect(raw, Date.now(), ORIGIN)).toBeNull();
+  });
+
+  it('returns null for invalid JSON (no legacy raw-path fallback)', () => {
+    expect(parseStoredPostAuthRedirect('not-json', Date.now(), ORIGIN)).toBeNull();
+  });
+});
+
+function storageMock(store: Record<string, string>) {
+  return {
+    getItem: (k: string) => (k in store ? store[k] : null),
+    setItem: (k: string, v: string) => {
+      store[k] = v;
+    },
+    removeItem: (k: string) => {
+      delete store[k];
+    },
+  };
+}
+
+describe('readAndClearPostAuthRedirect', () => {
+  let memS: Record<string, string>;
+  let memL: Record<string, string>;
+
+  beforeEach(() => {
+    memS = {};
+    memL = {};
+    vi.stubGlobal('sessionStorage', storageMock(memS));
+    vi.stubGlobal('localStorage', storageMock(memL));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('returns validated path and clears both stores', () => {
+    const path = '/billing/plans?plan=beakerstack_pro&welcome=1';
+    memS[POST_AUTH_REDIRECT_KEY] = serializePostAuthRedirectPayload(path);
+    expect(readAndClearPostAuthRedirect()).toBe(path);
+    expect(memS[POST_AUTH_REDIRECT_KEY]).toBeUndefined();
+    expect(memL[POST_AUTH_REDIRECT_KEY]).toBeUndefined();
+  });
+
+  it('uses sessionStorage when both are set', () => {
+    const a = '/billing/plans?plan=beakerstack_pro&welcome=1';
+    const b = '/dashboard';
+    memS[POST_AUTH_REDIRECT_KEY] = serializePostAuthRedirectPayload(a);
+    memL[POST_AUTH_REDIRECT_KEY] = serializePostAuthRedirectPayload(b);
+    expect(readAndClearPostAuthRedirect()).toBe(a);
   });
 });

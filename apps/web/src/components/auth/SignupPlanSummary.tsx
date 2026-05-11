@@ -119,8 +119,8 @@ export function PlanIntentSummary({
       </div>
       {bullets.length > 0 ? (
         <ul className='mt-4 list-inside list-disc space-y-1 text-sm text-gray-700'>
-          {bullets.map(line => (
-            <li key={line}>{line}</li>
+          {bullets.map((line, i) => (
+            <li key={`${mode}-bullet-${i}`}>{line}</li>
           ))}
         </ul>
       ) : null}

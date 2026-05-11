@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
-import {
-  POST_AUTH_REDIRECT_KEY,
-  parseStoredPostAuthRedirect,
-} from '../auth/postAuthRedirect';
+import { readAndClearPostAuthRedirect } from '../auth/postAuthRedirect';
 
 export default function AuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);
@@ -13,6 +10,9 @@ export default function AuthCallbackPage() {
   const navigatedRef = useRef(false);
   const authRef = useRef(auth);
   authRef.current = auth;
+  const delayedLoginTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   useEffect(() => {
     if (navigatedRef.current) return;
@@ -37,12 +37,7 @@ export default function AuthCallbackPage() {
 
     if (auth.user) {
       navigatedRef.current = true;
-      const rawS = sessionStorage.getItem(POST_AUTH_REDIRECT_KEY);
-      const rawL = localStorage.getItem(POST_AUTH_REDIRECT_KEY);
-      sessionStorage.removeItem(POST_AUTH_REDIRECT_KEY);
-      localStorage.removeItem(POST_AUTH_REDIRECT_KEY);
-      const stored =
-        parseStoredPostAuthRedirect(rawS) ?? parseStoredPostAuthRedirect(rawL);
+      const stored = readAndClearPostAuthRedirect();
       navigate(stored ?? '/dashboard', { replace: true });
       return;
     }
@@ -58,26 +53,26 @@ export default function AuthCallbackPage() {
       const a = authRef.current;
       if (a.user && !a.loading) {
         navigatedRef.current = true;
-        const rawS = sessionStorage.getItem(POST_AUTH_REDIRECT_KEY);
-        const rawL = localStorage.getItem(POST_AUTH_REDIRECT_KEY);
-        sessionStorage.removeItem(POST_AUTH_REDIRECT_KEY);
-        localStorage.removeItem(POST_AUTH_REDIRECT_KEY);
-        const stored =
-          parseStoredPostAuthRedirect(rawS) ??
-          parseStoredPostAuthRedirect(rawL);
+        const stored = readAndClearPostAuthRedirect();
         navigate(stored ?? '/dashboard', { replace: true });
       } else if (!a.loading) {
         setError(
           'Authentication completed but session not established. Please try again.'
         );
-        setTimeout(() => {
+        delayedLoginTimerRef.current = setTimeout(() => {
           navigatedRef.current = true;
           navigate('/login', { replace: true });
         }, 3000);
       }
     }, 1200);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (delayedLoginTimerRef.current) {
+        clearTimeout(delayedLoginTimerRef.current);
+        delayedLoginTimerRef.current = null;
+      }
+    };
   }, [auth.user, auth.loading, navigate]);
 
   if (error) {

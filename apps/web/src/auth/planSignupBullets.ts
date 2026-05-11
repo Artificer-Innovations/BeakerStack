@@ -12,16 +12,17 @@ export function planSignupBullets(planId: string): string[] {
     );
   }
 
-  const feats = cfg.features as Record<string, number | boolean>;
+  const feats = cfg.features as Record<string, number | boolean | undefined>;
   for (const row of beakerstackBillingConfig.planFeatureRows) {
     if (out.length >= 3) break;
     const val = feats[row.featureKey];
     if (row.kind === 'boolean') {
       if (val === true) out.push(row.label);
     } else {
-      const n = val as number;
-      if (n === -1) out.push(row.unlimitedLabel);
-      else out.push(row.limitedLabelTemplate.replace('{count}', String(n)));
+      if (typeof val !== 'number') continue;
+      if (val === -1) out.push(row.unlimitedLabel);
+      else
+        out.push(row.limitedLabelTemplate.replace('{count}', String(val)));
     }
   }
 
@@ -39,5 +40,5 @@ export function planSignupBullets(planId: string): string[] {
     }
   }
 
-  return out.slice(0, 3);
+  return out;
 }

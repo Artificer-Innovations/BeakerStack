@@ -120,7 +120,10 @@ describe('HomePage', () => {
           screen.queryByText('Dashboard')
       ).toBeTruthy()
     );
-    return result!;
+    if (result === null) {
+      throw new Error('Expected render to assign result');
+    }
+    return result;
   };
 
   describe('when user is not authenticated', () => {

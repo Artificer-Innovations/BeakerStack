@@ -8,16 +8,13 @@ import { SocialLoginButton } from '../components/SocialLoginButton';
 import { SignupPlanSummary } from '../components/auth/SignupPlanSummary';
 import { beakerstackBillingConfig } from '../billing/beakerstackBillingConfig';
 import {
+  clearPostAuthRedirectKeys,
   hasPaidPlanIntent,
   POST_AUTH_REDIRECT_KEY,
   resolvePostAuthDestination,
   serializePostAuthRedirectPayload,
 } from '../auth/postAuthRedirect';
-
-function appBasePath(): string {
-  if (typeof window === 'undefined') return '';
-  return `${window.location.origin}${(import.meta.env.BASE_URL || '/').replace(/\/$/, '')}`;
-}
+import { appBasePath } from '../lib/appBasePath';
 
 function SignupPageContent() {
   const [email, setEmail] = useState('');
@@ -65,7 +62,7 @@ function SignupPageContent() {
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session) {
-        localStorage.removeItem(POST_AUTH_REDIRECT_KEY);
+        clearPostAuthRedirectKeys();
         navigate(postAuthPath, { replace: true });
       } else if (paidIntent && postAuthPath !== '/dashboard') {
         localStorage.setItem(
@@ -89,6 +86,7 @@ function SignupPageContent() {
       stashOAuthIntent();
       await auth.signInWithGoogle();
     } catch (err) {
+      sessionStorage.removeItem(POST_AUTH_REDIRECT_KEY);
       setError(
         err instanceof Error ? err.message : 'Failed to sign up with Google'
       );
@@ -103,6 +101,8 @@ function SignupPageContent() {
     : paidIntent && postAuthPath !== '/dashboard'
       ? `Continue with ${displayName}`
       : 'Create account';
+
+  const showPlanAside = paidIntent && postAuthPath !== '/dashboard';
 
   if (awaitingEmail) {
     return (
@@ -134,8 +134,18 @@ function SignupPageContent() {
     <div className='min-h-screen bg-gray-50'>
       <AppHeader supabaseClient={supabase} />
       <div className='max-w-[1024px] mx-auto py-12 px-4 sm:px-6 lg:px-8'>
-        <div className='grid w-full gap-10 md:grid-cols-2 md:items-start'>
-          <div className='order-2 md:order-1 space-y-8'>
+        <div
+          className={
+            showPlanAside
+              ? 'grid w-full gap-10 md:grid-cols-2 md:items-start'
+              : 'w-full space-y-8'
+          }
+        >
+          <div
+            className={
+              showPlanAside ? 'order-2 md:order-1 space-y-8' : 'space-y-8'
+            }
+          >
             <div>
               <h2 className='mt-0 text-center text-3xl font-extrabold text-gray-900 md:text-left'>
                 {paidIntent && postAuthPath !== '/dashboard'
@@ -246,9 +256,11 @@ function SignupPageContent() {
             </form>
           </div>
 
-          <div className='order-1 md:order-2'>
-            <SignupPlanSummary />
-          </div>
+          {showPlanAside ? (
+            <div className='order-1 md:order-2'>
+              <SignupPlanSummary />
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

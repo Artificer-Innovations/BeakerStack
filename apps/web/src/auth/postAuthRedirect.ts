@@ -48,7 +48,7 @@ export function resolvePostAuthDestination(
   if (!planId || !PUBLIC_PLAN_IDS.has(planId)) return '/dashboard';
 
   const cfg = configPlanById(planId);
-  if (!cfg || !cfg.isPublic || cfg.priceCents === 0) return '/dashboard';
+  if (!cfg || cfg.priceCents === 0) return '/dashboard';
 
   const cadence =
     searchParams.get('cadence') === 'annual' ? 'annual' : 'monthly';
@@ -65,6 +65,7 @@ export function serializePostAuthRedirectPayload(path: string): string {
 
 /**
  * Parse stored JSON `{ path, ts }`, enforce TTL, validate path. Returns null if invalid/expired.
+ * Non-JSON or malformed payloads return null (TTL always enforced; no legacy raw-path fallback).
  */
 export function parseStoredPostAuthRedirect(
   raw: string | null,
@@ -80,8 +81,34 @@ export function parseStoredPostAuthRedirect(
     }
     return null;
   } catch {
-    return validateInternalPostAuthPath(raw, origin);
+    return null;
   }
+}
+
+/** Remove intent from both storages (after successful email auth or when clearing stale OAuth stash). */
+export function clearPostAuthRedirectKeys(): void {
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.removeItem(POST_AUTH_REDIRECT_KEY);
+  }
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem(POST_AUTH_REDIRECT_KEY);
+  }
+}
+
+/** Read intent once, clear both stores unconditionally, parse + TTL + validate. */
+export function readAndClearPostAuthRedirect(): string | null {
+  const rawS =
+    typeof sessionStorage !== 'undefined'
+      ? sessionStorage.getItem(POST_AUTH_REDIRECT_KEY)
+      : null;
+  const rawL =
+    typeof localStorage !== 'undefined'
+      ? localStorage.getItem(POST_AUTH_REDIRECT_KEY)
+      : null;
+  clearPostAuthRedirectKeys();
+  return (
+    parseStoredPostAuthRedirect(rawS) ?? parseStoredPostAuthRedirect(rawL)
+  );
 }
 
 export function hasPaidPlanIntent(searchParams: URLSearchParams): boolean {

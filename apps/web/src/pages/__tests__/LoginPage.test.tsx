@@ -2,11 +2,49 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter } from 'react-router-dom';
+import type { Plan } from '@beakerstack/billing';
 import LoginPage from '../LoginPage';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
+
+const mockCatalogPlans = vi.hoisted(() => {
+  const pro: Plan = {
+    id: 'beakerstack_pro',
+    product_id: 'beakerstack',
+    display_name: 'Pro',
+    description: null,
+    price_cents: 1900,
+    billing_period: 'monthly',
+    stripe_price_id_monthly: null,
+    stripe_price_id_annual: null,
+    stripe_product_id: null,
+    features: {},
+    usage_limits: {},
+    trial_period_days: 0,
+    is_public: true,
+    display_order: 2,
+  };
+  return { pro };
+});
+
+vi.mock('@beakerstack/billing', async importOriginal => {
+  const actual =
+    await importOriginal<typeof import('@beakerstack/billing')>();
+  return {
+    ...actual,
+    BillingProvider: ({ children }: { children: React.ReactNode }) => (
+      <>{children}</>
+    ),
+    usePlanCatalog: () => ({
+      plans: [mockCatalogPlans.pro],
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+    }),
+  };
+});
 
 // Mock the supabase client
 vi.mock('@/lib/supabase', () => ({
@@ -39,17 +77,30 @@ const createMockSupabaseClient = (): SupabaseClient => {
   } as unknown as SupabaseClient;
 };
 
-const renderWithProviders = (component: React.ReactElement) => {
+const renderWithProviders = (
+  component: React.ReactElement,
+  options?: { initialEntries?: string[] }
+) => {
   const mockClient = createMockSupabaseClient();
-  return render(
-    <BrowserRouter>
-      <AuthProvider supabaseClient={mockClient}>
-        <ProfileProvider supabaseClient={mockClient}>
-          {component}
-        </ProfileProvider>
-      </AuthProvider>
-    </BrowserRouter>
-  );
+  const router =
+    options?.initialEntries != null ? (
+      <MemoryRouter initialEntries={options.initialEntries}>
+        <AuthProvider supabaseClient={mockClient}>
+          <ProfileProvider supabaseClient={mockClient}>
+            {component}
+          </ProfileProvider>
+        </AuthProvider>
+      </MemoryRouter>
+    ) : (
+      <BrowserRouter>
+        <AuthProvider supabaseClient={mockClient}>
+          <ProfileProvider supabaseClient={mockClient}>
+            {component}
+          </ProfileProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    );
+  return render(router);
 };
 
 describe('LoginPage', () => {
@@ -159,6 +210,18 @@ describe('LoginPage', () => {
     const signupLink = screen.getByText("Don't have an account? Sign up");
     expect(signupLink).toBeInTheDocument();
     expect(signupLink.closest('a')).toHaveAttribute('href', '/signup');
+  });
+
+  it('shows plan summary aside when arriving with paid plan query', () => {
+    renderWithProviders(<LoginPage />, {
+      initialEntries: ['/login?plan=beakerstack_pro'],
+    });
+    expect(screen.getByText('Plan from pricing')).toBeInTheDocument();
+  });
+
+  it('does not show plan aside on plain /login', () => {
+    renderWithProviders(<LoginPage />);
+    expect(screen.queryByText('Plan from pricing')).not.toBeInTheDocument();
   });
 
   it.skip('disables form inputs when loading', async () => {

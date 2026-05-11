@@ -1,8 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { LandingConfig } from '../../../../config/landing';
 import { PricingSection } from '../PricingSection';
+
+const mockNavigate = vi.hoisted(() => vi.fn());
+const getCadenceFromSearchMock = vi.hoisted(() =>
+  vi.fn((_search: URLSearchParams): 'monthly' | 'annual' => 'monthly')
+);
+
+vi.mock('react-router-dom', async importOriginal => {
+  const actual =
+    await importOriginal<typeof import('react-router-dom')>();
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
 
 vi.mock('@beakerstack/billing', () => ({
   BillingProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -13,13 +28,26 @@ vi.mock('../../../../billing/beakerstackBillingConfig', () => ({
   beakerstackBillingConfig: { plans: [] },
 }));
 vi.mock('../../../billing/PlanCard.web', () => ({
-  PlanCard: ({ plan }: { plan: { display_name: string } }) => (
-    <div data-testid='plan-card'>{plan.display_name}</div>
+  PlanCard: ({
+    plan,
+    primary,
+  }: {
+    plan: { id: string; display_name: string };
+    primary: { label: string; onClick: () => void };
+  }) => (
+    <button
+      type='button'
+      data-testid={`plan-card-${plan.id}`}
+      onClick={primary.onClick}
+    >
+      {plan.display_name}
+    </button>
   ),
 }));
 vi.mock('../../../billing/CadenceToggle.web', () => ({
   CadenceToggle: () => <div data-testid='cadence-toggle'>Toggle</div>,
-  getCadenceFromSearch: vi.fn(() => 'monthly'),
+  getCadenceFromSearch: (search: URLSearchParams) =>
+    getCadenceFromSearchMock(search),
 }));
 vi.mock('../../../../billing/billingSyncDisplay', () => ({
   annualListCentsFromSync: vi.fn(() => 22800),
@@ -50,6 +78,8 @@ function renderSection(config: LandingConfig['pricing'] = baseConfig) {
 
 describe('PricingSection', () => {
   beforeEach(() => {
+    mockNavigate.mockClear();
+    getCadenceFromSearchMock.mockReturnValue('monthly');
     vi.mocked(usePlanCatalog).mockReturnValue(
       { plans: mockPlans, loading: false } as unknown as ReturnType<typeof usePlanCatalog>
     );
@@ -70,11 +100,24 @@ describe('PricingSection', () => {
 
   it('renders a plan card for each plan', () => {
     renderSection();
-    const cards = screen.getAllByTestId('plan-card');
-    expect(cards).toHaveLength(3);
-    expect(cards[0]).toHaveTextContent('Free');
-    expect(cards[1]).toHaveTextContent('Pro');
-    expect(cards[2]).toHaveTextContent('Team');
+    expect(screen.getByTestId('plan-card-free')).toHaveTextContent('Free');
+    expect(screen.getByTestId('plan-card-pro')).toHaveTextContent('Pro');
+    expect(screen.getByTestId('plan-card-team')).toHaveTextContent('Team');
+  });
+
+  it('navigates to signup with encoded plan id', async () => {
+    const user = userEvent.setup();
+    renderSection();
+    await user.click(screen.getByTestId('plan-card-pro'));
+    expect(mockNavigate).toHaveBeenCalledWith('/signup?plan=pro');
+  });
+
+  it('appends cadence=annual when annual pricing is selected', async () => {
+    const user = userEvent.setup();
+    getCadenceFromSearchMock.mockReturnValue('annual');
+    renderSection();
+    await user.click(screen.getByTestId('plan-card-pro'));
+    expect(mockNavigate).toHaveBeenCalledWith('/signup?plan=pro&cadence=annual');
   });
 
   it('shows loading message while plans are loading', () => {
@@ -83,7 +126,7 @@ describe('PricingSection', () => {
     );
     renderSection();
     expect(screen.getByText(/Loading plans/)).toBeInTheDocument();
-    expect(screen.queryByTestId('plan-card')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('plan-card-free')).not.toBeInTheDocument();
   });
 
   it('renders disclaimer when provided', () => {
