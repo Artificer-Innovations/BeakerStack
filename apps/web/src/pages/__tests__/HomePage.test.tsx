@@ -22,7 +22,7 @@ vi.mock('@/lib/supabase', () => ({
     }),
     channel: vi.fn().mockReturnValue({
       on: vi.fn().mockReturnThis(),
-      subscribe: vi.fn(cb => { cb('SUBSCRIBED'); return {}; }),
+      subscribe: vi.fn(cb => { cb('SUBSCRIBED'); return { unsubscribe: vi.fn().mockResolvedValue(undefined) }; }),
     }),
     removeChannel: vi.fn().mockResolvedValue({ status: 'ok', error: null }),
   },
@@ -84,7 +84,7 @@ describe('HomePage', () => {
       }),
       channel: vi.fn().mockReturnValue({
         on: vi.fn().mockReturnThis(),
-        subscribe: vi.fn(cb => { cb('SUBSCRIBED'); return {}; }),
+        subscribe: vi.fn(cb => { cb('SUBSCRIBED'); return { unsubscribe: vi.fn().mockResolvedValue(undefined) }; }),
       }),
       removeChannel: vi.fn().mockResolvedValue({ status: 'ok', error: null }),
     } as unknown as SupabaseClient;
@@ -113,8 +113,13 @@ describe('HomePage', () => {
           </AuthProvider>
         </MemoryRouter>
       );
-      await new Promise(resolve => setTimeout(resolve, 0));
     });
+    await waitFor(() =>
+      expect(
+        screen.queryByText('Build the full stack. Not the scaffolding.') ??
+          screen.queryByText('Dashboard')
+      ).toBeTruthy()
+    );
     return result!;
   };
 

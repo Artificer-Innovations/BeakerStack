@@ -22,7 +22,7 @@ module.exports = {
     ]
   },
   transformIgnorePatterns: [
-    "node_modules/(?!^$)" // default; adjust to transpile specific libs if needed
+    "/node_modules/" // default; adjust to transpile specific libs if needed
   ],
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json"],
   collectCoverageFrom: [
