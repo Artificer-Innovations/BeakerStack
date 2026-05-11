@@ -1,8 +1,14 @@
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { BillingProvider, usePlanCatalog } from '@beakerstack/billing';
 import { supabase } from '../../../lib/supabase';
 import { beakerstackBillingConfig } from '../../../billing/beakerstackBillingConfig';
 import { PlanCard } from '../../billing/PlanCard.web';
+import { CadenceToggle, getCadenceFromSearch } from '../../billing/CadenceToggle.web';
+import {
+  annualListCentsFromSync,
+  planAnnualSavingsCopy,
+  formatSavingsCalloutFromCopy,
+} from '../../../billing/billingSyncDisplay';
 import type { LandingConfig } from '../../../config/landing';
 
 interface PricingSectionProps {
@@ -16,6 +22,8 @@ function appBasePath(): string {
 
 function LandingPricingTable() {
   const navigate = useNavigate();
+  const [search] = useSearchParams();
+  const cadence = getCadenceFromSearch(search);
   const { plans, loading } = usePlanCatalog<typeof beakerstackBillingConfig>();
 
   if (loading) {
@@ -23,37 +31,68 @@ function LandingPricingTable() {
   }
 
   return (
-    <div className='grid grid-cols-1 gap-6 md:grid-cols-3'>
-      {plans.map(plan => {
-        const priceHeadline =
-          plan.price_cents === 0
-            ? 'US$0'
-            : new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD',
-                maximumFractionDigits: 0,
-              }).format(plan.price_cents / 100);
-        const priceSubline =
-          plan.price_cents === 0 ? 'Free forever' : 'per month';
+    <div>
+      <div className='mb-8'>
+        <CadenceToggle />
+      </div>
+      <div className='grid grid-cols-1 gap-6 md:grid-cols-3'>
+        {plans.map(plan => {
+          const isAnnual = cadence === 'annual' && plan.price_cents > 0;
+          const annualCents = isAnnual
+            ? annualListCentsFromSync(plan.id, plan.price_cents)
+            : null;
 
-        return (
-          <PlanCard
-            key={plan.id}
-            plan={plan}
-            priceHeadline={priceHeadline}
-            priceSubline={priceSubline}
-            primary={{
-              label:
-                plan.price_cents === 0
-                  ? 'Get started free'
-                  : `Get started with ${plan.display_name}`,
-              onClick: () =>
-                navigate(`/signup?plan=${encodeURIComponent(plan.id)}`),
-            }}
-            mode='public'
-          />
-        );
-      })}
+          const fmt = (cents: number) =>
+            new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: 'USD',
+              maximumFractionDigits: 0,
+            }).format(cents / 100);
+
+          const priceHeadline =
+            plan.price_cents === 0
+              ? 'US$0'
+              : isAnnual && annualCents != null
+              ? fmt(annualCents)
+              : fmt(plan.price_cents);
+
+          const priceSubline =
+            plan.price_cents === 0
+              ? 'Free forever'
+              : isAnnual
+              ? 'per year'
+              : 'per month';
+
+          const savingsCopy = isAnnual
+            ? planAnnualSavingsCopy(plan.id, plan.price_cents)
+            : null;
+          const savingsCallout = savingsCopy
+            ? formatSavingsCalloutFromCopy(savingsCopy)
+            : null;
+
+          return (
+            <PlanCard
+              key={plan.id}
+              plan={plan}
+              priceHeadline={priceHeadline}
+              priceSubline={priceSubline}
+              savingsCallout={savingsCallout}
+              billingCadence={isAnnual ? 'annual' : 'monthly'}
+              primary={{
+                label:
+                  plan.price_cents === 0
+                    ? 'Get started free'
+                    : `Get started with ${plan.display_name}`,
+                onClick: () =>
+                  navigate(
+                    `/signup?plan=${encodeURIComponent(plan.id)}${cadence === 'annual' ? '&cadence=annual' : ''}`
+                  ),
+              }}
+              mode='public'
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }
