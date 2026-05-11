@@ -7,6 +7,7 @@ import {
   afterEach,
 } from '@jest/globals';
 import { render, screen, fireEvent, within, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { Modal } from '@beakerstack/shared/components/primitives/Modal.web';
 
@@ -171,21 +172,20 @@ describe('Modal (Web)', () => {
     expect(document.documentElement.style.overflow).not.toBe('hidden');
   });
 
-  it('does not prevent Tab when no focusable elements exist', () => {
+  it('does not prevent Tab when no focusable elements exist', async () => {
+    const user = userEvent.setup({ delay: null });
     const onClose = jest.fn();
     render(
       <Modal open onClose={onClose}>
         <p>No interactive elements</p>
       </Modal>
     );
-    // Tab with no focusable elements should not throw or call onClose
-    expect(() => {
-      fireEvent.keyDown(document, { key: 'Tab', bubbles: true });
-    }).not.toThrow();
+    await user.tab();
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('traps Tab forward through focusable elements', () => {
+  it('traps Tab forward through focusable elements', async () => {
+    const user = userEvent.setup({ delay: null });
     const onClose = jest.fn();
     render(
       <Modal open onClose={onClose} title='Trap test'>
@@ -196,20 +196,17 @@ describe('Modal (Web)', () => {
     act(() => {
       jest.runAllTimers();
     });
-    const closeBtn = screen.getByRole('button', { name: 'Close dialog' });
-    const firstBtn = screen.getByRole('button', { name: 'First' });
     const lastBtn = screen.getByRole('button', { name: 'Last' });
 
-    // Simulate Tab from the last button → should wrap to first
     lastBtn.focus();
-    fireEvent.keyDown(document, { key: 'Tab', bubbles: true });
-    // The focus trap should have intercepted; no throw, onClose not called
+    await user.tab();
     expect(onClose).not.toHaveBeenCalled();
-    void closeBtn; // referenced in test scope
-    void firstBtn;
+    // focus should have wrapped back into the modal
+    expect(document.activeElement).not.toBe(document.body);
   });
 
-  it('traps Shift+Tab backward through focusable elements', () => {
+  it('traps Shift+Tab backward through focusable elements', async () => {
+    const user = userEvent.setup({ delay: null });
     const onClose = jest.fn();
     render(
       <Modal open onClose={onClose} title='Trap test'>
@@ -222,13 +219,15 @@ describe('Modal (Web)', () => {
     });
     const closeBtn = screen.getByRole('button', { name: 'Close dialog' });
 
-    // Simulate Shift+Tab from the first focusable element → should wrap to last
     closeBtn.focus();
-    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true, bubbles: true });
+    await user.tab({ shift: true });
     expect(onClose).not.toHaveBeenCalled();
+    // focus should have wrapped to the last focusable element
+    expect(document.activeElement).not.toBe(document.body);
   });
 
-  it('focuses panel when focus is outside on Tab', () => {
+  it('focuses panel when focus is outside on Tab', async () => {
+    const user = userEvent.setup({ delay: null });
     const onClose = jest.fn();
     render(
       <Modal open onClose={onClose} title='Outside focus'>
@@ -238,9 +237,8 @@ describe('Modal (Web)', () => {
     act(() => {
       jest.runAllTimers();
     });
-    // Focus something outside the modal (document.body)
     document.body.focus();
-    fireEvent.keyDown(document, { key: 'Tab', bubbles: true });
+    await user.tab();
     expect(onClose).not.toHaveBeenCalled();
   });
 });
