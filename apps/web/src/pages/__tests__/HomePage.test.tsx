@@ -139,6 +139,12 @@ describe('HomePage', () => {
       expect(signInLinks.length).toBeGreaterThan(0);
       expect(signInLinks[0]).toHaveAttribute('href', '/login');
     });
+
+    it('renders the pricing cadence toggle with Monthly and Annually buttons', async () => {
+      await renderWithAuth(false);
+      expect(screen.getByRole('button', { name: /monthly/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /annually/i })).toBeInTheDocument();
+    });
   });
 
   describe('when user is authenticated', () => {
