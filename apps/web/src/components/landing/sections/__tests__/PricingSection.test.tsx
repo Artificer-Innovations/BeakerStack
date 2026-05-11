@@ -1,26 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import type { LandingConfig } from '../../../../config/landing';
 import { PricingSection } from '../PricingSection';
 
 vi.mock('@beakerstack/billing', () => ({
   BillingProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   usePlanCatalog: vi.fn(),
 }));
-vi.mock('../../../lib/supabase', () => ({ supabase: {} }));
-vi.mock('../../../billing/beakerstackBillingConfig', () => ({
+vi.mock('../../../../lib/supabase', () => ({ supabase: {} }));
+vi.mock('../../../../billing/beakerstackBillingConfig', () => ({
   beakerstackBillingConfig: { plans: [] },
 }));
-vi.mock('../../billing/PlanCard.web', () => ({
+vi.mock('../../../billing/PlanCard.web', () => ({
   PlanCard: ({ plan }: { plan: { display_name: string } }) => (
     <div data-testid='plan-card'>{plan.display_name}</div>
   ),
 }));
-vi.mock('../../billing/CadenceToggle.web', () => ({
+vi.mock('../../../billing/CadenceToggle.web', () => ({
   CadenceToggle: () => <div data-testid='cadence-toggle'>Toggle</div>,
   getCadenceFromSearch: vi.fn(() => 'monthly'),
 }));
-vi.mock('../../../billing/billingSyncDisplay', () => ({
+vi.mock('../../../../billing/billingSyncDisplay', () => ({
   annualListCentsFromSync: vi.fn(() => 22800),
   planAnnualSavingsCopy: vi.fn(() => null),
   formatSavingsCalloutFromCopy: vi.fn(() => null),
@@ -34,12 +35,12 @@ const mockPlans = [
   { id: 'team', display_name: 'Team', price_cents: 4900, features: [] },
 ];
 
-const baseConfig = {
+const baseConfig: LandingConfig['pricing'] = {
   heading: 'Simple, transparent pricing',
   subhead: 'Start free. Scale as you grow.',
 };
 
-function renderSection(config = baseConfig) {
+function renderSection(config: LandingConfig['pricing'] = baseConfig) {
   return render(
     <MemoryRouter>
       <PricingSection config={config} />
@@ -49,7 +50,9 @@ function renderSection(config = baseConfig) {
 
 describe('PricingSection', () => {
   beforeEach(() => {
-    vi.mocked(usePlanCatalog).mockReturnValue({ plans: mockPlans, loading: false } as ReturnType<typeof usePlanCatalog>);
+    vi.mocked(usePlanCatalog).mockReturnValue(
+      { plans: mockPlans, loading: false } as unknown as ReturnType<typeof usePlanCatalog>
+    );
   });
 
   it('renders heading and subhead', () => {
@@ -75,7 +78,9 @@ describe('PricingSection', () => {
   });
 
   it('shows loading message while plans are loading', () => {
-    vi.mocked(usePlanCatalog).mockReturnValue({ plans: [], loading: true } as ReturnType<typeof usePlanCatalog>);
+    vi.mocked(usePlanCatalog).mockReturnValue(
+      { plans: [], loading: true } as unknown as ReturnType<typeof usePlanCatalog>
+    );
     renderSection();
     expect(screen.getByText(/Loading plans/)).toBeInTheDocument();
     expect(screen.queryByTestId('plan-card')).not.toBeInTheDocument();

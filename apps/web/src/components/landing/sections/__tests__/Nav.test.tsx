@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { Nav } from '../Nav';
 
 const config = {
-  brand: { name: 'BeakerStack', logoSrc: '/logo.svg' },
+  brand: { name: 'BeakerStack', tagline: 'Ship your SaaS faster.', logoSrc: '/logo.svg' },
   links: [
     { href: '#features', label: 'Features' },
     { href: '#pricing', label: 'Pricing' },
