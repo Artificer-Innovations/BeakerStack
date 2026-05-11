@@ -161,7 +161,7 @@ export const landingConfig: LandingConfig = {
       {
         icon: Database,
         title: 'Supabase backend',
-        body: 'Postgres, Auth, Storage, and Edge Functions — with RLS-oriented patterns, migrations at repo root, generated TypeScript types from the schema, and local Supabase via Docker for dev/test parity.',
+        body: 'Postgres, Auth, Storage, and Edge Functions with RLS-first patterns, schema-generated TypeScript types, and local Docker parity for development and testing.',
       },
       {
         icon: Code2,
@@ -204,7 +204,7 @@ export const landingConfig: LandingConfig = {
     },
     {
       title: 'Web and mobile from a single codebase.',
-      body: 'Shared auth logic, shared billing hooks, shared business rules — your React web app and React Native mobile app stay in sync without duplicating code. 40–60% of the codebase is shared across platforms.',
+      body: 'Shared auth logic. Shared billing hooks. Shared business rules. Your React web app and React Native mobile app stay in sync without duplicated work. About 40–60% of the codebase is shared across platforms.',
       ctaLabel: 'Learn about mobile',
       ctaHref: '#features',
       mediaSrc: 'https://placehold.co/560x315?text=Mobile+App',
@@ -213,7 +213,7 @@ export const landingConfig: LandingConfig = {
     },
     {
       title: 'Environments that match your shipping workflow.',
-      body: 'Three Supabase databases — local Docker, shared PR testing, and staging — mirror your branching model so migrations are validated before they touch production. PR previews deploy to path-based S3/CloudFront URLs automatically. EAS Update channels give mobile the same preview → staging → production story.',
+      body: 'Three Supabase databases—local Docker, shared PR testing, and staging—mirror your branching model. Migrations are validated before they touch production. PR previews deploy automatically to path-based S3/CloudFront URLs. EAS Update channels give mobile the same preview → staging → production flow.',
       ctaLabel: 'Read the architecture docs',
       ctaHref: 'https://github.com/Artificer-Innovations/BeakerStack/blob/main/ARCHITECTURE.md',
       mediaSrc: 'https://placehold.co/560x315?text=Environments',
@@ -222,7 +222,7 @@ export const landingConfig: LandingConfig = {
     },
     {
       title: 'Set up in minutes. Documented for the long haul.',
-      body: 'A single `npm run setup` command provisions your local environment. QUICKSTART, ARCHITECTURE, and per-topic guides (OAuth, Stripe, testing) cover every decision. Environment variables and secrets follow a consistent layout that maps directly to GitHub Actions — no hunting for where a key goes.',
+      body: 'Run `npm run setup` to provision your local environment in one step. QUICKSTART, ARCHITECTURE, and focused guides (OAuth, Stripe, testing) explain key decisions. Env vars and secrets use a consistent layout that maps directly to GitHub Actions.',
       ctaLabel: 'Read the quickstart',
       ctaHref: 'https://github.com/Artificer-Innovations/BeakerStack/blob/main/QUICKSTART.md',
       mediaSrc: 'https://placehold.co/560x315?text=Setup',
