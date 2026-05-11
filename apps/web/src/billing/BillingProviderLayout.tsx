@@ -1,12 +1,8 @@
 import { BillingProvider } from '@beakerstack/billing';
 import { Outlet } from 'react-router-dom';
+import { appBasePath } from '../lib/appBasePath';
 import { supabase } from '../lib/supabase';
 import { beakerstackBillingConfig } from './beakerstackBillingConfig';
-
-function appBasePath(): string {
-  if (typeof window === 'undefined') return '';
-  return `${window.location.origin}${(import.meta.env.BASE_URL || '/').replace(/\/$/, '')}`;
-}
 
 /**
  * Wraps `/dashboard` and `/billing/*` with a single {@link BillingProvider} (shared subscription state).

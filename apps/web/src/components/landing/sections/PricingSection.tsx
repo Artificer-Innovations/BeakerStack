@@ -3,7 +3,10 @@ import { BillingProvider, usePlanCatalog } from '@beakerstack/billing';
 import { supabase } from '../../../lib/supabase';
 import { beakerstackBillingConfig } from '../../../billing/beakerstackBillingConfig';
 import { PlanCard } from '../../billing/PlanCard.web';
-import { CadenceToggle, getCadenceFromSearch } from '../../billing/CadenceToggle.web';
+import {
+  CadenceToggle,
+  getCadenceFromSearch,
+} from '../../billing/CadenceToggle.web';
 import {
   annualListCentsFromSync,
   planAnnualSavingsCopy,
@@ -27,7 +30,9 @@ function LandingPricingTable() {
   const { plans, loading } = usePlanCatalog<typeof beakerstackBillingConfig>();
 
   if (loading) {
-    return <p className='mt-8 text-center text-sm text-gray-500'>Loading plans…</p>;
+    return (
+      <p className='mt-8 text-center text-sm text-gray-500'>Loading plans…</p>
+    );
   }
 
   return (
@@ -53,15 +58,15 @@ function LandingPricingTable() {
             plan.price_cents === 0
               ? 'US$0'
               : isAnnual && annualCents != null
-              ? fmt(annualCents)
-              : fmt(plan.price_cents);
+                ? fmt(annualCents)
+                : fmt(plan.price_cents);
 
           const priceSubline =
             plan.price_cents === 0
               ? 'Free forever'
               : isAnnual
-              ? 'per year'
-              : 'per month';
+                ? 'per year'
+                : 'per month';
 
           const savingsCopy = isAnnual
             ? planAnnualSavingsCopy(plan.id, plan.price_cents)
@@ -101,13 +106,18 @@ export function PricingSection({ config }: PricingSectionProps) {
   const base = appBasePath();
 
   return (
-    <section id='pricing' className='py-20 md:py-24 bg-gray-50 dark:bg-gray-900'>
+    <section
+      id='pricing'
+      className='py-20 md:py-24 bg-gray-50 dark:bg-gray-900'
+    >
       <div className='max-w-[1200px] mx-auto px-6'>
         <div className='text-center mb-12'>
           <h2 className='text-3xl font-bold text-gray-900 dark:text-white mb-3'>
             {config.heading}
           </h2>
-          <p className='text-lg text-gray-600 dark:text-gray-400'>{config.subhead}</p>
+          <p className='text-lg text-gray-600 dark:text-gray-400'>
+            {config.subhead}
+          </p>
         </div>
         <BillingProvider<typeof beakerstackBillingConfig>
           supabase={supabase}

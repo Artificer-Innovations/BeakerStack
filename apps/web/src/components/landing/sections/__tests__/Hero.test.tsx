@@ -19,7 +19,9 @@ describe('Hero', () => {
       </MemoryRouter>
     );
     expect(
-      screen.getByRole('heading', { name: 'Build the full stack. Not the scaffolding.' })
+      screen.getByRole('heading', {
+        name: 'Build the full stack. Not the scaffolding.',
+      })
     ).toBeInTheDocument();
     expect(
       screen.getByText('BeakerStack ships with everything a SaaS needs.')
@@ -32,7 +34,9 @@ describe('Hero', () => {
         <Hero config={baseConfig} />
       </MemoryRouter>
     );
-    expect(screen.getByRole('link', { name: 'Get started free' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Get started free' })
+    ).toBeInTheDocument();
   });
 
   it('renders the hero image with eager loading', () => {
@@ -42,14 +46,19 @@ describe('Hero', () => {
       </MemoryRouter>
     );
     const img = screen.getByRole('img', { name: 'Dashboard preview' });
-    expect(img).toHaveAttribute('src', 'https://placehold.co/600x338?text=Dashboard');
+    expect(img).toHaveAttribute(
+      'src',
+      'https://placehold.co/600x338?text=Dashboard'
+    );
     expect(img).toHaveAttribute('loading', 'eager');
   });
 
   it('renders eyebrow text when provided', () => {
     render(
       <MemoryRouter>
-        <Hero config={{ ...baseConfig, eyebrow: 'Open source SaaS template' }} />
+        <Hero
+          config={{ ...baseConfig, eyebrow: 'Open source SaaS template' }}
+        />
       </MemoryRouter>
     );
     expect(screen.getByText('Open source SaaS template')).toBeInTheDocument();
@@ -61,7 +70,9 @@ describe('Hero', () => {
         <Hero config={baseConfig} />
       </MemoryRouter>
     );
-    expect(screen.queryByText('Open source SaaS template')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Open source SaaS template')
+    ).not.toBeInTheDocument();
   });
 
   it('renders secondary CTA when provided', () => {
@@ -70,12 +81,17 @@ describe('Hero', () => {
         <Hero
           config={{
             ...baseConfig,
-            secondaryCta: { label: 'View on GitHub', href: 'https://github.com/Artificer-Innovations/BeakerStack' },
+            secondaryCta: {
+              label: 'View on GitHub',
+              href: 'https://github.com/Artificer-Innovations/BeakerStack',
+            },
           }}
         />
       </MemoryRouter>
     );
-    expect(screen.getByRole('link', { name: 'View on GitHub' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'View on GitHub' })
+    ).toBeInTheDocument();
   });
 
   it('does not render secondary CTA when absent', () => {
@@ -90,10 +106,17 @@ describe('Hero', () => {
   it('renders trust strip when provided', () => {
     render(
       <MemoryRouter>
-        <Hero config={{ ...baseConfig, trustStrip: 'MIT licensed · No vendor lock-in' }} />
+        <Hero
+          config={{
+            ...baseConfig,
+            trustStrip: 'MIT licensed · No vendor lock-in',
+          }}
+        />
       </MemoryRouter>
     );
-    expect(screen.getByText('MIT licensed · No vendor lock-in')).toBeInTheDocument();
+    expect(
+      screen.getByText('MIT licensed · No vendor lock-in')
+    ).toBeInTheDocument();
   });
 
   it('does not render trust strip when absent', () => {

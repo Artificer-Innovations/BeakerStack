@@ -38,9 +38,7 @@ export function PricingTable<P extends ProductBillingConfig>({
               <li
                 key={p.id}
                 style={{
-                  border: isCurrent
-                    ? '2px solid #3b82f6'
-                    : '1px solid #e5e7eb',
+                  border: isCurrent ? '2px solid #3b82f6' : '1px solid #e5e7eb',
                   padding: 12,
                   marginBottom: 8,
                   borderRadius: 8,
@@ -50,10 +48,7 @@ export function PricingTable<P extends ProductBillingConfig>({
                 {(p.price_cents / 100).toFixed(2)} USD / {p.billing_period}
                 {onPlanChosen ? (
                   <div style={{ marginTop: 8 }}>
-                    <button
-                      type='button'
-                      onClick={() => onPlanChosen(p.id)}
-                    >
+                    <button type='button' onClick={() => onPlanChosen(p.id)}>
                       {isAuthenticated ? 'Select' : 'Get started'}
                     </button>
                   </div>

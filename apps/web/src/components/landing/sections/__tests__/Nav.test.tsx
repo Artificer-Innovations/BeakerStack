@@ -4,7 +4,11 @@ import { MemoryRouter } from 'react-router-dom';
 import { Nav } from '../Nav';
 
 const config = {
-  brand: { name: 'BeakerStack', tagline: 'Ship your SaaS faster.', logoSrc: '/logo.svg' },
+  brand: {
+    name: 'BeakerStack',
+    tagline: 'Ship your SaaS faster.',
+    logoSrc: '/logo.svg',
+  },
   links: [
     { href: '#features', label: 'Features' },
     { href: '#pricing', label: 'Pricing' },
@@ -29,7 +33,9 @@ describe('Nav', () => {
 
   it('renders desktop navigation links', () => {
     renderNav();
-    expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('navigation', { name: 'Main' })
+    ).toBeInTheDocument();
     const mainNav = screen.getByRole('navigation', { name: 'Main' });
     expect(mainNav).toHaveTextContent('Features');
     expect(mainNav).toHaveTextContent('Pricing');
@@ -38,7 +44,9 @@ describe('Nav', () => {
   it('renders Sign in and Get started buttons', () => {
     renderNav();
     expect(screen.getByRole('link', { name: 'Sign in' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Get started' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Get started' })
+    ).toBeInTheDocument();
   });
 
   it('mobile menu toggle starts with aria-expanded false', () => {
@@ -52,7 +60,9 @@ describe('Nav', () => {
     const toggle = screen.getByRole('button', { name: 'Toggle menu' });
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('navigation', { name: 'Mobile' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('navigation', { name: 'Mobile' })
+    ).toBeInTheDocument();
   });
 
   it('mobile menu shows nav links and sign in', () => {
@@ -69,7 +79,9 @@ describe('Nav', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Toggle menu' }));
     const mobileNav = screen.getByRole('navigation', { name: 'Mobile' });
     fireEvent.click(within(mobileNav).getByRole('link', { name: 'Features' }));
-    expect(screen.queryByRole('navigation', { name: 'Mobile' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('navigation', { name: 'Mobile' })
+    ).not.toBeInTheDocument();
   });
 
   it('adds shadow class after scrolling past threshold', () => {
@@ -78,7 +90,11 @@ describe('Nav', () => {
     expect(header.className).not.toContain('shadow-sm');
 
     act(() => {
-      Object.defineProperty(window, 'scrollY', { value: 50, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', {
+        value: 50,
+        writable: true,
+        configurable: true,
+      });
       window.dispatchEvent(new Event('scroll'));
     });
 
@@ -90,13 +106,21 @@ describe('Nav', () => {
     const header = screen.getByRole('banner');
 
     act(() => {
-      Object.defineProperty(window, 'scrollY', { value: 50, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', {
+        value: 50,
+        writable: true,
+        configurable: true,
+      });
       window.dispatchEvent(new Event('scroll'));
     });
     expect(header.className).toContain('shadow-sm');
 
     act(() => {
-      Object.defineProperty(window, 'scrollY', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', {
+        value: 0,
+        writable: true,
+        configurable: true,
+      });
       window.dispatchEvent(new Event('scroll'));
     });
     expect(header.className).not.toContain('shadow-sm');

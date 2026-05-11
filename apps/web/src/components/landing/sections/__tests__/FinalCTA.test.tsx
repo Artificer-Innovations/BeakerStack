@@ -20,7 +20,9 @@ describe('FinalCTA', () => {
     expect(
       screen.getByRole('heading', { name: 'Ready to ship faster?' })
     ).toBeInTheDocument();
-    expect(screen.getByText('Start building your SaaS today.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Start building your SaaS today.')
+    ).toBeInTheDocument();
   });
 
   it('renders the primary CTA link', () => {
@@ -29,13 +31,18 @@ describe('FinalCTA', () => {
         <FinalCTA config={baseConfig} />
       </MemoryRouter>
     );
-    expect(screen.getByRole('link', { name: 'Get started free' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Get started free' })
+    ).toBeInTheDocument();
   });
 
   it('renders secondary CTA with target="_blank" and rel="noopener noreferrer"', () => {
     const config = {
       ...baseConfig,
-      secondaryCta: { label: 'View on GitHub', href: 'https://github.com/Artificer-Innovations/BeakerStack' },
+      secondaryCta: {
+        label: 'View on GitHub',
+        href: 'https://github.com/Artificer-Innovations/BeakerStack',
+      },
     };
     render(
       <MemoryRouter>
@@ -43,7 +50,10 @@ describe('FinalCTA', () => {
       </MemoryRouter>
     );
     const secondary = screen.getByRole('link', { name: 'View on GitHub' });
-    expect(secondary).toHaveAttribute('href', 'https://github.com/Artificer-Innovations/BeakerStack');
+    expect(secondary).toHaveAttribute(
+      'href',
+      'https://github.com/Artificer-Innovations/BeakerStack'
+    );
     expect(secondary).toHaveAttribute('target', '_blank');
     expect(secondary).toHaveAttribute('rel', 'noopener noreferrer');
   });

@@ -17,7 +17,9 @@ export function FeatureRows({ config }: FeatureRowsProps) {
               className='grid md:grid-cols-2 gap-12 items-center'
             >
               {/* On mobile: image always first */}
-              <div className={`order-1 ${imageFirst ? 'md:order-1' : 'md:order-2'}`}>
+              <div
+                className={`order-1 ${imageFirst ? 'md:order-1' : 'md:order-2'}`}
+              >
                 <div className='rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-md bg-gray-100 dark:bg-gray-900 aspect-video flex items-center justify-center'>
                   <img
                     src={row.mediaSrc}
@@ -30,7 +32,9 @@ export function FeatureRows({ config }: FeatureRowsProps) {
                   />
                 </div>
               </div>
-              <div className={`order-2 ${imageFirst ? 'md:order-2' : 'md:order-1'}`}>
+              <div
+                className={`order-2 ${imageFirst ? 'md:order-2' : 'md:order-1'}`}
+              >
                 <h2 className='text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-4'>
                   {row.title}
                 </h2>
