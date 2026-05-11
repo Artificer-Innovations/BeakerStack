@@ -11,7 +11,7 @@ describe('supabase module env guards', () => {
     vi.stubEnv('VITE_SUPABASE_URL', '');
     vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-anon-key');
     await expect(import('../supabase')).rejects.toThrow(
-      /Missing VITE_SUPABASE_URL/
+      /VITE_SUPABASE_URL.*is not set/
     );
   });
 
@@ -19,7 +19,7 @@ describe('supabase module env guards', () => {
     vi.stubEnv('VITE_SUPABASE_URL', 'https://example.supabase.co');
     vi.stubEnv('VITE_SUPABASE_ANON_KEY', '');
     await expect(import('../supabase')).rejects.toThrow(
-      /Missing VITE_SUPABASE_ANON_KEY/
+      /VITE_SUPABASE_ANON_KEY.*is not set/
     );
   });
 });
