@@ -33,7 +33,10 @@ module.exports = {
     "!<rootDir>/packages/shared/src/index.ts",
     "!<rootDir>/packages/shared/src/**/index.web.ts",
     "!<rootDir>/packages/shared/src/**/index.native.ts",
-    "!<rootDir>/packages/shared/src/types/**"
+    "!<rootDir>/packages/shared/src/types/**",
+    // Pure data files — auto-generated or constant objects with no logic to test
+    "!<rootDir>/packages/shared/src/generated/**",
+    "!<rootDir>/packages/shared/src/config/legal.ts"
   ],
   coveragePathIgnorePatterns: [
     "/node_modules/",
@@ -48,4 +51,3 @@ module.exports = {
   ],
   coverageProvider: "v8"
 };
-

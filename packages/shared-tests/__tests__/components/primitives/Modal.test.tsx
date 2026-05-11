@@ -6,7 +6,8 @@ import {
   beforeEach,
   afterEach,
 } from '@jest/globals';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { Modal } from '@beakerstack/shared/components/primitives/Modal.web';
 
@@ -152,5 +153,92 @@ describe('Modal (Web)', () => {
     const dialog = screen.getByRole('dialog');
     expect(dialog.querySelector('.panel-extra')).toBeTruthy();
     expect(dialog.querySelector('.content-extra')).toBeTruthy();
+  });
+
+  it('locks scroll on open and restores on close', () => {
+    const onClose = jest.fn();
+    const { rerender } = render(
+      <Modal open onClose={onClose}>
+        X
+      </Modal>
+    );
+    expect(document.documentElement.style.overflow).toBe('hidden');
+
+    rerender(
+      <Modal open={false} onClose={onClose}>
+        X
+      </Modal>
+    );
+    expect(document.documentElement.style.overflow).not.toBe('hidden');
+  });
+
+  it('does not prevent Tab when no focusable elements exist', async () => {
+    const user = userEvent.setup({ delay: null });
+    const onClose = jest.fn();
+    render(
+      <Modal open onClose={onClose}>
+        <p>No interactive elements</p>
+      </Modal>
+    );
+    await user.tab();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('traps Tab forward through focusable elements', async () => {
+    const user = userEvent.setup({ delay: null });
+    const onClose = jest.fn();
+    render(
+      <Modal open onClose={onClose} title='Trap test'>
+        <button type='button'>First</button>
+        <button type='button'>Last</button>
+      </Modal>
+    );
+    act(() => {
+      jest.runAllTimers();
+    });
+    const lastBtn = screen.getByRole('button', { name: 'Last' });
+
+    lastBtn.focus();
+    await user.tab();
+    expect(onClose).not.toHaveBeenCalled();
+    // focus should have wrapped back into the modal
+    expect(document.activeElement).not.toBe(document.body);
+  });
+
+  it('traps Shift+Tab backward through focusable elements', async () => {
+    const user = userEvent.setup({ delay: null });
+    const onClose = jest.fn();
+    render(
+      <Modal open onClose={onClose} title='Trap test'>
+        <button type='button'>First</button>
+        <button type='button'>Last</button>
+      </Modal>
+    );
+    act(() => {
+      jest.runAllTimers();
+    });
+    const closeBtn = screen.getByRole('button', { name: 'Close dialog' });
+
+    closeBtn.focus();
+    await user.tab({ shift: true });
+    expect(onClose).not.toHaveBeenCalled();
+    // focus should have wrapped to the last focusable element
+    expect(document.activeElement).not.toBe(document.body);
+  });
+
+  it('focuses panel when focus is outside on Tab', async () => {
+    const user = userEvent.setup({ delay: null });
+    const onClose = jest.fn();
+    render(
+      <Modal open onClose={onClose} title='Outside focus'>
+        <button type='button'>Btn</button>
+      </Modal>
+    );
+    act(() => {
+      jest.runAllTimers();
+    });
+    document.body.focus();
+    await user.tab();
+    expect(onClose).not.toHaveBeenCalled();
   });
 });
