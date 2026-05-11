@@ -5,12 +5,7 @@ import { FeatureLimitRow } from '../FeatureLimitRow.web';
 describe('FeatureLimitRow', () => {
   it('renders unlimited mode without ratio styling', () => {
     render(
-      <FeatureLimitRow
-        name='Widgets'
-        used={4}
-        cap={100}
-        capIsUnlimited
-      />
+      <FeatureLimitRow name='Widgets' used={4} cap={100} capIsUnlimited />
     );
     expect(screen.getByText('Widgets')).toBeInTheDocument();
     expect(screen.getByText(/4 of unlimited/)).toBeInTheDocument();

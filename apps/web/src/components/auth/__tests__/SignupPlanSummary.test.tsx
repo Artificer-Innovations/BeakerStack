@@ -67,7 +67,10 @@ describe('PlanIntentSummary', () => {
     vi.mocked(billingSync.planAnnualSavingsCopy).mockReturnValue({
       kind: 'none',
     });
-    vi.mocked(planSignupBullets).mockReturnValue(['First bullet', 'Second bullet']);
+    vi.mocked(planSignupBullets).mockReturnValue([
+      'First bullet',
+      'Second bullet',
+    ]);
   });
 
   it('renders nothing when plan query is missing', () => {

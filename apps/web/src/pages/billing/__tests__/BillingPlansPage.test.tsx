@@ -492,7 +492,9 @@ describe('BillingPlansPage', () => {
 
     renderPage('/billing/plans');
 
-    const twinSection = document.getElementById('plan-card-beakerstack_pro_twin');
+    const twinSection = document.getElementById(
+      'plan-card-beakerstack_pro_twin'
+    );
     expect(twinSection).toBeTruthy();
     const cta = within(twinSection as HTMLElement).getByRole('button', {
       name: 'Current plan',
@@ -540,9 +542,7 @@ describe('BillingPlansPage', () => {
       checkoutUrl: 'https://checkout.example/session',
     });
     renderPage();
-    await user.click(
-      screen.getByRole('button', { name: /^Upgrade to Pro$/i })
-    );
+    await user.click(screen.getByRole('button', { name: /^Upgrade to Pro$/i }));
     await waitFor(() => {
       expect(hrefSpy).toHaveBeenCalledWith('https://checkout.example/session');
     });

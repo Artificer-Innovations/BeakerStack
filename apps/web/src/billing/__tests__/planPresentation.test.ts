@@ -302,11 +302,10 @@ describe('mergeUsageLimitsCopy', () => {
   });
 
   it('treats null usageLimitsCopy like empty overrides', () => {
-    const cfg = minimalConfig() as ProductBillingConfig & {
-      usageLimitsCopy?: ProductBillingConfig['usageLimitsCopy'] | null;
-    };
-    cfg.usageLimitsCopy = null;
-    const m = mergeUsageLimitsCopy(cfg);
+    const m = mergeUsageLimitsCopy({
+      ...minimalConfig(),
+      usageLimitsCopy: null,
+    } as unknown as ProductBillingConfig);
     expect(m.collectionsRowName).toContain('Collections');
   });
 });

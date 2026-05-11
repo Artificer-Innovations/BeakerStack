@@ -217,12 +217,17 @@ describe('LoginPage', () => {
     const user = userEvent.setup();
     webAuthFns.signInWithPassword.mockRejectedValue('offline');
     renderWithProviders(<LoginPage />);
-    await user.type(screen.getByPlaceholderText('Email address'), 'a@b.com');
+    const emailInput = screen.getByPlaceholderText('Email address');
+    await user.type(emailInput, 'a@b.com');
     await user.type(screen.getByPlaceholderText('Password'), 'pw');
-    await user.click(
-      screen.getByPlaceholderText('Email address').closest('form')!
-        .querySelector('button[type="submit"]')!
-    );
+    const form = emailInput.closest('form');
+    const submitButton = form?.querySelector('button[type="submit"]') as
+      | HTMLButtonElement
+      | undefined;
+    if (!submitButton) {
+      throw new Error('expected email/password form submit button');
+    }
+    await user.click(submitButton);
     await waitFor(() => {
       expect(screen.getByText('Failed to sign in')).toBeInTheDocument();
     });
