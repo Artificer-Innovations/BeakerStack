@@ -89,7 +89,7 @@ const mockSupabaseClient = {
 } as any;
 
 describe('App', () => {
-  it('renders without crashing', () => {
+  it('renders without crashing', async () => {
     render(
       <AuthProvider supabaseClient={mockSupabaseClient}>
         <ProfileProvider supabaseClient={mockSupabaseClient}>
@@ -101,11 +101,11 @@ describe('App', () => {
     );
 
     // Home route renders the landing page (mocked for test)
-    const signInLinks = screen.getAllByRole('link', { name: /sign in/i });
+    const signInLinks = await screen.findAllByRole('link', { name: /sign in/i });
     expect(signInLinks.length).toBeGreaterThan(0);
   });
 
-  it('renders navigation links', () => {
+  it('renders navigation links', async () => {
     render(
       <AuthProvider supabaseClient={mockSupabaseClient}>
         <ProfileProvider supabaseClient={mockSupabaseClient}>
@@ -117,8 +117,8 @@ describe('App', () => {
     );
 
     // Landing page nav has sign in and get started links
-    const signInLinks = screen.getAllByRole('link', { name: /sign in/i });
-    const signUpLinks = screen.getAllByRole('link', { name: /get started/i });
+    const signInLinks = await screen.findAllByRole('link', { name: /sign in/i });
+    const signUpLinks = await screen.findAllByRole('link', { name: /get started/i });
     expect(signInLinks.length).toBeGreaterThan(0);
     expect(signUpLinks.length).toBeGreaterThan(0);
   });
