@@ -240,9 +240,9 @@ export const landingConfig: LandingConfig = {
   },
   pricing: {
     heading: 'Simple, transparent pricing.',
-    subhead: 'Start free. Upgrade when you need more.',
-    disclaimer:
-      'BeakerStack itself is free and open-source (MIT) — clone it and ship your product at no cost. The plans below are a live demo of the billing system built into the template. Stripe is running in test mode for this preview; no real charges are made.',
+    subhead:
+      'BeakerStack itself is free and open-source (MIT) — clone it and ship your product at no cost. The plans below are a live demo of the billing system built into the template.',
+    disclaimer: 'Stripe is running in test mode for this preview; no real charges are made.',
   },
   faq: {
     heading: 'Frequently asked questions',
