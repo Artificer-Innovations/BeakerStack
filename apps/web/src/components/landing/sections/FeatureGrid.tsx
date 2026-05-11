@@ -34,6 +34,16 @@ export function FeatureGrid({ config }: FeatureGridProps) {
                 <p className='text-sm text-gray-600 dark:text-gray-400 leading-relaxed'>
                   {item.body}
                 </p>
+                {item.ctaLabel && item.ctaHref && (
+                  <a
+                    href={item.ctaHref}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='mt-3 inline-block text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline'
+                  >
+                    {item.ctaLabel} →
+                  </a>
+                )}
               </div>
             );
           })}
