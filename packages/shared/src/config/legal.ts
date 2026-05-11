@@ -1,4 +1,4 @@
-import { BRANDING } from './branding.js';
+import { BRANDING } from './branding';
 
 export const LEGAL_CONFIG = {
   brandName: BRANDING.pascalName,
