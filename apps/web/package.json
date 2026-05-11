@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@rolldown/pluginutils": "^1.0.0-beta.47",
+    "@tailwindcss/typography": "^0.5.19",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.1.0",
     "@testing-library/react": "^14.1.0",

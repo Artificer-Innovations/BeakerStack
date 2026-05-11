@@ -3,10 +3,16 @@ export type PricingTableProps = {
   onSelectPlan?: (planId: string) => void;
   /** Core spec: invoked when user chooses a paid plan for checkout. */
   onCheckout?: (planId: string) => void;
-  /** @deprecated Prefer {@link highlightPlanId} or keep for “highlight current user’s plan”. */
+  /** @deprecated Prefer {@link highlightPlanId} or keep for "highlight current user's plan". */
   highlightCurrent?: boolean;
   /** Core spec: highlight this plan id in the list when it matches a row. */
   highlightPlanId?: string | null;
+  /**
+   * When false, suppresses current-plan highlighting and changes the action button
+   * label to "Get started" (appropriate for unauthenticated landing page contexts).
+   * Defaults to true.
+   */
+  isAuthenticated?: boolean;
   /**
    * Core spec surface; optional for analytics. Catalog is scoped by `BillingProvider` config.
    */

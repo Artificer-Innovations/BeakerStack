@@ -58,7 +58,10 @@ export function PlanCard({
     plan.description ??
     undefined;
   return (
-    <div className='flex h-full flex-col rounded-xl border border-gray-200 bg-white p-6 shadow-sm'>
+    <div
+      id={`plan-card-${plan.id}`}
+      className='flex h-full flex-col rounded-xl border border-gray-200 bg-white p-6 shadow-sm'
+    >
       <div className='flex flex-wrap items-center gap-2'>
         <h3 className='text-xl font-semibold text-gray-900'>
           {plan.display_name}

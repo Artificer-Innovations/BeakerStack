@@ -1,17 +1,41 @@
+import { BillingProvider } from '@beakerstack/billing';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
 import { supabase } from '@/lib/supabase';
 import { SocialLoginButton } from '../components/SocialLoginButton';
+import { LoginPlanSummary } from '../components/auth/SignupPlanSummary';
+import { beakerstackBillingConfig } from '../billing/beakerstackBillingConfig';
+import {
+  clearPostAuthRedirectKeys,
+  POST_AUTH_REDIRECT_KEY,
+  resolvePostAuthDestination,
+  serializePostAuthRedirectPayload,
+} from '../auth/postAuthRedirect';
+import { appBasePath } from '../lib/appBasePath';
 
-export default function LoginPage() {
+function LoginPageContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const auth = useAuthContext();
+
+  const postAuthPath = resolvePostAuthDestination(searchParams);
+  const signupSearch = searchParams.toString();
+  const signupTo = signupSearch ? `/signup?${signupSearch}` : '/signup';
+
+  const stashOAuthIntent = () => {
+    if (postAuthPath !== '/dashboard') {
+      sessionStorage.setItem(
+        POST_AUTH_REDIRECT_KEY,
+        serializePostAuthRedirectPayload(postAuthPath)
+      );
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +50,8 @@ export default function LoginPage() {
 
     try {
       await auth.signIn(email, password);
-      navigate('/dashboard');
+      clearPostAuthRedirectKeys();
+      navigate(postAuthPath, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in');
     } finally {
@@ -37,112 +62,142 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setError(null);
     try {
+      stashOAuthIntent();
       await auth.signInWithGoogle();
     } catch (err) {
+      sessionStorage.removeItem(POST_AUTH_REDIRECT_KEY);
       setError(
         err instanceof Error ? err.message : 'Failed to sign in with Google'
       );
     }
   };
 
+  const showPlanAside = postAuthPath !== '/dashboard';
+
   return (
     <div className='min-h-screen bg-gray-50'>
       <AppHeader supabaseClient={supabase} />
       <div className='max-w-[1024px] mx-auto py-12 px-4 sm:px-6 lg:px-8'>
-        <div className='w-full space-y-8'>
-          <div>
-            <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900'>
-              Sign in to your account
-            </h2>
-          </div>
-
-          {/* OAuth Buttons */}
-          <div className='space-y-3'>
-            <SocialLoginButton onPress={handleGoogleLogin} mode='signin' />
-          </div>
-
-          {/* Divider */}
-          <div className='relative'>
-            <div className='absolute inset-0 flex items-center'>
-              <div className='w-full border-t border-gray-300' />
+        <div
+          className={
+            showPlanAside
+              ? 'grid w-full gap-10 md:grid-cols-2 md:items-start'
+              : 'w-full space-y-8'
+          }
+        >
+          <div
+            className={
+              showPlanAside ? 'order-2 md:order-1 space-y-8' : 'space-y-8'
+            }
+          >
+            <div>
+              <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900 md:mt-0 md:text-left'>
+                Sign in to your account
+              </h2>
             </div>
-            <div className='relative flex justify-center text-sm'>
-              <span className='px-2 bg-gray-50 text-gray-500'>
-                Or continue with email
-              </span>
-            </div>
-          </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className='rounded-md bg-red-50 p-4'>
-              <div className='flex'>
-                <div className='ml-3'>
-                  <h3 className='text-sm font-medium text-red-800'>{error}</h3>
+            <div className='space-y-3'>
+              <SocialLoginButton onPress={handleGoogleLogin} mode='signin' />
+            </div>
+
+            <div className='relative'>
+              <div className='absolute inset-0 flex items-center'>
+                <div className='w-full border-t border-gray-300' />
+              </div>
+              <div className='relative flex justify-center text-sm'>
+                <span className='px-2 bg-gray-50 text-gray-500'>
+                  Or continue with email
+                </span>
+              </div>
+            </div>
+
+            {error && (
+              <div className='rounded-md bg-red-50 p-4'>
+                <h3 className='text-sm font-medium text-red-800'>{error}</h3>
+              </div>
+            )}
+
+            <form className='mt-8 space-y-6' onSubmit={handleLogin}>
+              <div className='rounded-md shadow-sm -space-y-px'>
+                <div>
+                  <label htmlFor='email' className='sr-only'>
+                    Email address
+                  </label>
+                  <input
+                    id='email'
+                    name='email'
+                    type='email'
+                    autoComplete='email'
+                    required
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    disabled={isLoading}
+                    className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
+                    placeholder='Email address'
+                  />
+                </div>
+                <div>
+                  <label htmlFor='password' className='sr-only'>
+                    Password
+                  </label>
+                  <input
+                    id='password'
+                    name='password'
+                    type='password'
+                    autoComplete='current-password'
+                    required
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    disabled={isLoading}
+                    className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
+                    placeholder='Password'
+                  />
                 </div>
               </div>
-            </div>
-          )}
 
-          <form className='mt-8 space-y-6' onSubmit={handleLogin}>
-            <div className='rounded-md shadow-sm -space-y-px'>
               <div>
-                <label htmlFor='email' className='sr-only'>
-                  Email address
-                </label>
-                <input
-                  id='email'
-                  name='email'
-                  type='email'
-                  autoComplete='email'
-                  required
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
+                <button
+                  type='submit'
                   disabled={isLoading}
-                  className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
-                  placeholder='Email address'
-                />
+                  className='group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed'
+                >
+                  {isLoading ? 'Signing in...' : 'Sign in'}
+                </button>
               </div>
-              <div>
-                <label htmlFor='password' className='sr-only'>
-                  Password
-                </label>
-                <input
-                  id='password'
-                  name='password'
-                  type='password'
-                  autoComplete='current-password'
-                  required
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  disabled={isLoading}
-                  className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
-                  placeholder='Password'
-                />
+
+              <div className='text-center md:text-left'>
+                <Link
+                  to={signupTo}
+                  className='font-medium text-primary-600 hover:text-primary-500'
+                >
+                  Don&apos;t have an account? Sign up
+                </Link>
               </div>
-            </div>
+            </form>
+          </div>
 
-            <div>
-              <button
-                type='submit'
-                disabled={isLoading}
-                className='group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed'
-              >
-                {isLoading ? 'Signing in...' : 'Sign in'}
-              </button>
+          {showPlanAside ? (
+            <div className='order-1 md:order-2'>
+              <LoginPlanSummary />
             </div>
-
-            <div className='text-center'>
-              <Link
-                to='/signup'
-                className='font-medium text-primary-600 hover:text-primary-500'
-              >
-                Don't have an account? Sign up
-              </Link>
-            </div>
-          </form>
+          ) : null}
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  const base = appBasePath();
+  return (
+    <BillingProvider<typeof beakerstackBillingConfig>
+      supabase={supabase}
+      config={beakerstackBillingConfig}
+      checkoutSuccessUrl={`${base}/billing?checkout=success`}
+      checkoutCancelUrl={`${base}/billing/plans?checkout=cancel`}
+      portalReturnUrl={`${base}/billing`}
+    >
+      <LoginPageContent />
+    </BillingProvider>
   );
 }

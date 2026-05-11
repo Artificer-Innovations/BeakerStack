@@ -9,6 +9,7 @@ export function PricingTable<P extends ProductBillingConfig>({
   onCheckout,
   highlightCurrent,
   highlightPlanId,
+  isAuthenticated = true,
   productId: _productId,
   currentUserId: _currentUserId,
   className,
@@ -28,10 +29,11 @@ export function PricingTable<P extends ProductBillingConfig>({
         <ul style={{ listStyle: 'none', padding: 0 }}>
           {plans.map(p => {
             const isCurrent =
-              (highlightCurrent && currentPlan?.id === p.id) ||
-              (highlightPlanId != null &&
-                highlightPlanId !== '' &&
-                p.id === highlightPlanId);
+              isAuthenticated &&
+              ((highlightCurrent && currentPlan?.id === p.id) ||
+                (highlightPlanId != null &&
+                  highlightPlanId !== '' &&
+                  p.id === highlightPlanId));
             return (
               <li
                 key={p.id}
@@ -47,7 +49,7 @@ export function PricingTable<P extends ProductBillingConfig>({
                 {onPlanChosen ? (
                   <div style={{ marginTop: 8 }}>
                     <button type='button' onClick={() => onPlanChosen(p.id)}>
-                      Select
+                      {isAuthenticated ? 'Select' : 'Get started'}
                     </button>
                   </div>
                 ) : null}

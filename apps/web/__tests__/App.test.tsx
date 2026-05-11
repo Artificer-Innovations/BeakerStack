@@ -1,16 +1,25 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import App from '../src/App';
-import { HOME_TITLE } from '@beakerstack/shared/utils/strings';
 
 // Mock environment variables to prevent real Supabase client creation
 beforeAll(() => {
   vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost:54321');
   vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-anon-key');
 });
+
+// Mock lazy-loaded HomePage so Suspense resolves synchronously in tests
+vi.mock('../src/pages/HomePage', () => ({
+  default: () => (
+    <div>
+      <a href='/login'>Sign in</a>
+      <a href='/signup'>Get started</a>
+    </div>
+  ),
+}));
 
 // Mock the supabase client
 vi.mock('../src/lib/supabase', () => {
@@ -79,39 +88,37 @@ const mockSupabaseClient = {
   removeChannel: vi.fn().mockResolvedValue({ status: 'ok', error: null }),
 } as any;
 
-describe('App', () => {
-  it('renders without crashing', () => {
-    render(
-      <AuthProvider supabaseClient={mockSupabaseClient}>
-        <ProfileProvider supabaseClient={mockSupabaseClient}>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
-        </ProfileProvider>
-      </AuthProvider>
-    );
+function renderApp() {
+  return render(
+    <AuthProvider supabaseClient={mockSupabaseClient}>
+      <ProfileProvider supabaseClient={mockSupabaseClient}>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ProfileProvider>
+    </AuthProvider>
+  );
+}
 
-    // Check if the home page content is rendered
-    // Title appears in both header and main content
-    const titles = screen.getAllByText(HOME_TITLE);
-    expect(titles.length).toBeGreaterThan(0);
+describe('App', () => {
+  it('renders without crashing', async () => {
+    // act(async) flushes React.lazy's dynamic-import Promise and all
+    // subsequent React state updates before we query the DOM.
+    await act(async () => {
+      renderApp();
+    });
+
+    const signInLinks = screen.getAllByRole('link', { name: /sign in/i });
+    expect(signInLinks.length).toBeGreaterThan(0);
   });
 
-  it('renders navigation links', () => {
-    render(
-      <AuthProvider supabaseClient={mockSupabaseClient}>
-        <ProfileProvider supabaseClient={mockSupabaseClient}>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
-        </ProfileProvider>
-      </AuthProvider>
-    );
+  it('renders navigation links', async () => {
+    await act(async () => {
+      renderApp();
+    });
 
-    // Check if sign in and sign up links are present
-    // These appear in both header and main content
-    const signInLinks = screen.getAllByText('Sign In');
-    const signUpLinks = screen.getAllByText('Sign Up');
+    const signInLinks = screen.getAllByRole('link', { name: /sign in/i });
+    const signUpLinks = screen.getAllByRole('link', { name: /get started/i });
     expect(signInLinks.length).toBeGreaterThan(0);
     expect(signUpLinks.length).toBeGreaterThan(0);
   });

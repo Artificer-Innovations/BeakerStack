@@ -7,18 +7,10 @@
 
 import { randomUUID } from 'node:crypto';
 
-/**
- * Unique email for integration / API tests.
- * Thin wrapper target: {@link import('./test-database').generateTestEmail}.
- */
 export function generateIntegrationTestEmail(): string {
   return `test-${randomUUID()}@example.com`;
 }
 
-/**
- * Unique email for Playwright/Maestro E2E flows.
- * Thin wrapper target: {@link import('../e2e/shared/test-data').generateTestEmail}.
- */
 export function generateE2ETestEmail(): string {
   return `e2e-test-${randomUUID()}@example.com`;
 }

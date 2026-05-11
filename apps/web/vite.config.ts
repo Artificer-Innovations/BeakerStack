@@ -75,6 +75,9 @@ export default defineConfig(({ mode }) => {
           '**/build/',
           '**/types/**',
           '**/DebugTools.tsx',
+          // Pure config/data files — no logic to test, always mocked in tests
+          'src/config/landing.ts',
+          'src/config/landing.example.alt.ts',
         ],
       },
     },

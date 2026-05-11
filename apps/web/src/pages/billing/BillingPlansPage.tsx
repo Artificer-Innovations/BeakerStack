@@ -9,7 +9,7 @@ import {
   useSubscription,
   useUsage,
 } from '@beakerstack/billing';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   beakerstackBillingConfig,
@@ -43,8 +43,12 @@ type Primary = {
 };
 
 export default function BillingPlansPage() {
-  const [search] = useSearchParams();
+  const [search, setSearchParams] = useSearchParams();
   const cadence = getCadenceFromSearch(search);
+  const [welcomeSnapshot] = useState(() => ({
+    showBanner: search.get('welcome') === '1' && Boolean(search.get('plan')),
+    planId: search.get('plan'),
+  }));
   const { plans, loading: catLoad } =
     usePlanCatalog<typeof beakerstackBillingConfig>();
   const { data: current } = usePlan<typeof beakerstackBillingConfig>();
@@ -68,6 +72,29 @@ export default function BillingPlansPage() {
 
   const [modal, setModal] = useState(false);
   const pending = checkoutPend || actionPend;
+
+  const welcomePlanId = welcomeSnapshot.planId;
+  const welcomeFromPricing =
+    welcomeSnapshot.showBanner &&
+    Boolean(welcomePlanId) &&
+    plans.some(p => p.id === welcomePlanId);
+
+  const searchKey = search.toString();
+
+  useEffect(() => {
+    const sp = new URLSearchParams(searchKey);
+    if (sp.get('welcome') !== '1' || !welcomePlanId || catLoad) return;
+    document
+      .getElementById(`plan-card-${welcomePlanId}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    sp.delete('welcome');
+    setSearchParams(sp, { replace: true });
+  }, [searchKey, setSearchParams, welcomePlanId, catLoad]);
+
+  const welcomePlanMeta = useMemo(
+    () => (welcomePlanId ? plans.find(p => p.id === welcomePlanId) : undefined),
+    [plans, welcomePlanId]
+  );
 
   const currentCadence = useMemo(
     () =>
@@ -249,6 +276,22 @@ export default function BillingPlansPage() {
       <div className='mt-6'>
         <CadenceToggle />
       </div>
+      {welcomeFromPricing && welcomePlanMeta ? (
+        <div
+          role='status'
+          className='mt-6 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-950'
+        >
+          <p className='font-medium'>
+            You&apos;re almost there — finish checkout for{' '}
+            {welcomePlanMeta.display_name}
+          </p>
+          <p className='mt-1 text-indigo-900/90'>
+            {cadence === 'annual'
+              ? 'Annual billing is selected below. Use Upgrade to start checkout when you are ready.'
+              : 'Monthly billing is selected below. Use Upgrade to start checkout when you are ready.'}
+          </p>
+        </div>
+      ) : null}
       {catLoad ? (
         <p className='mt-8 text-sm text-gray-500'>Loading plans…</p>
       ) : (
