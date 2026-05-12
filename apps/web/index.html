@@ -5,6 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>%APP_TITLE%</title>
 
+    <!-- Anti-FOUC: apply dark class before first paint.
+         Reads stored user preference first; falls back to OS preference.
+         try/catch guards against CSP or private-browsing environments. -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('beakerstack:theme');
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (stored === 'dark' || (stored !== 'light' && prefersDark)) {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (_) {}
+      })();
+    </script>
+
     <!-- Site-wide meta — canonical and og:url are home-only and are injected into
          prerender-home.html by scripts/prerender-home.ts; adding them here would
          incorrectly set home-page values on /dashboard, /login, etc. -->
