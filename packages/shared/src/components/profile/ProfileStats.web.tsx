@@ -63,7 +63,7 @@ export function ProfileStats({ profile, className = '' }: ProfileStatsProps) {
         </div>
       )}
       {completion > 0 && (
-        <div className='text-sm text-gray-600'>
+        <div className='text-sm text-gray-600 dark:text-gray-400'>
           <span className='font-medium'>Profile completion:</span> {completion}%
         </div>
       )}

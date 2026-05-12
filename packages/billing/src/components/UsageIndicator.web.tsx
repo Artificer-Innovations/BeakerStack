@@ -49,27 +49,20 @@ export function UsageIndicator<P extends ProductBillingConfig>(
         data-testid='usage-indicator-expanded'
       >
         {label && (
-          <div className='text-sm font-medium text-gray-900'>{label}</div>
+          <div className='text-sm font-medium text-gray-900 dark:text-white'>{label}</div>
         )}
         {description && (
-          <p className='text-xs text-gray-500 mt-0.5'>{description}</p>
+          <p className='text-xs text-gray-500 dark:text-gray-400 mt-0.5'>{description}</p>
         )}
         {limit != null && (
-          <div
-            className='mt-2'
-            style={{ height: 8, background: '#e5e7eb', borderRadius: 4 }}
-          >
+          <div className='mt-2 h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700'>
             <div
-              style={{
-                width: `${pct}%`,
-                height: 8,
-                background: '#4f46e5',
-                borderRadius: 4,
-              }}
+              className='h-2 rounded-full bg-indigo-600 dark:bg-indigo-500'
+              style={{ width: `${pct}%` }}
             />
           </div>
         )}
-        <div className='text-sm text-gray-600 mt-2'>{capLine}</div>
+        <div className='text-sm text-gray-600 dark:text-gray-400 mt-2'>{capLine}</div>
       </div>
     );
   }

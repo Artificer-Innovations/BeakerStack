@@ -77,7 +77,7 @@ export default function BillingOverviewPage() {
 
   return (
     <BillingPageShell>
-      <h1 className='text-2xl font-bold text-gray-900'>Billing</h1>
+      <h1 className='text-2xl font-bold text-gray-900 dark:text-white'>Billing</h1>
       <div className='mt-4'>
         <BillingTabs />
       </div>
