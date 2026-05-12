@@ -1,0 +1,59 @@
+name: Release Template
+
+on:
+  workflow_dispatch:
+    inputs:
+      override_tag:
+        description: 'Override computed tag (e.g. 2026.003) — leave blank to auto-compute'
+        required: false
+
+jobs:
+  release:
+    name: Cut CalVer release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next CalVer tag
+        id: tag
+        run: |
+          if [[ -n "${{ inputs.override_tag }}" ]]; then
+            echo "tag=${{ inputs.override_tag }}" >> $GITHUB_OUTPUT
+          else
+            YEAR=$(date +%Y)
+            LAST_N=$(git tag -l "${YEAR}.*" | sed "s/${YEAR}\.//" | sort -n | tail -1)
+            NEXT_N=$(( ${LAST_N:-0} + 1 ))
+            printf -v PADDED_N "%03d" $NEXT_N
+            echo "tag=${YEAR}.${PADDED_N}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@v3
+        with:
+          config: cliff.toml
+          args: >-
+            --tag-pattern '^[0-9]{4}\.'
+            --tag ${{ steps.tag.outputs.tag }}
+            --latest
+        env:
+          OUTPUT: RELEASE_NOTES.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Create annotated tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a ${{ steps.tag.outputs.tag }} -m "Release ${{ steps.tag.outputs.tag }}"
+          git push origin ${{ steps.tag.outputs.tag }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
+          body_path: RELEASE_NOTES.md
