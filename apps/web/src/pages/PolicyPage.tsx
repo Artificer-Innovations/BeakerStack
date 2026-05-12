@@ -33,7 +33,7 @@ export default function PolicyPage({ policy }: PolicyPageProps) {
       <div className='max-w-[800px] mx-auto px-4 py-12 sm:px-6 lg:px-8'>
         {/* prose styles rendered via Tailwind Typography — html is build-time generated from our own markdown, not user input */}
         <div
-          className='prose prose-gray max-w-none'
+          className='prose prose-gray dark:prose-invert max-w-none'
           dangerouslySetInnerHTML={{ __html: html }}
         />
       </div>

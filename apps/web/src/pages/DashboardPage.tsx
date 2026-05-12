@@ -9,17 +9,17 @@ import { supabase } from '@/lib/supabase';
 
 export default function DashboardPage() {
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
       <AppHeader supabaseClient={supabase} />
 
       <div className='mx-auto max-w-[1024px] px-4 py-6 sm:px-6 lg:px-8'>
         <div className='sm:px-0'>
-          <h1 className='text-2xl font-bold text-gray-900'>
+          <h1 className='text-2xl font-bold text-gray-900 dark:text-white'>
             Welcome to BeakerStack
           </h1>
-          <p className='mt-3 text-sm text-gray-600'>
+          <p className='mt-3 text-sm text-gray-600 dark:text-gray-400'>
             This dashboard is a sandbox for exercising the billing primitives in{' '}
-            <code className='rounded bg-gray-100 px-1 py-0.5 text-xs'>
+            <code className='rounded bg-gray-100 dark:bg-gray-800 dark:text-gray-300 px-1 py-0.5 text-xs'>
               @beakerstack/billing
             </code>{' '}
             directly. Each section below demonstrates one capability with

@@ -40,31 +40,35 @@ export function CurrentPlanCard({
     : '—';
 
   return (
-    <div className='space-y-4 rounded-xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm'>
+    <div className='space-y-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 sm:p-8 shadow-sm'>
       {isFree ? (
         <>
-          <h2 className='text-2xl font-bold text-gray-900'>
+          <h2 className='text-2xl font-bold text-gray-900 dark:text-white'>
             You&apos;re on the Free plan
           </h2>
-          <p className='text-sm text-gray-600'>
+          <p className='text-sm text-gray-600 dark:text-gray-300'>
             Upgrade to unlock more capacity and features.
           </p>
         </>
       ) : (
         <>
           <div className='flex flex-wrap items-center gap-2'>
-            <h2 className='text-2xl font-bold text-gray-900'>
+            <h2 className='text-2xl font-bold text-gray-900 dark:text-white'>
               {plan.display_name}
             </h2>
             {subscription && (
               <SubscriptionStatusBadge subscription={subscription} />
             )}
           </div>
-          {priceLine && <p className='text-base text-gray-600'>{priceLine}</p>}
+          {priceLine && (
+            <p className='text-base text-gray-600 dark:text-gray-300'>
+              {priceLine}
+            </p>
+          )}
         </>
       )}
       {!isFree && subscription && (
-        <p className='text-sm text-gray-600'>
+        <p className='text-sm text-gray-600 dark:text-gray-300'>
           {periodSubcopy
             ? periodSubcopy
             : subscription.cancel_at_period_end
