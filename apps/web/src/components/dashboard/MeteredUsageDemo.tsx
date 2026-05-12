@@ -113,21 +113,14 @@ export function MeteredUsageDemo() {
     <div>
       <div className='mt-0' data-testid='usage-indicator-expanded'>
         {limit != null && (
-          <div
-            className='mt-2'
-            style={{ height: 8, background: '#e5e7eb', borderRadius: 4 }}
-          >
+          <div className='mt-2 h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700'>
             <div
-              style={{
-                width: `${pct}%`,
-                height: 8,
-                background: '#4f46e5',
-                borderRadius: 4,
-              }}
+              className='h-2 rounded-full bg-indigo-600 dark:bg-indigo-500'
+              style={{ width: `${pct}%` }}
             />
           </div>
         )}
-        <div className='mt-2 text-sm text-gray-600'>
+        <div className='mt-2 text-sm text-gray-600 dark:text-gray-400'>
           {loading ? '…' : capLine}
         </div>
       </div>
@@ -135,7 +128,7 @@ export function MeteredUsageDemo() {
         {exceeded ? (
           <>
             <span
-              className='inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-sm text-gray-500'
+              className='inline-flex items-center rounded-md bg-gray-100 dark:bg-gray-700 px-3 py-2 text-sm text-gray-500 dark:text-gray-400'
               title='Usage cap reached for this period'
             >
               Limit reached

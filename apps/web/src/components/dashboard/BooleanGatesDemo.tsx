@@ -6,7 +6,7 @@ import { beakerstackBillingConfig } from '../../billing/beakerstackBillingConfig
 
 function UpgradeLine({ name }: { name: string }) {
   return (
-    <p className='text-sm text-gray-600'>
+    <p className='text-sm text-gray-600 dark:text-gray-400'>
       {name} requires a higher plan.{' '}
       <Link
         to='/billing/plans'
@@ -30,7 +30,7 @@ export function BooleanGatesDemo() {
   return (
     <div className='space-y-6'>
       <div>
-        <p className='text-sm font-medium text-gray-800'>
+        <p className='text-sm font-medium text-gray-800 dark:text-gray-200'>
           Feature A (requires Pro)
         </p>
         <div className='mt-2'>
@@ -50,7 +50,7 @@ export function BooleanGatesDemo() {
         </div>
       </div>
       <div>
-        <p className='text-sm font-medium text-gray-800'>
+        <p className='text-sm font-medium text-gray-800 dark:text-gray-200'>
           Feature B (requires Max)
         </p>
         <div className='mt-2'>
@@ -71,19 +71,19 @@ export function BooleanGatesDemo() {
       </div>
       <p className='text-sm text-gray-600'>
         Imperative equivalent:{' '}
-        <code className='text-xs text-gray-800'>
+        <code className='text-xs text-gray-800 dark:text-gray-200'>
           const {'{'} enabled {'}'} = useFeature(&quot;feature_a&quot;)
         </code>{' '}
         → currently{' '}
-        <span className='font-mono text-gray-900'>
+        <span className='font-mono text-gray-900 dark:text-white'>
           {imperativeA.loading ? '…' : String(imperativeA.enabled)}
         </span>
         {' · '}
-        <code className='text-xs text-gray-800'>
+        <code className='text-xs text-gray-800 dark:text-gray-200'>
           useFeature(&quot;feature_b&quot;)
         </code>{' '}
         →{' '}
-        <span className='font-mono text-gray-900'>
+        <span className='font-mono text-gray-900 dark:text-white'>
           {imperativeB.loading ? '…' : String(imperativeB.enabled)}
         </span>
       </p>
