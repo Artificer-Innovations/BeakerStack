@@ -3,6 +3,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
+import { ThemeProvider } from '../src/contexts/ThemeContext';
 import App from '../src/App';
 
 // Mock environment variables to prevent real Supabase client creation
@@ -90,13 +91,15 @@ const mockSupabaseClient = {
 
 function renderApp() {
   return render(
-    <AuthProvider supabaseClient={mockSupabaseClient}>
-      <ProfileProvider supabaseClient={mockSupabaseClient}>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </ProfileProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider supabaseClient={mockSupabaseClient}>
+        <ProfileProvider supabaseClient={mockSupabaseClient}>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </ProfileProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
