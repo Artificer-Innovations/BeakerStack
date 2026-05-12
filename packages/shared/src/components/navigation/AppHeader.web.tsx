@@ -31,7 +31,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
   const basePath = getBasePath();
 
   return (
-    <div className='bg-white shadow'>
+    <div className='bg-white dark:bg-gray-900 shadow dark:shadow-gray-800 border-b border-transparent dark:border-gray-700'>
       <div className='max-w-[1024px] mx-auto px-4 sm:px-6 lg:px-8'>
         <div className='flex justify-between items-center h-16'>
           {/* Left side: App icon and title */}
@@ -45,7 +45,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
             </Link>
             <Link
               to='/'
-              className='text-xl font-semibold text-gray-900 hover:text-gray-700'
+              className='text-xl font-semibold text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
             >
               {BRANDING.displayName}
             </Link>
@@ -59,7 +59,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
               <>
                 <Link
                   to='/login'
-                  className='text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium'
+                  className='text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-3 py-2 rounded-md text-sm font-medium'
                 >
                   Sign In
                 </Link>
