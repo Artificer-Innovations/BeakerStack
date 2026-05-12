@@ -1,0 +1,35 @@
+[changelog]
+header = ""
+body = """
+{% if version %}\
+## {{ version }} — {{ timestamp | date(format="%Y-%m-%d") }}\n
+{% else %}\
+## [Unreleased]\n
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+{{ group }}
+{% for commit in commits %}
+- {{ commit.message | upper_first }}\
+{% if commit.remote.pr_number %} ([#{{ commit.remote.pr_number }}]({{ commit.remote.link }})){% endif %}
+
+{% endfor %}
+{% endfor %}\n
+"""
+trim = true
+footer = ""
+
+[git]
+conventional_commits = true
+
+commit_parsers = [
+  { breaking = true, group = "### ⚠️ Breaking Changes" },
+  { body = ".*BREAKING CHANGE.*", group = "### ⚠️ Breaking Changes" },
+  { message = "^feat", group = "### Features" },
+  { message = "^fix", group = "### Fixes" },
+  { message = "^chore\\(deps", group = "### Dependencies" },
+  { message = "^chore|^ci|^docs|^test|^refactor|^style|^perf", skip = true },
+]
+
+filter_commits = true
+# Scope tag matching to CalVer template tags only — prevents anchoring to @beakerstack/* package tags
+tag_pattern = "^[0-9]{4}\\."
