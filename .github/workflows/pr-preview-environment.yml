@@ -105,7 +105,8 @@ jobs:
             --domain "${PREVIEW_DOMAIN}" \
             --hosted-zone-id "${PREVIEW_HOSTED_ZONE_ID}" \
             --certificate-arn "${PREVIEW_CERTIFICATE_ARN}" \
-            --preview-prefix "${PREVIEW_PREFIX_VALUE}"
+            --preview-prefix "${PREVIEW_PREFIX_VALUE}" \
+            --skip-cloudfront-function-publish
 
       - name: Prepare Supabase preview database
         id: supabase
@@ -194,6 +195,23 @@ jobs:
             --preview-prefix "${PREVIEW_PREFIX_VALUE}" \
             --region "${AWS_REGION_VALUE}"
 
+      - name: Publish PR path router (CloudFront)
+        if: steps.web.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          STACK_NAME="${PREVIEW_STACK_NAME:-beakerstack-pr-preview}"
+          AWS_REGION_VALUE="${PREVIEW_AWS_REGION:-us-east-1}"
+          PREVIEW_PREFIX_VALUE="${PREVIEW_PREFIX:-pr-}"
+          ./scripts/pr-preview/bootstrap-aws-stack.sh \
+            --stack-name "${STACK_NAME}" \
+            --region "${AWS_REGION_VALUE}" \
+            --domain "${PREVIEW_DOMAIN}" \
+            --hosted-zone-id "${PREVIEW_HOSTED_ZONE_ID}" \
+            --certificate-arn "${PREVIEW_CERTIFICATE_ARN}" \
+            --preview-prefix "${PREVIEW_PREFIX_VALUE}" \
+            --if-stack-exists refresh-outputs
+
   deploy-preview-mobile:
     if: github.event.action != 'closed' && needs.preview-scope.outputs.run_deploy == 'true' && (github.base_ref != 'develop' || github.head_ref != 'main') && vars.MOBILE_ENABLED != 'false'
     needs: [preview-scope, deploy-preview]
@@ -204,6 +222,9 @@ jobs:
       mobile-ios-download-url: ${{ steps.mobile.outputs.PREVIEW_MOBILE_IOS_DOWNLOAD_URL }}
       mobile-android-download-url: ${{ steps.mobile.outputs.PREVIEW_MOBILE_ANDROID_DOWNLOAD_URL }}
       needs-native-build: ${{ steps.native-changes.outputs.needs_native_build }}
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -255,8 +276,13 @@ jobs:
           PR_NUMBER_VALUE="${PR_NUMBER}"
           EXPO_ACCOUNT_VALUE="${{ vars.EXPO_ACCOUNT }}"
           if [[ -z "${EXPO_ACCOUNT_VALUE}" ]]; then
-            echo "::error::EXPO_ACCOUNT variable is not set. Set vars.MOBILE_ENABLED=false to disable mobile, or set EXPO_ACCOUNT to enable it."
-            exit 1
+            if [[ "${{ vars.MOBILE_ENABLED }}" == "true" ]]; then
+              echo "::error::EXPO_ACCOUNT variable is not set but MOBILE_ENABLED=true. Set vars.MOBILE_ENABLED=false to disable mobile, or provide EXPO_ACCOUNT."
+              exit 1
+            else
+              echo "Warning: EXPO_ACCOUNT not set, skipping mobile deployment"
+              exit 0
+            fi
           fi
           BUILD_NATIVE_FLAG=""
           if [[ "${{ steps.native-changes.outputs.needs_native_build }}" == "true" ]]; then

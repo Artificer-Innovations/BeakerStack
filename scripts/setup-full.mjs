@@ -36,7 +36,7 @@ import {
 } from './lib/setup-manifest.mjs';
 import { escapeDotEnvDoubleQuotedValue, parseDotEnv } from './lib/setup-dotenv.mjs';
 import { readMaskedLineIfTty, resolveSecretInputLine } from './lib/setup-secret-input.mjs';
-import { envVarsFromGoogleServicesJson } from './lib/setup-google-services.mjs';
+import { clearGoogleKeysFromAcc, envVarsFromGoogleServicesJson } from './lib/setup-google-services.mjs';
 import {
   printIntroBanner,
   printPhaseIntro,
@@ -1983,6 +1983,7 @@ async function main() {
       if ((phase === 'expo' || phase === 'google') && acc.MOBILE_ENABLED === 'false') {
         logInfo(`Skipping ${phase} phase (mobile disabled).`);
         if (phase === 'expo') clearExpoKeysFromAcc(acc);
+        if (phase === 'google') clearGoogleKeysFromAcc(acc);
         continue;
       }
 

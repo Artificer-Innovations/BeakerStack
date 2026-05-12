@@ -175,8 +175,13 @@ jobs:
           set -euo pipefail
           EXPO_ACCOUNT_VALUE="${{ vars.EXPO_ACCOUNT }}"
           if [[ -z "${EXPO_ACCOUNT_VALUE}" ]]; then
-            echo "::error::EXPO_ACCOUNT variable is not set. Set vars.MOBILE_ENABLED=false to disable mobile, or set EXPO_ACCOUNT to enable it."
-            exit 1
+            if [[ "${{ vars.MOBILE_ENABLED }}" == "true" ]]; then
+              echo "::error::EXPO_ACCOUNT variable is not set but MOBILE_ENABLED=true. Set vars.MOBILE_ENABLED=false to disable mobile, or provide EXPO_ACCOUNT."
+              exit 1
+            else
+              echo "Warning: EXPO_ACCOUNT not set, skipping mobile deployment"
+              exit 0
+            fi
           fi
           ./scripts/pr-preview/deploy-mobile-staging.sh \
             --expo-account "${EXPO_ACCOUNT_VALUE}" \
