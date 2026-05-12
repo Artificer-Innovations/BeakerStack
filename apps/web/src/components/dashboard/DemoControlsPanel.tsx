@@ -87,7 +87,7 @@ export function DemoControlsPanel() {
     >
       <p className='text-sm text-gray-700 dark:text-gray-300'>
         Current plan:{' '}
-        <span className='font-medium text-gray-900'>
+        <span className='font-medium text-gray-900 dark:text-white'>
           {planLoading ? '…' : (plan?.display_name ?? '—')}
         </span>
       </p>

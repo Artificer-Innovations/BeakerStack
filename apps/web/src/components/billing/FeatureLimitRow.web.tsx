@@ -24,7 +24,7 @@ export function FeatureLimitRow({
   return (
     <div
       className={`flex items-center justify-between border-b border-gray-100 dark:border-gray-700 py-2 text-sm ${
-        at ? 'text-red-700 dark:text-red-400' : heavy ? 'text-amber-800 dark:text-amber-400' : 'text-gray-600'
+        at ? 'text-red-700 dark:text-red-400' : heavy ? 'text-amber-800 dark:text-amber-400' : 'text-gray-600 dark:text-gray-400'
       }`}
     >
       <span className='text-gray-900 dark:text-white'>{name}</span>
