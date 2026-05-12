@@ -146,23 +146,39 @@ jobs:
             --environment staging \
             --region "${AWS_REGION_VALUE}"
 
+  deploy-mobile-staging:
+    if: vars.MOBILE_ENABLED != 'false'
+    needs: [deploy-staging]
+    runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_PROJECT_ID: ${{ secrets.EXPO_PROJECT_ID }}
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Deploy mobile to staging
         id: mobile
         shell: bash
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EXPO_PROJECT_ID: ${{ secrets.EXPO_PROJECT_ID }}
-          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
         run: |
           set -euo pipefail
           EXPO_ACCOUNT_VALUE="${{ vars.EXPO_ACCOUNT }}"
           if [[ -z "${EXPO_ACCOUNT_VALUE}" ]]; then
-            echo "Warning: EXPO_ACCOUNT not set, skipping mobile deployment"
-            exit 0
+            echo "::error::EXPO_ACCOUNT variable is not set. Set vars.MOBILE_ENABLED=false to disable mobile, or set EXPO_ACCOUNT to enable it."
+            exit 1
           fi
           ./scripts/pr-preview/deploy-mobile-staging.sh \
             --expo-account "${EXPO_ACCOUNT_VALUE}" \
             --platform all \
             --message "Staging deployment from ${GITHUB_SHA:0:7}"
-

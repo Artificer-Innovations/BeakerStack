@@ -80,7 +80,7 @@ const PHASE_ORDER = ['prereqs', 'identity', 'supabase', 'aws', 'expo', 'google',
 /** Merged from dotenv-style secret files / pastes (allowlisted keys only). */
 const MERGEABLE_SETUP_ENV_KEYS = mergeableSetupEnvKeys();
 
-/** @typedef {{ dryRun: boolean; fromPhase: string; skipRename: boolean; awsProfile: string; skipGithub: boolean; plainSecretPrompts: boolean }} CliFlags */
+/** @typedef {{ dryRun: boolean; fromPhase: string; skipRename: boolean; awsProfile: string; skipGithub: boolean; mobileEnabled: boolean; plainSecretPrompts: boolean }} CliFlags */
 
 function printHelp() {
   console.log(`Usage: node scripts/setup-full.mjs [options]
@@ -93,6 +93,7 @@ Options:
                          merges existing .env*.local first when resuming)
   --skip-rename          Skip the identity / rename phase entirely
   --skip-github          Skip GitHub Actions secret/variable sync
+  --skip-mobile          Skip Expo, EAS, and Google Services setup (web-only repos)
   --aws-profile=NAME     Pass through to bootstrap-aws-stack.sh
   --plain-secret-prompts Echo secret prompts in plain text (default: mask typed secrets on a TTY)
 
@@ -130,12 +131,14 @@ function parseArgv(argv) {
     skipRename: false,
     awsProfile: '',
     skipGithub: false,
+    mobileEnabled: true,
     plainSecretPrompts: false,
   };
   for (const a of argv) {
     if (a === '--dry-run') flags.dryRun = true;
     else if (a === '--skip-rename') flags.skipRename = true;
     else if (a === '--skip-github') flags.skipGithub = true;
+    else if (a === '--skip-mobile') flags.mobileEnabled = false;
     else if (a === '--plain-secret-prompts') flags.plainSecretPrompts = true;
     else if (a.startsWith('--from=')) flags.fromPhase = resolveSetupFromPhase(a.slice('--from='.length));
     else if (a.startsWith('--aws-profile=')) flags.awsProfile = a.slice('--aws-profile='.length);
@@ -1744,6 +1747,7 @@ async function phaseWrite(acc, flags) {
       {
         lastRun: new Date().toISOString(),
         phases: PHASE_ORDER,
+        mobileEnabled: acc.MOBILE_ENABLED !== 'false',
         note: 'No secrets stored in this file.',
       },
       null,
@@ -1936,6 +1940,24 @@ async function main() {
     }
   }
 
+  if (!flags.mobileEnabled) {
+    acc.MOBILE_ENABLED = 'false';
+    logInfo('Mobile disabled (--skip-mobile) — skipping Expo, EAS, and Google Services setup.');
+  } else if (startIdx <= PHASE_ORDER.indexOf('expo')) {
+    if (!flags.dryRun) {
+      const mobileAns = (await rlQuestion(rl, 'Enable mobile (Expo / EAS) builds? [Y/n]: ')).trim().toLowerCase();
+      if (mobileAns === 'n' || mobileAns === 'no') {
+        flags.mobileEnabled = false;
+        logInfo('Mobile disabled — skipping Expo, EAS, and Google Services setup.');
+      }
+    } else {
+      logInfo('[dry-run] would prompt for mobile setup choice (defaulting to enabled).');
+    }
+    acc.MOBILE_ENABLED = flags.mobileEnabled ? 'true' : 'false';
+  } else {
+    if (!acc.MOBILE_ENABLED) acc.MOBILE_ENABLED = 'true';
+  }
+
   try {
     for (let i = startIdx; i < PHASE_ORDER.length; i += 1) {
       const phase = PHASE_ORDER[i];
@@ -1956,6 +1978,11 @@ async function main() {
       }
       if (phase === 'github' && flags.skipGithub) {
         logInfo('Skipping GitHub sync (--skip-github).');
+        continue;
+      }
+      if ((phase === 'expo' || phase === 'google') && acc.MOBILE_ENABLED === 'false') {
+        logInfo(`Skipping ${phase} phase (mobile disabled).`);
+        if (phase === 'expo') clearExpoKeysFromAcc(acc);
         continue;
       }
 

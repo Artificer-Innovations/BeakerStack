@@ -51,6 +51,8 @@ jobs:
     if: github.event.action != 'closed' && needs.preview-scope.outputs.run_deploy == 'true' && (github.base_ref != 'develop' || github.head_ref != 'main')
     needs: preview-scope
     runs-on: ubuntu-latest
+    outputs:
+      preview-web-url: ${{ steps.web.outputs.PREVIEW_WEB_URL }}
     env:
       PREVIEW_DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
       PREVIEW_HOSTED_ZONE_ID: ${{ vars.PR_PREVIEW_HOSTED_ZONE_ID }}
@@ -103,8 +105,7 @@ jobs:
             --domain "${PREVIEW_DOMAIN}" \
             --hosted-zone-id "${PREVIEW_HOSTED_ZONE_ID}" \
             --certificate-arn "${PREVIEW_CERTIFICATE_ARN}" \
-            --preview-prefix "${PREVIEW_PREFIX_VALUE}" \
-            --skip-cloudfront-function-publish
+            --preview-prefix "${PREVIEW_PREFIX_VALUE}"
 
       - name: Prepare Supabase preview database
         id: supabase
@@ -193,31 +194,34 @@ jobs:
             --preview-prefix "${PREVIEW_PREFIX_VALUE}" \
             --region "${AWS_REGION_VALUE}"
 
-      # Publish edge routing only after a successful web build so a failed deploy cannot
-      # replace live CloudFront function code while leaving stale or missing S3 assets.
-      - name: Publish PR path router (CloudFront)
-        if: steps.web.outcome == 'success'
-        shell: bash
-        run: |
-          set -euo pipefail
-          STACK_NAME="${PREVIEW_STACK_NAME:-beakerstack-pr-preview}"
-          AWS_REGION_VALUE="${PREVIEW_AWS_REGION:-us-east-1}"
-          PREVIEW_PREFIX_VALUE="${PREVIEW_PREFIX:-pr-}"
-          ./scripts/pr-preview/bootstrap-aws-stack.sh \
-            --stack-name "${STACK_NAME}" \
-            --region "${AWS_REGION_VALUE}" \
-            --domain "${PREVIEW_DOMAIN}" \
-            --hosted-zone-id "${PREVIEW_HOSTED_ZONE_ID}" \
-            --certificate-arn "${PREVIEW_CERTIFICATE_ARN}" \
-            --preview-prefix "${PREVIEW_PREFIX_VALUE}" \
-            --if-stack-exists refresh-outputs
+  deploy-preview-mobile:
+    if: github.event.action != 'closed' && needs.preview-scope.outputs.run_deploy == 'true' && (github.base_ref != 'develop' || github.head_ref != 'main') && vars.MOBILE_ENABLED != 'false'
+    needs: [preview-scope, deploy-preview]
+    runs-on: ubuntu-latest
+    outputs:
+      mobile-channel: ${{ steps.mobile.outputs.PREVIEW_MOBILE_CHANNEL }}
+      mobile-update-url: ${{ steps.mobile.outputs.PREVIEW_MOBILE_UPDATE_URL }}
+      mobile-ios-download-url: ${{ steps.mobile.outputs.PREVIEW_MOBILE_IOS_DOWNLOAD_URL }}
+      mobile-android-download-url: ${{ steps.mobile.outputs.PREVIEW_MOBILE_ANDROID_DOWNLOAD_URL }}
+      needs-native-build: ${{ steps.native-changes.outputs.needs_native_build }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Check for native code changes
         id: native-changes
         shell: bash
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           set -euo pipefail
           BASE_REF="origin/${{ github.base_ref }}"
@@ -237,7 +241,6 @@ jobs:
           EXPO_PROJECT_ID: ${{ secrets.EXPO_PROJECT_ID }}
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
-          # Google Services variables (needed for google-services.json generation)
           GOOGLE_SERVICES_PROJECT_NUMBER: ${{ secrets.GOOGLE_SERVICES_PROJECT_NUMBER }}
           GOOGLE_SERVICES_PROJECT_ID: ${{ secrets.GOOGLE_SERVICES_PROJECT_ID }}
           GOOGLE_SERVICES_STORAGE_BUCKET: ${{ secrets.GOOGLE_SERVICES_STORAGE_BUCKET }}
@@ -252,8 +255,8 @@ jobs:
           PR_NUMBER_VALUE="${PR_NUMBER}"
           EXPO_ACCOUNT_VALUE="${{ vars.EXPO_ACCOUNT }}"
           if [[ -z "${EXPO_ACCOUNT_VALUE}" ]]; then
-            echo "Warning: EXPO_ACCOUNT not set, skipping mobile deployment"
-            exit 0
+            echo "::error::EXPO_ACCOUNT variable is not set. Set vars.MOBILE_ENABLED=false to disable mobile, or set EXPO_ACCOUNT to enable it."
+            exit 1
           fi
           BUILD_NATIVE_FLAG=""
           if [[ "${{ steps.native-changes.outputs.needs_native_build }}" == "true" ]]; then
@@ -268,21 +271,28 @@ jobs:
             --platform all \
             ${BUILD_NATIVE_FLAG}
 
+  comment:
+    if: always() && needs.deploy-preview.result == 'success'
+    needs: [deploy-preview, deploy-preview-mobile]
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
       - name: Post preview summary comment
-        if: always()
         uses: actions/github-script@v7
         env:
-          WEB_URL: ${{ steps.web.outputs.PREVIEW_WEB_URL }}
-          MOBILE_CHANNEL: ${{ steps.mobile.outputs.PREVIEW_MOBILE_CHANNEL }}
-          MOBILE_UPDATE_URL: ${{ steps.mobile.outputs.PREVIEW_MOBILE_UPDATE_URL }}
-          MOBILE_IOS_DOWNLOAD_URL: ${{ steps.mobile.outputs.PREVIEW_MOBILE_IOS_DOWNLOAD_URL }}
-          MOBILE_ANDROID_DOWNLOAD_URL: ${{ steps.mobile.outputs.PREVIEW_MOBILE_ANDROID_DOWNLOAD_URL }}
-          NEEDS_NATIVE_BUILD: ${{ steps.native-changes.outputs.needs_native_build }}
-          MOBILE_DEPLOY_OUTCOME: ${{ steps.mobile.outcome }}
+          WEB_URL: ${{ needs.deploy-preview.outputs.preview-web-url }}
+          MOBILE_JOB_RESULT: ${{ needs.deploy-preview-mobile.result }}
+          MOBILE_CHANNEL: ${{ needs.deploy-preview-mobile.outputs.mobile-channel }}
+          MOBILE_UPDATE_URL: ${{ needs.deploy-preview-mobile.outputs.mobile-update-url }}
+          MOBILE_IOS_DOWNLOAD_URL: ${{ needs.deploy-preview-mobile.outputs.mobile-ios-download-url }}
+          MOBILE_ANDROID_DOWNLOAD_URL: ${{ needs.deploy-preview-mobile.outputs.mobile-android-download-url }}
+          NEEDS_NATIVE_BUILD: ${{ needs.deploy-preview-mobile.outputs.needs-native-build }}
         with:
           script: |
             const marker = '<!-- pr-preview-links -->';
             const webUrl = process.env.WEB_URL;
+            const mobileJobResult = process.env.MOBILE_JOB_RESULT;
             const mobileChannel = process.env.MOBILE_CHANNEL;
             const mobileUpdateUrl = process.env.MOBILE_UPDATE_URL;
 
@@ -291,7 +301,12 @@ jobs:
             if (webUrl) {
               lines.push(`🌐 **Web preview:** ${webUrl}`);
             }
-            if (mobileUpdateUrl) {
+            if (mobileJobResult === 'skipped') {
+              // Mobile disabled via MOBILE_ENABLED=false — omit mobile section
+            } else if (mobileJobResult === 'failure') {
+              lines.push('');
+              lines.push('❌ **Mobile preview failed.** Check the **deploy-preview-mobile** job logs for details.');
+            } else if (mobileUpdateUrl) {
               const iosDownloadUrl = process.env.MOBILE_IOS_DOWNLOAD_URL;
               const androidDownloadUrl = process.env.MOBILE_ANDROID_DOWNLOAD_URL;
               const needsNativeBuild = process.env.NEEDS_NATIVE_BUILD === 'true';
@@ -325,21 +340,11 @@ jobs:
               } else if (needsNativeBuild) {
                 lines.push('### 📱 Mobile Preview Builds');
                 lines.push('');
-                const mobileOutcome = process.env.MOBILE_DEPLOY_OUTCOME || '';
-                if (mobileOutcome === 'failure') {
-                  lines.push('❌ **Native preview build failed in CI.**');
-                  lines.push('');
-                  lines.push('The OTA update may still be on the channel above. Open the **deploy-preview** workflow run for this PR and inspect the **Deploy mobile preview** step logs (EAS / Expo errors, `google-services.json`, etc.).');
-                  lines.push('');
-                  lines.push('Re-run the workflow after fixing the failure; the PR comment will update when the job succeeds.');
-                  lines.push('');
-                } else {
-                  lines.push('⚠️ **Native build in progress or not finished in this job...**');
-                  lines.push('');
-                  lines.push('Native code changes were detected. If the **deploy-preview** job is still running, EAS builds may take 10–15 minutes after the job completes.');
-                  lines.push('If the job already finished without download links, check the workflow logs and the [Expo builds dashboard](https://expo.dev/accounts/artificer-innovations-llc/projects/beaker-stack/builds).');
-                  lines.push('');
-                }
+                lines.push('⚠️ **Native build in progress or not finished...**');
+                lines.push('');
+                lines.push('Native code changes were detected. EAS builds may take 10–15 minutes after the **deploy-preview-mobile** job completes.');
+                lines.push('If the job already finished without download links, check the workflow logs and the [Expo builds dashboard](https://expo.dev/accounts/artificer-innovations-llc/projects/beaker-stack/builds).');
+                lines.push('');
               } else {
                 lines.push('### 📱 Mobile Preview (OTA Updates)');
                 lines.push('');
