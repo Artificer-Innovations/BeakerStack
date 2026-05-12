@@ -153,24 +153,40 @@ function parseArgv(argv) {
 
 /**
  * @param {string[]} args
- * @param {{ input?: string | Buffer; dryRun?: boolean }} [opts]
+ * @param {{ input?: string | Buffer; dryRun?: boolean; captureStdout?: boolean }} [opts]
  */
 function runGh(args, opts = {}) {
   if (opts.dryRun) {
     console.log(`[dry-run] gh ${args.map((x) => JSON.stringify(x)).join(' ')}`);
     return { status: 0, stdout: '', stderr: '' };
   }
+  const capture = !!opts.captureStdout;
   /** @type {import('node:child_process').StdioOptions} */
-  const stdio = opts.input !== undefined ? ['pipe', 'inherit', 'inherit'] : ['inherit', 'inherit', 'inherit'];
-  return spawnSync('gh', args, {
+  let stdio;
+  if (opts.input !== undefined) {
+    stdio = capture ? ['pipe', 'pipe', 'pipe'] : ['pipe', 'inherit', 'inherit'];
+  } else if (capture) {
+    stdio = ['ignore', 'pipe', 'pipe'];
+  } else {
+    stdio = ['inherit', 'inherit', 'inherit'];
+  }
+  const r = spawnSync('gh', args, {
     encoding: 'utf8',
     stdio,
     input: opts.input,
+    cwd: REPO_ROOT,
   });
+  if (r.status !== 0 && r.stderr) {
+    process.stderr.write(r.stderr);
+  }
+  return r;
 }
 
 function ghRepoDefault() {
-  const r = runGh(['repo', 'view', '--json', 'nameWithOwner', '-q', '.nameWithOwner'], { dryRun: false });
+  const r = runGh(['repo', 'view', '--json', 'nameWithOwner', '-q', '.nameWithOwner'], {
+    dryRun: false,
+    captureStdout: true,
+  });
   if (r.status !== 0) {
     console.error('Could not run gh repo view. Install gh, auth with gh auth login, or pass --repo OWNER/NAME.');
     process.exit(1);
@@ -282,7 +298,7 @@ async function main() {
 
   console.log(`Done. Target repo: ${repo}`);
   if (!dry) {
-    const lr = runGh(['variable', 'list', '--repo', repo], { dryRun: false });
+    const lr = runGh(['variable', 'list', '--repo', repo], { dryRun: false, captureStdout: true });
     if (lr.status === 0 && lr.stdout) {
       const lines = lr.stdout.split('\n').filter((line) => /GITHUB_PROJECT_(NUMBER|ORG)/.test(line));
       if (lines.length) console.log(lines.join('\n'));
