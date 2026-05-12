@@ -3,8 +3,9 @@
 #
 # Keep the path allowlist conceptually aligned with .github/workflows/test.yml
 # (pull_request paths) plus preview-only paths (scripts/pr-preview/**,
-# pr-preview workflow file). If a change cannot affect built previews or this
-# workflow's deploy scripts, we skip the heavy deploy job to save Expo/AWS/CI.
+# infra/aws/** for CloudFormation / CloudFront preview routing, pr-preview
+# workflow file). If a change cannot affect built previews or this workflow's
+# deploy scripts, we skip the heavy deploy job to save Expo/AWS/CI.
 
 set -euo pipefail
 
@@ -27,6 +28,7 @@ preview_path_matches() {
 
   case "$f" in
     apps/* | packages/* | supabase/*) return 0 ;;
+    infra/aws/*) return 0 ;;
     package.json | package-lock.json) return 0 ;;
     .github/workflows/pr-preview-environment.yml) return 0 ;;
     scripts/pr-preview/*) return 0 ;;
@@ -94,6 +96,8 @@ self_test() {
   check_one package.json 1
   check_one package-lock.json 1
   check_one scripts/pr-preview/deploy-web.sh 1
+  check_one infra/aws/functions/PRPathRouter.js 1
+  check_one infra/aws/pr-preview-stack.yml 1
   check_one .github/workflows/pr-preview-environment.yml 1
   check_one tsconfig.json 1
   check_one apps/web/vite.config.ts 1

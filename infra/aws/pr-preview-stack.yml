@@ -339,22 +339,23 @@ Resources:
           var request = event.request;
           var uri = request.uri || '/';
           var previewPrefixBase = '${PreviewPrefix}';
-          // Match /pr-<N>/ pattern at the start of the path
           var prPathPattern = new RegExp('^/(' + previewPrefixBase + '\\d+)(/.*)?$');
           var match = uri.match(prPathPattern);
-          if (match) {
-            var prPrefix = match[1];
-            var restOfPath = match[2] || '/';
-            var trimmed = restOfPath.replace(/\/$/, '');
-            var hasExtension = /\.[a-z0-9]+$/i.test(trimmed);
-            if (!hasExtension && trimmed !== '' && trimmed !== '/') {
-              request.uri = '/' + prPrefix + '/index.html';
-            } else if (trimmed === '' || trimmed === '/') {
-              request.uri = '/' + prPrefix + '/index.html';
-            } else {
-              request.uri = '/' + prPrefix + restOfPath;
-            }
+          if (!match) {
+            return request;
           }
+          var prPrefix = match[1];
+          var restOfPath = match[2];
+          if (!restOfPath || restOfPath === '/') {
+            request.uri = '/' + prPrefix + '/prerender-home.html';
+            return request;
+          }
+          var trimmedPath = restOfPath.replace(/^\//, '').replace(/\/$/, '');
+          if (/\.[a-z0-9]+$/i.test(trimmedPath)) {
+            request.uri = '/' + prPrefix + restOfPath;
+            return request;
+          }
+          request.uri = '/' + prPrefix + '/index.html';
           return request;
         }
 
