@@ -101,7 +101,7 @@ npm run docs:actions-secrets
 
 Commit any updates to `docs/reference/github-actions-secrets.md` when you change `scripts/lib/setup-manifest.mjs`.
 
-At minimum for deploy workflows you will need **`SUPABASE_ACCESS_TOKEN`**, **`EXPO_TOKEN`**, and **AWS access keys** (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, plus optional `AWS_SESSION_TOKEN`), plus the Supabase URL/keys and project refs for each tier—see the generated table.
+At minimum for deploy workflows you will need **`SUPABASE_ACCESS_TOKEN`** and **AWS access keys** (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, plus optional `AWS_SESSION_TOKEN`), plus the Supabase URL/keys and project refs for each tier—see the generated table. **`EXPO_TOKEN`**, `EXPO_PROJECT_ID`, `EXPO_ACCOUNT`, and all `GOOGLE_SERVICES_*` entries are mobile-only; set `MOBILE_ENABLED=false` (GitHub variable) to skip them for web-only repos.
 
 ### 6.2 Full interactive bootstrap
 
@@ -117,6 +117,7 @@ Options (see also `npm run setup:full -- --help`):
 | `--from=PHASE`       | Resume at a phase (see table below)  |
 | `--skip-rename`      | Skip template rename                 |
 | `--skip-github`      | Do not push secrets with `gh`        |
+| `--skip-mobile`      | Skip Expo/EAS/Google setup (web-only repos) |
 | `--aws-profile=NAME` | Pass through to AWS bootstrap script |
 
 **Phase names** for `--from=` (order matters; later phases assume earlier work or merged `.env*` files):

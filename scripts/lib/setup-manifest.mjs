@@ -305,6 +305,13 @@ export const GITHUB_VARIABLES = [
     envKeys: ['EXPO_ACCOUNT'],
     group: 'expo',
   },
+  {
+    type: 'variable',
+    name: 'MOBILE_ENABLED',
+    envKeys: ['MOBILE_ENABLED'],
+    optional: true,
+    group: 'core',
+  },
 ];
 
 /** Env keys written by setup but not listed on GitHub secret defs (local generated env only). */
@@ -346,6 +353,8 @@ export function resolveValueForGithub(env, def) {
   return '';
 }
 
+const MOBILE_GROUPS = new Set(['expo', 'google']);
+
 /**
  * @param {Record<string, string>} env
  * @param {string} [group] if set, only entries with this group
@@ -353,8 +362,10 @@ export function resolveValueForGithub(env, def) {
 export function collectGithubSecretPayload(env, group) {
   /** @type {Record<string, string>} */
   const out = {};
+  const mobileDisabled = env.MOBILE_ENABLED === 'false';
   for (const def of GITHUB_SECRETS) {
     if (group && def.group !== group) continue;
+    if (mobileDisabled && MOBILE_GROUPS.has(def.group)) continue;
     const val = resolveValueForGithub(env, def);
     if (!val && def.optional) continue;
     if (val) out[def.name] = val;
@@ -369,8 +380,10 @@ export function collectGithubSecretPayload(env, group) {
 export function collectGithubVariablePayload(env, group) {
   /** @type {Record<string, string>} */
   const out = {};
+  const mobileDisabled = env.MOBILE_ENABLED === 'false';
   for (const def of GITHUB_VARIABLES) {
     if (group && def.group !== group) continue;
+    if (mobileDisabled && MOBILE_GROUPS.has(def.group)) continue;
     const val = resolveValueForGithub(env, def);
     if (!val && def.optional) continue;
     if (val) out[def.name] = val;
@@ -403,13 +416,16 @@ export function mergeGithubSyncEnv(session, local, cloud, aws) {
 export function listMissingRequiredGithubForCi(env) {
   /** @type {{ kind: 'secret' | 'variable'; name: string; group: string }[]} */
   const missing = [];
+  const mobileDisabled = env.MOBILE_ENABLED === 'false';
   for (const def of GITHUB_SECRETS) {
     if (def.optional) continue;
+    if (mobileDisabled && MOBILE_GROUPS.has(def.group)) continue;
     if (resolveValueForGithub(env, def)) continue;
     missing.push({ kind: 'secret', name: def.name, group: def.group || 'unknown' });
   }
   for (const def of GITHUB_VARIABLES) {
     if (def.optional) continue;
+    if (mobileDisabled && MOBILE_GROUPS.has(def.group)) continue;
     if (resolveValueForGithub(env, def)) continue;
     missing.push({ kind: 'variable', name: def.name, group: def.group || 'unknown' });
   }
