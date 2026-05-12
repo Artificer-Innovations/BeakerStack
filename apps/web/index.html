@@ -5,19 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>%APP_TITLE%</title>
 
-    <!-- Site-wide meta — canonical and og:url are home-only and are injected into
-         prerender-home.html by scripts/prerender-home.ts; adding them here would
-         incorrectly set home-page values on /dashboard, /login, etc. -->
-    <meta name="description" content="BeakerStack gives you auth, billing, and a cross-platform React foundation — ready to ship your SaaS." />
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="BeakerStack — Ship your SaaS faster." />
-    <meta property="og:description" content="Everything you need to ship a real product. Auth, billing, and cross-platform React with a production CI/CD pipeline." />
-    <!-- Shipped icon until a dedicated 1200×630 og-image asset exists. -->
-    <meta property="og:image" content="https://beakerstack.com/android-chrome-512x512.png" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="BeakerStack — Ship your SaaS faster." />
-    <meta name="twitter:description" content="Everything you need to ship a real product." />
-    <meta name="twitter:image" content="https://beakerstack.com/android-chrome-512x512.png" />
+    <!-- Anti-FOUC: apply dark class before first paint.
+         Reads stored user preference first; falls back to OS preference.
+         try/catch guards against CSP or private-browsing environments. -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('beakerstack:theme');
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (stored === 'dark' || (stored !== 'light' && prefersDark)) {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (_) {}
+      })();
+    </script>
 
     <!-- Favicons for all browsers -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
