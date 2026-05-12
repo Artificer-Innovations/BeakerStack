@@ -51,8 +51,6 @@ jobs:
     if: github.event.action != 'closed' && needs.preview-scope.outputs.run_deploy == 'true' && (github.base_ref != 'develop' || github.head_ref != 'main')
     needs: preview-scope
     runs-on: ubuntu-latest
-    outputs:
-      preview-web-url: ${{ steps.web.outputs.PREVIEW_WEB_URL }}
     env:
       PREVIEW_DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
       PREVIEW_HOSTED_ZONE_ID: ${{ vars.PR_PREVIEW_HOSTED_ZONE_ID }}
@@ -308,7 +306,8 @@ jobs:
       - name: Post preview summary comment
         uses: actions/github-script@v7
         env:
-          WEB_URL: ${{ needs.deploy-preview.outputs.preview-web-url }}
+          PREVIEW_DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
+          PREVIEW_PREFIX: ${{ vars.PR_PREVIEW_PREFIX }}
           MOBILE_JOB_RESULT: ${{ needs.deploy-preview-mobile.result }}
           MOBILE_CHANNEL: ${{ needs.deploy-preview-mobile.outputs.mobile-channel }}
           MOBILE_UPDATE_URL: ${{ needs.deploy-preview-mobile.outputs.mobile-update-url }}
@@ -318,7 +317,10 @@ jobs:
         with:
           script: |
             const marker = '<!-- pr-preview-links -->';
-            const webUrl = process.env.WEB_URL;
+            const domain = process.env.PREVIEW_DOMAIN;
+            const prefix = process.env.PREVIEW_PREFIX || 'pr-';
+            const prNumber = context.payload.pull_request.number;
+            const webUrl = domain ? `https://deploy.${domain}/${prefix}${prNumber}/` : '';
             const mobileJobResult = process.env.MOBILE_JOB_RESULT;
             const mobileChannel = process.env.MOBILE_CHANNEL;
             const mobileUpdateUrl = process.env.MOBILE_UPDATE_URL;
