@@ -9,6 +9,11 @@ import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+const webAuthFns = vi.hoisted(() => ({
+  signInWithPassword: vi.fn(),
+  signInWithOAuth: vi.fn(),
+}));
+
 const mockCatalogPlans = vi.hoisted(() => {
   const pro: Plan = {
     id: 'beakerstack_pro',
@@ -68,10 +73,10 @@ const createMockSupabaseClient = (): SupabaseClient => {
       onAuthStateChange: vi.fn(() => ({
         data: { subscription: { unsubscribe: vi.fn() } },
       })),
-      signInWithPassword: vi.fn(),
+      signInWithPassword: webAuthFns.signInWithPassword,
       signUp: vi.fn(),
       signOut: vi.fn(),
-      signInWithOAuth: vi.fn(),
+      signInWithOAuth: webAuthFns.signInWithOAuth,
     },
   } as unknown as SupabaseClient;
 };
@@ -105,6 +110,13 @@ const renderWithProviders = (
 describe('LoginPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    webAuthFns.signInWithPassword.mockReset();
+    webAuthFns.signInWithOAuth.mockReset();
+    webAuthFns.signInWithPassword.mockResolvedValue({
+      data: { session: null, user: null },
+      error: null,
+    });
+    webAuthFns.signInWithOAuth.mockResolvedValue({ data: {}, error: null });
   });
 
   it('renders login form', () => {
@@ -122,20 +134,13 @@ describe('LoginPage', () => {
     expect(screen.getByText('Sign in with Google')).toBeInTheDocument();
   });
 
-  it.skip('shows error when email or password is empty', async () => {
-    const user = userEvent.setup();
+  it('shows error when email or password is empty', async () => {
     renderWithProviders(<LoginPage />);
-
-    // Get the form submit button (the one in the form, not header)
     const form = screen.getByPlaceholderText('Email address').closest('form');
-    const submitButton = form?.querySelector(
-      'button[type="submit"]'
-    ) as HTMLButtonElement;
-    expect(submitButton).toBeInTheDocument();
-    if (submitButton) {
-      await user.click(submitButton);
-    }
-
+    expect(form).toBeInstanceOf(HTMLFormElement);
+    form?.dispatchEvent(
+      new Event('submit', { bubbles: true, cancelable: true })
+    );
     await waitFor(() => {
       expect(screen.getByText('Please fill in all fields')).toBeInTheDocument();
     });
@@ -156,8 +161,14 @@ describe('LoginPage', () => {
     expect(passwordInput).toHaveValue('password123');
   });
 
-  it.skip('shows loading state when submitting', async () => {
+  it('shows loading state when submitting', async () => {
     const user = userEvent.setup();
+    webAuthFns.signInWithPassword.mockImplementation(
+      () =>
+        new Promise(() => {
+          /* never resolves — loading state */
+        })
+    );
     renderWithProviders(<LoginPage />);
 
     const emailInput = screen.getByPlaceholderText('Email address');
@@ -170,12 +181,10 @@ describe('LoginPage', () => {
     await user.type(emailInput, 'test@example.com');
     await user.type(passwordInput, 'password123');
 
-    // Click submit - button should show loading state
     if (submitButton) {
       await user.click(submitButton);
     }
 
-    // The button text should change to "Signing in..." when loading
     await waitFor(() => {
       expect(screen.getByText('Signing in...')).toBeInTheDocument();
     });
@@ -183,6 +192,7 @@ describe('LoginPage', () => {
 
   it('displays error message on login failure', async () => {
     const user = userEvent.setup();
+    webAuthFns.signInWithPassword.mockRejectedValue(new Error('Invalid'));
     renderWithProviders(<LoginPage />);
 
     const emailInput = screen.getByPlaceholderText('Email address');
@@ -198,10 +208,41 @@ describe('LoginPage', () => {
       await user.click(submitButton);
     }
 
-    // The form should attempt submission - error handling is tested via integration tests
-    // This test verifies the form can be filled and submitted
-    expect(emailInput).toHaveValue('test@example.com');
-    expect(passwordInput).toHaveValue('wrongpassword');
+    await waitFor(() => {
+      expect(screen.getByText('Invalid')).toBeInTheDocument();
+    });
+  });
+
+  it('shows generic copy when sign-in rejects with non-Error', async () => {
+    const user = userEvent.setup();
+    webAuthFns.signInWithPassword.mockRejectedValue('offline');
+    renderWithProviders(<LoginPage />);
+    const emailInput = screen.getByPlaceholderText('Email address');
+    await user.type(emailInput, 'a@b.com');
+    await user.type(screen.getByPlaceholderText('Password'), 'pw');
+    const form = emailInput.closest('form');
+    const submitButton = form?.querySelector('button[type="submit"]') as
+      | HTMLButtonElement
+      | undefined;
+    if (!submitButton) {
+      throw new Error('expected email/password form submit button');
+    }
+    await user.click(submitButton);
+    await waitFor(() => {
+      expect(screen.getByText('Failed to sign in')).toBeInTheDocument();
+    });
+  });
+
+  it('shows generic copy when Google sign-in rejects with non-Error', async () => {
+    const user = userEvent.setup();
+    webAuthFns.signInWithOAuth.mockRejectedValue('no oauth');
+    renderWithProviders(<LoginPage />);
+    await user.click(screen.getByText('Sign in with Google'));
+    await waitFor(() => {
+      expect(
+        screen.getByText('Failed to sign in with Google')
+      ).toBeInTheDocument();
+    });
   });
 
   it('has link to signup page', () => {
@@ -223,8 +264,14 @@ describe('LoginPage', () => {
     expect(screen.queryByText('Plan from pricing')).not.toBeInTheDocument();
   });
 
-  it.skip('disables form inputs when loading', async () => {
+  it('disables form inputs when loading', async () => {
     const user = userEvent.setup();
+    webAuthFns.signInWithPassword.mockImplementation(
+      () =>
+        new Promise(() => {
+          /* hang */
+        })
+    );
     renderWithProviders(<LoginPage />);
 
     const emailInput = screen.getByPlaceholderText('Email address');

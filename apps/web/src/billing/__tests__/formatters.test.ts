@@ -14,6 +14,10 @@ describe('formatMoneyCents', () => {
     expect(formatMoneyCents(100, 'eur')).toMatch(/€|EUR/);
   });
 
+  it('uses USD when currency code is not length 3', () => {
+    expect(formatMoneyCents(100, 'US')).toMatch(/\$1\.00/);
+  });
+
   it('falls back when Intl.NumberFormat throws', () => {
     vi.spyOn(Intl, 'NumberFormat').mockImplementation(() => {
       throw new Error('unsupported');

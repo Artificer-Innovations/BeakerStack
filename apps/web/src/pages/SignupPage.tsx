@@ -108,20 +108,20 @@ function SignupPageContent() {
 
   if (awaitingEmail) {
     return (
-      <div className='min-h-screen bg-gray-50'>
+      <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
         <AppHeader supabaseClient={supabase} />
         <div className='max-w-[1024px] mx-auto py-12 px-4 sm:px-6 lg:px-8'>
-          <div className='mx-auto max-w-md rounded-lg border border-gray-200 bg-white p-8 shadow-sm'>
-            <h2 className='text-xl font-semibold text-gray-900'>
+          <div className='mx-auto max-w-md rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-sm'>
+            <h2 className='text-xl font-semibold text-gray-900 dark:text-white'>
               Check your email
             </h2>
-            <p className='mt-3 text-sm text-gray-600'>
+            <p className='mt-3 text-sm text-gray-600 dark:text-gray-300'>
               We sent a confirmation link to <strong>{email}</strong>. Click the
               link in that email to finish creating your account — we&apos;ll
               take you to billing to complete your plan when you&apos;re signed
               in.
             </p>
-            <p className='mt-4 text-sm text-gray-500'>
+            <p className='mt-4 text-sm text-gray-500 dark:text-gray-400'>
               <Link to={loginTo} className='font-medium text-primary-600'>
                 Already confirmed? Sign in
               </Link>
@@ -133,7 +133,7 @@ function SignupPageContent() {
   }
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
       <AppHeader supabaseClient={supabase} />
       <div className='max-w-[1024px] mx-auto py-12 px-4 sm:px-6 lg:px-8'>
         <div
@@ -149,13 +149,13 @@ function SignupPageContent() {
             }
           >
             <div>
-              <h2 className='mt-0 text-center text-3xl font-extrabold text-gray-900 md:text-left'>
+              <h2 className='mt-0 text-center text-3xl font-extrabold text-gray-900 dark:text-white md:text-left'>
                 {paidIntent && postAuthPath !== '/dashboard'
                   ? `Create your account to continue with ${displayName}`
                   : 'Create your account'}
               </h2>
               {paidIntent && postAuthPath !== '/dashboard' ? (
-                <p className='mt-2 text-center text-sm text-gray-600 md:text-left'>
+                <p className='mt-2 text-center text-sm text-gray-600 dark:text-gray-400 md:text-left'>
                   No charge until you finish checkout on the next step.
                 </p>
               ) : null}
@@ -167,18 +167,20 @@ function SignupPageContent() {
 
             <div className='relative'>
               <div className='absolute inset-0 flex items-center'>
-                <div className='w-full border-t border-gray-300' />
+                <div className='w-full border-t border-gray-300 dark:border-gray-600' />
               </div>
               <div className='relative flex justify-center text-sm'>
-                <span className='px-2 bg-gray-50 text-gray-500'>
+                <span className='px-2 bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400'>
                   Or continue with email
                 </span>
               </div>
             </div>
 
             {error && (
-              <div className='rounded-md bg-red-50 p-4'>
-                <h3 className='text-sm font-medium text-red-800'>{error}</h3>
+              <div className='rounded-md bg-red-50 dark:bg-red-900/30 p-4'>
+                <h3 className='text-sm font-medium text-red-800 dark:text-red-300'>
+                  {error}
+                </h3>
               </div>
             )}
 
@@ -197,7 +199,7 @@ function SignupPageContent() {
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     disabled={isLoading}
-                    className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
+                    className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
                     placeholder='Email address'
                   />
                 </div>
@@ -214,7 +216,7 @@ function SignupPageContent() {
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     disabled={isLoading}
-                    className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
+                    className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
                     placeholder='Password'
                   />
                 </div>
@@ -231,7 +233,7 @@ function SignupPageContent() {
                     value={confirmPassword}
                     onChange={e => setConfirmPassword(e.target.value)}
                     disabled={isLoading}
-                    className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
+                    className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
                     placeholder='Confirm password'
                   />
                 </div>

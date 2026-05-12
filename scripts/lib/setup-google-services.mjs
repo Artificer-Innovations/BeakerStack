@@ -48,3 +48,19 @@ export async function envVarsFromGoogleServicesJson(filePath) {
   if (apiKeyCurrent) out.GOOGLE_SERVICES_API_KEY = String(apiKeyCurrent);
   return out;
 }
+
+export function clearGoogleKeysFromAcc(acc) {
+  for (const k of [
+    'GOOGLE_SERVICES_PROJECT_NUMBER',
+    'GOOGLE_SERVICES_PROJECT_ID',
+    'GOOGLE_SERVICES_STORAGE_BUCKET',
+    'GOOGLE_SERVICES_MOBILESDK_APP_ID',
+    'GOOGLE_SERVICES_ANDROID_CLIENT_ID',
+    'GOOGLE_SERVICES_ANDROID_CERTIFICATE_HASH',
+    'GOOGLE_SERVICES_WEB_CLIENT_ID',
+    'GOOGLE_SERVICES_IOS_CLIENT_ID',
+    'GOOGLE_SERVICES_API_KEY',
+  ]) {
+    delete acc[k];
+  }
+}

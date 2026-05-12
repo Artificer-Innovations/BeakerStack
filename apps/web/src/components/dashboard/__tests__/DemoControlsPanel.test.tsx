@@ -93,6 +93,18 @@ describe('DemoControlsPanel', () => {
     });
   });
 
+  it('shows Error message when RPC rejects with Error', async () => {
+    const user = userEvent.setup();
+    demoSupabase.rpc.mockRejectedValue(new Error('database unavailable'));
+    render(<DemoControlsPanel />);
+    await user.click(screen.getByRole('button', { name: /Switch to Pro/i }));
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'database unavailable'
+      );
+    });
+  });
+
   it('resets usage for each meter and refreshes usage', async () => {
     const user = userEvent.setup();
     render(<DemoControlsPanel />);

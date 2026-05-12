@@ -228,6 +228,24 @@ describe('exclusiveBooleanFeaturePlanName', () => {
     expect(exclusiveBooleanFeaturePlanName(plans, 'feature_b')).toBe('High');
   });
 
+  it('sorts holders treating missing display_order as zero', () => {
+    const ranked = [
+      basePlan({
+        id: 'lo',
+        display_name: 'Low',
+        display_order: undefined,
+        features: { feature_x: true },
+      }),
+      basePlan({
+        id: 'hi',
+        display_name: 'Hi',
+        display_order: 5,
+        features: { feature_x: true },
+      }),
+    ] as Plan[];
+    expect(exclusiveBooleanFeaturePlanName(ranked, 'feature_x')).toBe('Hi');
+  });
+
   it('returns null when top holder has no display name', () => {
     const holderNoName = basePlan({
       id: 'top',
@@ -238,6 +256,16 @@ describe('exclusiveBooleanFeaturePlanName', () => {
     expect(
       exclusiveBooleanFeaturePlanName([holderNoName], 'feature_b')
     ).toBeNull();
+  });
+
+  it('returns null when display_name is undefined after sort', () => {
+    const holder = basePlan({
+      id: 'top',
+      display_name: undefined as unknown as string,
+      display_order: 5,
+      features: { feature_z: true },
+    });
+    expect(exclusiveBooleanFeaturePlanName([holder], 'feature_z')).toBeNull();
   });
 });
 
@@ -271,5 +299,13 @@ describe('mergeUsageLimitsCopy', () => {
     );
     expect(m.collectionsRowName).toBe('Cols');
     expect(m.itemsRowName).toContain('Items');
+  });
+
+  it('treats null usageLimitsCopy like empty overrides', () => {
+    const m = mergeUsageLimitsCopy({
+      ...minimalConfig(),
+      usageLimitsCopy: null,
+    } as unknown as ProductBillingConfig);
+    expect(m.collectionsRowName).toContain('Collections');
   });
 });

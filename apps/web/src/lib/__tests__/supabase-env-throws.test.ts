@@ -1,0 +1,27 @@
+import { describe, expect, it, afterEach, vi } from 'vitest';
+
+describe('supabase module env guards', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it('throws when VITE_SUPABASE_URL is missing', async () => {
+    vi.stubGlobal('window', globalThis);
+    vi.stubEnv('VITE_SUPABASE_URL', '');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-anon-key');
+    await expect(import('../supabase')).rejects.toThrow(
+      /VITE_SUPABASE_URL.*is not set/
+    );
+  });
+
+  it('throws when VITE_SUPABASE_ANON_KEY is missing', async () => {
+    vi.stubGlobal('window', globalThis);
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://example.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', '');
+    await expect(import('../supabase')).rejects.toThrow(
+      /VITE_SUPABASE_ANON_KEY.*is not set/
+    );
+  });
+});

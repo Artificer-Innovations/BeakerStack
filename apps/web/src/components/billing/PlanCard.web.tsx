@@ -27,9 +27,9 @@ export function PlanCard({
   priceHeadline: string;
   priceSubline?: string;
   subTag?: string;
-  /** Shown next to plan title in annual cadence (e.g. “2 Months Free”). */
+  /** Shown next to plan title in annual cadence (e.g. "2 Months Free"). */
   savingsCallout?: string | null;
-  /** Used for trial copy (“then billed …”). */
+  /** Used for trial copy ("then billed …"). */
   billingCadence?: 'monthly' | 'annual';
   /** Hard blockers disable the CTA; soft blockers are shown as warnings only (boolean entitlement loss). */
   blockers?: DowngradeBlockersResult;
@@ -60,31 +60,37 @@ export function PlanCard({
   return (
     <div
       id={`plan-card-${plan.id}`}
-      className='flex h-full flex-col rounded-xl border border-gray-200 bg-white p-6 shadow-sm'
+      className='flex h-full flex-col rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm'
     >
       <div className='flex flex-wrap items-center gap-2'>
-        <h3 className='text-xl font-semibold text-gray-900'>
+        <h3 className='text-xl font-semibold text-gray-900 dark:text-white'>
           {plan.display_name}
         </h3>
         {supplementalBadge ? (
-          <span className='shrink-0 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-900'>
+          <span className='shrink-0 rounded-md border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/40 px-2 py-0.5 text-xs font-medium text-blue-900 dark:text-blue-200'>
             {supplementalBadge}
           </span>
         ) : null}
         {savingsCallout ? (
-          <span className='shrink-0 rounded-md border border-rose-300 bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-900'>
+          <span className='shrink-0 rounded-md border border-rose-300 dark:border-rose-600 bg-rose-50 dark:bg-rose-900/40 px-2 py-0.5 text-xs font-semibold text-rose-900 dark:text-rose-200'>
             {savingsCallout}
           </span>
         ) : null}
       </div>
-      {tag ? <p className='text-sm text-gray-500'>{tag}</p> : null}
+      {tag ? (
+        <p className='text-sm text-gray-500 dark:text-gray-400'>{tag}</p>
+      ) : null}
       <div className='mt-4'>
-        <p className='text-3xl font-bold text-gray-900'>{priceHeadline}</p>
+        <p className='text-3xl font-bold text-gray-900 dark:text-white'>
+          {priceHeadline}
+        </p>
         {priceSubline && (
-          <p className='text-sm text-gray-500'>{priceSubline}</p>
+          <p className='text-sm text-gray-500 dark:text-gray-400'>
+            {priceSubline}
+          </p>
         )}
         {plan.price_cents > 0 && plan.trial_period_days > 0 ? (
-          <p className='mt-2 text-sm text-gray-600'>
+          <p className='mt-2 text-sm text-gray-600 dark:text-gray-300'>
             {plan.trial_period_days}-day trial, then billed{' '}
             {billingCadence === 'annual' ? 'annually' : 'monthly'} at this rate.
           </p>
