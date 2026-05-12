@@ -1944,7 +1944,11 @@ async function main() {
     acc.MOBILE_ENABLED = 'false';
     logInfo('Mobile disabled (--skip-mobile) — skipping Expo, EAS, and Google Services setup.');
   } else if (startIdx <= PHASE_ORDER.indexOf('expo')) {
-    if (!flags.dryRun) {
+    if (acc.MOBILE_ENABLED) {
+      // Resume: honour the stored choice instead of re-prompting with a true default.
+      flags.mobileEnabled = acc.MOBILE_ENABLED !== 'false';
+      logInfo(`Resuming with mobile ${flags.mobileEnabled ? 'enabled' : 'disabled'} (stored MOBILE_ENABLED=${acc.MOBILE_ENABLED}).`);
+    } else if (!flags.dryRun) {
       const mobileAns = (await rlQuestion(rl, 'Enable mobile (Expo / EAS) builds? [Y/n]: ')).trim().toLowerCase();
       if (mobileAns === 'n' || mobileAns === 'no') {
         flags.mobileEnabled = false;
