@@ -58,7 +58,7 @@ export function ProfileStats({ profile, className = '' }: ProfileStatsProps) {
   return (
     <div className={`space-y-2 ${className}`}>
       {memberSince && (
-        <div className='text-sm text-gray-600'>
+        <div className='text-sm text-gray-600 dark:text-gray-400'>
           <span className='font-medium'>Member since:</span> {memberSince}
         </div>
       )}
