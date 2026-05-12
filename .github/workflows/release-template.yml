@@ -19,6 +19,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate override tag format
+        if: inputs.override_tag != ''
+        run: |
+          if [[ ! "${{ inputs.override_tag }}" =~ ^[0-9]{4}\.[0-9]{3}$ ]]; then
+            echo "Invalid tag format '${{ inputs.override_tag }}' — must match YYYY.NNN (e.g. 2026.003)"
+            exit 1
+          fi
+
       - name: Compute next CalVer tag
         id: tag
         run: |
