@@ -178,74 +178,78 @@ publish_pr_path_router_function() {
   local function_id="${function_arn##*/}"
   function_id="${function_id%%/*}"
 
-  local desc err update_json
+  local err
   err="$(mktemp)"
-  update_json="$(mktemp)"
-  # Prefer DEVELOPMENT stage (where update-function applies).
-  if ! desc="$("${AWS_CLI[@]}" cloudfront describe-function \
+
+  # Pre-publish validation: rendered file must be UTF-8 JS starting with `function`.
+  # Catches an unrendered `%%PREVIEW_PREFIX%%` template or a truncated/binary file before
+  # we touch the live edge code.
+  if ! RENDERED_PATH="${rendered_path}" python3 -c '
+import os, sys
+
+src_path = os.environ["RENDERED_PATH"]
+with open(src_path, "rb") as fp:
+    raw = fp.read()
+try:
+    text = raw.decode("utf-8")
+except UnicodeDecodeError as exc:
+    print(f"rendered function is not valid UTF-8: {exc}", file=sys.stderr)
+    sys.exit(1)
+if "%%PREVIEW_PREFIX%%" in text:
+    print("rendered function still contains %%PREVIEW_PREFIX%% placeholder", file=sys.stderr)
+    sys.exit(1)
+if not text.lstrip().startswith("function"):
+    print("rendered function does not start with a `function` declaration", file=sys.stderr)
+    sys.exit(1)
+' 2>"${err}"; then
+    log "ERROR" "Refusing to publish corrupt CloudFront function source: $(tr '\n' ' ' <"${err}")"
+    rm -f "${err}"
+    exit 1
+  fi
+
+  # Get current DEVELOPMENT ETag so update-function can use If-Match.
+  # Prefer DEVELOPMENT stage (where update-function applies); fall back to default.
+  local etag
+  etag="$("${AWS_CLI[@]}" cloudfront describe-function \
     --name "${function_id}" \
     --stage DEVELOPMENT \
-    --output json 2>"${err}")"; then
-    if ! desc="$("${AWS_CLI[@]}" cloudfront describe-function \
+    --query 'ETag' \
+    --output text 2>"${err}")" || etag=""
+  if [[ -z "${etag}" || "${etag}" == "None" ]]; then
+    etag="$("${AWS_CLI[@]}" cloudfront describe-function \
       --name "${function_id}" \
-      --output json 2>"${err}")"; then
-      log "WARN" "describe-function failed for ${function_id}; skipping publish. $(head -c 400 "${err}" 2>/dev/null | tr '\n' ' ')"
-      rm -f "${err}" "${update_json}"
-      return 0
-    fi
+      --query 'ETag' \
+      --output text 2>"${err}")" || etag=""
+  fi
+  if [[ -z "${etag}" || "${etag}" == "None" ]]; then
+    log "ERROR" "describe-function returned no ETag for ${function_id}: $(head -c 400 "${err}" 2>/dev/null | tr '\n' ' ')"
+    rm -f "${err}"
+    exit 1
   fi
 
-  if ! RENDERED_PATH="${rendered_path}" FUNCTION_ID="${function_id}" python3 -c '
-import json, os, sys
+  # IMPORTANT: this call deliberately avoids --cli-input-json. In AWS CLI v2, blob fields
+  # read from --cli-input-json are base64-decoded (cli_binary_format=base64), so the JS
+  # source gets corrupted into binary garbage on the live function. The supported path
+  # for raw binary blobs is `--function-code fileb://path` as a direct CLI argument,
+  # which streams the file bytes unchanged.
+  local function_config_json
+  function_config_json="$(python3 -c '
+import json
+print(json.dumps({
+    "Comment": "PR path router",
+    "Runtime": "cloudfront-js-2.0",
+    "KeyValueStoreAssociations": {"Quantity": 0},
+}))
+')"
 
-rendered_path = os.environ["RENDERED_PATH"]
-function_id = os.environ["FUNCTION_ID"]
-desc = json.loads(sys.stdin.read())
-
-etag = (desc.get("ETag") or "").strip()
-if not etag:
-    print("missing ETag from describe-function", file=sys.stderr)
-    sys.exit(1)
-fs = desc.get("FunctionSummary") or {}
-name = (fs.get("Name") or function_id).strip()
-fc = dict(fs.get("FunctionConfig") or {})
-if not fc.get("Runtime"):
-    fc["Runtime"] = "cloudfront-js-2.0"
-if "Comment" not in fc or fc.get("Comment") is None:
-    fc["Comment"] = "PR path router"
-kv = fc.get("KeyValueStoreAssociations")
-if not kv or int(kv.get("Quantity") or 0) == 0:
-    fc["KeyValueStoreAssociations"] = {"Quantity": 0}
-else:
-    fc["KeyValueStoreAssociations"] = kv
-
-# IMPORTANT: when delivering FunctionCode via --cli-input-json, pass the JS source as a
-# plain UTF-8 string. Do NOT use a fileb:// prefix here — that prefix is only honored on
-# CLI argument values; inside --cli-input-json the CLI base64-decodes blob fields, so a
-# fileb:// literal becomes random binary in the live function ("gibberish").
-with open(rendered_path, "r", encoding="utf-8") as fp:
-    code = fp.read()
-stripped = code.lstrip()
-if not stripped.startswith("function"):
-    print(
-        "invalid rendered CloudFront function (expected UTF-8 JS starting with function)",
-        file=sys.stderr,
-    )
-    sys.exit(1)
-
-body = {"Name": name, "IfMatch": etag, "FunctionConfig": fc, "FunctionCode": code}
-json.dump(body, sys.stdout)
-
-' <<<"${desc}" >"${update_json}" 2>"${err}"; then
-    log "WARN" "Could not build update-function payload for ${function_id}: $(tr '\n' ' ' <"${err}")"
-    rm -f "${err}" "${update_json}"
-    return 0
-  fi
-
-  if ! "${AWS_CLI[@]}" cloudfront update-function --cli-input-json "file://${update_json}" >/dev/null 2>"${err}"; then
-    log "WARN" "cloudfront update-function failed for ${function_id}: $(head -c 500 "${err}" 2>/dev/null | tr '\n' ' ')"
-    rm -f "${err}" "${update_json}"
-    return 0
+  if ! "${AWS_CLI[@]}" cloudfront update-function \
+    --name "${function_id}" \
+    --if-match "${etag}" \
+    --function-config "${function_config_json}" \
+    --function-code "fileb://${rendered_path}" >/dev/null 2>"${err}"; then
+    log "ERROR" "cloudfront update-function failed for ${function_id}: $(head -c 500 "${err}" 2>/dev/null | tr '\n' ' ')"
+    rm -f "${err}"
+    exit 1
   fi
 
   local etag_pub
@@ -263,21 +267,73 @@ json.dump(body, sys.stdout)
   fi
 
   if [[ -z "${etag_pub}" || "${etag_pub}" == "None" ]]; then
-    log "WARN" "Could not read ETag after update for ${function_id}; skipping publish-function."
-    rm -f "${err}" "${update_json}"
-    return 0
+    log "ERROR" "Could not read ETag after update for ${function_id}; aborting before publish."
+    rm -f "${err}"
+    exit 1
   fi
 
   if ! "${AWS_CLI[@]}" cloudfront publish-function \
     --name "${function_id}" \
     --if-match "${etag_pub}" >/dev/null 2>"${err}"; then
-    log "WARN" "cloudfront publish-function failed for ${function_id}: $(head -c 500 "${err}" 2>/dev/null | tr '\n' ' ')"
-    rm -f "${err}" "${update_json}"
-    return 0
+    log "ERROR" "cloudfront publish-function failed for ${function_id}: $(head -c 500 "${err}" 2>/dev/null | tr '\n' ' ')"
+    rm -f "${err}"
+    exit 1
   fi
 
-  rm -f "${err}" "${update_json}"
-  log "INFO" "Successfully published CloudFront function: ${function_id}"
+  # Post-publish verification: download what is now LIVE and refuse to call this a success
+  # unless the bytes parse as our rendered JS. Catches CLI encoding regressions (e.g. the
+  # fileb://-inside-cli-input-json bug that base64-decoded the path into binary garbage)
+  # before the broken function reaches users.
+  local live_dump live_err verify_failed
+  live_dump="$(mktemp)"
+  live_err="$(mktemp)"
+  verify_failed=0
+  if ! "${AWS_CLI[@]}" cloudfront get-function \
+    --name "${function_id}" \
+    --stage LIVE \
+    "${live_dump}" >/dev/null 2>"${live_err}"; then
+    log "ERROR" "Could not verify published CloudFront function ${function_id}: $(head -c 500 "${live_err}" 2>/dev/null | tr '\n' ' ')"
+    verify_failed=1
+  else
+    if ! LIVE_DUMP="${live_dump}" RENDERED_PATH="${rendered_path}" python3 -c '
+import os, sys
+
+live_path = os.environ["LIVE_DUMP"]
+src_path = os.environ["RENDERED_PATH"]
+
+with open(live_path, "rb") as fp:
+    live_bytes = fp.read()
+try:
+    live_text = live_bytes.decode("utf-8")
+except UnicodeDecodeError as exc:
+    print(f"LIVE function code is not valid UTF-8 ({exc}); first bytes: {live_bytes[:32]!r}", file=sys.stderr)
+    sys.exit(2)
+
+if not live_text.lstrip().startswith("function"):
+    head = live_text[:200].replace("\n", "\\n")
+    print(f"LIVE function code does not start with a function declaration; head={head!r}", file=sys.stderr)
+    sys.exit(3)
+
+with open(src_path, "r", encoding="utf-8") as fp:
+    expected = fp.read()
+if live_text.strip() != expected.strip():
+    print("LIVE function code does not match the rendered source we just published.", file=sys.stderr)
+    print(f"live_len={len(live_text)} expected_len={len(expected)}", file=sys.stderr)
+    sys.exit(4)
+' 2>"${live_err}"; then
+      log "ERROR" "Published CloudFront function ${function_id} failed verification: $(head -c 500 "${live_err}" 2>/dev/null | tr '\n' ' ')"
+      verify_failed=1
+    fi
+  fi
+
+  rm -f "${err}" "${live_dump}" "${live_err}"
+
+  if [[ "${verify_failed}" -eq 1 ]]; then
+    log "ERROR" "CloudFront function ${function_id} appears corrupted on LIVE. Aborting to surface the regression instead of leaving bad edge code."
+    exit 1
+  fi
+
+  log "INFO" "Successfully published and verified CloudFront function: ${function_id}"
 }
 
 write_exports() {
