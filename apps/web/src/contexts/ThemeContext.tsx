@@ -20,6 +20,7 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function getSystemDark(): boolean {
+  if (typeof window === 'undefined') return false;
   return window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
