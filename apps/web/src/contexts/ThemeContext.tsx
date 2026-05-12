@@ -46,7 +46,7 @@ function applyClass(isDark: boolean): void {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [preference, setPreference] = useState<ThemePreference>(readStored);
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() =>
-    resolve(readStored())
+    resolve(preference)
   );
 
   // Keep DOM in sync whenever resolved theme changes.
