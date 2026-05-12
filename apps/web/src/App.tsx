@@ -29,7 +29,7 @@ function RootLayout() {
 
 function App() {
   return (
-    <div className='bg-gray-50'>
+    <div className='bg-gray-50 dark:bg-gray-900'>
       <Routes>
         <Route element={<RootLayout />}>
           <Route

@@ -31,14 +31,14 @@ export function CadenceToggle() {
   );
   return (
     <div className='flex items-center justify-center gap-1'>
-      <div className='inline-flex rounded-full border border-gray-200 bg-white p-1 shadow-sm'>
+      <div className='inline-flex rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-1 shadow-sm'>
         <button
           type='button'
           onClick={() => set('monthly')}
           className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
             cadence === 'monthly'
               ? 'bg-indigo-600 text-white'
-              : 'text-gray-600 hover:text-gray-900'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
           }`}
         >
           Monthly
@@ -52,7 +52,7 @@ export function CadenceToggle() {
           className={`inline-flex min-h-[2.25rem] items-center justify-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium transition ${
             cadence === 'annual'
               ? 'bg-indigo-600 text-white'
-              : 'text-gray-600 hover:text-gray-900'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
           }`}
         >
           <span>Annually</span>

@@ -16,7 +16,7 @@ export default function ProfilePage() {
   const profile = useProfileContext();
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
       <AppHeader supabaseClient={supabase} />
 
       {/* Main Content */}
@@ -26,19 +26,21 @@ export default function ProfilePage() {
           {profile.loading && (
             <div className='text-center py-12'>
               <div className='inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600'></div>
-              <p className='mt-4 text-gray-600'>Loading profile...</p>
+              <p className='mt-4 text-gray-600 dark:text-gray-400'>
+                Loading profile...
+              </p>
             </div>
           )}
 
           {/* Error State */}
           {profile.error && !profile.loading && (
-            <div className='rounded-md bg-red-50 p-4 mb-6'>
+            <div className='rounded-md bg-red-50 dark:bg-red-900/30 p-4 mb-6'>
               <div className='flex'>
                 <div className='ml-3'>
-                  <h3 className='text-sm font-medium text-red-800'>
+                  <h3 className='text-sm font-medium text-red-800 dark:text-red-300'>
                     Error loading profile
                   </h3>
-                  <p className='mt-2 text-sm text-red-700'>
+                  <p className='mt-2 text-sm text-red-700 dark:text-red-400'>
                     {profile.error.message}
                   </p>
                 </div>
@@ -50,7 +52,7 @@ export default function ProfilePage() {
           {!profile.loading && (
             <div className='space-y-6'>
               {/* Profile Header Section */}
-              <div className='bg-white shadow rounded-lg p-6'>
+              <div className='bg-white dark:bg-gray-800 shadow rounded-lg p-6'>
                 <ProfileHeader
                   profile={profile.profile}
                   email={auth.user?.email}
@@ -59,14 +61,14 @@ export default function ProfilePage() {
 
               {/* Profile Stats Section */}
               {profile.profile && (
-                <div className='bg-white shadow rounded-lg p-6'>
+                <div className='bg-white dark:bg-gray-800 shadow rounded-lg p-6'>
                   <ProfileStats profile={profile.profile} />
                 </div>
               )}
 
               {/* Profile Editor Section */}
               {!isEditing && (
-                <div className='bg-white shadow rounded-lg p-6'>
+                <div className='bg-white dark:bg-gray-800 shadow rounded-lg p-6'>
                   <button
                     onClick={() => setIsEditing(true)}
                     className='w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-md text-sm font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500'
@@ -77,7 +79,7 @@ export default function ProfilePage() {
               )}
 
               {isEditing && (
-                <div className='bg-white shadow rounded-lg p-6'>
+                <div className='bg-white dark:bg-gray-800 shadow rounded-lg p-6'>
                   <ProfileEditor
                     onSuccess={() => {
                       // Refresh profile data after successful update

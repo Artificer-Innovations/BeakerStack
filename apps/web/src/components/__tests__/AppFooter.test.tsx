@@ -1,13 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { ThemeProvider } from '../../contexts/ThemeContext';
 import { AppFooter } from '../AppFooter';
 
 function renderFooter() {
   return render(
-    <MemoryRouter>
-      <AppFooter />
-    </MemoryRouter>
+    <ThemeProvider>
+      <MemoryRouter>
+        <AppFooter />
+      </MemoryRouter>
+    </ThemeProvider>
   );
 }
 
