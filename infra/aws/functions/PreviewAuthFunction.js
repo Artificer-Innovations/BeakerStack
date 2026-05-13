@@ -25,7 +25,7 @@ function handler(event) {
   // Restrict dest to a local path to prevent open redirect.
   // decodeURIComponent throws on malformed % sequences — fall back to '/'.
   // Also block protocol-relative URLs like //evil.com which startsWith('/') but are external.
-  var dest = '/';
+  var dest;
   try { dest = qs.dest ? decodeURIComponent(qs.dest.value) : '/'; } catch (e) { dest = '/'; }
   if (!dest.startsWith('/') || dest.startsWith('//')) dest = '/';
 
