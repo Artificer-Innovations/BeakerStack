@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   ScrollView,
   Pressable,
+  StatusBar,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
@@ -26,6 +27,8 @@ import type { BillingError } from '@beakerstack/billing';
 import { FeatureGate } from '@beakerstack/billing/native';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.native';
+import { useDarkMode } from '@beakerstack/shared';
+import type { ThemeColors } from '@beakerstack/shared';
 import { supabase } from '../lib/supabase';
 import {
   beakerstackBillingConfig,
@@ -80,28 +83,44 @@ function SectionCard(props: {
   description: string;
   codeRef: string;
   demoMode?: boolean;
+  colors: ThemeColors;
   children: React.ReactNode;
 }): ReactElement {
+  const { colors } = props;
   return (
-    <View style={[styles.card, props.demoMode && styles.cardDemo]}>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.surface, borderColor: colors.border },
+        props.demoMode && styles.cardDemo,
+      ]}
+    >
       {props.demoMode && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>Demo mode only</Text>
         </View>
       )}
-      <Text style={styles.cardTitle}>{props.title}</Text>
-      <Text style={styles.demonstratesLabel}>
-        DEMONSTRATES:{' '}
-        <Text style={styles.demonstratesMono}>{props.demonstrates}</Text>
+      <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
+        {props.title}
       </Text>
-      <Text style={styles.cardDesc}>{props.description}</Text>
+      <Text style={[styles.demonstratesLabel, { color: colors.textSecondary }]}>
+        DEMONSTRATES:{' '}
+        <Text style={[styles.demonstratesMono, { color: colors.textPrimary }]}>
+          {props.demonstrates}
+        </Text>
+      </Text>
+      <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>
+        {props.description}
+      </Text>
       <View style={styles.cardBody}>{props.children}</View>
-      <Text style={styles.codeLine}>// {props.codeRef}</Text>
+      <Text style={[styles.codeLine, { color: colors.textSecondary }]}>
+        // {props.codeRef}
+      </Text>
     </View>
   );
 }
 
-function MeteredBlock(): ReactElement {
+function MeteredBlock({ colors }: { colors: ThemeColors }): ReactElement {
   const { config } = useBillingContext<typeof beakerstackBillingConfig>();
   const {
     used,
@@ -196,20 +215,33 @@ function MeteredBlock(): ReactElement {
     <View>
       <View testID='usage-indicator-expanded'>
         {limit != null && (
-          <View style={styles.usageBarTrack}>
-            <View style={[styles.usageBarFill, { width: `${pct}%` }]} />
+          <View
+            style={[styles.usageBarTrack, { backgroundColor: colors.border }]}
+          >
+            <View
+              style={[
+                styles.usageBarFill,
+                { width: `${pct}%`, backgroundColor: colors.accent },
+              ]}
+            />
           </View>
         )}
-        <Text style={styles.usageCapLine}>{loading ? '…' : capLine}</Text>
+        <Text style={[styles.usageCapLine, { color: colors.textSecondary }]}>
+          {loading ? '…' : capLine}
+        </Text>
       </View>
       <View style={styles.row}>
         {exceeded ? (
-          <Text style={styles.muted}>
+          <Text style={[styles.muted, { color: colors.textSecondary }]}>
             Limit reached — open Billing for plans.
           </Text>
         ) : (
           <Pressable
-            style={[styles.btnPrimary, pending && styles.btnDisabled]}
+            style={[
+              styles.btnPrimary,
+              { backgroundColor: colors.accent },
+              pending && styles.btnDisabled,
+            ]}
             disabled={pending}
             onPress={() => void onSimulate()}
           >
@@ -222,18 +254,28 @@ function MeteredBlock(): ReactElement {
       {displayError ? (
         <Text style={styles.errText}>{displayError.message}</Text>
       ) : null}
-      <View style={styles.resultBox}>
+      <View
+        style={[
+          styles.resultBox,
+          { borderColor: colors.border, backgroundColor: colors.background },
+        ]}
+      >
         {results.length === 0 ? (
-          <Text style={styles.muted}>
+          <Text style={[styles.muted, { color: colors.textSecondary }]}>
             Tap &apos;Simulate AI summarize&apos; to generate a result.
           </Text>
         ) : (
           results.map(e => (
-            <View key={e.id} style={styles.resultItem}>
-              <Text style={styles.resultTs}>
+            <View
+              key={e.id}
+              style={[styles.resultItem, { borderBottomColor: colors.border }]}
+            >
+              <Text style={[styles.resultTs, { color: colors.textSecondary }]}>
                 {new Date(e.at).toLocaleString()}
               </Text>
-              <Text style={styles.resultBody}>{e.text}</Text>
+              <Text style={[styles.resultBody, { color: colors.textPrimary }]}>
+                {e.text}
+              </Text>
             </View>
           ))
         )}
@@ -242,7 +284,7 @@ function MeteredBlock(): ReactElement {
   );
 }
 
-function NumericCapsBlock(): ReactElement {
+function NumericCapsBlock({ colors }: { colors: ThemeColors }): ReactElement {
   const {
     collections,
     loading,
@@ -288,7 +330,7 @@ function NumericCapsBlock(): ReactElement {
         </Text>
       ) : null}
       <View style={styles.rowBetween}>
-        <Text style={styles.bodyText}>
+        <Text style={[styles.bodyText, { color: colors.textPrimary }]}>
           Collections:{' '}
           {loading || featLoading
             ? '…'
@@ -297,6 +339,7 @@ function NumericCapsBlock(): ReactElement {
         <Pressable
           style={[
             styles.btnPrimary,
+            { backgroundColor: colors.accent },
             (atCollectionCap || busy === 'add') && styles.btnDisabled,
           ]}
           disabled={atCollectionCap || loading || featLoading || busy === 'add'}
@@ -313,7 +356,7 @@ function NumericCapsBlock(): ReactElement {
       </View>
       {actionErr ? <Text style={styles.errText}>{actionErr}</Text> : null}
       {!loading && collections.length === 0 ? (
-        <Text style={styles.muted}>
+        <Text style={[styles.muted, { color: colors.textSecondary }]}>
           No collections yet. Tap Add collection to start.
         </Text>
       ) : (
@@ -323,20 +366,42 @@ function NumericCapsBlock(): ReactElement {
             maxItemsPer !== -1 &&
             row.item_count >= maxItemsPer;
           return (
-            <View key={row.id} style={styles.collectionCard}>
-              <Text style={styles.monoSm}>{row.id.slice(0, 8)}…</Text>
-              <Text style={styles.bodyText}>
+            <View
+              key={row.id}
+              style={[
+                styles.collectionCard,
+                {
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <Text style={[styles.monoSm, { color: colors.textSecondary }]}>
+                {row.id.slice(0, 8)}…
+              </Text>
+              <Text style={[styles.bodyText, { color: colors.textPrimary }]}>
                 Items: {row.item_count} of {limLabel(maxItemsPer)}
               </Text>
               <View style={styles.row}>
                 <Pressable
-                  style={styles.btnSecondary}
+                  style={[
+                    styles.btnSecondary,
+                    {
+                      borderColor: colors.border,
+                      backgroundColor: colors.surface,
+                    },
+                  ]}
                   disabled={itemCap || busy === `i-${row.id}`}
                   onPress={() =>
                     void wrap(`i-${row.id}`, () => addItem(row.id))
                   }
                 >
-                  <Text style={styles.btnSecondaryText}>
+                  <Text
+                    style={[
+                      styles.btnSecondaryText,
+                      { color: colors.textPrimary },
+                    ]}
+                  >
                     {itemCap
                       ? 'Limit'
                       : busy === `i-${row.id}`
@@ -361,7 +426,7 @@ function NumericCapsBlock(): ReactElement {
   );
 }
 
-function BooleanGatesBlock(): ReactElement {
+function BooleanGatesBlock({ colors }: { colors: ThemeColors }): ReactElement {
   const { loading: planLoading } = usePlan<typeof beakerstackBillingConfig>();
   const a = useFeature<typeof beakerstackBillingConfig, 'feature_a'>(
     'feature_a'
@@ -371,14 +436,16 @@ function BooleanGatesBlock(): ReactElement {
   );
   return (
     <View>
-      <Text style={styles.subH}>Feature A (requires Pro)</Text>
+      <Text style={[styles.subH, { color: colors.textPrimary }]}>
+        Feature A (requires Pro)
+      </Text>
       {planLoading ? (
-        <Text style={styles.muted}>…</Text>
+        <Text style={[styles.muted, { color: colors.textSecondary }]}>…</Text>
       ) : (
         <FeatureGate<typeof beakerstackBillingConfig>
           feature='feature_a'
           fallback={
-            <Text style={styles.bodyText}>
+            <Text style={[styles.bodyText, { color: colors.textPrimary }]}>
               Feature A requires Pro. See Billing for plans.
             </Text>
           }
@@ -388,16 +455,18 @@ function BooleanGatesBlock(): ReactElement {
           </Text>
         </FeatureGate>
       )}
-      <Text style={[styles.subH, { marginTop: 12 }]}>
+      <Text
+        style={[styles.subH, { color: colors.textPrimary, marginTop: 12 }]}
+      >
         Feature B (requires Max)
       </Text>
       {planLoading ? (
-        <Text style={styles.muted}>…</Text>
+        <Text style={[styles.muted, { color: colors.textSecondary }]}>…</Text>
       ) : (
         <FeatureGate<typeof beakerstackBillingConfig>
           feature='feature_b'
           fallback={
-            <Text style={styles.bodyText}>
+            <Text style={[styles.bodyText, { color: colors.textPrimary }]}>
               Feature B requires Max. See Billing for plans.
             </Text>
           }
@@ -407,7 +476,9 @@ function BooleanGatesBlock(): ReactElement {
           </Text>
         </FeatureGate>
       )}
-      <Text style={[styles.bodyText, { marginTop: 12 }]}>
+      <Text
+        style={[styles.bodyText, { color: colors.textPrimary, marginTop: 12 }]}
+      >
         useFeature(&quot;feature_a&quot;) →{' '}
         {a.loading ? '…' : String(a.enabled)} · feature_b →{' '}
         {b.loading ? '…' : String(b.enabled)}
@@ -424,7 +495,11 @@ const PLANS = [
 
 const METERS = [BEAKERSTACK_METER_AI_SUMMARIZE] as const;
 
-function DemoControlsBlock(): ReactElement | null {
+function DemoControlsBlock({
+  colors,
+}: {
+  colors: ThemeColors;
+}): ReactElement | null {
   if (!readBillingDashboardDemoMode()) return null;
   const { data: plan, loading: planLoading } =
     usePlan<typeof beakerstackBillingConfig>();
@@ -457,8 +532,9 @@ function DemoControlsBlock(): ReactElement | null {
       description='App-layer only. Not part of @beakerstack/billing. Remove in production.'
       codeRef='supabase.rpc("billing_demo_simulate_upgrade", …)'
       demoMode
+      colors={colors}
     >
-      <Text style={styles.bodyText}>
+      <Text style={[styles.bodyText, { color: colors.textPrimary }]}>
         Current plan: {planLoading ? '…' : (plan?.display_name ?? '—')}
       </Text>
       <View style={styles.btnRow}>
@@ -467,6 +543,7 @@ function DemoControlsBlock(): ReactElement | null {
             key={p.id}
             style={[
               styles.btnSecondary,
+              { borderColor: colors.border, backgroundColor: colors.surface },
               (plan?.id === p.id || pending != null) && styles.btnDisabled,
             ]}
             disabled={plan?.id === p.id || pending != null}
@@ -484,7 +561,9 @@ function DemoControlsBlock(): ReactElement | null {
               })
             }
           >
-            <Text style={styles.btnSecondaryText}>
+            <Text
+              style={[styles.btnSecondaryText, { color: colors.textPrimary }]}
+            >
               {pending === `p-${p.id}` ? '…' : `To ${p.label}`}
             </Text>
           </Pressable>
@@ -493,7 +572,11 @@ function DemoControlsBlock(): ReactElement | null {
       <Pressable
         style={[
           styles.btnSecondary,
-          { marginTop: 8 },
+          {
+            marginTop: 8,
+            borderColor: colors.border,
+            backgroundColor: colors.surface,
+          },
           pending != null && styles.btnDisabled,
         ]}
         disabled={pending != null}
@@ -513,12 +596,16 @@ function DemoControlsBlock(): ReactElement | null {
           })
         }
       >
-        <Text style={styles.btnSecondaryText}>
+        <Text style={[styles.btnSecondaryText, { color: colors.textPrimary }]}>
           {pending === 'reset' ? '…' : 'Reset all usage counters'}
         </Text>
       </Pressable>
-      {msg ? <Text style={styles.muted}>{msg}</Text> : null}
-      <Text style={styles.tinyLegal}>
+      {msg ? (
+        <Text style={[styles.muted, { color: colors.textSecondary }]}>
+          {msg}
+        </Text>
+      ) : null}
+      <Text style={[styles.tinyLegal, { color: colors.textSecondary }]}>
         These actions bypass Stripe. Do not deploy to production.
       </Text>
     </SectionCard>
@@ -527,16 +614,20 @@ function DemoControlsBlock(): ReactElement | null {
 
 function DashboardBody({
   navigation,
+  colors,
 }: {
   navigation: DashboardScreenNavigationProp;
+  colors: ThemeColors;
 }): ReactElement {
   return (
     <ScrollView
       style={styles.scrollView}
       contentContainerStyle={styles.content}
     >
-      <Text style={styles.h1}>Welcome to BeakerStack</Text>
-      <Text style={styles.lede}>
+      <Text style={[styles.h1, { color: colors.textPrimary }]}>
+        Welcome to BeakerStack
+      </Text>
+      <Text style={[styles.lede, { color: colors.textSecondary }]}>
         This dashboard is a sandbox for @beakerstack/billing. For polished
         billing UI, use the web app.
       </Text>
@@ -544,7 +635,9 @@ function DashboardBody({
         onPress={() => navigation.navigate('Billing')}
         style={styles.navLink}
       >
-        <Text style={styles.navLinkText}>View polished billing →</Text>
+        <Text style={[styles.navLinkText, { color: colors.accent }]}>
+          View polished billing →
+        </Text>
       </Pressable>
 
       <View style={styles.spacer} />
@@ -554,8 +647,9 @@ function DashboardBody({
         demonstrates='useUsage, billing_record_usage_event, refresh()'
         description='AI summarize is metered. Free 30/mo, Pro 500, Max unlimited.'
         codeRef='await refresh() after RPC'
+        colors={colors}
       >
-        <MeteredBlock />
+        <MeteredBlock colors={colors} />
       </SectionCard>
 
       <SectionCard
@@ -563,8 +657,9 @@ function DashboardBody({
         demonstrates='useFeature (numeric), container caps'
         description='Free: 2 collections × 3 items. Pro: unlimited × 25. Max: unlimited both.'
         codeRef='useFeature("containers_per_account_max")'
+        colors={colors}
       >
-        <NumericCapsBlock />
+        <NumericCapsBlock colors={colors} />
       </SectionCard>
 
       <SectionCard
@@ -572,17 +667,19 @@ function DashboardBody({
         demonstrates='FeatureGate, useFeature (boolean)'
         description='Feature A at Pro+, Feature B at Max only.'
         codeRef='FeatureGate feature="feature_a"'
+        colors={colors}
       >
-        <BooleanGatesBlock />
+        <BooleanGatesBlock colors={colors} />
       </SectionCard>
 
-      <DemoControlsBlock />
+      <DemoControlsBlock colors={colors} />
     </ScrollView>
   );
 }
 
 export default function DashboardScreen({ navigation }: Props) {
   const auth = useAuthContext();
+  const { dark, colors } = useDarkMode();
 
   useEffect(() => {
     if (!auth.loading && !auth.user) {
@@ -593,56 +690,70 @@ export default function DashboardScreen({ navigation }: Props) {
 
   if (auth.loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size='large' color='#4F46E5' />
-        <Text style={styles.loadingText}>Loading...</Text>
+      <View
+        style={[styles.loadingContainer, { backgroundColor: colors.background }]}
+      >
+        <ActivityIndicator size='large' color={colors.accent} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+          Loading...
+        </Text>
       </View>
     );
   }
 
   if (!auth.user) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size='large' color='#4F46E5' />
-        <Text style={styles.loadingText}>Redirecting...</Text>
+      <View
+        style={[styles.loadingContainer, { backgroundColor: colors.background }]}
+      >
+        <ActivityIndicator size='large' color={colors.accent} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+          Redirecting...
+        </Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <AppHeader supabaseClient={supabase} />
-      <BillingProvider<typeof beakerstackBillingConfig>
-        supabase={supabase}
-        config={beakerstackBillingConfig}
-        checkoutSuccessUrl={`${billingBaseUrl}/billing`}
-        checkoutCancelUrl={`${billingBaseUrl}/billing/plans?checkout=cancel`}
-        portalReturnUrl={`${billingBaseUrl}/billing`}
+    <>
+      <StatusBar
+        barStyle={dark ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.background}
+      />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
       >
-        <DashboardBody navigation={navigation} />
-      </BillingProvider>
-    </SafeAreaView>
+        <AppHeader supabaseClient={supabase} />
+        <BillingProvider<typeof beakerstackBillingConfig>
+          supabase={supabase}
+          config={beakerstackBillingConfig}
+          checkoutSuccessUrl={`${billingBaseUrl}/billing`}
+          checkoutCancelUrl={`${billingBaseUrl}/billing/plans?checkout=cancel`}
+          portalReturnUrl={`${billingBaseUrl}/billing`}
+        >
+          <DashboardBody navigation={navigation} colors={colors} />
+        </BillingProvider>
+      </SafeAreaView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
+  container: { flex: 1 },
   scrollView: { flex: 1 },
   content: { padding: 20, paddingBottom: 40 },
-  h1: { fontSize: 22, fontWeight: '700', color: '#111827' },
-  lede: { marginTop: 8, fontSize: 14, color: '#4b5563', lineHeight: 20 },
+  h1: { fontSize: 22, fontWeight: '700' },
+  lede: { marginTop: 8, fontSize: 14, lineHeight: 20 },
   navLink: { marginTop: 12, alignSelf: 'flex-start' },
-  navLinkText: { color: '#4f46e5', fontWeight: '600' },
+  navLinkText: { fontWeight: '600' },
   spacer: { height: 20 },
   card: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
     padding: 16,
     marginBottom: 20,
   },
-  cardDemo: { borderStyle: 'dashed' as const, borderColor: '#d1d5db' },
+  cardDemo: { borderStyle: 'dashed' as const },
   badge: {
     position: 'absolute' as const,
     right: 12,
@@ -653,45 +764,21 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   badgeText: { fontSize: 10, fontWeight: '600', color: '#92400e' },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    paddingRight: 100,
-  },
+  cardTitle: { fontSize: 18, fontWeight: '600', paddingRight: 100 },
   demonstratesLabel: {
     marginTop: 4,
     fontSize: 10,
     fontWeight: '600',
-    color: '#6b7280',
     textTransform: 'uppercase' as const,
     letterSpacing: 0.5,
   },
-  demonstratesMono: { fontFamily: 'monospace', fontSize: 12, color: '#374151' },
-  cardDesc: { marginTop: 6, fontSize: 14, color: '#4b5563' },
+  demonstratesMono: { fontFamily: 'monospace', fontSize: 12 },
+  cardDesc: { marginTop: 6, fontSize: 14 },
   cardBody: { marginTop: 12 },
-  codeLine: {
-    marginTop: 12,
-    fontSize: 11,
-    fontFamily: 'monospace',
-    color: '#6b7280',
-  },
-  usageBarTrack: {
-    height: 8,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  usageBarFill: {
-    height: 8,
-    backgroundColor: '#4f46e5',
-    borderRadius: 4,
-  },
-  usageCapLine: {
-    marginTop: 8,
-    fontSize: 13,
-    color: '#4b5563',
-  },
+  codeLine: { marginTop: 12, fontSize: 11, fontFamily: 'monospace' },
+  usageBarTrack: { height: 8, borderRadius: 4, overflow: 'hidden' },
+  usageBarFill: { height: 8, borderRadius: 4 },
+  usageCapLine: { marginTop: 8, fontSize: 13 },
   row: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -707,62 +794,36 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 4,
   },
-  btnPrimary: {
-    backgroundColor: '#4f46e5',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
+  btnPrimary: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
   btnPrimaryText: { color: '#fff', fontWeight: '600' },
   btnDisabled: { opacity: 0.5 },
   btnSecondary: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
-    backgroundColor: '#fff',
   },
-  btnSecondaryText: { color: '#374151', fontSize: 12, fontWeight: '500' },
+  btnSecondaryText: { fontSize: 12, fontWeight: '500' },
   btnDanger: { marginLeft: 8, padding: 6 },
   btnDangerText: { color: '#b91c1c', fontSize: 12, fontWeight: '600' },
   btnRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
-  muted: { color: '#6b7280', fontSize: 13, marginTop: 4 },
+  muted: { fontSize: 13, marginTop: 4 },
   errText: { color: '#b91c1c', fontSize: 13, marginTop: 4 },
   warnText: { color: '#b45309', fontSize: 12, marginBottom: 6 },
-  bodyText: { fontSize: 14, color: '#374151' },
-  subH: { fontSize: 14, fontWeight: '600', color: '#111827' },
+  bodyText: { fontSize: 14 },
+  subH: { fontSize: 14, fontWeight: '600' },
   okText: { fontSize: 14, color: '#15803d' },
-  resultBox: {
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
-    padding: 10,
-  },
-  resultItem: {
-    marginBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  resultTs: { fontSize: 11, color: '#6b7280' },
-  resultBody: { fontSize: 13, color: '#1f2937', marginTop: 2 },
-  collectionCard: {
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  monoSm: { fontFamily: 'monospace', fontSize: 11, color: '#6b7280' },
-  tinyLegal: { fontSize: 10, color: '#6b7280', marginTop: 8 },
+  resultBox: { marginTop: 12, borderWidth: 1, borderRadius: 8, padding: 10 },
+  resultItem: { marginBottom: 10, borderBottomWidth: 1 },
+  resultTs: { fontSize: 11 },
+  resultBody: { fontSize: 13, marginTop: 2 },
+  collectionCard: { marginTop: 10, padding: 10, borderRadius: 8, borderWidth: 1 },
+  monoSm: { fontFamily: 'monospace', fontSize: 11 },
+  tinyLegal: { fontSize: 10, marginTop: 8 },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
   },
-  loadingText: { marginTop: 16, fontSize: 16, color: '#6B7280' },
+  loadingText: { marginTop: 16, fontSize: 16 },
 });

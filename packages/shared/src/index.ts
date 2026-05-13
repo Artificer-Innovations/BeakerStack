@@ -24,6 +24,10 @@ export * from './types/auth';
 export * from './hooks/useAuth';
 export * from './contexts/AuthContext';
 
+// Theme types and dark-mode hook
+export type { ThemeColors } from './types/theme';
+export * from './hooks/useDarkMode';
+
 // Profile types and hooks
 export * from './types/profile';
 export * from './hooks/useProfile';
