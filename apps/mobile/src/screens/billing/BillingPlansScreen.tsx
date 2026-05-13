@@ -159,6 +159,7 @@ export function BillingPlansScreen(): ReactElement {
 
         <PricingTable<typeof beakerstackBillingConfig>
           highlightPlanId={sub?.plan_id ?? null}
+          cadence={cadence}
           onCheckout={planId => void handleSelectPlan(planId)}
         />
 
