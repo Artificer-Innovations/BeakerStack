@@ -12,6 +12,7 @@ Start on the repo root **[README.md](../README.md)** and **[QUICKSTART.md](../QU
 | [supabase-preview-setup.md](supabase-preview-setup.md)                       | Shared PR preview database and redirects                                       |
 | [stripe-billing-setup.md](stripe-billing-setup.md)                           | Stripe + Supabase Edge billing (keys, webhooks, sync, local vs hosted)         |
 | [reference/github-actions-secrets.md](reference/github-actions-secrets.md)   | Actions secret/variable names (regenerate with `npm run docs:actions-secrets`) |
+| [project-label-bridge.md](project-label-bridge.md)                           | **Optional:** label-driven org GitHub Project updates (`npm run setup:project-label-bridge`) |
 | [branch-protection-setup.md](branch-protection-setup.md)                     | Branch rules                                                                   |
 
 ## OAuth (canonical order)
