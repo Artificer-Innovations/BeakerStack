@@ -12,13 +12,19 @@ export function PricingTable<P extends ProductBillingConfig>({
   isAuthenticated = true,
   productId: _productId,
   currentUserId: _currentUserId,
+  cadence,
   className,
   style,
 }: PricingTableProps): ReactElement {
   void _productId;
   void _currentUserId;
   const onPlanChosen = onCheckout ?? onSelectPlan;
-  const { plans, loading } = usePlanCatalog<P>();
+  const { plans: allPlans, loading } = usePlanCatalog<P>();
+  const plans = cadence
+    ? allPlans.filter(
+        p => p.price_cents === 0 || p.billing_period === cadence
+      )
+    : allPlans;
   const { data: currentPlan } = usePlan<P>();
 
   return (
