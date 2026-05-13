@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   check-merge-strategy:
-    if: github.base_ref == 'main'
+    if: github.base_ref == 'main' && (github.event.action != 'edited' || github.event.changes.base)
     runs-on: ubuntu-latest
     steps:
       - name: Add merge strategy reminder comment
