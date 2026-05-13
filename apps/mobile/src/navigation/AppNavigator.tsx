@@ -11,6 +11,7 @@ import DashboardScreen from '../screens/DashboardScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import BillingScreen from '../screens/BillingScreen';
 import { useFeatureFlags } from '../config/featureFlags';
+import { NotificationHandler } from '../lib/notifications';
 
 type RootStackParamList = {
   Home: undefined;
@@ -61,6 +62,7 @@ export const AppNavigator = () => {
           options={{ title: 'Billing' }}
         />
       </Stack.Navigator>
+      <NotificationHandler />
     </NavigationContainer>
   );
 };
