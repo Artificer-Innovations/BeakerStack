@@ -85,9 +85,9 @@ export function DemoControlsPanel() {
       codeReference='await supabaseRpc.rpc("billing_demo_simulate_upgrade", { p_product_id, p_plan_id })'
       variant='demo-mode'
     >
-      <p className='text-sm text-gray-700'>
+      <p className='text-sm text-gray-700 dark:text-gray-300'>
         Current plan:{' '}
-        <span className='font-medium text-gray-900'>
+        <span className='font-medium text-gray-900 dark:text-white'>
           {planLoading ? '…' : (plan?.display_name ?? '—')}
         </span>
       </p>
@@ -99,7 +99,7 @@ export function DemoControlsPanel() {
             type='button'
             disabled={plan?.id === p.id || pending != null}
             onClick={() => onSimulatePlan(p.id)}
-            className='rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50'
+            className='rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-800 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50'
           >
             {pending === `plan:${p.id}` ? '…' : `Switch to ${p.label}`}
           </button>
@@ -111,19 +111,22 @@ export function DemoControlsPanel() {
           type='button'
           disabled={pending != null}
           onClick={onResetUsage}
-          className='rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50'
+          className='rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm font-medium text-gray-800 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50'
         >
           {pending === 'reset' ? '…' : 'Reset all usage counters'}
         </button>
       </div>
 
       {message && (
-        <p className='mt-2 text-sm text-gray-600' role='status'>
+        <p
+          className='mt-2 text-sm text-gray-600 dark:text-gray-300'
+          role='status'
+        >
           {message}
         </p>
       )}
 
-      <p className='mt-3 text-xs text-gray-500'>
+      <p className='mt-3 text-xs text-gray-500 dark:text-gray-400'>
         These actions take effect immediately and bypass Stripe. Do not deploy
         to production.
       </p>

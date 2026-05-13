@@ -140,6 +140,9 @@ function storageMock(store: Record<string, string>) {
     removeItem: (k: string) => {
       delete store[k];
     },
+    clear: () => {
+      for (const k of Object.keys(store)) delete store[k];
+    },
   };
 }
 

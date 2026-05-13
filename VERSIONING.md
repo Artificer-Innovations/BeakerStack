@@ -30,10 +30,10 @@ Breaking changes are called out explicitly in the release notes generated for th
 
 ### `main` vs. tagged releases
 
-| Ref | What it is | Recommended for |
-|-----|-----------|-----------------|
-| `main` | Current stable HEAD | Following along with active development |
-| `2026.NNN` | Snapshot tag | Starting a new fork; upgrading an existing fork in a controlled way |
+| Ref        | What it is          | Recommended for                                                     |
+| ---------- | ------------------- | ------------------------------------------------------------------- |
+| `main`     | Current stable HEAD | Following along with active development                             |
+| `2026.NNN` | Snapshot tag        | Starting a new fork; upgrading an existing fork in a controlled way |
 
 If you are forking BeakerStack to build a product, start from a tagged release so your upgrade story is clear from day one.
 

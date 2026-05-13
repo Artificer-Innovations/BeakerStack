@@ -36,14 +36,16 @@ export function FormInput({
   const inputId = `form-input-${label.toLowerCase().replace(/\s+/g, '-')}`;
   const hasError = !!error;
 
-  const baseInputClasses = `w-full px-3 py-2 border rounded-md text-sm transition-colors ${
+  const baseInputClasses = `w-full px-3 py-2 border rounded-md text-sm transition-colors dark:text-gray-100 ${
     hasError
-      ? 'border-red-500 bg-red-50 focus:border-red-600 focus:ring-red-500'
-      : 'border-gray-300 bg-white focus:border-primary-500 focus:ring-primary-500'
+      ? 'border-red-500 bg-red-50 dark:border-red-400 dark:bg-red-900/20 focus:border-red-600 focus:ring-red-500'
+      : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-700 focus:border-primary-500 focus:ring-primary-500'
   } ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`;
 
   const labelClasses = `block text-sm font-medium mb-1 ${
-    hasError ? 'text-red-700' : 'text-gray-700'
+    hasError
+      ? 'text-red-700 dark:text-red-400'
+      : 'text-gray-700 dark:text-gray-300'
   }`;
 
   return (

@@ -24,8 +24,8 @@ export function ConfirmDowngradeModal({
       size='md'
       contentClassName=''
     >
-      <p className='text-sm text-gray-600'>{bodyText}</p>
-      <p className='mt-2 text-sm text-gray-500'>
+      <p className='text-sm text-gray-600 dark:text-gray-300'>{bodyText}</p>
+      <p className='mt-2 text-sm text-gray-500 dark:text-gray-400'>
         Changes that reduce your entitlements take effect at the end of the
         current billing period, unless your payment provider processes them
         sooner. Proration is handled by Stripe.

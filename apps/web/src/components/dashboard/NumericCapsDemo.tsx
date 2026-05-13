@@ -59,16 +59,19 @@ export function NumericCapsDemo() {
   return (
     <div>
       {error && (
-        <p className='mb-2 text-sm text-amber-800' role='alert'>
+        <p
+          className='mb-2 text-sm text-amber-800 dark:text-amber-300'
+          role='alert'
+        >
           {error}{' '}
-          <span className='text-gray-600'>
+          <span className='text-gray-600 dark:text-gray-400'>
             (Requires demo billing RPCs and{' '}
             <code className='text-xs'>demo_billing_mode</code> in the database.)
           </span>
         </p>
       )}
       <div className='flex flex-wrap items-center justify-between gap-2'>
-        <p className='text-sm text-gray-700'>
+        <p className='text-sm text-gray-700 dark:text-gray-300'>
           Collections:{' '}
           <span className='font-medium'>
             {loading || featLoading ? '…' : count} of {limLabel(maxCollections)}
@@ -106,7 +109,7 @@ export function NumericCapsDemo() {
       )}
 
       {!loading && collections.length === 0 ? (
-        <p className='mt-4 text-sm text-gray-500'>
+        <p className='mt-4 text-sm text-gray-500 dark:text-gray-400'>
           No collections yet. Click &apos;Add collection&apos; to start.
         </p>
       ) : (
@@ -121,14 +124,14 @@ export function NumericCapsDemo() {
             return (
               <li
                 key={row.id}
-                className='rounded-lg border border-gray-200 bg-gray-50 px-4 py-3'
+                className='rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 px-4 py-3'
               >
                 <div className='flex flex-wrap items-start justify-between gap-2'>
                   <div>
-                    <p className='font-mono text-xs text-gray-600'>
+                    <p className='font-mono text-xs text-gray-600 dark:text-gray-400'>
                       {row.id.slice(0, 8)}…
                     </p>
-                    <p className='mt-1 text-sm text-gray-700'>
+                    <p className='mt-1 text-sm text-gray-700 dark:text-gray-300'>
                       Items: {row.item_count} of {limLabel(maxItemsPer)}
                     </p>
                   </div>
@@ -148,7 +151,7 @@ export function NumericCapsDemo() {
                           await addItem(row.id);
                         })
                       }
-                      className='rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50'
+                      className='rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50'
                     >
                       {busy === busyKey
                         ? '…'
@@ -165,7 +168,7 @@ export function NumericCapsDemo() {
                           await deleteCollection(row.id);
                         })
                       }
-                      className='rounded-md p-2 text-red-600 hover:bg-red-50 disabled:opacity-50'
+                      className='rounded-md p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-50'
                     >
                       <Trash2 className='h-4 w-4' aria-hidden />
                     </button>

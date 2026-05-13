@@ -34,11 +34,15 @@ export default function BillingUsagePage() {
   if (!plan) {
     return (
       <BillingPageShell>
-        <h1 className='text-2xl font-bold text-gray-900'>Billing</h1>
+        <h1 className='text-2xl font-bold text-gray-900 dark:text-white'>
+          Billing
+        </h1>
         <div className='mt-4'>
           <BillingTabs />
         </div>
-        <p className='mt-6 text-sm text-gray-600'>Loading plan…</p>
+        <p className='mt-6 text-sm text-gray-600 dark:text-gray-400'>
+          Loading plan…
+        </p>
       </BillingPageShell>
     );
   }
@@ -46,7 +50,9 @@ export default function BillingUsagePage() {
   const itemsCap = plan.features.items_per_container_max as number;
   return (
     <BillingPageShell>
-      <h1 className='text-2xl font-bold text-gray-900'>Billing</h1>
+      <h1 className='text-2xl font-bold text-gray-900 dark:text-white'>
+        Billing
+      </h1>
       <div className='mt-4'>
         <BillingTabs />
       </div>
@@ -56,14 +62,16 @@ export default function BillingUsagePage() {
             Payment failed. Limits may change if your plan lapses.
           </Banner>
         )}
-        <div className='rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700 shadow-sm'>
+        <div className='rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-sm text-gray-700 dark:text-gray-300 shadow-sm'>
           {subscription?.status === 'free' ||
           !subscription?.stripe_subscription_id
             ? `Your usage resets at the start of the next calendar month (free tier).`
             : 'Your usage resets on your next billing date (see Usage below for the exact reset date for meters).'}
         </div>
         <section>
-          <h2 className='text-lg font-semibold text-gray-900'>Usage</h2>
+          <h2 className='text-lg font-semibold text-gray-900 dark:text-white'>
+            Usage
+          </h2>
           {Object.keys(plan.usage_limits).map(m => (
             <div key={m} className='mt-3'>
               <UsageIndicator<typeof beakerstackBillingConfig>
@@ -76,8 +84,10 @@ export default function BillingUsagePage() {
           ))}
         </section>
         <section>
-          <h2 className='text-lg font-semibold text-gray-900'>Limits</h2>
-          <div className='mt-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm'>
+          <h2 className='text-lg font-semibold text-gray-900 dark:text-white'>
+            Limits
+          </h2>
+          <div className='mt-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm'>
             <FeatureLimitRow
               name={limitsCopy.collectionsRowName}
               used={colCount}
@@ -90,14 +100,16 @@ export default function BillingUsagePage() {
               cap={itemsCap === -1 ? 0 : itemsCap}
               capIsUnlimited={itemsCap === -1}
             />
-            <p className='pt-2 text-xs text-gray-500'>
+            <p className='pt-2 text-xs text-gray-500 dark:text-gray-400'>
               {limitsCopy.collectionsFootnote}
             </p>
           </div>
         </section>
         <section>
-          <h2 className='text-lg font-semibold text-gray-900'>Plan features</h2>
-          <div className='mt-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm'>
+          <h2 className='text-lg font-semibold text-gray-900 dark:text-white'>
+            Plan features
+          </h2>
+          <div className='mt-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm'>
             <PlanFeatureRow
               name={featureALabel}
               available={!!plan.features.feature_a}

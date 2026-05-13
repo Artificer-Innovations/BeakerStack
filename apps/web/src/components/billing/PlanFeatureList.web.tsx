@@ -25,10 +25,10 @@ export function PlanFeatureList({
 
   return (
     <div>
-      <p className='mb-2 text-sm font-medium text-gray-900'>
+      <p className='mb-2 text-sm font-medium text-gray-900 dark:text-white'>
         What&apos;s included
       </p>
-      <ul className='space-y-1.5 text-sm text-gray-600'>
+      <ul className='space-y-1.5 text-sm text-gray-600 dark:text-gray-400'>
         {rows.map(row => {
           const { ok, text } = planFeatureLine(plan, row);
           return (
@@ -40,7 +40,7 @@ export function PlanFeatureList({
                 />
               ) : (
                 <X
-                  className='mt-0.5 h-4 w-4 shrink-0 text-gray-300'
+                  className='mt-0.5 h-4 w-4 shrink-0 text-gray-300 dark:text-gray-500'
                   aria-hidden
                 />
               )}

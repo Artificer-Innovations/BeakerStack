@@ -137,12 +137,14 @@ export function AvatarUpload({
 
   return (
     <div className={`space-y-2 ${className}`}>
-      <label className='block text-sm font-medium text-gray-700'>Avatar</label>
+      <label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
+        Avatar
+      </label>
 
       <div className='flex items-center space-x-4'>
         {/* Avatar Preview */}
         <div className='relative'>
-          <div className='w-24 h-24 rounded-full overflow-hidden bg-gray-200 border-2 border-gray-300'>
+          <div className='w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600'>
             {displayUrl ? (
               <img
                 key={`${displayUrl}-${imageKey}`} // Include imageKey to force re-render
@@ -193,7 +195,7 @@ export function AvatarUpload({
               type='button'
               onClick={handleClick}
               disabled={uploading}
-              className='px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed'
+              className='px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed'
             >
               {uploading ? 'Uploading...' : 'Choose File'}
             </button>
@@ -203,7 +205,7 @@ export function AvatarUpload({
                 type='button'
                 onClick={handleRemove}
                 disabled={uploading}
-                className='px-3 py-1.5 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed'
+                className='px-3 py-1.5 text-sm font-medium text-red-700 dark:text-red-400 bg-white dark:bg-gray-700 border border-red-300 dark:border-red-500 rounded-md hover:bg-red-50 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed'
               >
                 Remove
               </button>
@@ -212,7 +214,7 @@ export function AvatarUpload({
 
           {/* Progress Bar */}
           {uploading && progress > 0 && (
-            <div className='w-full bg-gray-200 rounded-full h-2'>
+            <div className='w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2'>
               <div
                 className='bg-primary-600 h-2 rounded-full transition-all duration-300'
                 style={{ width: `${progress}%` }}
@@ -221,10 +223,16 @@ export function AvatarUpload({
           )}
 
           {/* Error Message */}
-          {error && <div className='text-sm text-red-600'>{error.message}</div>}
+          {error && (
+            <div className='text-sm text-red-600 dark:text-red-400'>
+              {error.message}
+            </div>
+          )}
 
           {/* Help Text */}
-          <p className='text-xs text-gray-500'>JPEG, PNG, or WebP. Max 2MB.</p>
+          <p className='text-xs text-gray-500 dark:text-gray-400'>
+            JPEG, PNG, or WebP. Max 2MB.
+          </p>
         </div>
       </div>
     </div>

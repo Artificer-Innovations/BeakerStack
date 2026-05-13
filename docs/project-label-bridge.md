@@ -42,23 +42,22 @@ The helper is [`scripts/github/setup-project-label-bridge.mjs`](../scripts/githu
 ### Manual setup (GitHub UI)
 
 1. **Repository variable (required)**  
-   In GitHub: **Settings → Secrets and variables → Actions → Variables**  
+   In GitHub: **Settings → Secrets and variables → Actions → Variables**
    - **`PROJECT_NUMBER`** — the number in the project URL, e.g. `https://github.com/orgs/YourOrg/projects/5` → `5`.
 
    > **Naming:** GitHub reserves the `GITHUB_` prefix for built-in workflow context. Repository/configuration variables **must not** start with `GITHUB_` (they can be rejected or ineffective). Do not use `GITHUB_PROJECT_NUMBER`.
 
-2. **Repository variable (optional)**  
+2. **Repository variable (optional)**
    - **`PROJECT_ORG`** — organization login owning the project. If omitted, the workflow default is `Artificer-Innovations` (change the default in the workflow file if your org differs and you prefer not to set a variable).
 
    If you previously created **`GITHUB_PROJECT_NUMBER`** / **`GITHUB_PROJECT_ORG`**, delete them and recreate as **`PROJECT_NUMBER`** / **`PROJECT_ORG`**, or run `npm run setup:project-label-bridge` again so `gh variable set` uses the correct names.
 
 3. **Repository secret (required for the bridge to do anything)**  
-   **Settings → Secrets and variables → Actions → Secrets**  
+   **Settings → Secrets and variables → Actions → Secrets**
    - **`ORG_PROJECT_GITHUB_TOKEN`** — a **classic** personal access token with at least **`repo`** and **`project`** (and whatever your org requires for SSO). Fine-grained PATs are often insufficient for org Projects; see GitHub’s [Automating Projects using Actions](https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/automating-projects-using-actions) note about `GITHUB_TOKEN` vs PAT/App for org projects.
 
 4. **Labels and Status names**  
    Use labels **`project/status-<kebab>`** where `<kebab>` is lowercase letters, digits, and hyphens (for example `project/status-ready-for-qa`). The workflow derives the GitHub Project **Status** option name automatically:
-
    - Hyphens become spaces.
    - **Default:** each word is **title-cased** (first letter uppercase, rest lowercase), e.g. `project/status-backlog` → `Backlog`, `project/status-ready` → `Ready`, `project/status-planning` → `Planning`, `project/status-done` → `Done`.
    - **Exception:** if the slug starts with **`in-`** and has more segments (`in-*`), the result is **`In`** plus a space, then the **remaining words in all lowercase** — so `project/status-in-progress` → **`In progress`** and `project/status-in-review` → **`In review`** (matching this repo’s Kanban wording).
@@ -67,14 +66,14 @@ The helper is [`scripts/github/setup-project-label-bridge.mjs`](../scripts/githu
 
    Examples for this board:
 
-   | Label | Derived Status |
-   | ----- | ---------------- |
-   | `project/status-backlog` | Backlog |
-   | `project/status-ready` | Ready |
-   | `project/status-planning` | Planning |
-   | `project/status-in-progress` | In progress |
-   | `project/status-in-review` | In review |
-   | `project/status-done` | Done |
+   | Label                        | Derived Status |
+   | ---------------------------- | -------------- |
+   | `project/status-backlog`     | Backlog        |
+   | `project/status-ready`       | Ready          |
+   | `project/status-planning`    | Planning       |
+   | `project/status-in-progress` | In progress    |
+   | `project/status-in-review`   | In review      |
+   | `project/status-done`        | Done           |
 
 5. **Items not yet on the board**  
    If an issue or PR is not already on the project, the workflow adds it, then sets **Status**.
