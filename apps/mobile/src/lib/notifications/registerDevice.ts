@@ -25,6 +25,9 @@ export async function registerDevice(userId: string): Promise<void> {
 
   const { error } = await supabase
     .from('device_tokens')
-    .upsert({ user_id: userId, token, platform: Platform.OS }, { onConflict: 'token' });
+    .upsert(
+      { user_id: userId, token, platform: Platform.OS, updated_at: new Date().toISOString() },
+      { onConflict: 'token' }
+    );
   if (error) throw error;
 }
