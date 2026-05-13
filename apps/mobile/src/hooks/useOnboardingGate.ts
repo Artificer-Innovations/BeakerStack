@@ -32,6 +32,11 @@ export function useOnboardingGate(userId: string | null): OnboardingGateResult {
       .then(({ data, error }) => {
         setShowOnboarding(!error && !data);
         setLoading(false);
+      })
+      .catch(() => {
+        // Fail-open: network error → don't show carousel, clear loading
+        setShowOnboarding(false);
+        setLoading(false);
       });
   }, [userId]);
 
