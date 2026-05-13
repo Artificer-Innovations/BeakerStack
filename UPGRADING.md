@@ -25,9 +25,11 @@ git merge 2026.003
 ```
 
 > **"Use this template" users:** If you created your repo using GitHub's "Use this template" button, git treats the histories as unrelated. Your first merge will need `--allow-unrelated-histories`:
+>
 > ```bash
 > git merge --allow-unrelated-histories 2026.003
 > ```
+>
 > Subsequent merges work without the flag.
 
 Resolve any conflicts, then review the release notes for that tag on GitHub for any breaking changes that need manual follow-up (new secrets, renamed variables, migration steps).

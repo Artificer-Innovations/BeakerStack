@@ -137,7 +137,9 @@ export function AvatarUpload({
 
   return (
     <div className={`space-y-2 ${className}`}>
-      <label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>Avatar</label>
+      <label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
+        Avatar
+      </label>
 
       <div className='flex items-center space-x-4'>
         {/* Avatar Preview */}
@@ -221,10 +223,16 @@ export function AvatarUpload({
           )}
 
           {/* Error Message */}
-          {error && <div className='text-sm text-red-600 dark:text-red-400'>{error.message}</div>}
+          {error && (
+            <div className='text-sm text-red-600 dark:text-red-400'>
+              {error.message}
+            </div>
+          )}
 
           {/* Help Text */}
-          <p className='text-xs text-gray-500 dark:text-gray-400'>JPEG, PNG, or WebP. Max 2MB.</p>
+          <p className='text-xs text-gray-500 dark:text-gray-400'>
+            JPEG, PNG, or WebP. Max 2MB.
+          </p>
         </div>
       </div>
     </div>

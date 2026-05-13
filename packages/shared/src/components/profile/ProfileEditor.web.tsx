@@ -133,7 +133,9 @@ export function ProfileEditor({
 
   if (!currentUser) {
     return (
-      <div className={`rounded-md bg-yellow-50 dark:bg-yellow-900/30 p-4 ${className}`}>
+      <div
+        className={`rounded-md bg-yellow-50 dark:bg-yellow-900/30 p-4 ${className}`}
+      >
         <p className='text-sm text-yellow-800 dark:text-yellow-300'>
           Please sign in to edit your profile.
         </p>
@@ -143,15 +145,21 @@ export function ProfileEditor({
 
   if (loading && !profileData) {
     return (
-      <div className={`rounded-md bg-gray-50 dark:bg-gray-800 p-4 ${className}`}>
-        <p className='text-sm text-gray-600 dark:text-gray-400'>Loading profile...</p>
+      <div
+        className={`rounded-md bg-gray-50 dark:bg-gray-800 p-4 ${className}`}
+      >
+        <p className='text-sm text-gray-600 dark:text-gray-400'>
+          Loading profile...
+        </p>
       </div>
     );
   }
 
   return (
     <div className={`space-y-4 ${className}`}>
-      <h3 className='text-lg font-semibold text-gray-900 dark:text-white'>Edit Profile</h3>
+      <h3 className='text-lg font-semibold text-gray-900 dark:text-white'>
+        Edit Profile
+      </h3>
 
       <div className='space-y-4'>
         <FormInput

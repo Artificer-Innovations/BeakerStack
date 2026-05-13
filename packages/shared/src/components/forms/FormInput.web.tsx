@@ -43,7 +43,9 @@ export function FormInput({
   } ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`;
 
   const labelClasses = `block text-sm font-medium mb-1 ${
-    hasError ? 'text-red-700 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'
+    hasError
+      ? 'text-red-700 dark:text-red-400'
+      : 'text-gray-700 dark:text-gray-300'
   }`;
 
   return (

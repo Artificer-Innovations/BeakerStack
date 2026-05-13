@@ -22,10 +22,18 @@ function walk(dir: string, ext: string, skip: string[] = []): string[] {
 }
 
 const SCAN_FILES = [
-  ...walk(join(MONOREPO_ROOT, 'packages/shared/src/components'), '.web.tsx', ['__tests__']),
-  ...walk(join(MONOREPO_ROOT, 'packages/billing/src/components'), '.web.tsx', ['__tests__']),
-  ...walk(join(MONOREPO_ROOT, 'apps/web/src/components/billing'), '.tsx', ['__tests__']),
-  ...walk(join(MONOREPO_ROOT, 'apps/web/src/pages/billing'), '.tsx', ['__tests__']),
+  ...walk(join(MONOREPO_ROOT, 'packages/shared/src/components'), '.web.tsx', [
+    '__tests__',
+  ]),
+  ...walk(join(MONOREPO_ROOT, 'packages/billing/src/components'), '.web.tsx', [
+    '__tests__',
+  ]),
+  ...walk(join(MONOREPO_ROOT, 'apps/web/src/components/billing'), '.tsx', [
+    '__tests__',
+  ]),
+  ...walk(join(MONOREPO_ROOT, 'apps/web/src/pages/billing'), '.tsx', [
+    '__tests__',
+  ]),
 ];
 
 // Extract string literals that look like they contain Tailwind class names.
@@ -37,7 +45,11 @@ function extractClassLikeStrings(src: string): string[] {
   let m;
   while ((m = re.exec(src)) !== null) {
     const s = m[1];
-    if (/\b(?:text|bg|border|rounded|flex|grid|font|shadow|hover|dark)[-:][a-zA-Z0-9/[\].]+/.test(s)) {
+    if (
+      /\b(?:text|bg|border|rounded|flex|grid|font|shadow|hover|dark)[-:][a-zA-Z0-9/[\].]+/.test(
+        s
+      )
+    ) {
       results.add(s);
     }
   }
@@ -45,7 +57,8 @@ function extractClassLikeStrings(src: string): string[] {
 }
 
 // Light text shades that are hard to read on dark backgrounds
-const NEEDS_DARK_TEXT = /\btext-(?:gray|slate|zinc|neutral|stone)-(?:600|700|800|900|950)\b/;
+const NEEDS_DARK_TEXT =
+  /\btext-(?:gray|slate|zinc|neutral|stone)-(?:600|700|800|900|950)\b/;
 // Light backgrounds that are painful in dark mode
 const NEEDS_DARK_BG = /\bbg-(?:white|(?:gray|slate|zinc)-(?:50|100|200|300))\b/;
 
@@ -60,7 +73,9 @@ describe('dark mode coverage', () => {
       const src = readFileSync(file, 'utf8');
       for (const cls of extractClassLikeStrings(src)) {
         if (NEEDS_DARK_TEXT.test(cls) && !/\bdark:text-/.test(cls)) {
-          violations.push(`${file.replace(MONOREPO_ROOT + '/', '')}: "${cls.slice(0, 80)}"`);
+          violations.push(
+            `${file.replace(MONOREPO_ROOT + '/', '')}: "${cls.slice(0, 80)}"`
+          );
         }
       }
     }
@@ -73,7 +88,9 @@ describe('dark mode coverage', () => {
       const src = readFileSync(file, 'utf8');
       for (const cls of extractClassLikeStrings(src)) {
         if (NEEDS_DARK_BG.test(cls) && !/\bdark:bg-/.test(cls)) {
-          violations.push(`${file.replace(MONOREPO_ROOT + '/', '')}: "${cls.slice(0, 80)}"`);
+          violations.push(
+            `${file.replace(MONOREPO_ROOT + '/', '')}: "${cls.slice(0, 80)}"`
+          );
         }
       }
     }

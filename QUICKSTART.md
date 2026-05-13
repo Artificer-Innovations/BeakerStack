@@ -111,14 +111,14 @@ npm run setup:full
 
 Options (see also `npm run setup:full -- --help`):
 
-| Flag                 | Meaning                              |
-| -------------------- | ------------------------------------ |
-| `--dry-run`          | No file writes; log-only GitHub sync |
-| `--from=PHASE`       | Resume at a phase (see table below)  |
-| `--skip-rename`      | Skip template rename                 |
-| `--skip-github`      | Do not push secrets with `gh`        |
+| Flag                 | Meaning                                     |
+| -------------------- | ------------------------------------------- |
+| `--dry-run`          | No file writes; log-only GitHub sync        |
+| `--from=PHASE`       | Resume at a phase (see table below)         |
+| `--skip-rename`      | Skip template rename                        |
+| `--skip-github`      | Do not push secrets with `gh`               |
 | `--skip-mobile`      | Skip Expo/EAS/Google setup (web-only repos) |
-| `--aws-profile=NAME` | Pass through to AWS bootstrap script |
+| `--aws-profile=NAME` | Pass through to AWS bootstrap script        |
 
 **Phase names** for `--from=` (order matters; later phases assume earlier work or merged `.env*` files):
 

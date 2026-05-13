@@ -138,8 +138,8 @@ Details: [docs/pr-preview-setup.md](docs/pr-preview-setup.md).
 
 Template snapshots are tagged on `main` using **CalVer** (`2026.001`, `2026.002`, …). Each release includes generated notes covering what changed and whether there are any breaking steps. `@beakerstack/*` packages use independent **semver** on npm.
 
-| Trigger | Workflow |
-| ------- | -------- |
+| Trigger             | Workflow                                                                                                  |
+| ------------------- | --------------------------------------------------------------------------------------------------------- |
 | **Manual dispatch** | [release-template.yml](.github/workflows/release-template.yml) — cuts a new CalVer tag and GitHub Release |
 
 See [VERSIONING.md](VERSIONING.md) for what counts as a breaking change and [UPGRADING.md](UPGRADING.md) for how to pull template changes into an existing fork.

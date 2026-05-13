@@ -263,7 +263,9 @@ export default function BillingPlansPage() {
 
   return (
     <BillingPageShell maxWidthClass='max-w-[1024px]'>
-      <h1 className='text-2xl font-bold text-gray-900 dark:text-white'>Billing</h1>
+      <h1 className='text-2xl font-bold text-gray-900 dark:text-white'>
+        Billing
+      </h1>
       <div className='mt-4'>
         <BillingTabs />
       </div>
@@ -293,7 +295,9 @@ export default function BillingPlansPage() {
         </div>
       ) : null}
       {catLoad ? (
-        <p className='mt-8 text-sm text-gray-500 dark:text-gray-400'>Loading plans…</p>
+        <p className='mt-8 text-sm text-gray-500 dark:text-gray-400'>
+          Loading plans…
+        </p>
       ) : (
         <div className='mt-8 grid grid-cols-1 gap-6 md:grid-cols-3'>
           {plans.map(p => {

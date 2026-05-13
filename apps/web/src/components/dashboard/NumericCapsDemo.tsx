@@ -59,7 +59,10 @@ export function NumericCapsDemo() {
   return (
     <div>
       {error && (
-        <p className='mb-2 text-sm text-amber-800 dark:text-amber-300' role='alert'>
+        <p
+          className='mb-2 text-sm text-amber-800 dark:text-amber-300'
+          role='alert'
+        >
           {error}{' '}
           <span className='text-gray-600 dark:text-gray-400'>
             (Requires demo billing RPCs and{' '}

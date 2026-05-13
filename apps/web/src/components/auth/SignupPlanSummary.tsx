@@ -37,7 +37,9 @@ export function PlanIntentSummary({
   if (loading) {
     return (
       <div className='rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm'>
-        <p className='text-sm text-gray-500 dark:text-gray-400'>Loading plan…</p>
+        <p className='text-sm text-gray-500 dark:text-gray-400'>
+          Loading plan…
+        </p>
       </div>
     );
   }
@@ -117,7 +119,9 @@ export function PlanIntentSummary({
         >
           {priceHeadline}
         </p>
-        <p className='text-sm text-gray-600 dark:text-gray-400'>{priceSubline}</p>
+        <p className='text-sm text-gray-600 dark:text-gray-400'>
+          {priceSubline}
+        </p>
       </div>
       {bullets.length > 0 ? (
         <ul className='mt-4 list-inside list-disc space-y-1 text-sm text-gray-700 dark:text-gray-300'>

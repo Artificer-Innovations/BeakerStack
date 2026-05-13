@@ -11,7 +11,8 @@ function createMemoryLocalStorage(): Storage {
       store.clear();
     },
     getItem(key: string) {
-      return store.has(key) ? store.get(key)! : null;
+      const v = store.get(key);
+      return v === undefined ? null : v;
     },
     key(index: number) {
       return [...store.keys()][index] ?? null;

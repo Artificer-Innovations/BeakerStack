@@ -11,7 +11,9 @@ export default function BillingInvoicesPage() {
   >({ pageSize: 20 });
   return (
     <BillingPageShell maxWidthClass='max-w-[1024px]'>
-      <h1 className='text-2xl font-bold text-gray-900 dark:text-white'>Billing</h1>
+      <h1 className='text-2xl font-bold text-gray-900 dark:text-white'>
+        Billing
+      </h1>
       <div className='mt-4'>
         <BillingTabs />
       </div>

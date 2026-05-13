@@ -49,6 +49,7 @@ The `/_preview-auth` path uses a **separate cache behavior** with no `TrustedKey
 ```
 
 The script:
+
 1. Generates an RSA-2048 key pair
 2. Uploads the public key to CloudFront and retrieves its ID
 3. Updates the CloudFormation stack (`PreviewAccessControl`, `StagingAccessControl`, `CloudFrontSigningPublicKeyId` parameters) — this creates the key group and applies `TrustedKeyGroups` to the appropriate distributions
@@ -72,19 +73,19 @@ If you've already generated a key pair for another reason:
 
 The following parameters control access on the shared infrastructure stack (`infra/aws/pr-preview-stack.yml`):
 
-| Parameter | Values | Default | Description |
-|---|---|---|---|
-| `PreviewAccessControl` | `public`, `signed-cookies` | `public` | Access mode for PR preview (deploy) distribution |
-| `StagingAccessControl` | `public`, `signed-cookies` | `public` | Access mode for staging distribution |
-| `CloudFrontSigningPublicKeyId` | string | `''` | CloudFront public key ID; required when either is `signed-cookies` |
+| Parameter                      | Values                     | Default  | Description                                                        |
+| ------------------------------ | -------------------------- | -------- | ------------------------------------------------------------------ |
+| `PreviewAccessControl`         | `public`, `signed-cookies` | `public` | Access mode for PR preview (deploy) distribution                   |
+| `StagingAccessControl`         | `public`, `signed-cookies` | `public` | Access mode for staging distribution                               |
+| `CloudFrontSigningPublicKeyId` | string                     | `''`     | CloudFront public key ID; required when either is `signed-cookies` |
 
 ## GitHub Actions secrets
 
 Two optional secrets control CI signing behavior:
 
-| Secret | Description |
-|---|---|
-| `CLOUDFRONT_SIGNING_KEY` | RSA private key PEM. Set by `setup-signed-cookies.sh`. |
+| Secret                      | Description                                                 |
+| --------------------------- | ----------------------------------------------------------- |
+| `CLOUDFRONT_SIGNING_KEY`    | RSA private key PEM. Set by `setup-signed-cookies.sh`.      |
 | `CLOUDFRONT_SIGNING_KEY_ID` | CloudFront public key ID. Set by `setup-signed-cookies.sh`. |
 
 When these secrets are absent, CI skips cookie signing and posts plain URLs (public mode). No workflow change is needed when switching modes — the presence of the secrets determines behavior.
@@ -93,15 +94,16 @@ When these secrets are absent, CI skips cookie signing and posts plain URLs (pub
 
 Three cookies are set on the preview domain:
 
-| Cookie | Description |
-|---|---|
-| `CloudFront-Policy` | Base64-encoded custom policy (resource + expiry) |
-| `CloudFront-Signature` | RSA-SHA1 signature of the policy, signed with the private key |
+| Cookie                   | Description                                                   |
+| ------------------------ | ------------------------------------------------------------- |
+| `CloudFront-Policy`      | Base64-encoded custom policy (resource + expiry)              |
+| `CloudFront-Signature`   | RSA-SHA1 signature of the policy, signed with the private key |
 | `CloudFront-Key-Pair-Id` | CloudFront public key ID, used to locate the verification key |
 
 All cookies use `HttpOnly; Secure; SameSite=Lax; Path=/`. `SameSite=Lax` allows cookies to be sent on top-level cross-site navigation (clicking a link from a GitHub PR comment).
 
 **Cookie TTL:**
+
 - PR previews: 7 days
 - Staging: 30 days
 
@@ -135,20 +137,24 @@ The following are executed **indirectly via CloudFormation** (not by the script 
 - `cloudfront:CreateFunction` / `cloudfront:UpdateFunction` / `cloudfront:PublishFunction` — manages the `PreviewAuthFunction` CloudFront Function
 
 The CI workflows (PR preview and staging deploy) only need:
+
 - `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` for S3 deploy and CloudFront invalidation
 - `CLOUDFRONT_SIGNING_KEY` / `CLOUDFRONT_SIGNING_KEY_ID` for cookie signing (no AWS calls needed for signing)
 
 ## How stakeholders access the preview
 
 After a PR preview deploy, CI posts the bootstrap URL to:
+
 1. **PR comment** — tagged with `<!-- pr-preview-links -->`, updated on each push
 2. **GitHub Deployments** — visible in the PR's "Deployments" section and the repo's Environments tab
 
 After a staging deploy, CI posts to:
+
 1. **GitHub Deployments** — `staging` environment, updated on each merge to `develop`
 2. **Actions run summary** — visible directly in the workflow run without navigating to Environments
 
 **Access flow:**
+
 1. Stakeholder clicks the bootstrap link from GitHub
 2. Browser hits `/_preview-auth?policy=...&sig=...&kid=...&dest=/pr-42/`
 3. CloudFront Function sets all three cookies and redirects to `dest`
