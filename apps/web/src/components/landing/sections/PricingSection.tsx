@@ -31,7 +31,17 @@ function LandingPricingTable() {
 
   if (loading) {
     return (
-      <p className='mt-8 text-center text-sm text-gray-500'>Loading plans…</p>
+      <div
+        data-testid='pricing-skeleton'
+        className='grid grid-cols-1 gap-6 md:grid-cols-3'
+      >
+        {[0, 1, 2].map(i => (
+          <div
+            key={i}
+            className='h-96 rounded-xl border border-gray-200 bg-white animate-pulse dark:border-gray-700 dark:bg-gray-800'
+          />
+        ))}
+      </div>
     );
   }
 

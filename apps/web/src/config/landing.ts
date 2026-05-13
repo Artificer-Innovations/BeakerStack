@@ -14,6 +14,11 @@ import {
   Bot,
 } from 'lucide-react';
 
+function publicUrl(filename: string): string {
+  const base = (import.meta.env.BASE_URL ?? '/').replace(/\/$/, '');
+  return `${base}/${filename.replace(/^\//, '')}`;
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface NavLink {
@@ -138,7 +143,7 @@ export const landingConfig: LandingConfig = {
       'BeakerStack gives you auth, billing, and a cross-platform React foundation — with a three-environment CI/CD pipeline, PR previews, and a layered test suite ready for production.',
     primaryCta: { label: 'Get started free', href: '/signup' },
     secondaryCta: { label: 'See features', href: '#features' },
-    mediaSrc: 'https://placehold.co/600x338?text=BeakerStack',
+    mediaSrc: publicUrl('placeholder-hero.svg'),
     mediaAlt: 'BeakerStack dashboard screenshot',
     trustStrip: 'Built on React, React Native, Supabase, and Stripe.',
   },
@@ -217,7 +222,7 @@ export const landingConfig: LandingConfig = {
       body: 'Shared auth logic. Shared billing hooks. Shared business rules. Your React web app and React Native mobile app stay in sync without duplicating work. About 40–60% of the codebase is shared across platforms.',
       ctaLabel: 'Learn about mobile',
       ctaHref: '#features',
-      mediaSrc: 'https://placehold.co/560x315?text=Mobile+App',
+      mediaSrc: publicUrl('placeholder-feature.svg'),
       mediaAlt: 'Mobile app screenshot',
       mediaSide: 'right',
     },
@@ -227,7 +232,7 @@ export const landingConfig: LandingConfig = {
       ctaLabel: 'Read the landing README',
       ctaHref:
         'https://github.com/Artificer-Innovations/BeakerStack/blob/main/apps/web/src/components/landing/README.md',
-      mediaSrc: 'https://placehold.co/560x315?text=Marketing+config',
+      mediaSrc: publicUrl('placeholder-feature.svg'),
       mediaAlt: 'Landing page config file screenshot',
       mediaSide: 'left',
     },
@@ -237,7 +242,7 @@ export const landingConfig: LandingConfig = {
       ctaLabel: 'See the prerender script',
       ctaHref:
         'https://github.com/Artificer-Innovations/BeakerStack/blob/main/apps/web/scripts/prerender-home.ts',
-      mediaSrc: 'https://placehold.co/560x315?text=SEO+prerender',
+      mediaSrc: publicUrl('placeholder-feature.svg'),
       mediaAlt: 'Pre-rendered HTML and meta tags screenshot',
       mediaSide: 'right',
     },
@@ -246,7 +251,7 @@ export const landingConfig: LandingConfig = {
       body: 'Most templates stop at "add Stripe." BeakerStack includes plan gating, usage metering, upgrade prompts, a billing portal, and downgrade blockers — all wired to real Stripe products and ready for your plans.',
       ctaLabel: 'See billing docs',
       ctaHref: '#pricing',
-      mediaSrc: 'https://placehold.co/560x315?text=Billing+UI',
+      mediaSrc: publicUrl('placeholder-feature.svg'),
       mediaAlt: 'Billing plans UI screenshot',
       mediaSide: 'left',
     },
@@ -256,7 +261,7 @@ export const landingConfig: LandingConfig = {
       ctaLabel: 'Read the architecture docs',
       ctaHref:
         'https://github.com/Artificer-Innovations/BeakerStack/blob/main/ARCHITECTURE.md',
-      mediaSrc: 'https://placehold.co/560x315?text=Environments',
+      mediaSrc: publicUrl('placeholder-feature.svg'),
       mediaAlt: 'Three-environment pipeline diagram',
       mediaSide: 'right',
     },
@@ -266,7 +271,7 @@ export const landingConfig: LandingConfig = {
       ctaLabel: 'Read the quickstart',
       ctaHref:
         'https://github.com/Artificer-Innovations/BeakerStack/blob/main/QUICKSTART.md',
-      mediaSrc: 'https://placehold.co/560x315?text=Setup',
+      mediaSrc: publicUrl('placeholder-feature.svg'),
       mediaAlt: 'Setup guide screenshot',
       mediaSide: 'left',
     },
