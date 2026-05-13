@@ -34,7 +34,9 @@ export function FormError({ message, className = '' }: FormErrorProps) {
           </svg>
         </div>
         <div className='ml-3'>
-          <p className='text-sm font-medium text-red-800 dark:text-red-300'>{message}</p>
+          <p className='text-sm font-medium text-red-800 dark:text-red-300'>
+            {message}
+          </p>
         </div>
       </div>
     </div>
