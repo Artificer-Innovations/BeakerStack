@@ -21,12 +21,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { beakerstackBillingConfig } from '../../billing/beakerstackBillingConfig';
+import { BILLING_DEEP_LINK_URL } from '../../billing/billingUrls';
 import type { Plan } from '@beakerstack/billing';
 
-const appScheme =
-  (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_APP_SCHEME) ||
-  'exp';
-const checkoutRedirectUrl = `${appScheme}://billing`;
+const checkoutRedirectUrl = BILLING_DEEP_LINK_URL;
 
 export function BillingPlansScreen(): ReactElement {
   const {
