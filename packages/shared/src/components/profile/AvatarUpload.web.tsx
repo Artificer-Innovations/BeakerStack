@@ -221,7 +221,7 @@ export function AvatarUpload({
           )}
 
           {/* Error Message */}
-          {error && <div className='text-sm text-red-600'>{error.message}</div>}
+          {error && <div className='text-sm text-red-600 dark:text-red-400'>{error.message}</div>}
 
           {/* Help Text */}
           <p className='text-xs text-gray-500 dark:text-gray-400'>JPEG, PNG, or WebP. Max 2MB.</p>
