@@ -34,7 +34,7 @@ export function Nav({ config }: NavProps) {
     >
       <div className='max-w-[1200px] mx-auto px-6 flex items-center justify-between h-16'>
         <Link to='/' className='flex items-center gap-2'>
-          <img src={logoSrc} alt={config.brand.name} className='w-8 h-8' />
+          <img src={logoSrc} alt='' className='w-8 h-8' />
           <span className='font-semibold text-lg text-gray-900 dark:text-white'>
             {config.brand.name}
           </span>
