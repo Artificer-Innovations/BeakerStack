@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
@@ -14,6 +15,7 @@ import { useProfileContext } from '@beakerstack/shared/contexts/ProfileContext';
 import { Logger } from '@beakerstack/shared/utils/logger';
 import { supabase } from '../lib/supabase';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.native';
+import Constants from 'expo-constants';
 // Import Profile Display Components - Metro will automatically resolve .native.tsx files
 import { ProfileHeader } from '@beakerstack/shared/components/profile/ProfileHeader.native';
 import { ProfileStats } from '@beakerstack/shared/components/profile/ProfileStats.native';
@@ -102,6 +104,17 @@ function ProfileScreenContent({ navigation: _navigation }: Props) {
     }
   }, [isEditing, componentsLoaded]);
 
+  const handleDevResetOnboarding = async () => {
+    const userId = auth.user?.id;
+    if (!userId) return;
+    await supabase
+      .from('onboarding_steps')
+      .delete()
+      .eq('user_id', userId)
+      .eq('step_key', 'carousel_completed');
+    Alert.alert('Dev', 'Onboarding reset — sign out and back in to see carousel.');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <AppHeader supabaseClient={supabase} />
@@ -177,6 +190,18 @@ function ProfileScreenContent({ navigation: _navigation }: Props) {
                   </View>
                 )}
               </View>
+            )}
+
+            {/* Version label — long-press in __DEV__ resets onboarding carousel */}
+            {__DEV__ && (
+              <TouchableOpacity
+                delayLongPress={500}
+                onLongPress={() => void handleDevResetOnboarding()}
+                style={styles.versionLabel}
+                accessibilityLabel="App version — long-press to reset onboarding in dev mode"
+              >
+                <Text style={styles.versionText}>v{Constants.expoConfig?.version ?? '—'}</Text>
+              </TouchableOpacity>
             )}
           </View>
         )}
@@ -255,5 +280,14 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  versionLabel: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  versionText: {
+    fontSize: 12,
+    color: '#9ca3af',
   },
 });
