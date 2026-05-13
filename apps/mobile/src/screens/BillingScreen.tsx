@@ -5,13 +5,9 @@ import type { ReactElement } from 'react';
 import { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { beakerstackBillingConfig } from '../billing/beakerstackBillingConfig';
+import { BILLING_DEEP_LINK_URL } from '../billing/BILLING_DEEP_LINK_URLs';
 import { supabase } from '../lib/supabase';
 import { BillingNavigator } from '../navigation/BillingNavigator';
-
-const appScheme =
-  (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_APP_SCHEME) ||
-  'exp';
-const billingUrl = `${appScheme}://billing`;
 
 export default function BillingScreen(): ReactElement {
   const navigation = useNavigation();
@@ -33,9 +29,9 @@ export default function BillingScreen(): ReactElement {
       <BillingProvider<typeof beakerstackBillingConfig>
         supabase={supabase}
         config={beakerstackBillingConfig}
-        checkoutSuccessUrl={billingUrl}
-        checkoutCancelUrl={billingUrl}
-        portalReturnUrl={billingUrl}
+        checkoutSuccessUrl={BILLING_DEEP_LINK_URL}
+        checkoutCancelUrl={BILLING_DEEP_LINK_URL}
+        portalReturnUrl={BILLING_DEEP_LINK_URL}
       >
         <BillingNavigator />
       </BillingProvider>
