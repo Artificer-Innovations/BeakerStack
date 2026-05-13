@@ -144,7 +144,7 @@ export const landingConfig: LandingConfig = {
     primaryCta: { label: 'Get started free', href: '/signup' },
     secondaryCta: { label: 'See features', href: '#features' },
     mediaSrc: publicUrl('landing/mobile-hero.png'),
-    mediaAlt: 'BeakerStack dashboard screenshot',
+    mediaAlt: 'BeakerStack mobile and web screenshot',
     trustStrip: 'Built on React, React Native, Supabase, and Stripe.',
   },
   featureGrid: {
