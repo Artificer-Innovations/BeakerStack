@@ -465,7 +465,10 @@ jobs:
               return webUrl ? `[Preview →](${webUrl})` : '—';
             })();
 
-            const mobileStatus = mobileJobResult === 'skipped' ? 'skipped' : mobileJobResult || 'skipped';
+            const mobileStatus =
+              mobileJobResult === 'skipped' ? 'skipped' :
+              (mobileJobResult === 'success' && !mobileUpdateUrl) ? 'skipped' :
+              mobileJobResult || 'skipped';
             const mobileLinkCell = mobileJobResult === 'failure' ? logsLink : '—';
 
             const table = [
