@@ -159,7 +159,7 @@ export function Modal({
         ref={panelRef}
         tabIndex={-1}
         className={[
-          'relative w-full rounded-xl border border-gray-200 bg-white p-6 shadow-xl focus:outline-none',
+          'relative w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-xl focus:outline-none',
           sizeToMax[size],
           className,
         ]
@@ -169,14 +169,14 @@ export function Modal({
       >
         {title && (
           <div className='mb-4 flex items-start justify-between gap-4'>
-            <h2 id={titleId} className='text-lg font-semibold text-gray-900'>
+            <h2 id={titleId} className='text-lg font-semibold text-gray-900 dark:text-white'>
               {title}
             </h2>
             {showCloseButton && (
               <button
                 type='button'
                 onClick={onClose}
-                className='rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+                className='rounded p-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200'
                 aria-label='Close dialog'
               >
                 <span aria-hidden className='text-xl leading-none'>
