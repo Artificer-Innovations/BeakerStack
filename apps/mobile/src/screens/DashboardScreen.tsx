@@ -33,6 +33,7 @@ import {
 } from '../billing/beakerstackBillingConfig';
 import { useDemoCollections } from '../billing/useDemoCollections';
 import { nextFakeAiSummary } from '../lib/fakeAi';
+import { EmptyState } from '../components/EmptyState';
 
 // Read at call time (not module init) so tests and dev toggles can change process.env without reload.
 function readBillingDashboardDemoMode(): boolean {
@@ -224,9 +225,15 @@ function MeteredBlock(): ReactElement {
       ) : null}
       <View style={styles.resultBox}>
         {results.length === 0 ? (
-          <Text style={styles.muted}>
-            Tap &apos;Simulate AI summarize&apos; to generate a result.
-          </Text>
+          <EmptyState
+            title="No results yet"
+            description="Tap 'Simulate AI summarize' to generate a result."
+            action={{
+              label: 'Simulate AI summarize',
+              accessibilityLabel: 'Simulate an AI summarize usage event',
+              onPress: () => void onSimulate(),
+            }}
+          />
         ) : (
           results.map(e => (
             <View key={e.id} style={styles.resultItem}>
@@ -313,9 +320,15 @@ function NumericCapsBlock(): ReactElement {
       </View>
       {actionErr ? <Text style={styles.errText}>{actionErr}</Text> : null}
       {!loading && collections.length === 0 ? (
-        <Text style={styles.muted}>
-          No collections yet. Tap Add collection to start.
-        </Text>
+        <EmptyState
+          title="No collections yet"
+          description="Your collections will appear here once you add them."
+          action={{
+            label: 'Add collection',
+            accessibilityLabel: 'Add a new collection',
+            onPress: () => void wrap('add', addCollection),
+          }}
+        />
       ) : (
         collections.map(row => {
           const itemCap =
@@ -740,6 +753,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9fafb',
     borderRadius: 8,
     padding: 10,
+    minHeight: 80,
   },
   resultItem: {
     marginBottom: 10,
