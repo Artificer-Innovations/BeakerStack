@@ -478,6 +478,39 @@ Resources:
         Items:
           - !Ref CloudFrontSigningPublicKeyId
 
+  # Custom response headers policy — replicates the AWS managed SecurityHeadersPolicy
+  # (67f7725c-6f97-4210-82d7-5512b31e9d03) and adds Content-Security-Policy-Report-Only
+  # for Phase 1 violation monitoring before enforcement (issue #144).
+  # Phase 2 (issue #153): move CSP to SecurityHeadersConfig.ContentSecurityPolicy.
+  BeakerStackResponseHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub 'BeakerStack-SecurityHeaders-${AWS::StackName}'
+        SecurityHeadersConfig:
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 63072000
+            IncludeSubdomains: true
+            Preload: true
+            Override: true
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: SAMEORIGIN
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: same-origin
+            Override: true
+          XSSProtection:
+            ModeBlock: true
+            Protection: true
+            Override: true
+        CustomHeadersConfig:
+          Items:
+            - Header: Content-Security-Policy-Report-Only
+              Value: "default-src 'self'; script-src 'self' 'sha256-FIEUlQEkz8Wc0NMOe90xjaENbkODxpO7+UD6KIqw/Ac='; connect-src 'self' https://*.supabase.co wss://*.supabase.co; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://placehold.co; font-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+              Override: true
+
   # Production CloudFront Distribution (beakerstack.com)
   ProdDistribution:
     Type: AWS::CloudFront::Distribution
@@ -505,7 +538,7 @@ Resources:
           ViewerProtocolPolicy: redirect-to-https
           Compress: true
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized
-          ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03 # SecurityHeadersPolicy
+          ResponseHeadersPolicyId: !Ref BeakerStackResponseHeadersPolicy
           # SPA fallback for client-side routing
           FunctionAssociations:
             - EventType: viewer-request
@@ -566,7 +599,7 @@ Resources:
           ViewerProtocolPolicy: redirect-to-https
           Compress: true
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized
-          ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03 # SecurityHeadersPolicy
+          ResponseHeadersPolicyId: !Ref BeakerStackResponseHeadersPolicy
           # SPA fallback for client-side routing
           FunctionAssociations:
             - EventType: viewer-request
@@ -632,7 +665,7 @@ Resources:
           ViewerProtocolPolicy: redirect-to-https
           Compress: true
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized
-          ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03 # SecurityHeadersPolicy
+          ResponseHeadersPolicyId: !Ref BeakerStackResponseHeadersPolicy
           # PRPathRouter handles /pr-N/* → S3 prefix routing
           FunctionAssociations:
             - EventType: viewer-request
