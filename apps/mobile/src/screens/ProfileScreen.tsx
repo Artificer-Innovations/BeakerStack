@@ -30,6 +30,7 @@ type RootStackParamList = {
   Signup: undefined;
   Dashboard: undefined;
   Profile: undefined;
+  Billing: undefined;
 };
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<
@@ -79,7 +80,7 @@ export default function ProfileScreen({ navigation }: Props) {
   return <ProfileScreenContent navigation={navigation} />;
 }
 
-function ProfileScreenContent({ navigation: _navigation }: Props) {
+function ProfileScreenContent({ navigation }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [componentsLoaded, setComponentsLoaded] = useState(false);
   const auth = useAuthContext();
@@ -144,6 +145,18 @@ function ProfileScreenContent({ navigation: _navigation }: Props) {
                 <ProfileStats profile={profile.profile} />
               </View>
             )}
+
+            {/* Billing */}
+            <View style={styles.card}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Billing')}
+                style={styles.editButton}
+              >
+                <Text style={styles.editButtonText}>
+                  Billing &amp; subscription
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             {/* Profile Editor Section */}
             {!isEditing && (
