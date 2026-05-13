@@ -596,6 +596,52 @@ jobs:
               });
             }
 
+  lighthouse:
+    if: >-
+      github.event.action != 'closed' &&
+      needs.deploy-preview.result == 'success' &&
+      needs.deploy-preview.outputs.access-mode != 'signed-cookies'
+    needs: [deploy-preview]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install @lhci/cli
+        run: npm install -g @lhci/cli@0.14
+
+      - name: Warm up preview URL
+        env:
+          PREVIEW_DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
+          PREVIEW_PREFIX: ${{ vars.PR_PREVIEW_PREFIX }}
+        run: |
+          set -euo pipefail
+          PREVIEW_PREFIX_VALUE="${PREVIEW_PREFIX:-pr-}"
+          URL="https://deploy.${PREVIEW_DOMAIN}/${PREVIEW_PREFIX_VALUE}${{ github.event.pull_request.number }}/"
+          echo "Warming up ${URL}"
+          curl -sf --max-time 30 --retry 5 --retry-delay 5 --retry-all-errors "${URL}" -o /dev/null
+          sleep 5
+
+      - name: Run Lighthouse CI
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+          PREVIEW_DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
+          PREVIEW_PREFIX: ${{ vars.PR_PREVIEW_PREFIX }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${LHCI_GITHUB_APP_TOKEN:-}" ]]; then
+            echo "LHCI_GITHUB_APP_TOKEN not set — skipping Lighthouse CI."
+            exit 0
+          fi
+          PREVIEW_PREFIX_VALUE="${PREVIEW_PREFIX:-pr-}"
+          URL="https://deploy.${PREVIEW_DOMAIN}/${PREVIEW_PREFIX_VALUE}${{ github.event.pull_request.number }}/"
+          lhci autorun --collect.url="${URL}"
+
   teardown-preview:
     if: github.event.action == 'closed' && (github.base_ref != 'develop' || github.head_ref != 'main')
     runs-on: ubuntu-latest
