@@ -30,7 +30,7 @@ export function useOnboardingGate(userId: string | null): OnboardingGateResult {
       .eq('step_key', 'carousel_completed')
       .maybeSingle()
       .then(({ data }) => {
-        setShowOnboarding(!data);
+        setShowOnboarding(!error && !data);
         setLoading(false);
       });
   }, [userId]);
