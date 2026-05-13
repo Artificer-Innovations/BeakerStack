@@ -3,6 +3,19 @@ function handler(event) {
   var uri = request.uri || '/';
   var previewPrefixBase = '%%PREVIEW_PREFIX%%';
 
+  // Preview domain should never be crawled. Return a synthetic robots.txt
+  // before any other routing so S3 (which has no file at the bucket root)
+  // never gets the request — avoiding the CloudFront HTML error-page fallback
+  // that causes Lighthouse to fail the robots.txt validity check.
+  if (uri === '/robots.txt') {
+    return {
+      statusCode: 200,
+      statusDescription: 'OK',
+      headers: { 'content-type': { value: 'text/plain' } },
+      body: 'User-agent: *\nDisallow: /\n',
+    };
+  }
+
   var prPathPattern = new RegExp('^/(' + previewPrefixBase + '\\d+)(/.*)?$');
   var match = uri.match(prPathPattern);
 
