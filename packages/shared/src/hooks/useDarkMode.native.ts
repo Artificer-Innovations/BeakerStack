@@ -1,13 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useColorScheme, Appearance } from 'react-native';
+import { Appearance } from 'react-native';
 import type { ThemeColors } from '../types/theme';
 import { LIGHT_COLORS, DARK_COLORS } from '../types/theme';
 
-export type { ThemeColors };
-
 export function useDarkMode(): { dark: boolean; colors: ThemeColors } {
-  const scheme = useColorScheme();
-  const [dark, setDark] = useState(scheme === 'dark');
+  const [dark, setDark] = useState(Appearance.getColorScheme() === 'dark');
 
   useEffect(() => {
     // Appearance.addChangeListener covers Android versions that don't fire
