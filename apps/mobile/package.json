@@ -57,7 +57,7 @@
     "expo-constants": "~15.4.6",
     "expo-dev-client": "~3.3.12",
     "expo-file-system": "~16.0.9",
-    "expo-notifications": "~0.27.21",
+    "expo-notifications": "~0.27.8",
     "expo-image-picker": "~14.7.1",
     "expo-status-bar": "~1.11.1",
     "expo-updates": "~0.24.13",
