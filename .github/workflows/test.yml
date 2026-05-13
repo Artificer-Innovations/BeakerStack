@@ -6,6 +6,7 @@ on:
       - main
       - develop
   pull_request:
+    types: [opened, synchronize, reopened, edited]
     paths:
       # Application code and tests
       - 'apps/**'
@@ -39,6 +40,8 @@ permissions:
 
 jobs:
   tests:
+    # On edited events, only run when the base branch was retargeted (not title/body-only edits).
+    if: github.event.action != 'edited' || github.event.changes.base
     runs-on: ubuntu-latest
     timeout-minutes: 45
 

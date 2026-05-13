@@ -10,6 +10,7 @@ on:
       - reopened
       - synchronize
       - ready_for_review
+      - edited
       - closed
 
 permissions:
@@ -23,8 +24,12 @@ concurrency:
 
 jobs:
   preview-scope:
-    # Skip main→develop sync PRs (no feature preview; diff would match everything on develop).
-    if: github.event.action != 'closed' && (github.base_ref != 'develop' || github.head_ref != 'main')
+    # Skip main→develop sync PRs, closed events not followed by teardown, and edited events
+    # that only changed the PR title/body (not the base branch — those should redeploy).
+    if: >-
+      github.event.action != 'closed' &&
+      (github.base_ref != 'develop' || github.head_ref != 'main') &&
+      (github.event.action != 'edited' || github.event.changes.base)
     runs-on: ubuntu-latest
     outputs:
       run_deploy: ${{ steps.check.outputs.run_deploy }}
