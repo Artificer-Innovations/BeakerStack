@@ -15,7 +15,7 @@ If you do not use an org-level project board, or you move cards manually, you ca
 ## When the workflow runs
 
 - Triggers on **`issues: labeled`** and **`pull_request: labeled`**.
-- If `GITHUB_PROJECT_NUMBER` is unset, the job is skipped (no failure).
+- If the **`PROJECT_NUMBER`** repository variable is unset, the job is skipped (no failure).
 - If `ORG_PROJECT_GITHUB_TOKEN` is unset, the run exits with a warning and succeeds (so forks and clones without secrets do not break).
 
 ## Setup
@@ -43,10 +43,14 @@ The helper is [`scripts/github/setup-project-label-bridge.mjs`](../scripts/githu
 
 1. **Repository variable (required)**  
    In GitHub: **Settings → Secrets and variables → Actions → Variables**  
-   - **`GITHUB_PROJECT_NUMBER`** — the number in the project URL, e.g. `https://github.com/orgs/YourOrg/projects/5` → `5`.
+   - **`PROJECT_NUMBER`** — the number in the project URL, e.g. `https://github.com/orgs/YourOrg/projects/5` → `5`.
+
+   > **Naming:** GitHub reserves the `GITHUB_` prefix for built-in workflow context. Repository/configuration variables **must not** start with `GITHUB_` (they can be rejected or ineffective). Do not use `GITHUB_PROJECT_NUMBER`.
 
 2. **Repository variable (optional)**  
-   - **`GITHUB_PROJECT_ORG`** — organization login owning the project. If omitted, the workflow default is `Artificer-Innovations` (change the default in the workflow file if your org differs and you prefer not to set a variable).
+   - **`PROJECT_ORG`** — organization login owning the project. If omitted, the workflow default is `Artificer-Innovations` (change the default in the workflow file if your org differs and you prefer not to set a variable).
+
+   If you previously created **`GITHUB_PROJECT_NUMBER`** / **`GITHUB_PROJECT_ORG`**, delete them and recreate as **`PROJECT_NUMBER`** / **`PROJECT_ORG`**, or run `npm run setup:project-label-bridge` again so `gh variable set` uses the correct names.
 
 3. **Repository secret (required for the bridge to do anything)**  
    **Settings → Secrets and variables → Actions → Secrets**  

@@ -33,8 +33,8 @@ Configure Actions variables for the optional project-label-bridge workflow (gh C
 
 Options:
   --repo OWNER/NAME        Target repository (default: gh repo view)
-  --number N               GITHUB_PROJECT_NUMBER (required). Env: GITHUB_PROJECT_NUMBER.
-  --org LOGIN              GITHUB_PROJECT_ORG (optional). Env: GITHUB_PROJECT_ORG.
+  --number N               PROJECT_NUMBER (required). Env: PROJECT_NUMBER (legacy: GITHUB_PROJECT_NUMBER).
+  --org LOGIN              PROJECT_ORG (optional). Env: PROJECT_ORG (legacy: GITHUB_PROJECT_ORG).
   --skip-secret            Do not set ORG_PROJECT_GITHUB_TOKEN (no prompt, no stdin read)
   --token-stdin            Read entire classic PAT from process stdin (use with piped input only)
   --token-file PATH        Read PAT from file
@@ -124,8 +124,8 @@ function parseArgv(argv) {
   /** @type {{ repo: string; number: string; org: string; dryRun: boolean; plainSecretPrompts: boolean; skipSecret: boolean; tokenStdin: boolean; tokenFile: string }} */
   const o = {
     repo: '',
-    number: process.env.GITHUB_PROJECT_NUMBER || '',
-    org: process.env.GITHUB_PROJECT_ORG || '',
+    number: process.env.PROJECT_NUMBER || process.env.GITHUB_PROJECT_NUMBER || '',
+    org: process.env.PROJECT_ORG || process.env.GITHUB_PROJECT_ORG || '',
     dryRun: false,
     plainSecretPrompts: false,
     skipSecret: false,
@@ -219,7 +219,7 @@ async function main() {
   const opts = parseArgv(process.argv.slice(2));
 
   if (!opts.number) {
-    console.error('GITHUB_PROJECT_NUMBER is required. Pass --number N or set env GITHUB_PROJECT_NUMBER.');
+    console.error('PROJECT_NUMBER is required. Pass --number N or set env PROJECT_NUMBER.');
     printHelp();
     process.exit(1);
   }
@@ -280,15 +280,15 @@ async function main() {
 
   const dry = opts.dryRun;
 
-  let r = runGh(['variable', 'set', 'GITHUB_PROJECT_NUMBER', '--repo', repo, '--body', opts.number], { dryRun: dry });
+  let r = runGh(['variable', 'set', 'PROJECT_NUMBER', '--repo', repo, '--body', opts.number], { dryRun: dry });
   if (r.status !== 0) process.exit(r.status || 1);
 
   if (opts.org) {
-    r = runGh(['variable', 'set', 'GITHUB_PROJECT_ORG', '--repo', repo, '--body', opts.org], { dryRun: dry });
+    r = runGh(['variable', 'set', 'PROJECT_ORG', '--repo', repo, '--body', opts.org], { dryRun: dry });
     if (r.status !== 0) process.exit(r.status || 1);
   } else {
     console.log(
-      'Skipping GITHUB_PROJECT_ORG (optional). Workflow default org applies unless you set the variable in the UI.',
+      'Skipping PROJECT_ORG (optional). Workflow default org applies unless you set the variable in the UI.',
     );
   }
 
@@ -300,7 +300,7 @@ async function main() {
   if (!dry) {
     const lr = runGh(['variable', 'list', '--repo', repo], { dryRun: false, captureStdout: true });
     if (lr.status === 0 && lr.stdout) {
-      const lines = lr.stdout.split('\n').filter((line) => /GITHUB_PROJECT_(NUMBER|ORG)/.test(line));
+      const lines = lr.stdout.split('\n').filter((line) => /PROJECT_(NUMBER|ORG)/.test(line));
       if (lines.length) console.log(lines.join('\n'));
     }
   } else {

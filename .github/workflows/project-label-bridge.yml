@@ -1,6 +1,9 @@
 # Optional: moves org GitHub Project (v2) cards when issues/PRs get mapped labels.
 # The repo does not require this workflow; see docs/project-label-bridge.md for why,
 # setup (secret + variables), and how to align labels with your board.
+#
+# Repository variables must NOT use the GITHUB_ prefix (reserved for built-in context).
+# Use vars.PROJECT_NUMBER and vars.PROJECT_ORG — see docs/project-label-bridge.md.
 
 name: Project label bridge
 
@@ -20,7 +23,7 @@ jobs:
     permissions:
       contents: read
     # Secrets are not available in job-level `if`; gate on vars only (forks can skip via empty var).
-    if: vars.GITHUB_PROJECT_NUMBER != ''
+    if: vars.PROJECT_NUMBER != ''
 
     steps:
       - name: Resolve label → Status and update Project
@@ -28,8 +31,8 @@ jobs:
           GH_TOKEN: ${{ secrets.ORG_PROJECT_GITHUB_TOKEN }}
           LABEL_NAME: ${{ github.event.label.name }}
           CONTENT_NODE_ID: ${{ github.event.issue.node_id || github.event.pull_request.node_id }}
-          PROJECT_ORG: ${{ vars.GITHUB_PROJECT_ORG || 'Artificer-Innovations' }}
-          PROJECT_NUMBER: ${{ vars.GITHUB_PROJECT_NUMBER }}
+          PROJECT_ORG: ${{ vars.PROJECT_ORG || 'Artificer-Innovations' }}
+          PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
         run: |
           set -euo pipefail
 
@@ -107,7 +110,7 @@ jobs:
           OPTION_ID=$(jq -r --arg s "$TARGET_STATUS" '.data.organization.projectV2.fields.nodes[] | select(.name == "Status") | .options[] | select(.name == $s) | .id' project_meta.json)
 
           if [[ "$PROJECT_ID" == "null" || -z "$PROJECT_ID" ]]; then
-            echo "::error::Could not load project $PROJECT_ORG#$PROJECT_NUMBER (check GITHUB_PROJECT_ORG / GITHUB_PROJECT_NUMBER and token access)."
+            echo "::error::Could not load project $PROJECT_ORG#$PROJECT_NUMBER (check vars PROJECT_ORG / PROJECT_NUMBER and token access)."
             exit 1
           fi
           if [[ "$STATUS_FIELD_ID" == "null" || -z "$STATUS_FIELD_ID" ]]; then
