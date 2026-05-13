@@ -19,6 +19,11 @@ export type PricingTableProps = {
   productId?: string;
   /** Core spec surface; reserved for future use (e.g. admin viewing another user). */
   currentUserId?: string | null;
+  /**
+   * When set, only plans with a matching `billing_period` (or free plans with
+   * `price_cents === 0`) are shown. Omit to show all plans.
+   */
+  cadence?: 'monthly' | 'annual';
   className?: string;
   style?: object;
 };
