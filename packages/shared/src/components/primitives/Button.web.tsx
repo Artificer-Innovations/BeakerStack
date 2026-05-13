@@ -30,11 +30,11 @@ const variantClasses: Record<ButtonVariant, string> = {
   primary:
     'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500 border border-transparent',
   secondary:
-    'bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 focus:ring-gray-400',
+    'bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 focus:ring-gray-400 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-500',
   destructive:
     'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 border border-transparent',
   ghost:
-    'bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-400 border border-transparent',
+    'bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-400 border border-transparent dark:bg-transparent dark:text-gray-300 dark:hover:bg-gray-800 dark:focus:ring-gray-500',
 };
 
 /**

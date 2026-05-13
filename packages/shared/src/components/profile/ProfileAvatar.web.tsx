@@ -68,7 +68,7 @@ export function ProfileAvatar({
           target.style.display = 'none';
           const parent = target.parentElement;
           if (parent) {
-            parent.innerHTML = `<div class="${sizeClasses[size]} rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-semibold">${getInitials()}</div>`;
+            parent.innerHTML = `<div class="${sizeClasses[size]} rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold">${getInitials()}</div>`;
           }
         }}
       />
@@ -77,7 +77,7 @@ export function ProfileAvatar({
 
   return (
     <div
-      className={`${sizeClasses[size]} rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-semibold ${className}`}
+      className={`${sizeClasses[size]} rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold ${className}`}
       role='img'
       aria-label={`Avatar for ${profile?.display_name || profile?.username || 'user'}`}
     >
