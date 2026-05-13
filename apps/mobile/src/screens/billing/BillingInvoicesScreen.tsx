@@ -24,5 +24,5 @@ export function BillingInvoicesScreen(): ReactElement {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fff' },
+  safe: { flex: 1, backgroundColor: '#f9fafb' },
 });
