@@ -11,7 +11,6 @@ import { HOME_TITLE, HOME_SUBTITLE } from '@beakerstack/shared/utils/strings';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.native';
 import { supabase } from '../lib/supabase';
-import { DebugTools } from '../components/DebugTools';
 
 type RootStackParamList = {
   Home: undefined;
@@ -87,8 +86,6 @@ export default function HomeScreen({ navigation }: Props) {
           )}
         </View>
       </View>
-
-      <DebugTools />
     </SafeAreaView>
   );
 }

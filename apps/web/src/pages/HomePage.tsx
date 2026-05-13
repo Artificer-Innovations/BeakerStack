@@ -1,7 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { LandingPage } from '../components/landing/LandingPage';
-import { DebugTools } from '@/components/DebugTools';
 
 export default function HomePage() {
   const { user } = useAuthContext();
@@ -10,10 +9,5 @@ export default function HomePage() {
     return <Navigate to='/dashboard' replace />;
   }
 
-  return (
-    <>
-      <LandingPage />
-      <DebugTools />
-    </>
-  );
+  return <LandingPage />;
 }
