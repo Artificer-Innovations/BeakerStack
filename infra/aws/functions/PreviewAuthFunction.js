@@ -2,6 +2,10 @@
 // and returns a synthetic 302 that sets all three CloudFront signed cookies.
 // This runs on /_preview-auth — the path that has NO TrustedKeyGroups, so
 // unauthenticated users can reach it to acquire their access cookies.
+//
+// NOTE: this file is the canonical source. The inline FunctionCode block in
+// infra/aws/pr-preview-stack.yml must be kept identical. Both are deployed;
+// the stack inline copy is what CloudFormation actually provisions.
 function handler(event) {
   var request = event.request;
   var qs = request.querystring;
@@ -19,8 +23,10 @@ function handler(event) {
   }
 
   // Restrict dest to a local path to prevent open redirect.
+  // decodeURIComponent throws on malformed % sequences — fall back to '/'.
   // Also block protocol-relative URLs like //evil.com which startsWith('/') but are external.
-  var dest = qs.dest ? decodeURIComponent(qs.dest.value) : '/';
+  var dest = '/';
+  try { dest = qs.dest ? decodeURIComponent(qs.dest.value) : '/'; } catch (e) { dest = '/'; }
   if (!dest.startsWith('/') || dest.startsWith('//')) dest = '/';
 
   return {

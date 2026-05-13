@@ -424,7 +424,8 @@ Resources:
               body: 'Missing required parameters: policy, sig, kid.'
             };
           }
-          var dest = qs.dest ? decodeURIComponent(qs.dest.value) : '/';
+          var dest = '/';
+          try { dest = qs.dest ? decodeURIComponent(qs.dest.value) : '/'; } catch (e) { dest = '/'; }
           if (!dest.startsWith('/') || dest.startsWith('//')) dest = '/';
           return {
             statusCode: 302,
