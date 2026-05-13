@@ -16,6 +16,21 @@ Thank you for helping improve Beaker Stack.
 
 4. Open a pull request with a clear description of **what** changed and **why**.
 
+## Pre-commit hook
+
+The repository uses [lint-staged](https://github.com/lint-staged/lint-staged) and [Husky](https://typicode.github.io/husky/) to enforce code quality on every commit.
+
+**What runs on every commit:**
+
+- ESLint `--fix` + Prettier on staged `*.{ts,tsx,js,mjs,cjs}` files
+- Prettier on staged `*.{json,md}` files
+
+**What runs only when TypeScript files are staged:**
+
+- `npm run type-check` — runs `tsc --noEmit` across all packages. This triggers `pretype-check` first, which builds `packages/shared` so downstream packages type-check against the latest types. Expect a few extra seconds on commits that touch `.ts`/`.tsx` files.
+
+If the hook blocks your commit, fix the reported errors and re-commit. Do not use `--no-verify` to skip the hook.
+
 ## Pull requests
 
 - Prefer small PRs over large mixed ones.
