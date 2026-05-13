@@ -4,6 +4,7 @@ import {
   type NavigationContainerRef,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { ErrorBoundary } from '@beakerstack/shared';
 import HomeScreen from '../screens/HomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
@@ -22,6 +23,16 @@ type RootStackParamList = {
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+function withScreenBoundary(Component: React.ComponentType<any>) {
+  return function BoundedScreen(props: any) {
+    return (
+      <ErrorBoundary level="screen">
+        <Component {...props} />
+      </ErrorBoundary>
+    );
+  };
+}
 
 export const AppNavigator = () => {
   const navigationRef =
@@ -48,16 +59,16 @@ export const AppNavigator = () => {
       >
         <Stack.Screen
           name='Home'
-          component={HomeScreen}
+          component={withScreenBoundary(HomeScreen)}
           options={{ headerShown: false }} // Home always uses custom header
         />
-        <Stack.Screen name='Login' component={LoginScreen} />
-        <Stack.Screen name='Signup' component={SignupScreen} />
-        <Stack.Screen name='Dashboard' component={DashboardScreen} />
-        <Stack.Screen name='Profile' component={ProfileScreen} />
+        <Stack.Screen name='Login' component={withScreenBoundary(LoginScreen)} />
+        <Stack.Screen name='Signup' component={withScreenBoundary(SignupScreen)} />
+        <Stack.Screen name='Dashboard' component={withScreenBoundary(DashboardScreen)} />
+        <Stack.Screen name='Profile' component={withScreenBoundary(ProfileScreen)} />
         <Stack.Screen
           name='Billing'
-          component={BillingScreen}
+          component={withScreenBoundary(BillingScreen)}
           options={{ title: 'Billing' }}
         />
       </Stack.Navigator>

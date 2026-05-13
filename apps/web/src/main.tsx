@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ErrorBoundary } from '@beakerstack/shared';
 import { supabase } from './lib/supabase';
 import App from './App';
 import './index.css';
@@ -19,14 +20,16 @@ const basePath = import.meta.env.VITE_BASE_PATH || '/';
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <ThemeProvider>
-      <AuthProvider supabaseClient={supabase}>
-        <ProfileProvider supabaseClient={supabase}>
-          <BrowserRouter basename={basePath}>
-            <App />
-          </BrowserRouter>
-        </ProfileProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <ErrorBoundary level='root'>
+      <ThemeProvider>
+        <AuthProvider supabaseClient={supabase}>
+          <ProfileProvider supabaseClient={supabase}>
+            <BrowserRouter basename={basePath}>
+              <App />
+            </BrowserRouter>
+          </ProfileProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );

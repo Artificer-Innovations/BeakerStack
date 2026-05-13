@@ -43,3 +43,6 @@ export * from './validation/profileSchema';
 // Exporting both would cause conflicts, so let the bundlers handle platform resolution
 
 export * from './utils/logger';
+
+// Error boundary and crash reporting
+export * from './error';

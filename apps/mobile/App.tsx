@@ -7,8 +7,11 @@ import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 // Import from native-specific file for correct types
 import { configureGoogleSignIn } from '@beakerstack/shared/hooks/useAuth.native';
 import { Logger } from '@beakerstack/shared/utils/logger';
+import { ErrorBoundary, reporter, ConsoleAdapter } from '@beakerstack/shared';
 import { supabase } from './src/lib/supabase';
 import { AppNavigator } from './src/navigation/AppNavigator';
+
+reporter.init(new ConsoleAdapter());
 
 export default function App() {
   useEffect(() => {
@@ -103,11 +106,13 @@ export default function App() {
   }, []);
 
   return (
-    <AuthProvider supabaseClient={supabase}>
-      <ProfileProvider supabaseClient={supabase}>
-        <AppNavigator />
-        <StatusBar style='auto' />
-      </ProfileProvider>
-    </AuthProvider>
+    <ErrorBoundary level='root'>
+      <AuthProvider supabaseClient={supabase}>
+        <ProfileProvider supabaseClient={supabase}>
+          <AppNavigator />
+          <StatusBar style='auto' />
+        </ProfileProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

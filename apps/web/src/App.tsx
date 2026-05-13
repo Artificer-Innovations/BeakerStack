@@ -3,6 +3,7 @@ import { Routes, Route, Outlet } from 'react-router-dom';
 import { ProtectedRoute } from '@beakerstack/shared/components/auth/ProtectedRoute.web';
 import { BillingProviderLayout } from './billing/BillingProviderLayout';
 import { AppFooter } from './components/AppFooter';
+import { ErrorBoundary } from '@beakerstack/shared';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
@@ -35,21 +36,25 @@ function App() {
           <Route
             path='/'
             element={
-              <Suspense fallback={null}>
-                <HomePage />
-              </Suspense>
+              <ErrorBoundary level='screen'>
+                <Suspense fallback={null}>
+                  <HomePage />
+                </Suspense>
+              </ErrorBoundary>
             }
           />
-          <Route path='/login' element={<LoginPage />} />
-          <Route path='/signup' element={<SignupPage />} />
-          <Route path='/terms' element={<PolicyPage policy='terms' />} />
-          <Route path='/privacy' element={<PolicyPage policy='privacy' />} />
-          <Route path='/refunds' element={<PolicyPage policy='refunds' />} />
+          <Route path='/login' element={<ErrorBoundary level='screen'><LoginPage /></ErrorBoundary>} />
+          <Route path='/signup' element={<ErrorBoundary level='screen'><SignupPage /></ErrorBoundary>} />
+          <Route path='/terms' element={<ErrorBoundary level='screen'><PolicyPage policy='terms' /></ErrorBoundary>} />
+          <Route path='/privacy' element={<ErrorBoundary level='screen'><PolicyPage policy='privacy' /></ErrorBoundary>} />
+          <Route path='/refunds' element={<ErrorBoundary level='screen'><PolicyPage policy='refunds' /></ErrorBoundary>} />
           <Route
             path='/profile'
             element={
               <ProtectedRoute>
-                <ProfilePage />
+                <ErrorBoundary level='screen'>
+                  <ProfilePage />
+                </ErrorBoundary>
               </ProtectedRoute>
             }
           />
@@ -61,17 +66,17 @@ function App() {
             }
           >
             <Route element={<BillingProviderLayout />}>
-              <Route path='/dashboard' element={<DashboardPage />} />
-              <Route path='/billing' element={<BillingOverviewPage />} />
-              <Route path='/billing/usage' element={<BillingUsagePage />} />
-              <Route path='/billing/plans' element={<BillingPlansPage />} />
+              <Route path='/dashboard' element={<ErrorBoundary level='screen'><DashboardPage /></ErrorBoundary>} />
+              <Route path='/billing' element={<ErrorBoundary level='screen'><BillingOverviewPage /></ErrorBoundary>} />
+              <Route path='/billing/usage' element={<ErrorBoundary level='screen'><BillingUsagePage /></ErrorBoundary>} />
+              <Route path='/billing/plans' element={<ErrorBoundary level='screen'><BillingPlansPage /></ErrorBoundary>} />
               <Route
                 path='/billing/invoices'
-                element={<BillingInvoicesPage />}
+                element={<ErrorBoundary level='screen'><BillingInvoicesPage /></ErrorBoundary>}
               />
             </Route>
           </Route>
-          <Route path='/auth/callback' element={<AuthCallbackPage />} />
+          <Route path='/auth/callback' element={<ErrorBoundary level='screen'><AuthCallbackPage /></ErrorBoundary>} />
         </Route>
       </Routes>
     </div>
