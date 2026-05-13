@@ -58,7 +58,7 @@ export function BillingPlansScreen(): ReactElement {
   // Refresh subscription when user returns from Stripe checkout
   const appState = useRef(AppState.currentState);
   useEffect(() => {
-    const sub = AppState.addEventListener('change', nextState => {
+    const listener = AppState.addEventListener('change', nextState => {
       if (
         appState.current.match(/inactive|background/) &&
         nextState === 'active'
@@ -67,7 +67,7 @@ export function BillingPlansScreen(): ReactElement {
       }
       appState.current = nextState;
     });
-    return () => sub.remove();
+    return () => listener.remove();
   }, [refreshSub]);
 
   const handleSelectPlan = useCallback(
