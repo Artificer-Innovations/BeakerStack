@@ -12,7 +12,7 @@ The `lighthouse` job in `pr-preview-environment.yml` runs [Lighthouse CI](https:
 
 ### GitHub secret: `LHCI_GITHUB_APP_TOKEN`
 
-This is an optional secret. Without it the `lighthouse` job is skipped entirely (the shell guard exits 0). With it, Lighthouse runs and the scores are posted as GitHub status checks.
+This is an optional secret. Without it the Lighthouse run is skipped — the job itself still runs (checkout, install, and warmup all execute) and the step exits 0, so the job appears in the workflow graph as successful. With it, Lighthouse runs and scores are posted as GitHub status checks.
 
 To obtain the token:
 
