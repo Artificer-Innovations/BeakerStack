@@ -103,6 +103,8 @@ Commit any updates to `docs/reference/github-actions-secrets.md` when you change
 
 At minimum for deploy workflows you will need **`SUPABASE_ACCESS_TOKEN`** and **AWS access keys** (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, plus optional `AWS_SESSION_TOKEN`), plus the Supabase URL/keys and project refs for each tier—see the generated table. **`EXPO_TOKEN`**, `EXPO_PROJECT_ID`, `EXPO_ACCOUNT`, and all `GOOGLE_SERVICES_*` entries are mobile-only; set `MOBILE_ENABLED=false` (GitHub variable) to skip them for web-only repos.
 
+**Lighthouse CI** scores are posted as GitHub status checks on each PR preview if `LHCI_GITHUB_APP_TOKEN` is set (install the [Lighthouse CI GitHub App](https://github.com/apps/lighthouse-ci) to get the token). The step is skipped automatically when the preview is signed-cookie gated — Lighthouse cannot authenticate headlessly. See [docs/lighthouse-ci.md](docs/lighthouse-ci.md) for details.
+
 ### 6.2 Full interactive bootstrap
 
 ```bash
