@@ -263,6 +263,13 @@ export const GITHUB_SECRETS = [
     optional: true,
     group: 'google',
   },
+  {
+    type: 'secret',
+    name: 'LHCI_GITHUB_APP_TOKEN',
+    envKeys: ['LHCI_GITHUB_APP_TOKEN'],
+    optional: true,
+    group: 'preview',
+  },
 ];
 
 /** CLI `--from=` shorthand → canonical phase id (see setup-full PHASE_ORDER). */
