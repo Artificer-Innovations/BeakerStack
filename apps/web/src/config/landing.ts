@@ -190,7 +190,7 @@ export const landingConfig: LandingConfig = {
       {
         icon: Bot,
         title: 'Agent-friendly codebase',
-        body: 'Typed configs, schema-generated types, colocated tests with a decision matrix, and a clear monorepo layout give AI coding agents the structure they need to make safe, targeted changes. Ships with reusable skills directories for Claude, Cursor, and Augment.',
+        body: 'Typed configs, schema-generated types, colocated tests with a decision matrix, and a clear monorepo layout give AI coding agents the structure they need to make safe, targeted changes.',
       },
       {
         icon: GitBranch,
@@ -233,7 +233,7 @@ export const landingConfig: LandingConfig = {
     },
     {
       title: 'Pre-rendered home page for SEO and link previews.',
-      body: 'The marketing home is rendered to static HTML at build time and injected into `index.html`, with canonical and Open Graph URLs wired in per environment. Crawlers and social previews see real content immediately — no blank shell, no client-side flash — while the rest of the SPA hydrates as usual.',
+      body: 'The marketing home is rendered to static HTML at build time with canonical and Open Graph URLs wired in per environment. Crawlers and social previews see real content immediately — no blank shell, no client-side flash — while the rest of the SPA hydrates as usual.',
       ctaLabel: 'See the prerender script',
       ctaHref:
         'https://github.com/Artificer-Innovations/BeakerStack/blob/main/apps/web/scripts/prerender-home.ts',
