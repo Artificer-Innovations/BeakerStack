@@ -126,13 +126,13 @@ describe('PricingSection', () => {
     );
   });
 
-  it('shows loading message while plans are loading', () => {
+  it('shows skeleton while plans are loading', () => {
     vi.mocked(usePlanCatalog).mockReturnValue({
       plans: [],
       loading: true,
     } as unknown as ReturnType<typeof usePlanCatalog>);
     renderSection();
-    expect(screen.getByText(/Loading plans/)).toBeInTheDocument();
+    expect(screen.getByTestId('pricing-skeleton')).toBeInTheDocument();
     expect(screen.queryByTestId('plan-card-free')).not.toBeInTheDocument();
   });
 
