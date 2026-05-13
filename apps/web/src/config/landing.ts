@@ -9,6 +9,9 @@ import {
   GitBranch,
   TestTube,
   Database,
+  Megaphone,
+  Search,
+  Bot,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -142,22 +145,37 @@ export const landingConfig: LandingConfig = {
   featureGrid: {
     heading: 'Everything wired. Nothing hidden.',
     subhead:
-      'Stop stitching libraries together. BeakerStack ships the hard parts pre-integrated.',
+      'Stop stitching libraries together. BeakerStack ships cross-platform apps, B2C-ready auth and billing, and a marketable web presence — all pre-integrated.',
     items: [
+      {
+        icon: Smartphone,
+        title: 'Mobile from day one',
+        body: 'Reach users on iOS and Android with the same business logic as your web app — shared hooks, auth, and billing across React and React Native.',
+      },
       {
         icon: Zap,
         title: 'Auth out of the box',
-        body: 'Email, OAuth, and magic links via Supabase — no custom session handling required.',
+        body: 'Email, OAuth, and magic links via Supabase — session handling and protected routes are already wired for web and mobile.',
+      },
+      {
+        icon: Megaphone,
+        title: 'Marketing landing in config',
+        body: 'Hero, features, pricing, FAQ, and footer are driven from a typed config file — rebrand or white-label the landing page without rewriting JSX.',
+      },
+      {
+        icon: Search,
+        title: 'SEO-friendly home page',
+        body: 'The marketing home is pre-rendered to static HTML at build time with canonical and Open Graph URLs — better for crawlers and social previews than a blank SPA shell.',
       },
       {
         icon: CreditCard,
         title: 'Billing that works',
-        body: 'Stripe subscriptions, usage metering, plan gates, and a customer portal — ready to go.',
+        body: 'Stripe subscriptions, plan gates, a customer portal, and upgrade flows — the same patterns you need for self-serve B2C plans.',
       },
       {
-        icon: Smartphone,
-        title: 'Mobile from day one',
-        body: 'Shared business logic between your React web app and React Native mobile app.',
+        icon: BarChart3,
+        title: 'Usage metering',
+        body: 'Track feature usage per user, enforce limits, and surface quota data in the UI — ideal for free tiers and usage-based add-ons.',
       },
       {
         icon: Database,
@@ -170,9 +188,9 @@ export const landingConfig: LandingConfig = {
         body: 'End-to-end types from the database schema to your UI components.',
       },
       {
-        icon: BarChart3,
-        title: 'Usage metering',
-        body: 'Track feature usage per user, enforce limits, and surface quota data in the UI.',
+        icon: Bot,
+        title: 'Agent-friendly codebase',
+        body: 'Typed configs, schema-generated types, colocated tests with a decision matrix, and a clear monorepo layout give AI coding agents the structure they need to make safe, targeted changes. Ships with reusable skills directories for Claude, Cursor, and Augment.',
       },
       {
         icon: GitBranch,
@@ -195,21 +213,41 @@ export const landingConfig: LandingConfig = {
   },
   featureRows: [
     {
-      title: 'Billing that actually ships.',
-      body: 'Most templates stop at "add Stripe." BeakerStack includes plan gating, usage metering, upgrade prompts, a billing portal, and downgrade blockers — all wired to real Stripe products and ready for your plans.',
-      ctaLabel: 'See billing docs',
-      ctaHref: '#pricing',
-      mediaSrc: 'https://placehold.co/560x315?text=Billing+UI',
-      mediaAlt: 'Billing plans UI screenshot',
-      mediaSide: 'right',
-    },
-    {
       title: 'Web and mobile from a single codebase.',
       body: 'Shared auth logic. Shared billing hooks. Shared business rules. Your React web app and React Native mobile app stay in sync without duplicating work. About 40–60% of the codebase is shared across platforms.',
       ctaLabel: 'Learn about mobile',
       ctaHref: '#features',
       mediaSrc: 'https://placehold.co/560x315?text=Mobile+App',
       mediaAlt: 'Mobile app screenshot',
+      mediaSide: 'right',
+    },
+    {
+      title: 'Marketing copy you can rebrand in one file.',
+      body: 'Every piece of landing-page content — hero, features, social proof, pricing, FAQ, footer — lives in a single typed config. Swap the config and the same section components render a completely different product, with zero JSX changes. An alternate example config ships in the repo to prove it.',
+      ctaLabel: 'Read the landing README',
+      ctaHref:
+        'https://github.com/Artificer-Innovations/BeakerStack/blob/main/apps/web/src/components/landing/README.md',
+      mediaSrc: 'https://placehold.co/560x315?text=Marketing+config',
+      mediaAlt: 'Landing page config file screenshot',
+      mediaSide: 'left',
+    },
+    {
+      title: 'Pre-rendered home page for SEO and link previews.',
+      body: 'The marketing home is rendered to static HTML at build time and injected into `index.html`, with canonical and Open Graph URLs wired in per environment. Crawlers and social previews see real content immediately — no blank shell, no client-side flash — while the rest of the SPA hydrates as usual.',
+      ctaLabel: 'See the prerender script',
+      ctaHref:
+        'https://github.com/Artificer-Innovations/BeakerStack/blob/main/apps/web/scripts/prerender-home.ts',
+      mediaSrc: 'https://placehold.co/560x315?text=SEO+prerender',
+      mediaAlt: 'Pre-rendered HTML and meta tags screenshot',
+      mediaSide: 'right',
+    },
+    {
+      title: 'Billing that actually ships.',
+      body: 'Most templates stop at "add Stripe." BeakerStack includes plan gating, usage metering, upgrade prompts, a billing portal, and downgrade blockers — all wired to real Stripe products and ready for your plans.',
+      ctaLabel: 'See billing docs',
+      ctaHref: '#pricing',
+      mediaSrc: 'https://placehold.co/560x315?text=Billing+UI',
+      mediaAlt: 'Billing plans UI screenshot',
       mediaSide: 'left',
     },
     {
