@@ -203,7 +203,7 @@ jobs:
             --region "${AWS_REGION_VALUE}"
 
       # Generate CloudFront signed cookies and post GitHub Deployment with access URL.
-      # Skipped when CLOUDFRONT_SIGNING_KEY is not set (public access mode).
+      # Skipped when neither signing secret is set (public access mode). Partial config fails the step.
       - name: Generate signed cookie bootstrap URL
         id: signed_cookies
         if: steps.web.outcome == 'success'
@@ -214,9 +214,13 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          # secrets.* is not allowed in step `if:` — gate here when the secret is unset (public preview).
-          if [[ -z "${CLOUDFRONT_SIGNING_KEY:-}" ]]; then
+          # secrets.* is not allowed in step `if:` — gate here (public preview when neither secret is set).
+          if [[ -z "${CLOUDFRONT_SIGNING_KEY:-}" && -z "${CLOUDFRONT_SIGNING_KEY_ID:-}" ]]; then
             exit 0
+          fi
+          if [[ -z "${CLOUDFRONT_SIGNING_KEY:-}" || -z "${CLOUDFRONT_SIGNING_KEY_ID:-}" ]]; then
+            echo "::error::CLOUDFRONT_SIGNING_KEY and CLOUDFRONT_SIGNING_KEY_ID must both be set. Configure both secrets or neither."
+            exit 1
           fi
           PREVIEW_PREFIX_VALUE="${PREVIEW_PREFIX:-pr-}"
           DEPLOY_DOMAIN="deploy.${PREVIEW_DOMAIN}"

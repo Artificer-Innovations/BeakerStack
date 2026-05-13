@@ -155,9 +155,13 @@ jobs:
           CLOUDFRONT_SIGNING_KEY_ID: ${{ secrets.CLOUDFRONT_SIGNING_KEY_ID }}
         run: |
           set -euo pipefail
-          # secrets.* is not allowed in step `if:` — gate here when the secret is unset (direct URL access).
-          if [[ -z "${CLOUDFRONT_SIGNING_KEY:-}" ]]; then
+          # secrets.* is not allowed in step `if:` — gate here (direct URL access when neither secret is set).
+          if [[ -z "${CLOUDFRONT_SIGNING_KEY:-}" && -z "${CLOUDFRONT_SIGNING_KEY_ID:-}" ]]; then
             exit 0
+          fi
+          if [[ -z "${CLOUDFRONT_SIGNING_KEY:-}" || -z "${CLOUDFRONT_SIGNING_KEY_ID:-}" ]]; then
+            echo "::error::CLOUDFRONT_SIGNING_KEY and CLOUDFRONT_SIGNING_KEY_ID must both be set. Configure both secrets or neither."
+            exit 1
           fi
           STAGING_DOMAIN="staging.${DOMAIN}"
           RESOURCE="https://${STAGING_DOMAIN}/*"
