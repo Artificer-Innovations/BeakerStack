@@ -47,7 +47,13 @@ describe('Nav', () => {
         <Nav config={configNoLogo} />
       </MemoryRouter>
     );
-    const img = screen.getByRole('img', { name: 'BeakerStack' });
+    const brandLink = screen.getByRole('link', { name: 'BeakerStack' });
+    const img = brandLink.querySelector('img');
+    expect(img).not.toBeNull();
+    if (!img) {
+      throw new Error('expected brand logo img');
+    }
+    expect(img.getAttribute('alt')).toBe('');
     expect(img.getAttribute('src')).toBe('/pr-42/demo-flask-icon.svg');
     Object.defineProperty(window, 'location', {
       configurable: true,
