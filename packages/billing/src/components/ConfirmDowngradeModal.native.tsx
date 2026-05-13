@@ -32,7 +32,7 @@ function featuresLost(current: Plan | null, target: Plan): string[] {
       typeof targetValue === 'number' &&
       targetValue < value
     ) {
-      lost.push(`${key.replace(/_/g, ' ')} (${targetValue} → ${value} limit)`);
+      lost.push(`${key.replace(/_/g, ' ')} (${value} → ${targetValue} limit)`);
     }
     if (typeof value === 'number' && targetValue === undefined) {
       lost.push(key.replace(/_/g, ' '));
