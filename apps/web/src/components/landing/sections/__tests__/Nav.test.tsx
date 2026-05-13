@@ -49,7 +49,6 @@ describe('Nav', () => {
     );
     const brandLink = screen.getByRole('link', { name: 'BeakerStack' });
     const img = brandLink.querySelector('img');
-    expect(img).not.toBeNull();
     if (!img) {
       throw new Error('expected brand logo img');
     }
