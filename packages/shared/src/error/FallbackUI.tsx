@@ -1,6 +1,4 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 
 interface Props {
   error: Error;
@@ -8,77 +6,26 @@ interface Props {
   level?: 'screen' | 'root';
 }
 
-function ScreenFallback({ error, reset }: { error: Error; reset: () => void }) {
-  const navigation = useNavigation();
+export function FallbackUI({ error, reset, level = 'screen' }: Props) {
+  const isRoot = level === 'root';
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Something went wrong</Text>
-      <Text style={styles.message}>{error.message}</Text>
-      <TouchableOpacity style={styles.button} onPress={reset}>
-        <Text style={styles.buttonText}>Try again</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={[styles.button, styles.secondaryButton]} onPress={() => navigation.goBack()}>
-        <Text style={[styles.buttonText, styles.secondaryButtonText]}>Go back</Text>
-      </TouchableOpacity>
-    </View>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', ...(isRoot ? { minHeight: '100vh' } : { padding: 24 }), padding: 24, backgroundColor: '#f9fafb' }}>
+      <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111827', marginBottom: 8, margin: '0 0 8px' }}>Something went wrong</h2>
+      <p style={{ fontSize: 14, color: '#dc2626', textAlign: 'center', marginBottom: 24, margin: '0 0 24px' }}>{error.message}</p>
+      <button
+        onClick={reset}
+        style={{ backgroundColor: '#111827', color: '#fff', border: 'none', padding: '12px 32px', borderRadius: 8, fontSize: 16, fontWeight: 600, cursor: 'pointer', minWidth: 160, marginBottom: 12 }}
+      >
+        Try again
+      </button>
+      {!isRoot && (
+        <button
+          onClick={() => window.history.back()}
+          style={{ backgroundColor: '#fff', color: '#111827', border: '1px solid #111827', padding: '12px 32px', borderRadius: 8, fontSize: 16, fontWeight: 600, cursor: 'pointer', minWidth: 160 }}
+        >
+          Go back
+        </button>
+      )}
+    </div>
   );
 }
-
-export function FallbackUI({ error, reset, level = 'screen' }: Props) {
-  if (level === 'root') {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Something went wrong</Text>
-        <Text style={styles.message}>{error.message}</Text>
-        <TouchableOpacity style={styles.button} onPress={reset}>
-          <Text style={styles.buttonText}>Try again</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-  return <ScreenFallback error={error} reset={reset} />;
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f9fafb',
-    padding: 24,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  message: {
-    fontSize: 14,
-    color: '#dc2626',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  button: {
-    backgroundColor: '#111827',
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    borderRadius: 8,
-    marginBottom: 12,
-    minWidth: 160,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#111827',
-  },
-  secondaryButtonText: {
-    color: '#111827',
-  },
-});
