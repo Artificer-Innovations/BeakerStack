@@ -9,6 +9,7 @@ import { configureGoogleSignIn } from '@beakerstack/shared/hooks/useAuth.native'
 import { Logger } from '@beakerstack/shared/utils/logger';
 import { supabase } from './src/lib/supabase';
 import { AppNavigator } from './src/navigation/AppNavigator';
+import { registerDevice } from './src/lib/notifications';
 
 export default function App() {
   useEffect(() => {
@@ -100,6 +101,17 @@ export default function App() {
     }).catch(err => {
       Logger.error('[App] Failed to configure Google Sign-In', err);
     });
+
+    // Register device for push notifications on auth state change
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user?.id) {
+        registerDevice(session.user.id).catch(console.warn);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (
