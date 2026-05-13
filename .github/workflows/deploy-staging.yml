@@ -149,13 +149,16 @@ jobs:
 
       - name: Generate staging signed cookie bootstrap URL
         id: signed_cookies
-        if: secrets.CLOUDFRONT_SIGNING_KEY != ''
         shell: bash
         env:
           CLOUDFRONT_SIGNING_KEY: ${{ secrets.CLOUDFRONT_SIGNING_KEY }}
           CLOUDFRONT_SIGNING_KEY_ID: ${{ secrets.CLOUDFRONT_SIGNING_KEY_ID }}
         run: |
           set -euo pipefail
+          # secrets.* is not allowed in step `if:` — gate here when the secret is unset (direct URL access).
+          if [[ -z "${CLOUDFRONT_SIGNING_KEY:-}" ]]; then
+            exit 0
+          fi
           STAGING_DOMAIN="staging.${DOMAIN}"
           RESOURCE="https://${STAGING_DOMAIN}/*"
           EXPIRY=$(date -u -d "+30 days" +%s)

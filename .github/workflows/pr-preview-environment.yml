@@ -206,7 +206,7 @@ jobs:
       # Skipped when CLOUDFRONT_SIGNING_KEY is not set (public access mode).
       - name: Generate signed cookie bootstrap URL
         id: signed_cookies
-        if: steps.web.outcome == 'success' && secrets.CLOUDFRONT_SIGNING_KEY != ''
+        if: steps.web.outcome == 'success'
         shell: bash
         env:
           CLOUDFRONT_SIGNING_KEY: ${{ secrets.CLOUDFRONT_SIGNING_KEY }}
@@ -214,6 +214,10 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
+          # secrets.* is not allowed in step `if:` — gate here when the secret is unset (public preview).
+          if [[ -z "${CLOUDFRONT_SIGNING_KEY:-}" ]]; then
+            exit 0
+          fi
           PREVIEW_PREFIX_VALUE="${PREVIEW_PREFIX:-pr-}"
           DEPLOY_DOMAIN="deploy.${PREVIEW_DOMAIN}"
           DEST="/${PREVIEW_PREFIX_VALUE}${PR_NUMBER}/"
