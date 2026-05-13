@@ -33,7 +33,7 @@ Feature grid icons use `lucide-react`. Pass the icon component directly — e.g.
 
 ## Landing images
 
-Landing artwork goes in `public/landing/`. Reference it from `src/config/landing.ts` with `publicUrl('landing/example.png')` so Vite's `BASE_URL` is applied for path-prefixed preview deployments.
+Landing artwork goes in `public/landing/`. Prefer AVIF or WebP for raster images, sized close to the displayed card dimensions (`560×315` for feature rows), and reference assets from `src/config/landing.ts` with `publicUrl('landing/example.avif')` so Vite's `BASE_URL` is applied for path-prefixed preview deployments.
 
 ## Pricing section
 
