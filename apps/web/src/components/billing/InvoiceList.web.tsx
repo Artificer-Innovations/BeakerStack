@@ -51,7 +51,7 @@ export function InvoiceList({
         <div className='mt-4 text-right'>
           <Link
             to='/billing/invoices'
-            className='text-sm font-medium text-indigo-600 hover:text-indigo-500'
+            className='text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300'
           >
             View all invoices →
           </Link>
