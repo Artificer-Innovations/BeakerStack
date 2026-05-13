@@ -442,6 +442,28 @@ Resources:
           };
         }
 
+  # Explicit no-cache policy for the /_preview-auth cookie-setter path.
+  # Uses a custom resource rather than the CachingDisabled managed policy UUID to avoid
+  # any account-level availability issues with AWS-managed policy IDs.
+  PreviewAuthCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub '${AWS::StackName}-preview-auth-no-cache'
+        Comment: Disables caching on the /_preview-auth cookie-setter path
+        DefaultTTL: 0
+        MinTTL: 0
+        MaxTTL: 1
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingGzip: false
+          EnableAcceptEncodingBrotli: false
+          CookiesConfig:
+            CookieBehavior: none
+          HeadersConfig:
+            HeaderBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior: none
+
   # Key group associating the provisioned CloudFront public key with distributions.
   # Created only when at least one distribution is in signed-cookies mode.
   # The public key itself is provisioned outside CloudFormation by
@@ -529,9 +551,9 @@ Resources:
             TargetOriginId: StagingOrigin
             ViewerProtocolPolicy: redirect-to-https
             Compress: false
-            # CachingDisabled — synthetic responses from CF Functions are not cached, but
-            # this policy is explicit and prevents any accidental cache sharing.
-            CachePolicyId: 4135872e-7369-4a65-bac3-7ea18cd55781
+            # No-cache policy — synthetic responses from CF Functions are not cached, but
+            # an explicit policy prevents any accidental cache sharing.
+            CachePolicyId: !Ref PreviewAuthCachePolicy
             FunctionAssociations:
               - EventType: viewer-request
                 FunctionARN: !GetAtt PreviewAuthFunction.FunctionMetadata.FunctionARN
@@ -594,9 +616,9 @@ Resources:
             TargetOriginId: DeployOrigin
             ViewerProtocolPolicy: redirect-to-https
             Compress: false
-            # CachingDisabled — synthetic responses from CF Functions are not cached, but
-            # this policy is explicit and prevents any accidental cache sharing.
-            CachePolicyId: 4135872e-7369-4a65-bac3-7ea18cd55781
+            # No-cache policy — synthetic responses from CF Functions are not cached, but
+            # an explicit policy prevents any accidental cache sharing.
+            CachePolicyId: !Ref PreviewAuthCachePolicy
             FunctionAssociations:
               - EventType: viewer-request
                 FunctionARN: !GetAtt PreviewAuthFunction.FunctionMetadata.FunctionARN
