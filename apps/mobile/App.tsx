@@ -9,6 +9,8 @@ import { configureGoogleSignIn } from '@beakerstack/shared/hooks/useAuth.native'
 import { Logger } from '@beakerstack/shared/utils/logger';
 import { supabase } from './src/lib/supabase';
 import { AppNavigator } from './src/navigation/AppNavigator';
+import { NetworkProvider } from './src/lib/network';
+import { OfflineBanner } from './src/components/OfflineBanner';
 
 export default function App() {
   useEffect(() => {
@@ -103,11 +105,14 @@ export default function App() {
   }, []);
 
   return (
-    <AuthProvider supabaseClient={supabase}>
-      <ProfileProvider supabaseClient={supabase}>
-        <AppNavigator />
-        <StatusBar style='auto' />
-      </ProfileProvider>
-    </AuthProvider>
+    <NetworkProvider>
+      <AuthProvider supabaseClient={supabase}>
+        <ProfileProvider supabaseClient={supabase}>
+          <AppNavigator />
+          <StatusBar style='auto' />
+        </ProfileProvider>
+      </AuthProvider>
+      <OfflineBanner />
+    </NetworkProvider>
   );
 }
