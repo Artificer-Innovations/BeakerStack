@@ -35,6 +35,8 @@ This file lists repository **secrets** and **variables** the setup wizard can sy
 | `PREVIEW_STRIPE_WEBHOOK_SECRET`            | no       | preview    |
 | `PREVIEW_BILLING_ALLOWED_ORIGINS`          | yes      | preview    |
 | `PR_PREVIEW_CERTIFICATE_ARN`               | no       | preview    |
+| `CLOUDFRONT_SIGNING_KEY`                   | yes      | preview    |
+| `CLOUDFRONT_SIGNING_KEY_ID`                | yes      | preview    |
 | `EXPO_TOKEN`                               | no       | expo       |
 | `EXPO_PROJECT_ID`                          | no       | expo       |
 | `GOOGLE_SERVICES_PROJECT_NUMBER`           | yes      | google     |
