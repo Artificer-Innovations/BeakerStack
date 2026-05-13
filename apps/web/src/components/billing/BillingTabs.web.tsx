@@ -25,7 +25,7 @@ export function BillingTabs() {
             [
               'shrink-0 px-4 py-3 text-sm font-medium',
               isActive
-                ? 'border-b-2 border-indigo-600 text-indigo-600'
+                ? 'border-b-2 border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400'
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white',
             ].join(' ')
           }

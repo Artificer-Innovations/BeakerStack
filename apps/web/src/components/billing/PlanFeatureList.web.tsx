@@ -40,7 +40,7 @@ export function PlanFeatureList({
                 />
               ) : (
                 <X
-                  className='mt-0.5 h-4 w-4 shrink-0 text-gray-300 dark:text-gray-600'
+                  className='mt-0.5 h-4 w-4 shrink-0 text-gray-300 dark:text-gray-500'
                   aria-hidden
                 />
               )}
