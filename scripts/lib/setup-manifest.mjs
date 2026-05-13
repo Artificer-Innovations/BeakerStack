@@ -176,6 +176,20 @@ export const GITHUB_SECRETS = [
   },
   {
     type: 'secret',
+    name: 'CLOUDFRONT_SIGNING_KEY',
+    envKeys: ['CLOUDFRONT_SIGNING_KEY'],
+    optional: true,
+    group: 'preview',
+  },
+  {
+    type: 'secret',
+    name: 'CLOUDFRONT_SIGNING_KEY_ID',
+    envKeys: ['CLOUDFRONT_SIGNING_KEY_ID'],
+    optional: true,
+    group: 'preview',
+  },
+  {
+    type: 'secret',
     name: 'EXPO_TOKEN',
     envKeys: ['EXPO_TOKEN'],
     group: 'expo',

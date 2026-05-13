@@ -2,7 +2,8 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: >
   Three-environment infrastructure stack (production, staging, preview).
   Provisions S3 storage, CloudFront distributions, logging, DNS records, and
-  CloudFront Function for path-based PR preview routing on deploy.beakerstack.com.
+  CloudFront Functions for path-based PR preview routing and signed-cookie
+  access control on deploy.beakerstack.com and staging.beakerstack.com.
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -23,6 +24,12 @@ Metadata:
           default: Preview Settings
         Parameters:
           - PreviewPrefix
+      - Label:
+          default: Access Control
+        Parameters:
+          - PreviewAccessControl
+          - StagingAccessControl
+          - CloudFrontSigningPublicKeyId
     ParameterLabels:
       DomainName:
         default: Root domain (e.g. beakerstack.com)
@@ -38,6 +45,12 @@ Metadata:
         default: CloudFront log retention (days)
       PreviewPrefix:
         default: Prefix for preview deployments (e.g. pr-)
+      PreviewAccessControl:
+        default: Access control mode for PR preview (deploy) distribution
+      StagingAccessControl:
+        default: Access control mode for staging distribution
+      CloudFrontSigningPublicKeyId:
+        default: CloudFront public key ID for signed-cookie validation (leave blank when using public mode)
 
 Parameters:
   DomainName:
@@ -68,10 +81,35 @@ Parameters:
     Type: String
     Default: pr-
     Description: Prefix used for preview folders (e.g. pr-123)
+  PreviewAccessControl:
+    Type: String
+    AllowedValues: [public, signed-cookies]
+    Default: public
+    Description: >
+      Set to signed-cookies to require CloudFront signed cookies for the PR preview
+      (deploy) distribution. Run scripts/pr-preview/setup-signed-cookies.sh first.
+  StagingAccessControl:
+    Type: String
+    AllowedValues: [public, signed-cookies]
+    Default: public
+    Description: >
+      Set to signed-cookies to require CloudFront signed cookies for the staging
+      distribution. Run scripts/pr-preview/setup-signed-cookies.sh first.
+  CloudFrontSigningPublicKeyId:
+    Type: String
+    Default: ''
+    Description: >
+      ID of the CloudFront public key used to validate signed cookies. Required when
+      PreviewAccessControl or StagingAccessControl is signed-cookies.
 
 Conditions:
   UseProvidedLogsBucketName: !Not [!Equals [!Ref LogsBucketName, '']]
   EncryptBuckets: !Equals [!Ref EnableS3BucketEncryption, 'true']
+  EnablePreviewSignedCookies: !Equals [!Ref PreviewAccessControl, signed-cookies]
+  EnableStagingSignedCookies: !Equals [!Ref StagingAccessControl, signed-cookies]
+  EnableAnySignedCookies: !Or
+    - !Condition EnablePreviewSignedCookies
+    - !Condition EnableStagingSignedCookies
 
 Resources:
   # Shared logs bucket for all CloudFront distributions
@@ -359,6 +397,64 @@ Resources:
           return request;
         }
 
+  # Cookie setter for the /_preview-auth bootstrap path.
+  # Reads pre-computed signed cookie values from query params and returns a 302
+  # that sets all three CloudFront signed cookies. This function has no crypto;
+  # cookie values are pre-computed by CI using the private signing key.
+  PreviewAuthFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub '${AWS::StackName}-PreviewAuth'
+      AutoPublish: true
+      FunctionConfig:
+        Comment: Sets CloudFront signed cookies from pre-computed query param values
+        Runtime: cloudfront-js-2.0
+      FunctionCode: |
+        function handler(event) {
+          var request = event.request;
+          var qs = request.querystring;
+          var policy = qs.policy ? qs.policy.value : null;
+          var sig    = qs.sig    ? qs.sig.value    : null;
+          var kid    = qs.kid    ? qs.kid.value    : null;
+          if (!policy || !sig || !kid) {
+            return {
+              statusCode: 400,
+              statusDescription: 'Bad Request',
+              headers: { 'content-type': { value: 'text/plain' } },
+              body: 'Missing required parameters: policy, sig, kid.'
+            };
+          }
+          var dest = qs.dest ? decodeURIComponent(qs.dest.value) : '/';
+          if (!dest.startsWith('/') || dest.startsWith('//')) dest = '/';
+          return {
+            statusCode: 302,
+            statusDescription: 'Found',
+            headers: {
+              location:        { value: dest },
+              'cache-control': { value: 'no-store, no-cache, must-revalidate' }
+            },
+            cookies: {
+              'CloudFront-Policy':      { value: policy, attributes: 'HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800' },
+              'CloudFront-Signature':   { value: sig,    attributes: 'HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800' },
+              'CloudFront-Key-Pair-Id': { value: kid,    attributes: 'HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800' }
+            }
+          };
+        }
+
+  # Key group associating the provisioned CloudFront public key with distributions.
+  # Created only when at least one distribution is in signed-cookies mode.
+  # The public key itself is provisioned outside CloudFormation by
+  # scripts/pr-preview/setup-signed-cookies.sh.
+  PreviewSigningKeyGroup:
+    Type: AWS::CloudFront::KeyGroup
+    Condition: EnableAnySignedCookies
+    Properties:
+      KeyGroupConfig:
+        Name: !Sub '${AWS::StackName}-preview-signing-keys'
+        Comment: Signing key group for PR preview and staging signed-cookie access
+        Items:
+          - !Ref CloudFrontSigningPublicKeyId
+
   # Production CloudFront Distribution (beakerstack.com)
   ProdDistribution:
     Type: AWS::CloudFront::Distribution
@@ -423,6 +519,21 @@ Resources:
           Bucket: !GetAtt LogsBucket.DomainName
           Prefix: cloudfront/staging/
           IncludeCookies: false
+        # /_preview-auth: cookie setter — must have no TrustedKeyGroups so unauthenticated
+        # users can reach it. PreviewAuthFunction returns a synthetic 302 with signed cookies.
+        CacheBehaviors:
+          - PathPattern: /_preview-auth
+            AllowedMethods: [GET, HEAD]
+            CachedMethods: [GET, HEAD]
+            TargetOriginId: StagingOrigin
+            ViewerProtocolPolicy: redirect-to-https
+            Compress: false
+            # CachingDisabled — synthetic responses from CF Functions are not cached, but
+            # this policy is explicit and prevents any accidental cache sharing.
+            CachePolicyId: 4135872e-7369-4a65-bac3-7ea18cd55781
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt PreviewAuthFunction.FunctionMetadata.FunctionARN
         DefaultCacheBehavior:
           AllowedMethods: [GET, HEAD, OPTIONS]
           CachedMethods: [GET, HEAD]
@@ -435,6 +546,10 @@ Resources:
           FunctionAssociations:
             - EventType: viewer-request
               FunctionARN: !GetAtt SPAFallbackFunction.FunctionMetadata.FunctionARN
+          TrustedKeyGroups: !If
+            - EnableStagingSignedCookies
+            - - !Ref PreviewSigningKeyGroup
+            - !Ref AWS::NoValue
         Origins:
           - Id: StagingOrigin
             DomainName: !GetAtt StagingBucket.RegionalDomainName
@@ -469,6 +584,21 @@ Resources:
           Bucket: !GetAtt LogsBucket.DomainName
           Prefix: cloudfront/deploy/
           IncludeCookies: false
+        # /_preview-auth: cookie setter — must have no TrustedKeyGroups so unauthenticated
+        # users can reach it. PreviewAuthFunction returns a synthetic 302 with signed cookies.
+        CacheBehaviors:
+          - PathPattern: /_preview-auth
+            AllowedMethods: [GET, HEAD]
+            CachedMethods: [GET, HEAD]
+            TargetOriginId: DeployOrigin
+            ViewerProtocolPolicy: redirect-to-https
+            Compress: false
+            # CachingDisabled — synthetic responses from CF Functions are not cached, but
+            # this policy is explicit and prevents any accidental cache sharing.
+            CachePolicyId: 4135872e-7369-4a65-bac3-7ea18cd55781
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt PreviewAuthFunction.FunctionMetadata.FunctionARN
         DefaultCacheBehavior:
           AllowedMethods: [GET, HEAD, OPTIONS]
           CachedMethods: [GET, HEAD]
@@ -477,10 +607,14 @@ Resources:
           Compress: true
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized
           ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03 # SecurityHeadersPolicy
-          # Use PRPathRouter function for path-based routing
+          # PRPathRouter handles /pr-N/* → S3 prefix routing
           FunctionAssociations:
             - EventType: viewer-request
               FunctionARN: !GetAtt PRPathRouterFunction.FunctionMetadata.FunctionARN
+          TrustedKeyGroups: !If
+            - EnablePreviewSignedCookies
+            - - !Ref PreviewSigningKeyGroup
+            - !Ref AWS::NoValue
         Origins:
           - Id: DeployOrigin
             DomainName: !GetAtt DeployBucket.RegionalDomainName
@@ -622,6 +756,17 @@ Outputs:
     Value: !GetAtt PRPathRouterFunction.FunctionMetadata.FunctionARN
     Export:
       Name: !Sub '${AWS::StackName}-PRPathRouterFunctionArn'
+  PreviewAuthFunctionArn:
+    Description: ARN of the preview auth cookie-setter CloudFront function
+    Value: !GetAtt PreviewAuthFunction.FunctionMetadata.FunctionARN
+    Export:
+      Name: !Sub '${AWS::StackName}-PreviewAuthFunctionArn'
+  PreviewSigningKeyGroupId:
+    Description: CloudFront key group ID used for signed-cookie validation (empty when access control is public)
+    Condition: EnableAnySignedCookies
+    Value: !Ref PreviewSigningKeyGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-PreviewSigningKeyGroupId'
   PreviewPrefixOutput:
     Description: Prefix used for PR preview deployments
     Value: !Ref PreviewPrefix

@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   id-token: write
+  deployments: write
 
 concurrency:
   group: staging-deploy
@@ -145,6 +146,87 @@ jobs:
             --domain "${DOMAIN}" \
             --environment staging \
             --region "${AWS_REGION_VALUE}"
+
+      - name: Generate staging signed cookie bootstrap URL
+        id: signed_cookies
+        if: secrets.CLOUDFRONT_SIGNING_KEY != ''
+        shell: bash
+        env:
+          CLOUDFRONT_SIGNING_KEY: ${{ secrets.CLOUDFRONT_SIGNING_KEY }}
+          CLOUDFRONT_SIGNING_KEY_ID: ${{ secrets.CLOUDFRONT_SIGNING_KEY_ID }}
+        run: |
+          set -euo pipefail
+          STAGING_DOMAIN="staging.${DOMAIN}"
+          RESOURCE="https://${STAGING_DOMAIN}/*"
+          EXPIRY=$(date -u -d "+30 days" +%s)
+
+          POLICY_JSON=$(printf '{"Statement":[{"Resource":"%s","Condition":{"DateLessThan":{"AWS:EpochTime":%s}}}]}' \
+            "${RESOURCE}" "${EXPIRY}")
+
+          # CloudFront URL-safe base64: + → -, / → ~, = → _
+          CF_POLICY=$(printf '%s' "${POLICY_JSON}" | base64 -w0 | tr '+' '-' | tr '/' '~' | tr '=' '_')
+
+          # Sign with RSA-SHA1 (CloudFront signed cookies requirement)
+          KEY_FILE=$(mktemp); chmod 600 "${KEY_FILE}"
+          printf '%s' "${CLOUDFRONT_SIGNING_KEY}" > "${KEY_FILE}"
+          CF_SIGNATURE=$(printf '%s' "${POLICY_JSON}" | \
+            openssl dgst -sha1 -sign "${KEY_FILE}" | base64 -w0 | tr '+' '-' | tr '/' '~' | tr '=' '_')
+          rm -f "${KEY_FILE}"
+
+          BOOTSTRAP_URL="https://${STAGING_DOMAIN}/_preview-auth?policy=${CF_POLICY}&sig=${CF_SIGNATURE}&kid=${CLOUDFRONT_SIGNING_KEY_ID}&dest=/"
+          echo "BOOTSTRAP_URL=${BOOTSTRAP_URL}" >> "${GITHUB_OUTPUT}"
+          echo "STAGING_URL=https://${STAGING_DOMAIN}" >> "${GITHUB_OUTPUT}"
+
+      - name: Create GitHub Deployment (staging)
+        uses: actions/github-script@v7
+        env:
+          BOOTSTRAP_URL: ${{ steps.signed_cookies.outputs.BOOTSTRAP_URL }}
+          STAGING_URL: ${{ steps.signed_cookies.outputs.STAGING_URL || format('https://staging.{0}', env.DOMAIN) }}
+        with:
+          script: |
+            const environmentUrl = process.env.BOOTSTRAP_URL || process.env.STAGING_URL;
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: 'staging',
+              auto_merge: false,
+              required_contexts: [],
+              description: 'Staging deployment',
+            });
+            if (deployment.data.id) {
+              await github.rest.repos.createDeploymentStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                deployment_id: deployment.data.id,
+                state: 'success',
+                environment_url: environmentUrl,
+                description: 'Staging deployed',
+              });
+            }
+
+      - name: Write Actions run summary
+        shell: bash
+        env:
+          BOOTSTRAP_URL: ${{ steps.signed_cookies.outputs.BOOTSTRAP_URL }}
+          STAGING_URL: ${{ steps.signed_cookies.outputs.STAGING_URL || format('https://staging.{0}', env.DOMAIN) }}
+        run: |
+          set -euo pipefail
+          if [[ -n "${BOOTSTRAP_URL}" ]]; then
+            cat >> "${GITHUB_STEP_SUMMARY}" <<SUMMARY
+          ## Staging Deployment
+
+          **Access link (signed cookies):** ${BOOTSTRAP_URL}
+
+          > Click the link to set your access cookie, then browse staging normally. Expires in 30 days.
+          SUMMARY
+          else
+            cat >> "${GITHUB_STEP_SUMMARY}" <<SUMMARY
+          ## Staging Deployment
+
+          **Staging URL:** ${STAGING_URL}
+          SUMMARY
+          fi
 
   deploy-mobile-staging:
     if: vars.MOBILE_ENABLED != 'false'
