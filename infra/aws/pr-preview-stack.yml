@@ -517,6 +517,7 @@ Resources:
     Properties:
       DistributionConfig:
         Enabled: true
+        HttpVersion: http2and3
         Comment: !Sub 'Production distribution for ${DomainName}'
         DefaultRootObject: index.html
         Aliases:
@@ -563,6 +564,7 @@ Resources:
     Properties:
       DistributionConfig:
         Enabled: true
+        HttpVersion: http2and3
         Comment: !Sub 'Staging distribution for ${DomainName}'
         DefaultRootObject: index.html
         Aliases:
@@ -628,6 +630,7 @@ Resources:
     Properties:
       DistributionConfig:
         Enabled: true
+        HttpVersion: http2and3
         Comment: !Sub 'Preview/Deploy distribution for ${DomainName} with path-based PR routing'
         DefaultRootObject: index.html
         Aliases:
