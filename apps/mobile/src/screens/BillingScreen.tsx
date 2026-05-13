@@ -5,7 +5,7 @@ import type { ReactElement } from 'react';
 import { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { beakerstackBillingConfig } from '../billing/beakerstackBillingConfig';
-import { BILLING_DEEP_LINK_URL } from '../billing/BILLING_DEEP_LINK_URLs';
+import { BILLING_DEEP_LINK_URL} from '../billing/billingUrls';
 import { supabase } from '../lib/supabase';
 import { BillingNavigator } from '../navigation/BillingNavigator';
 
