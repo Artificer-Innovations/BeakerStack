@@ -268,10 +268,11 @@ jobs:
           script: |
             // Fork PRs: pull_request events from forks run with a read-only token;
             // deployments: write is unavailable — skip cleanly rather than error.
-            const prRepo = context.payload.pull_request.head.repo.full_name;
+            // head.repo can be null when the fork is deleted before the workflow runs.
+            const headRepo = context.payload.pull_request.head.repo?.full_name;
             const baseRepo = `${context.repo.owner}/${context.repo.repo}`;
-            if (prRepo !== baseRepo) {
-              core.info(`Skipping: fork PR (${prRepo}) — Deployments API write not available for fork PRs.`);
+            if (!headRepo || headRepo !== baseRepo) {
+              core.info(`Skipping: fork PR (${headRepo ?? 'deleted repo'}) — Deployments API write not available for fork PRs.`);
               return;
             }
 
@@ -281,27 +282,14 @@ jobs:
             const environmentUrl = process.env.BOOTSTRAP_URL || webUrl;
             const logUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
 
-            // Deactivate previous deployments for this environment so the PR
-            // Deployments panel shows only one active row per PR on re-runs.
-            const { data: existing } = await github.rest.repos.listDeployments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              environment,
-              per_page: 20,
-            });
-            for (const dep of existing) {
-              await github.rest.repos.createDeploymentStatus({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                deployment_id: dep.id,
-                state: 'inactive',
-              });
-            }
-
+            // Create the new deployment first. Only deactivate previous deployments
+            // after success so a partial failure doesn't leave the PR Deployments
+            // panel empty. Use head.sha (not context.sha which is the synthetic merge
+            // commit) so GitHub associates the deployment with the PR's own head ref.
             const deployment = await github.rest.repos.createDeployment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: context.sha,
+              ref: context.payload.pull_request.head.sha,
               environment,
               auto_merge: false,
               required_contexts: [],
@@ -320,6 +308,24 @@ jobs:
               log_url: logUrl,
               description: 'Preview deployed',
             });
+
+            // Deactivate previous deployments for this environment now that the new
+            // one is registered, keeping only one active row on the PR Deployments tab.
+            const { data: existing } = await github.rest.repos.listDeployments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              environment,
+              per_page: 100,
+            });
+            for (const dep of existing) {
+              if (dep.id === deployment.data.id) continue;
+              await github.rest.repos.createDeploymentStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                deployment_id: dep.id,
+                state: 'inactive',
+              });
+            }
 
       # Publish edge routing only after a successful web build so a failed deploy cannot
       # replace live CloudFront function code while leaving stale or missing S3 assets.
