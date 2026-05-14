@@ -45,7 +45,8 @@ vi.mock('@beakerstack/billing', async importOriginal => {
   };
 });
 
-// Stub the landing config so tests don't depend on placehold.co or Lucide icons
+// Stub the landing config so tests don't depend on placehold.co or Lucide icons.
+// featureRows includes one entry so LandingPage's carouselSlides map callback is covered.
 vi.mock('../../config/landing', () => ({
   landingConfig: {
     brand: { name: 'BeakerStack', tagline: 'Test tagline' },
@@ -58,7 +59,14 @@ vi.mock('../../config/landing', () => ({
       mediaAlt: 'Hero image',
     },
     featureGrid: { heading: 'Features', subhead: '', items: [] },
-    featureRows: [],
+    featureRows: [
+      {
+        title: 'Test feature',
+        body: 'Test feature body.',
+        mediaSrc: 'https://placehold.co/600x338',
+        mediaAlt: 'Test feature image',
+      },
+    ],
     pricing: { heading: 'Pricing', subhead: '' },
     faq: { heading: 'FAQ', items: [] },
     finalCta: {
@@ -77,6 +85,14 @@ vi.mock('../../../billing/beakerstackBillingConfig', () => ({
     displayName: 'Test',
   },
 }));
+
+// matchMedia is not implemented in jsdom; stub it so Hero's carousel useEffect
+// doesn't throw. matches:false lets the carousel start but tests don't check timing.
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  configurable: true,
+  value: () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }),
+});
 
 describe('HomePage', () => {
   let mockSupabaseClient: SupabaseClient;
