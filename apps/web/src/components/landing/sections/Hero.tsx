@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import type { LandingConfig } from '../../../config/landing';
 
@@ -40,24 +40,19 @@ const DEFAULT_INTERVAL_MS = 6000;
 
 export function Hero({ config, carouselSlides, intervalMs = DEFAULT_INTERVAL_MS }: HeroProps) {
   const slides = carouselSlides && carouselSlides.length > 1 ? carouselSlides : null;
-  const [activeIndex, setActiveIndex] = useState(0);
-  // prevIndex tracks the outgoing slide so its image stays mounted during the crossfade.
-  // Only the active and previous images are in the DOM at any time, preventing browsers
-  // from fetching all slide images on initial load (opacity/aria-hidden don't suppress fetches).
-  const [prevIndex, setPrevIndex] = useState<number | null>(null);
-  const activeIndexRef = useRef(0);
-
-  useEffect(() => {
-    activeIndexRef.current = activeIndex;
-  }, [activeIndex]);
+  // Combined state so the functional updater sees the current active index when multiple
+  // ticks fire before a re-render (e.g. fake timers advancing 300 ms in one act()).
+  const [carousel, setCarousel] = useState<{ active: number; prev: number | null }>({
+    active: 0,
+    prev: null,
+  });
+  const { active: activeIndex, prev: prevIndex } = carousel;
 
   useEffect(() => {
     if (!slides) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const id = setInterval(() => {
-      const current = activeIndexRef.current;
-      setPrevIndex(current);
-      setActiveIndex((current + 1) % slides.length);
+      setCarousel(s => ({ active: (s.active + 1) % slides.length, prev: s.active }));
     }, intervalMs);
     return () => clearInterval(id);
   }, [slides, intervalMs]);
