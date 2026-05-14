@@ -1092,7 +1092,15 @@ build_parameter_overrides() {
       _url="${_raw_url%/}"                        # strip trailing slash
       _scheme="${_url%%://*}"                     # e.g. https
       _host="${_url#*://}"; _host="${_host%%/*}"  # strip scheme then any path
-      PARAMETER_OVERRIDES+=("${_cfn_param}=${_scheme}://${_host}")
+      _origin="${_scheme}://${_host}"
+      # Validate: must be https with a single hostname containing only safe chars.
+      # Rejects values with spaces, semicolons, or other CSP-special characters that
+      # would malform the directive or broaden img-src beyond the intended origins.
+      if [[ "${_origin}" =~ ^https://[A-Za-z0-9._-]+$ ]]; then
+        PARAMETER_OVERRIDES+=("${_cfn_param}=${_origin}")
+      else
+        log "WARN" "Skipping ${_cfn_param}: '${_origin}' is not a valid HTTPS origin — check the ${_env_var} secret value"
+      fi
     fi
   done
 }
