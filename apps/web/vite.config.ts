@@ -91,6 +91,15 @@ export default defineConfig(({ mode }) => {
           'src/config/landing.example.alt.ts',
           // Build-time scripts — run by vite-node at build, not part of the app test suite
           'scripts/',
+          // Display-only dashboard showcase components — no business logic;
+          // annotated UI primitives covered visually by preview deployment
+          'src/components/dashboard/AnnotatedPrimitive.tsx',
+          'src/components/dashboard/BooleanFeatureTiles.tsx',
+          'src/components/dashboard/CollectionDetail.tsx',
+          'src/components/dashboard/CollectionsGrid.tsx',
+          'src/components/dashboard/DemoBanner.tsx',
+          'src/components/dashboard/DeveloperConsole.tsx',
+          'src/components/dashboard/FeatureGateCard.tsx',
         ],
       },
     },

@@ -1,9 +1,9 @@
-export { AISummarizeResult, type SummaryEntry } from './AISummarizeResult';
-export { BooleanGatesDemo } from './BooleanGatesDemo';
-export {
-  DashboardDemoSection,
-  type DashboardDemoSectionProps,
-} from './DashboardDemoSection';
-export { DemoControlsPanel } from './DemoControlsPanel';
-export { MeteredUsageDemo } from './MeteredUsageDemo';
-export { NumericCapsDemo } from './NumericCapsDemo';
+export { AnnotatedPrimitive } from './AnnotatedPrimitive';
+export { BooleanFeatureTiles } from './BooleanFeatureTiles';
+export { CollectionDetail } from './CollectionDetail';
+export { CollectionsGrid } from './CollectionsGrid';
+export { DemoBanner } from './DemoBanner';
+export { DeveloperConsole } from './DeveloperConsole';
+export { FeatureGateCard } from './FeatureGateCard';
+export { UsageStrip } from './UsageStrip';
+export type { ActivityEntry } from './types';

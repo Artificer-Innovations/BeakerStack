@@ -20,6 +20,7 @@ module.exports = {
   },
   plugins: ['@typescript-eslint'],
   rules: {
+    // varsIgnorePattern covers _prefixed destructured variables (e.g. const { _unused, ...rest } = obj)
     '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     '@typescript-eslint/no-explicit-any': 'warn',
     '@typescript-eslint/explicit-function-return-type': 'off',

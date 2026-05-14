@@ -205,17 +205,18 @@ describe('DashboardPage', () => {
     await renderWithAuth(<DashboardPage />);
 
     expect(
-      screen.getByRole('heading', { name: /welcome to beakerstack/i })
+      screen.getByRole('heading', { name: /beakerstack in action/i })
     ).toBeInTheDocument();
     expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
   });
 
-  it('links to /billing for polished billing', async () => {
+  it('links to GitHub repo from demo banner', async () => {
     await renderWithAuth(<DashboardPage />);
-    const link = screen.getByRole('link', {
-      name: /view polished billing pages/i,
-    });
-    expect(link).toHaveAttribute('href', '/billing');
+    const link = screen.getByRole('link', { name: /view on github/i });
+    expect(link).toHaveAttribute(
+      'href',
+      'https://github.com/Artificer-Innovations/BeakerStack'
+    );
   });
 
   it('displays user email when authenticated', async () => {

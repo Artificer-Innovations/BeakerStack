@@ -1,86 +1,125 @@
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
-import { BooleanGatesDemo } from '@/components/dashboard/BooleanGatesDemo';
-import { DashboardDemoSection } from '@/components/dashboard/DashboardDemoSection';
-import { DemoControlsPanel } from '@/components/dashboard/DemoControlsPanel';
-import { MeteredUsageDemo } from '@/components/dashboard/MeteredUsageDemo';
-import { NumericCapsDemo } from '@/components/dashboard/NumericCapsDemo';
+import { useDemoCollections } from '@/billing/useDemoCollections';
 import { supabase } from '@/lib/supabase';
+import { AnnotatedPrimitive } from '@/components/dashboard/AnnotatedPrimitive';
+import { BooleanFeatureTiles } from '@/components/dashboard/BooleanFeatureTiles';
+import { CollectionDetail } from '@/components/dashboard/CollectionDetail';
+import { CollectionsGrid } from '@/components/dashboard/CollectionsGrid';
+import { DemoBanner } from '@/components/dashboard/DemoBanner';
+import { DeveloperConsole } from '@/components/dashboard/DeveloperConsole';
+import { FeatureGateCard } from '@/components/dashboard/FeatureGateCard';
+import { UsageStrip } from '@/components/dashboard/UsageStrip';
+import type { ActivityEntry } from '@/components/dashboard/types';
 
 export default function DashboardPage() {
+  const [activityLog, setActivityLog] = useState<ActivityEntry[]>([]);
+  const appendActivity = useCallback(
+    (entry: Omit<ActivityEntry, 'id' | 'at'>) => {
+      setActivityLog(prev =>
+        [
+          { ...entry, id: crypto.randomUUID(), at: new Date() },
+          ...prev,
+        ].slice(0, 30)
+      );
+    },
+    []
+  );
+
+  const [selectedCollectionId, setSelectedCollectionId] = useState<
+    string | null
+  >(null);
+
+  const {
+    collections,
+    loading: collectionsLoading,
+    error: collectionsError,
+    addCollection,
+    deleteCollection,
+    addItem,
+  } = useDemoCollections();
+
+  // Keep selected collection valid as the list changes
+  useEffect(() => {
+    if (collections.length === 0) {
+      setSelectedCollectionId(null);
+      return;
+    }
+    if (selectedCollectionId === null) {
+      setSelectedCollectionId(collections[0].id);
+      return;
+    }
+    if (!collections.find(c => c.id === selectedCollectionId)) {
+      setSelectedCollectionId(collections[0].id);
+    }
+  }, [collections, selectedCollectionId]);
+
+  const selectedCollection = collections.find(
+    c => c.id === selectedCollectionId
+  );
+
   return (
-    <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
+    <div className='min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col'>
       <AppHeader supabaseClient={supabase} />
 
-      <div className='mx-auto max-w-[1024px] px-4 py-6 sm:px-6 lg:px-8'>
-        <div className='sm:px-0'>
-          <h1 className='text-2xl font-bold text-gray-900 dark:text-white'>
-            Welcome to BeakerStack
-          </h1>
-          <p className='mt-3 text-sm text-gray-600 dark:text-gray-400'>
-            This dashboard is a sandbox for exercising the billing primitives in{' '}
-            <code className='rounded bg-gray-100 dark:bg-gray-800 dark:text-gray-300 px-1 py-0.5 text-xs'>
-              @beakerstack/billing
-            </code>{' '}
-            directly. Each section below demonstrates one capability with
-            working controls and code references. For the polished,
-            production-style billing UI, visit{' '}
-            <Link
-              to='/billing'
-              className='font-medium text-indigo-600 hover:text-indigo-500'
-            >
-              Billing
-            </Link>
-            .
-          </p>
-          <div className='mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm'>
-            <Link
-              to='/billing'
-              className='font-medium text-indigo-600 hover:text-indigo-500'
-            >
-              View polished billing pages →
-            </Link>
-            {/* TODO: replace href when billing integration guide URL is published */}
-            <a
-              href='#'
-              className='font-medium text-indigo-600 hover:text-indigo-500'
-            >
-              Read the integration guide →
-            </a>
-          </div>
+      <main className='flex-1 w-full max-w-[1400px] mx-auto px-4 py-6 sm:px-6 space-y-6'>
+        <DemoBanner />
 
-          <div className='mt-8 space-y-6'>
-            <DashboardDemoSection
-              title='Metered usage'
-              demonstrates='useUsage, useRecordUsage, UsageIndicator'
-              description='The AI summarize action is metered. Free tier allows 30 per month; Pro 500; Max unlimited. Usage resets monthly for free users and per billing period for paid users.'
-              codeReference='useRecordUsage("ai_summarize")'
-            >
-              <MeteredUsageDemo />
-            </DashboardDemoSection>
+        <AnnotatedPrimitive
+          tag='useUsage("ai_summarize")'
+          variant='usage'
+          tooltip='Meter reads from useUsage; the Simulate button records usage via billing_record_usage_event.'
+        >
+          <UsageStrip onActivity={appendActivity} />
+        </AnnotatedPrimitive>
 
-            <DashboardDemoSection
-              title='Numeric feature caps'
-              demonstrates='useFeature with numeric values, hierarchical container caps'
-              description='Free tier allows 2 collections with 3 items per collection. Pro allows unlimited collections with 25 items each. Max allows unlimited both. Caps are enforced via useFeature returning a numeric value rather than going through usage events.'
-              codeReference='useFeature("containers_per_account_max")'
-            >
-              <NumericCapsDemo />
-            </DashboardDemoSection>
+        <AnnotatedPrimitive
+          tag='FeatureGate + useFeature("feature_a")'
+          variant='gate'
+          tooltip='When useFeature("feature_a").enabled is false, FeatureGate renders the fallback; when true, children render.'
+        >
+          <FeatureGateCard />
+        </AnnotatedPrimitive>
 
-            <DashboardDemoSection
-              title='Boolean feature gates'
-              demonstrates='FeatureGate component, useFeature for boolean features'
-              description='Feature A unlocks at Pro and above. Feature B unlocks at Max only. Each section below shows the FeatureGate behavior at your current plan: enabled features render their content; disabled features render the fallback.'
-              codeReference='<FeatureGate feature="feature_a" fallback={...} />'
-            >
-              <BooleanGatesDemo />
-            </DashboardDemoSection>
+        <AnnotatedPrimitive
+          tag='useFeature("containers_per_account_max")'
+          variant='feature'
+          tooltip='Numeric cap from useFeature; New collection enforces containers_per_account_max.'
+        >
+          <CollectionsGrid
+            collections={collections}
+            loading={collectionsLoading}
+            error={collectionsError}
+            selectedId={selectedCollectionId}
+            onSelect={setSelectedCollectionId}
+            addCollection={addCollection}
+            deleteCollection={deleteCollection}
+            onActivity={appendActivity}
+          />
+        </AnnotatedPrimitive>
 
-            <DemoControlsPanel />
-          </div>
-        </div>
-      </div>
+        <AnnotatedPrimitive
+          tag='useFeature("items_per_container_max")'
+          variant='feature'
+          tooltip='Per-collection item cap from useFeature; add-item enforces items_per_container_max.'
+        >
+          <CollectionDetail
+            collection={selectedCollection}
+            addItem={addItem}
+            onActivity={appendActivity}
+          />
+        </AnnotatedPrimitive>
+
+        <AnnotatedPrimitive
+          tag='useFeature("feature_a") · useFeature("feature_b")'
+          variant='feature'
+          tooltip='Boolean features reflect plan config; enabled/disabled state changes with the active plan.'
+        >
+          <BooleanFeatureTiles />
+        </AnnotatedPrimitive>
+      </main>
+
+      <DeveloperConsole activityLog={activityLog} />
     </div>
   );
 }
