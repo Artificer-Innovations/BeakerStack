@@ -6,13 +6,11 @@ const mockRender = vi.fn();
 const mockCreateRoot = vi.fn(() => ({
   render: mockRender,
 }));
-const mockHydrateRoot = vi.fn();
 
 vi.mock('react-dom/client', () => ({
   default: {
     createRoot: mockCreateRoot,
   },
-  hydrateRoot: mockHydrateRoot,
 }));
 
 // Mock the supabase client
@@ -55,11 +53,6 @@ vi.mock('../App', () => ({
   default: () => React.createElement('div', null, 'App Component'),
 }));
 
-// Mock HomePage — pre-warm import in main.tsx resolves this before hydrateRoot fires
-vi.mock('../pages/HomePage', () => ({
-  default: () => React.createElement('div', null, 'Home Page'),
-}));
-
 // Mock CSS import
 vi.mock('../index.css', () => ({}));
 
@@ -70,7 +63,6 @@ describe('main.tsx', () => {
     vi.clearAllMocks();
     mockCreateRoot.mockClear();
     mockRender.mockClear();
-    mockHydrateRoot.mockClear();
 
     // Reset modules to allow re-importing main.tsx
     vi.resetModules();
@@ -110,22 +102,18 @@ describe('main.tsx', () => {
     expect(renderCall.type).toBe(React.StrictMode);
   });
 
-  it('should call hydrateRoot when root has prerendered content', async () => {
+  it('should use createRoot even when root has prerendered content', async () => {
     // Simulate prerendered HTML by adding a child element to #root
     const prerendered = document.createElement('div');
     rootElement!.appendChild(prerendered);
 
     await import('../main');
-    // Allow the pre-warm import().then() microtask chain to resolve
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise(resolve => setTimeout(resolve, 10));
 
-    // hydrateRoot should be used for prerendered content
-    expect(mockHydrateRoot).toHaveBeenCalledWith(
-      rootElement,
-      expect.objectContaining({ type: React.StrictMode }),
-    );
-    // createRoot should NOT be called on the prerendered path
-    expect(mockCreateRoot).not.toHaveBeenCalled();
+    // createRoot is always used — hydrateRoot was dropped due to structural
+    // fiber-tree mismatch between the hand-maintained prerender and App's full tree
+    expect(mockCreateRoot).toHaveBeenCalledWith(rootElement);
+    expect(mockRender).toHaveBeenCalled();
   });
 
   it('should render app with AuthProvider and ProfileProvider', async () => {

@@ -4,7 +4,7 @@ import { join, dirname } from 'path';
 
 // Shim WebSocket for Node < 22 before any app module loads.
 // supabase-js checks globalThis.WebSocket at createClient() time (module load, not runtime).
-// renderToString never opens a socket, but the check throws on Node 20 without this.
+// renderToStaticMarkup never opens a socket, but the check throws on Node 20 without this.
 // Dynamic imports below ensure this assignment runs first (static imports are hoisted).
 if (typeof globalThis.WebSocket === 'undefined') {
   (globalThis as any).WebSocket = class WebSocket {
@@ -16,7 +16,7 @@ if (typeof globalThis.WebSocket === 'undefined') {
 }
 
 const { createElement } = await import('react');
-const { renderToString } = await import('react-dom/server');
+const { renderToStaticMarkup } = await import('react-dom/server');
 // MemoryRouter comes from the same react-router-dom instance as <Link> and other
 // router-aware components in LandingPage, so they share the same NavigationContext.
 // StaticRouter (from react-router-dom/server) is a separate sub-package with its
@@ -46,10 +46,7 @@ const routerBasename =
 // match (RR warns and renders nothing). Use the same pathname as publicHomeUrl path.
 const initialEntries = [homePath];
 
-// Render the same DOM structure as App.tsx (outer div) and RootLayout (inner divs + AppFooter).
-// These class names must stay in sync with App.tsx and RootLayout in App.tsx;
-// hydrateRoot requires the prerendered HTML to match the client-rendered tree exactly.
-const html = renderToString(
+const html = renderToStaticMarkup(
   createElement(
     ThemeProvider,
     null,

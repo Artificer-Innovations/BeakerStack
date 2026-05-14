@@ -1,5 +1,5 @@
 import React from 'react';
-import ReactDOM, { hydrateRoot } from 'react-dom/client';
+import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
@@ -17,7 +17,7 @@ if (!rootElement) {
 // Get base path from environment variable, defaulting to '/' for local development
 const basePath = import.meta.env.VITE_BASE_PATH || '/';
 
-const app = (
+ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <ThemeProvider>
       <AuthProvider supabaseClient={supabase}>
@@ -30,16 +30,3 @@ const app = (
     </ThemeProvider>
   </React.StrictMode>
 );
-
-// Use hydrateRoot when prerendered HTML is present (home page served from
-// prerender-home.html), createRoot for all other routes where #root is empty.
-if (rootElement.childElementCount > 0) {
-  // Pre-warm the home page bundle so React.lazy resolves from cache without suspending.
-  // App wraps Routes in <Suspense fallback={null}>; if HomePage suspends at hydrateRoot
-  // time, React shows null against the prerendered DOM — mismatch triggers error #418.
-  import('./pages/HomePage').then(() => {
-    hydrateRoot(rootElement, app);
-  });
-} else {
-  ReactDOM.createRoot(rootElement).render(app);
-}
