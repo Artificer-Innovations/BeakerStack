@@ -83,31 +83,40 @@ export function useUsage<
   useEffect(() => {
     if (!userId || typeof supabase.channel !== 'function') return;
     const filter = `user_id=eq.${userId}`;
-    const ch = supabase
-      .channel(
-        `billing_usage_aggregates:${config.productId}:${userId}:${meterKey}`
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'billing_usage_aggregates',
-          filter,
-        },
-        payload => {
-          const row = (payload.new ?? payload.old) as
-            | { product_id?: string; event_type?: string }
-            | undefined;
-          if (
-            row?.product_id === config.productId &&
-            row?.event_type === meterKey
-          ) {
-            void fetchUsageRef.current();
-          }
+    const ch = supabase.channel(
+      `billing_usage_aggregates:${config.productId}:${userId}:${meterKey}`
+    );
+
+    // Guard against StrictMode double-effect and remount races: if the channel
+    // is already subscribed (removeChannel is async so cleanup may lag), skip
+    // re-attaching handlers — adding .on() after subscribe() throws.
+    if (ch.state !== 'closed' && ch.state !== 'errored') {
+      return () => {
+        void supabase.removeChannel(ch);
+      };
+    }
+
+    ch.on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'billing_usage_aggregates',
+        filter,
+      },
+      payload => {
+        const row = (payload.new ?? payload.old) as
+          | { product_id?: string; event_type?: string }
+          | undefined;
+        if (
+          row?.product_id === config.productId &&
+          row?.event_type === meterKey
+        ) {
+          void fetchUsageRef.current();
         }
-      )
-      .subscribe();
+      }
+    ).subscribe();
+
     return () => {
       void supabase.removeChannel(ch);
     };

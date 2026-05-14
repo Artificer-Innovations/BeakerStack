@@ -37,18 +37,23 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabaseClient.auth.signInWithPassword({
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
       email,
       password,
     });
 
-    setLoading(false);
-
     if (error) {
+      setLoading(false);
       const errorObj = new Error(error.message);
       setError(errorObj);
       throw errorObj;
     }
+
+    // Set user/session immediately so callers that navigate() after signIn()
+    // see a non-null user before onAuthStateChange fires asynchronously.
+    setSession(data.session ?? null);
+    setUser(data.user ?? null);
+    setLoading(false);
   };
 
   const signUp = async (email: string, password: string): Promise<void> => {
