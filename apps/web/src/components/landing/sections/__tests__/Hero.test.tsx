@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Hero } from '../Hero';
+import type { CarouselSlide } from '../Hero';
 
 const baseConfig = {
   headline: 'Build the full stack. Not the scaffolding.',
@@ -45,7 +46,7 @@ describe('Hero', () => {
         <Hero config={baseConfig} />
       </MemoryRouter>
     );
-    const img = screen.getByRole('img', { name: 'Dashboard preview' });
+    const img = screen.getByAltText('Dashboard preview');
     expect(img).toHaveAttribute(
       'src',
       'https://placehold.co/600x338?text=Dashboard'
@@ -126,5 +127,154 @@ describe('Hero', () => {
       </MemoryRouter>
     );
     expect(screen.queryByText(/MIT licensed/)).not.toBeInTheDocument();
+  });
+
+  describe('crossfade carousel', () => {
+    const slides: CarouselSlide[] = [
+      {
+        subhead: 'Hero subhead text.',
+        mediaSrc: 'https://placehold.co/600x338?text=Hero',
+        mediaAlt: 'Hero image',
+      },
+      {
+        label: 'Feature one title',
+        subhead: 'Feature one body copy.',
+        mediaSrc: 'https://placehold.co/600x338?text=Feature1',
+        mediaAlt: 'Feature one image',
+      },
+      {
+        label: 'Feature two title',
+        subhead: 'Feature two body copy.',
+        mediaSrc: 'https://placehold.co/600x338?text=Feature2',
+        mediaAlt: 'Feature two image',
+      },
+    ];
+
+    function mockMatchMedia(prefersReducedMotion: boolean) {
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        configurable: true,
+        value: vi.fn().mockReturnValue({
+          matches: prefersReducedMotion,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+        }),
+      });
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      mockMatchMedia(false);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('renders slide 0 visible and others aria-hidden initially', () => {
+      render(
+        <MemoryRouter>
+          <Hero config={baseConfig} carouselSlides={slides} intervalMs={100} />
+        </MemoryRouter>
+      );
+      // aria-hidden lives on the slide container div; text is inside a <p> child
+      expect(
+        screen.getByText('Hero subhead text.').parentElement
+      ).not.toHaveAttribute('aria-hidden');
+      expect(
+        screen.getByText('Feature one body copy.').parentElement
+      ).toHaveAttribute('aria-hidden', 'true');
+      // aria-hidden is directly on each <img>
+      expect(screen.getByAltText('Hero image')).not.toHaveAttribute(
+        'aria-hidden'
+      );
+      expect(screen.getByAltText('Feature one image')).toHaveAttribute(
+        'aria-hidden',
+        'true'
+      );
+    });
+
+    it('advances to slide 1 after one interval', () => {
+      render(
+        <MemoryRouter>
+          <Hero config={baseConfig} carouselSlides={slides} intervalMs={100} />
+        </MemoryRouter>
+      );
+      act(() => {
+        vi.advanceTimersByTime(100);
+      });
+      expect(
+        screen.getByText('Hero subhead text.').parentElement
+      ).toHaveAttribute('aria-hidden', 'true');
+      expect(
+        screen.getByText('Feature one body copy.').parentElement
+      ).not.toHaveAttribute('aria-hidden');
+      expect(screen.getByAltText('Hero image')).toHaveAttribute(
+        'aria-hidden',
+        'true'
+      );
+      expect(screen.getByAltText('Feature one image')).not.toHaveAttribute(
+        'aria-hidden'
+      );
+    });
+
+    it('wraps back to slide 0 after all slides advance', () => {
+      render(
+        <MemoryRouter>
+          <Hero config={baseConfig} carouselSlides={slides} intervalMs={100} />
+        </MemoryRouter>
+      );
+      act(() => {
+        vi.advanceTimersByTime(300); // 3 intervals → wraps to index 0
+      });
+      expect(
+        screen.getByText('Hero subhead text.').parentElement
+      ).not.toHaveAttribute('aria-hidden');
+    });
+
+    it('does not advance when prefers-reduced-motion is set', () => {
+      mockMatchMedia(true);
+      render(
+        <MemoryRouter>
+          <Hero config={baseConfig} carouselSlides={slides} intervalMs={100} />
+        </MemoryRouter>
+      );
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+      expect(
+        screen.getByText('Hero subhead text.').parentElement
+      ).not.toHaveAttribute('aria-hidden');
+    });
+
+    it('renders slide 0 image with eager loading and others with lazy', () => {
+      render(
+        <MemoryRouter>
+          <Hero config={baseConfig} carouselSlides={slides} intervalMs={100} />
+        </MemoryRouter>
+      );
+      expect(screen.getByAltText('Hero image')).toHaveAttribute(
+        'loading',
+        'eager'
+      );
+      expect(screen.getByAltText('Feature one image')).toHaveAttribute(
+        'loading',
+        'lazy'
+      );
+      expect(screen.getByAltText('Feature two image')).toHaveAttribute(
+        'loading',
+        'lazy'
+      );
+    });
+
+    it('renders feature row label text for non-hero slides', () => {
+      render(
+        <MemoryRouter>
+          <Hero config={baseConfig} carouselSlides={slides} intervalMs={100} />
+        </MemoryRouter>
+      );
+      expect(screen.getByText('Feature one title')).toBeInTheDocument();
+      expect(screen.getByText('Feature two title')).toBeInTheDocument();
+    });
   });
 });
