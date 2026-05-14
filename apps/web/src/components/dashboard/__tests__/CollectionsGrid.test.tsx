@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CollectionsGrid } from '../CollectionsGrid';
 import type { DemoCollectionRow } from '@/billing/useDemoCollections';
@@ -196,29 +196,26 @@ describe('CollectionsGrid', () => {
     ).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('pressing Enter on a collection card calls onSelect', () => {
-    // Use fireEvent.keyDown so the onKeyDown handler fires directly rather than
-    // userEvent's ARIA simulation (which converts Enter on role=button to a click).
-    renderGrid([makeCol('col-kb')]);
 
-    const card = screen
-      .getByRole('button', { name: /delete collection/i })
-      .closest('[role="button"]') as HTMLElement;
+  it('pressing Enter on a collection card calls onSelect', async () => {
+    // Focus the card and use userEvent.keyboard so the keydown event goes through
+    // the full React event pipeline and executes the onKeyDown handler (lines 145-149).
+    const user = userEvent.setup();
+    const { container } = renderGrid([makeCol('col-kb')]);
+    const card = container.querySelector('div[role="button"]') as HTMLElement;
     if (!card) throw new Error('card element not found');
-    fireEvent.keyDown(card, { key: 'Enter' });
+    card.focus();
+    await user.keyboard('{Enter}');
     expect(onSelect).toHaveBeenCalledWith('col-kb');
   });
 
-  it('pressing Space on a collection card calls onSelect', () => {
-    // Use fireEvent.keyDown so the onKeyDown handler fires directly rather than
-    // userEvent's ARIA simulation (which converts Space on role=button to a click).
-    renderGrid([makeCol('col-kb2')]);
-
-    const card = screen
-      .getByRole('button', { name: /delete collection/i })
-      .closest('[role="button"]') as HTMLElement;
+  it('pressing Space on a collection card calls onSelect', async () => {
+    const user = userEvent.setup();
+    const { container } = renderGrid([makeCol('col-kb2')]);
+    const card = container.querySelector('div[role="button"]') as HTMLElement;
     if (!card) throw new Error('card element not found');
-    fireEvent.keyDown(card, { key: ' ' });
+    card.focus();
+    await user.keyboard(' ');
     expect(onSelect).toHaveBeenCalledWith('col-kb2');
   });
 });
