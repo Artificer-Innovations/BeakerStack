@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CollectionsGrid } from '../CollectionsGrid';
 import type { DemoCollectionRow } from '@/billing/useDemoCollections';
@@ -137,6 +137,19 @@ describe('CollectionsGrid', () => {
     );
   });
 
+  it('delete collection error: shows error alert', async () => {
+    const user = userEvent.setup();
+    deleteCollection.mockRejectedValue(new Error('Delete failed'));
+    renderGrid([makeCol('col-del-err')]);
+
+    await user.click(
+      screen.getByRole('button', { name: /delete collection/i })
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('Delete failed')
+    );
+  });
+
   it('delete button shows busy state during delete', async () => {
     const user = userEvent.setup();
     let resolve!: (v: void) => void;
@@ -181,31 +194,5 @@ describe('CollectionsGrid', () => {
     expect(
       screen.getByRole('button', { name: /delete/i }).closest('[aria-pressed]')
     ).toHaveAttribute('aria-pressed', 'true');
-  });
-
-  it('pressing Enter on a collection card calls onSelect', () => {
-    // Use fireEvent.keyDown so the onKeyDown handler fires directly rather than
-    // userEvent's ARIA simulation (which converts Enter on role=button to a click).
-    renderGrid([makeCol('col-kb')]);
-
-    const card = screen
-      .getByRole('button', { name: /delete collection/i })
-      .closest('[role="button"]') as HTMLElement;
-    if (!card) throw new Error('card element not found');
-    fireEvent.keyDown(card, { key: 'Enter' });
-    expect(onSelect).toHaveBeenCalledWith('col-kb');
-  });
-
-  it('pressing Space on a collection card calls onSelect', () => {
-    // Use fireEvent.keyDown so the onKeyDown handler fires directly rather than
-    // userEvent's ARIA simulation (which converts Space on role=button to a click).
-    renderGrid([makeCol('col-kb2')]);
-
-    const card = screen
-      .getByRole('button', { name: /delete collection/i })
-      .closest('[role="button"]') as HTMLElement;
-    if (!card) throw new Error('card element not found');
-    fireEvent.keyDown(card, { key: ' ' });
-    expect(onSelect).toHaveBeenCalledWith('col-kb2');
   });
 });

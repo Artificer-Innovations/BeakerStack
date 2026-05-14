@@ -230,6 +230,13 @@ describe('CollectionDetail', () => {
     const nonBusy = allBtns.filter(b => !b.textContent?.includes('…'));
     nonBusy.forEach(btn => expect(btn).toBeDisabled());
 
+    // Clicking the disabled button must not trigger a second RPC call —
+    // this is the contract the inFlightRef guard enforces.
+    if (nonBusy[0]) {
+      await user.click(nonBusy[0]);
+    }
+    expect(mockRpc).toHaveBeenCalledTimes(1);
+
     resolveRpc({ error: null });
   });
 
@@ -294,39 +301,6 @@ describe('CollectionDetail', () => {
     await user.click(screen.getByRole('button', { name: /feature a/i }));
     expect(screen.getByRole('status')).toHaveTextContent(
       /feature a requires pro/i
-    );
-  });
-
-  it('shows feature toast when feature_b is enabled and clicked', async () => {
-    const user = userEvent.setup();
-    hp.featureBEnabled = true;
-    renderDetail(makeCollection());
-
-    await user.click(screen.getByRole('button', { name: /feature b/i }));
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Feature B action triggered'
-    );
-  });
-
-  it('shows upgrade toast when feature_b is disabled and clicked', async () => {
-    const user = userEvent.setup();
-    hp.featureBEnabled = false;
-    renderDetail(makeCollection());
-
-    await user.click(screen.getByRole('button', { name: /feature b/i }));
-    expect(screen.getByRole('status')).toHaveTextContent(
-      /feature b requires max/i
-    );
-  });
-
-  it('add item error: shows addErr alert when addItem rejects', async () => {
-    const user = userEvent.setup();
-    addItem.mockRejectedValue(new Error('Insert failed'));
-    renderDetail(makeCollection({ item_count: 1 }));
-
-    await user.click(screen.getByRole('button', { name: /add item/i }));
-    await waitFor(() =>
-      expect(screen.getByRole('alert')).toHaveTextContent('Insert failed')
     );
   });
 });

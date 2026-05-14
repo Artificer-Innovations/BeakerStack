@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { DeveloperConsole } from '../DeveloperConsole';
 import type { ActivityEntry } from '../types';
@@ -44,6 +44,13 @@ function makeEntry(over: Partial<ActivityEntry> = {}): ActivityEntry {
 }
 
 describe('DeveloperConsole', () => {
+  beforeEach(() => {
+    hp.used = 2;
+    hp.limit = 10;
+    hp.exceeded = false;
+    hp.usageLoading = false;
+  });
+
   it('renders Developer Console heading', () => {
     render(<DeveloperConsole activityLog={[]} />);
     expect(screen.getByText(/developer console/i)).toBeInTheDocument();
@@ -76,7 +83,6 @@ describe('DeveloperConsole', () => {
     hp.usageLoading = true;
     render(<DeveloperConsole activityLog={[]} />);
     expect(screen.getByText(/\{ … \}/)).toBeInTheDocument();
-    hp.usageLoading = false;
   });
 
   it('shows "No activity yet" when activity log is empty', () => {
