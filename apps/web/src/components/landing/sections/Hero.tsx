@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import type { LandingConfig } from '../../../config/landing';
 
@@ -8,6 +8,25 @@ export interface CarouselSlide {
   subhead: string;
   mediaSrc: string;
   mediaAlt: string;
+}
+
+/** Derives the carousel slide list from landing config. Shared by LandingPage and LandingPageSSR. */
+export function buildCarouselSlides(
+  config: Pick<LandingConfig, 'hero' | 'featureRows'>
+): CarouselSlide[] {
+  return [
+    {
+      subhead: config.hero.subhead,
+      mediaSrc: config.hero.mediaSrc,
+      mediaAlt: config.hero.mediaAlt,
+    },
+    ...config.featureRows.map(r => ({
+      label: r.title,
+      subhead: r.body,
+      mediaSrc: r.mediaSrc,
+      mediaAlt: r.mediaAlt,
+    })),
+  ];
 }
 
 interface HeroProps {
@@ -22,14 +41,24 @@ const DEFAULT_INTERVAL_MS = 6000;
 export function Hero({ config, carouselSlides, intervalMs = DEFAULT_INTERVAL_MS }: HeroProps) {
   const slides = carouselSlides && carouselSlides.length > 1 ? carouselSlides : null;
   const [activeIndex, setActiveIndex] = useState(0);
+  // prevIndex tracks the outgoing slide so its image stays mounted during the crossfade.
+  // Only the active and previous images are in the DOM at any time, preventing browsers
+  // from fetching all slide images on initial load (opacity/aria-hidden don't suppress fetches).
+  const [prevIndex, setPrevIndex] = useState<number | null>(null);
+  const activeIndexRef = useRef(0);
+
+  useEffect(() => {
+    activeIndexRef.current = activeIndex;
+  }, [activeIndex]);
 
   useEffect(() => {
     if (!slides) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const id = setInterval(
-      () => setActiveIndex(i => (i + 1) % slides.length),
-      intervalMs
-    );
+    const id = setInterval(() => {
+      const current = activeIndexRef.current;
+      setPrevIndex(current);
+      setActiveIndex((current + 1) % slides.length);
+    }, intervalMs);
     return () => clearInterval(id);
   }, [slides, intervalMs]);
 
@@ -102,26 +131,31 @@ export function Hero({ config, carouselSlides, intervalMs = DEFAULT_INTERVAL_MS 
             )}
           </div>
 
-          {/* aspect-video gives the container a stable size; images are absolutely
-              stacked so only one is visible at a time. */}
+          {/* aspect-video gives the container a stable size. Only the active and previous
+              slide images are mounted — this prevents all images being fetched on load. */}
           <div className='rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-lg bg-gray-100 dark:bg-gray-900 aspect-video relative'>
             {slides ? (
-              slides.map((slide, i) => (
-                <img
-                  key={i}
-                  src={slide.mediaSrc}
-                  alt={slide.mediaAlt}
-                  aria-hidden={i !== activeIndex ? true : undefined}
-                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
-                    i === activeIndex ? 'opacity-100' : 'opacity-0'
-                  }`}
-                  loading={i === 0 ? 'eager' : 'lazy'}
-                  width={600}
-                  height={338}
-                  decoding='async'
-                  {...(i === 0 ? ({ fetchPriority: 'high' } as object) : {})}
-                />
-              ))
+              slides.map((slide, i) => {
+                const isActive = i === activeIndex;
+                const isPrev = i === prevIndex;
+                if (!isActive && !isPrev) return null;
+                return (
+                  <img
+                    key={i}
+                    src={slide.mediaSrc}
+                    alt={slide.mediaAlt}
+                    aria-hidden={!isActive ? true : undefined}
+                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
+                      isActive ? 'opacity-100' : 'opacity-0'
+                    }`}
+                    loading={i === 0 ? 'eager' : 'lazy'}
+                    width={600}
+                    height={338}
+                    decoding='async'
+                    {...(i === 0 ? ({ fetchPriority: 'high' } as object) : {})}
+                  />
+                );
+              })
             ) : (
               <img
                 src={config.mediaSrc}
