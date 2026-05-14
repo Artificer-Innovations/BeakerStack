@@ -46,6 +46,10 @@ const routerBasename =
 // match (RR warns and renders nothing). Use the same pathname as publicHomeUrl path.
 const initialEntries = [homePath];
 
+// Layout wrapper classes mirror App.tsx ('bg-gray-50 dark:bg-gray-900') and RootLayout
+// ('flex min-h-screen flex-col'). Update these when the App layout changes to keep the
+// prerendered visual consistent with the hydrated page. No strict tree-match is required —
+// createRoot replaces this subtree on first render without hydration alignment constraints.
 const html = renderToStaticMarkup(
   createElement(
     ThemeProvider,
