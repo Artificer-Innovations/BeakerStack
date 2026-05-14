@@ -1625,7 +1625,16 @@ async function phaseAws(flags, rl, acc) {
   }
 
   logInfo('Running bootstrap-aws-stack.sh (outputs go to .env.aws.generated.local)');
-  const code = runInteractive('bash', args, { cwd: REPO_ROOT, env: childProcessEnvForSpawn() });
+  // Merge accumulated Supabase URLs into the child environment so bootstrap-aws-stack.sh
+  // can inject them into the CloudFormation CSP parameters. These values live in acc (not
+  // process.env) because they were discovered interactively during this setup session.
+  const bootstrapEnv = {
+    ...childProcessEnvForSpawn(),
+    ...(acc.PRODUCTION_SUPABASE_URL && { PRODUCTION_SUPABASE_URL: acc.PRODUCTION_SUPABASE_URL }),
+    ...(acc.STAGING_SUPABASE_URL && { STAGING_SUPABASE_URL: acc.STAGING_SUPABASE_URL }),
+    ...(acc.PREVIEW_SUPABASE_URL && { PREVIEW_SUPABASE_URL: acc.PREVIEW_SUPABASE_URL }),
+  };
+  const code = runInteractive('bash', args, { cwd: REPO_ROOT, env: bootstrapEnv });
   if (code !== 0) {
     logWarn(
       'AWS bootstrap failed. Common causes: retained S3 buckets for this apex (see preflight), duplicate CloudFront aliases, IAM permissions, or ACM in us-east-1. Scroll up for [DIAG] lines from bootstrap-aws-stack.sh.',

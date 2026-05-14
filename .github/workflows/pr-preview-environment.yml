@@ -75,6 +75,9 @@ jobs:
       SUPABASE_PREVIEW_DB_PASSWORD: ${{ secrets.SUPABASE_PREVIEW_DB_PASSWORD }}
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PREVIEW_DB_URL: ${{ secrets.SUPABASE_PREVIEW_DB_URL }}
+      PRODUCTION_SUPABASE_URL: ${{ secrets.PRODUCTION_SUPABASE_URL }}
+      STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+      PREVIEW_SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

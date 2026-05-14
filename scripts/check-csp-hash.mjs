@@ -25,6 +25,10 @@ const cfnPath = resolve(root, 'infra/aws/pr-preview-stack.yml');
 const html = readFileSync(htmlPath, 'utf8');
 const cfn = readFileSync(cfnPath, 'utf8');
 
+// Strip YAML line comments before matching so that comment lines between a
+// Header: entry and its Value: entry don't break the whitespace bridge in the regex.
+const cfnNoComments = cfn.replace(/^\s*#.*$/gm, '');
+
 // Extract content between <script id="csp-inline-theme"> and </script>
 const scriptMatch = html.match(/<script\b[^>]*\bid="csp-inline-theme"[^>]*>([\s\S]*?)<\/script>/);
 if (!scriptMatch) {
@@ -37,14 +41,15 @@ const hash = createHash('sha256').update(scriptMatch[1], 'utf8').digest('base64'
 const hashToken = `'sha256-${hash}'`;
 
 // Phase 1: Content-Security-Policy-Report-Only in CustomHeadersConfig
-// Matches: "- Header: Content-Security-Policy-Report-Only\n  Value: "..."
-const reportOnlyMatch = cfn.match(
-  /- Header:\s+Content-Security-Policy-Report-Only\s+Value:\s+"([^"]+)"/
+// Matches: "- Header: Content-Security-Policy-Report-Only\n  Value: [!Sub ]"..."
+// Also matches the !Sub variant used when CloudFormation parameters are interpolated.
+const reportOnlyMatch = cfnNoComments.match(
+  /- Header:\s+Content-Security-Policy-Report-Only\s+Value:\s+(?:!Sub\s+)?"([^"]+)"/
 );
 
 // Phase 2: ContentSecurityPolicy in SecurityHeadersConfig
 // Matches: "ContentSecurityPolicy: "..."" (indented, within SecurityHeadersConfig block)
-const enforcementMatch = cfn.match(
+const enforcementMatch = cfnNoComments.match(
   /ContentSecurityPolicy:\s+"([^"]+)"/
 );
 
@@ -67,7 +72,7 @@ const location = reportOnlyMatch
 if (!cspValue.includes(hashToken)) {
   console.error(`FAIL: CSP hash mismatch in ${phase}.\n`);
   console.error('The inline theme script in apps/web/index.html has changed (or the hash');
-  console.error(`in infra/aws/pr-preview-stack.yml is stale).\n`);
+  console.error(`in infra/aws/pr-preview-stack.yml is stale.\n`);
   console.error(`Update the sha256-... token in ${location}`);
   console.error(`in infra/aws/pr-preview-stack.yml to:\n`);
   console.error(`  ${hashToken}\n`);
