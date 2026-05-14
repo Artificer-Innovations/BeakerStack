@@ -13,6 +13,40 @@ import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import { beakerstackBillingConfig } from '@/billing/beakerstackBillingConfig';
 
+// vi.mock is hoisted to top of file, so supabaseMock must be defined via vi.hoisted()
+// to avoid "Cannot access before initialization" TDZ errors.
+const { supabaseMock, mockRpc } = vi.hoisted(() => {
+  const mockRpc = vi.fn();
+  const supabaseMock = {
+    auth: {
+      getSession: vi.fn(),
+      onAuthStateChange: vi.fn(),
+      signOut: vi.fn(),
+    },
+    from: vi.fn(),
+    rpc: mockRpc,
+    channel: vi.fn(),
+    removeChannel: vi.fn(),
+    functions: { invoke: vi.fn() },
+  };
+  return { supabaseMock, mockRpc };
+});
+
+// supabaseRpc is an alias for supabase in production; mock it the same way
+// so useDemoCollections can call supabaseRpc.rpc(...)
+vi.mock('@/lib/supabase', () => ({
+  supabase: supabaseMock,
+  supabaseRpc: supabaseMock,
+}));
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => vi.fn(),
+  };
+});
+
 const FREE_PLAN_ROW = {
   id: 'beakerstack_free',
   product_id: 'beakerstack',
@@ -56,104 +90,6 @@ const SUBSCRIPTION_ROW = {
 // collectionsData is mutated per-test to control what billing_demo_get_collections returns
 let collectionsData: Array<{ id: string; item_count: number }> = [];
 
-const mockRpc = vi.fn((name: string) => {
-  if (name === 'ensure_billing_subscription')
-    return Promise.resolve({ data: null, error: null });
-  if (name === 'billing_get_remaining_usage')
-    return Promise.resolve({
-      data: {
-        used: 0,
-        limit: 30,
-        remaining: 30,
-        periodEnd: '2025-12-31T00:00:00.000Z',
-        periodStart: '2025-12-01T00:00:00.000Z',
-      },
-      error: null,
-    });
-  if (name === 'billing_record_usage_event')
-    return Promise.resolve({ data: null, error: null });
-  if (name === 'billing_demo_get_collections')
-    return Promise.resolve({ data: collectionsData, error: null });
-  if (name?.startsWith('billing_demo_'))
-    return Promise.resolve({ data: null, error: null });
-  return Promise.resolve({ data: null, error: null });
-});
-
-const supabaseMock = {
-  auth: {
-    getSession: vi.fn().mockResolvedValue({
-      data: {
-        session: { user: { id: 'test-user-id', email: 'test@example.com' } },
-      },
-    }),
-    onAuthStateChange: vi.fn().mockReturnValue({
-      data: { subscription: { unsubscribe: vi.fn() } },
-    }),
-    signOut: vi.fn().mockResolvedValue({ error: null }),
-  },
-  from: vi.fn((table: string) => {
-    if (table === 'billing_subscriptions') {
-      return {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              maybeSingle: vi
-                .fn()
-                .mockResolvedValue({ data: SUBSCRIPTION_ROW, error: null }),
-            }),
-          }),
-        }),
-      };
-    }
-    if (table === 'billing_plans') {
-      return {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            maybeSingle: vi
-              .fn()
-              .mockResolvedValue({ data: FREE_PLAN_ROW, error: null }),
-          }),
-        }),
-      };
-    }
-    return {
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          single: vi.fn().mockResolvedValue({
-            data: null,
-            error: { code: 'PGRST116', message: 'No rows returned' },
-          }),
-        })),
-      })),
-    };
-  }),
-  rpc: mockRpc,
-  channel: vi.fn().mockImplementation(() => ({
-    on: vi.fn().mockReturnThis(),
-    subscribe: vi.fn().mockReturnThis(),
-    unsubscribe: vi.fn().mockResolvedValue(undefined),
-  })),
-  removeChannel: vi.fn().mockResolvedValue({ status: 'ok', error: null }),
-  functions: {
-    invoke: vi.fn().mockResolvedValue({ data: null, error: null }),
-  },
-};
-
-// supabaseRpc is an alias for supabase in production; mock it the same way
-// so useDemoCollections can call supabaseRpc.rpc(...)
-vi.mock('@/lib/supabase', () => ({
-  supabase: supabaseMock,
-  supabaseRpc: supabaseMock,
-}));
-
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => vi.fn(),
-  };
-});
-
 const billingBase = 'http://localhost:5173';
 
 function wrapDashboard(ui: ReactElement) {
@@ -180,6 +116,54 @@ describe('DashboardPage (coverage)', () => {
   beforeEach(() => {
     collectionsData = [];
     vi.clearAllMocks();
+
+    supabaseMock.auth.getSession.mockResolvedValue({
+      data: {
+        session: { user: { id: 'test-user-id', email: 'test@example.com' } },
+      },
+    });
+    supabaseMock.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    });
+    supabaseMock.auth.signOut.mockResolvedValue({ error: null });
+
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'billing_subscriptions') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi
+                  .fn()
+                  .mockResolvedValue({ data: SUBSCRIPTION_ROW, error: null }),
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === 'billing_plans') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi
+                .fn()
+                .mockResolvedValue({ data: FREE_PLAN_ROW, error: null }),
+            }),
+          }),
+        };
+      }
+      return {
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
+              data: null,
+              error: { code: 'PGRST116', message: 'No rows returned' },
+            }),
+          })),
+        })),
+      };
+    });
+
     mockRpc.mockImplementation((name: string) => {
       if (name === 'ensure_billing_subscription')
         return Promise.resolve({ data: null, error: null });
@@ -202,6 +186,14 @@ describe('DashboardPage (coverage)', () => {
         return Promise.resolve({ data: null, error: null });
       return Promise.resolve({ data: null, error: null });
     });
+
+    supabaseMock.channel.mockImplementation(() => ({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn().mockReturnThis(),
+      unsubscribe: vi.fn().mockResolvedValue(undefined),
+    }));
+    supabaseMock.removeChannel.mockResolvedValue({ status: 'ok', error: null });
+    supabaseMock.functions.invoke.mockResolvedValue({ data: null, error: null });
   });
 
   it('useEffect auto-selects first collection when collections load with selectedId null (lines 48-50)', async () => {
