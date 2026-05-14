@@ -182,4 +182,30 @@ describe('CollectionsGrid', () => {
       screen.getByRole('button', { name: /delete/i }).closest('[aria-pressed]')
     ).toHaveAttribute('aria-pressed', 'true');
   });
+
+  it('pressing Enter on a collection card calls onSelect', async () => {
+    const user = userEvent.setup();
+    renderGrid([makeCol('col-kb')]);
+
+    const card = screen
+      .getByRole('button', { name: /delete collection/i })
+      .closest('[role="button"]') as HTMLElement;
+    if (!card) throw new Error('card element not found');
+    card.focus();
+    await user.keyboard('{Enter}');
+    expect(onSelect).toHaveBeenCalledWith('col-kb');
+  });
+
+  it('pressing Space on a collection card calls onSelect', async () => {
+    const user = userEvent.setup();
+    renderGrid([makeCol('col-kb2')]);
+
+    const card = screen
+      .getByRole('button', { name: /delete collection/i })
+      .closest('[role="button"]') as HTMLElement;
+    if (!card) throw new Error('card element not found');
+    card.focus();
+    await user.keyboard(' ');
+    expect(onSelect).toHaveBeenCalledWith('col-kb2');
+  });
 });
