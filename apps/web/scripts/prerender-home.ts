@@ -4,7 +4,7 @@ import { join, dirname } from 'path';
 
 // Shim WebSocket for Node < 22 before any app module loads.
 // supabase-js checks globalThis.WebSocket at createClient() time (module load, not runtime).
-// renderToStaticMarkup never opens a socket, but the check throws on Node 20 without this.
+// renderToString never opens a socket, but the check throws on Node 20 without this.
 // Dynamic imports below ensure this assignment runs first (static imports are hoisted).
 if (typeof globalThis.WebSocket === 'undefined') {
   (globalThis as any).WebSocket = class WebSocket {
@@ -16,12 +16,15 @@ if (typeof globalThis.WebSocket === 'undefined') {
 }
 
 const { createElement } = await import('react');
-const { renderToStaticMarkup } = await import('react-dom/server');
+const { renderToString } = await import('react-dom/server');
 // MemoryRouter comes from the same react-router-dom instance as <Link> and other
 // router-aware components in LandingPage, so they share the same NavigationContext.
 // StaticRouter (from react-router-dom/server) is a separate sub-package with its
 // own bundled context, causing a null-context mismatch in vite-node's module graph.
 const { MemoryRouter } = await import('react-router-dom');
+// ThemeProvider needed because AppFooter renders ThemeToggle which calls useTheme().
+const { ThemeProvider } = await import('../src/contexts/ThemeContext');
+const { AppFooter } = await import('../src/components/AppFooter');
 const { LandingPage } = await import('../src/components/landing/LandingPage');
 
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -43,11 +46,27 @@ const routerBasename =
 // match (RR warns and renders nothing). Use the same pathname as publicHomeUrl path.
 const initialEntries = [homePath];
 
-const html = renderToStaticMarkup(
+// Render the same DOM structure as App.tsx (outer div) and RootLayout (inner divs + AppFooter).
+// These class names must stay in sync with App.tsx and RootLayout in App.tsx;
+// hydrateRoot requires the prerendered HTML to match the client-rendered tree exactly.
+const html = renderToString(
   createElement(
-    MemoryRouter,
-    { basename: routerBasename, initialEntries },
-    createElement(LandingPage)
+    ThemeProvider,
+    null,
+    createElement(
+      MemoryRouter,
+      { basename: routerBasename, initialEntries },
+      createElement(
+        'div',
+        { className: 'bg-gray-50 dark:bg-gray-900' },
+        createElement(
+          'div',
+          { className: 'flex min-h-screen flex-col' },
+          createElement('div', { className: 'flex-1' }, createElement(LandingPage)),
+          createElement(AppFooter)
+        )
+      )
+    )
   )
 );
 
