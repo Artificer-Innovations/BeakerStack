@@ -1077,6 +1077,24 @@ build_parameter_overrides() {
   if [[ -n "${LOGS_BUCKET_OVERRIDE}" ]]; then
     PARAMETER_OVERRIDES+=("LogsBucketName=${LOGS_BUCKET_OVERRIDE}")
   fi
+
+  # Extract bare origin (scheme + host only) from each Supabase URL and pass to CloudFormation
+  # for the CSP img-src directive. The env vars may include a path suffix (e.g. /rest/v1), which
+  # would malform the directive — strip it here so CloudFormation receives a clean origin.
+  for _supabase_entry in \
+      "PRODUCTION_SUPABASE_URL:ProductionSupabaseUrl" \
+      "STAGING_SUPABASE_URL:StagingSupabaseUrl" \
+      "PREVIEW_SUPABASE_URL:PreviewSupabaseUrl"; do
+    _env_var="${_supabase_entry%%:*}"
+    _cfn_param="${_supabase_entry##*:}"
+    _raw_url="${!_env_var:-}"
+    if [[ -n "${_raw_url}" ]]; then
+      _url="${_raw_url%/}"                        # strip trailing slash
+      _scheme="${_url%%://*}"                     # e.g. https
+      _host="${_url#*://}"; _host="${_host%%/*}"  # strip scheme then any path
+      PARAMETER_OVERRIDES+=("${_cfn_param}=${_scheme}://${_host}")
+    fi
+  done
 }
 
 # Empty AWS_PROFILE in the environment makes AWS CLI try profile "" ("config profile () could not be found").
