@@ -1,8 +1,9 @@
 -- pgTAP: billing_record_usage_event idempotency deduplication regression
 -- Asserts that supplying the same p_idempotency_key twice results in exactly one
 -- row in billing_usage_events and one increment to the usage aggregate.
+-- Also asserts that NULL idempotency keys are never deduplicated.
 BEGIN;
-SELECT plan(4);
+SELECT plan(5);
 
 -- ── Test setup ─────────────────────────────────────────────────────────────
 -- Use a fixed UUID as the test user so cleanup is predictable.
@@ -24,20 +25,17 @@ BEGIN
 END;
 $$;
 
--- Insert a free-tier subscription so the function does not need to create one.
+-- Insert a minimal free-tier subscription using only NOT NULL columns without
+-- defaults, so this INSERT stays valid across future nullable column additions.
 INSERT INTO public.billing_subscriptions (
-    id, user_id, product_id, plan_id, status,
-    stripe_customer_id, stripe_subscription_id, stripe_price_id,
-    current_period_start, current_period_end,
-    cancel_at_period_end, canceled_at, trial_start, trial_end
+    id, user_id, product_id, plan_id, status
 ) VALUES (
     '20000000-0000-0000-0000-000000000001',
     '10000000-0000-0000-0000-000000000001',
     'beakerstack',
     'beakerstack_free',
-    'free',
-    NULL, NULL, NULL, NULL, NULL, false, NULL, NULL, NULL
-) ON CONFLICT DO NOTHING;
+    'free'
+) ON CONFLICT (id) DO NOTHING;
 
 -- Simulate an authenticated session for auth.uid().
 SELECT set_config('request.jwt.claims',
@@ -45,18 +43,19 @@ SELECT set_config('request.jwt.claims',
     true);
 SET LOCAL ROLE authenticated;
 
--- ── Call the RPC twice with the same idempotency key ───────────────────────
+-- ── Scenario 1: identical idempotency key is deduplicated ──────────────────
+-- Use quantity=3 so the aggregate assertion distinguishes a successful dedup
+-- (count=3) from accidental overwrite (still 3) vs no dedup (would be 6).
 SELECT public.billing_record_usage_event(
-    'beakerstack', 'ai_summarize', 1, '{}'::jsonb,
+    'beakerstack', 'ai_summarize', 3, '{}'::jsonb,
     '30000000-0000-0000-0000-000000000001'
 );
 SELECT public.billing_record_usage_event(
-    'beakerstack', 'ai_summarize', 1, '{}'::jsonb,
+    'beakerstack', 'ai_summarize', 3, '{}'::jsonb,
     '30000000-0000-0000-0000-000000000001'
 );
 
--- ── Assertions ─────────────────────────────────────────────────────────────
--- Drop back to superuser to read the tables (RLS would otherwise block us).
+-- Reset to the test-runner role (typically postgres), which bypasses RLS.
 RESET ROLE;
 
 SELECT is(
@@ -68,12 +67,47 @@ SELECT is(
 );
 
 SELECT is(
+    (SELECT count::int
+     FROM public.billing_usage_aggregates
+     WHERE user_id = '10000000-0000-0000-0000-000000000001'
+       AND product_id = 'beakerstack'
+       AND event_type = 'ai_summarize'),
+    3,
+    'aggregate count is 3 (not 6) after duplicate call — confirms count+excluded.count path'
+);
+
+-- ── Scenario 2: NULL idempotency key is never deduplicated ────────────────
+-- The partial unique index only covers non-null keys; two null-key calls must
+-- each produce their own event row (quantity=1 each, adds 2 to aggregate).
+SET LOCAL ROLE authenticated;
+SELECT public.billing_record_usage_event(
+    'beakerstack', 'ai_summarize', 1, '{}'::jsonb, NULL
+);
+SELECT public.billing_record_usage_event(
+    'beakerstack', 'ai_summarize', 1, '{}'::jsonb, NULL
+);
+
+-- Reset to the test-runner role (typically postgres), which bypasses RLS.
+RESET ROLE;
+
+SELECT is(
+    (SELECT count(*)::int
+     FROM public.billing_usage_events
+     WHERE user_id = '10000000-0000-0000-0000-000000000001'
+       AND event_type = 'ai_summarize'
+       AND idempotency_key IS NULL),
+    2,
+    'two calls with NULL idempotency key both produce distinct event rows'
+);
+
+-- ── Combined assertions ────────────────────────────────────────────────────
+SELECT is(
     (SELECT count(*)::int
      FROM public.billing_usage_events
      WHERE user_id = '10000000-0000-0000-0000-000000000001'
        AND event_type = 'ai_summarize'),
-    1,
-    'only one ai_summarize event row exists for the test user'
+    3,
+    'total event rows for test user: 1 keyed + 2 null-key'
 );
 
 SELECT is(
@@ -82,18 +116,8 @@ SELECT is(
      WHERE user_id = '10000000-0000-0000-0000-000000000001'
        AND product_id = 'beakerstack'
        AND event_type = 'ai_summarize'),
-    1,
-    'aggregate count is 1 (not 2) after duplicate call'
-);
-
-SELECT ok(
-    NOT EXISTS (
-        SELECT 1 FROM public.billing_usage_events
-        WHERE user_id = '10000000-0000-0000-0000-000000000001'
-          AND event_type = 'ai_summarize'
-          AND idempotency_key IS NULL
-    ),
-    'no null-key duplicate row was inserted alongside the keyed row'
+    5,
+    'aggregate count is 5 (3 from keyed dedup + 1 + 1 from null-key calls)'
 );
 
 SELECT * FROM finish();
