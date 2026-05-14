@@ -1,6 +1,6 @@
 import { landingConfig } from '../../config/landing';
 import { Nav } from './sections/Nav';
-import { Hero } from './sections/Hero';
+import { Hero, buildCarouselSlides } from './sections/Hero';
 import { FeatureGrid } from './sections/FeatureGrid';
 import { FeatureRows } from './sections/FeatureRows';
 import { SocialProof } from './sections/SocialProof';
@@ -13,12 +13,13 @@ import { FinalCTA } from './sections/FinalCTA';
 // Suspense fallbacks under synchronous renderToString — use this file instead.
 export function LandingPageSSR() {
   const config = landingConfig;
+  const carouselSlides = buildCarouselSlides(config);
 
   return (
     <div className='bg-white dark:bg-gray-950 min-h-screen'>
       <Nav config={{ ...config.nav, brand: config.brand }} />
       <main>
-        <Hero config={config.hero} />
+        <Hero config={config.hero} carouselSlides={carouselSlides} />
         <FeatureGrid config={config.featureGrid} />
         <FeatureRows config={config.featureRows} />
         <SocialProof config={config.socialProof} />
