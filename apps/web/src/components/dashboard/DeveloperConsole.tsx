@@ -121,7 +121,7 @@ interface DeveloperConsoleProps {
 export function DeveloperConsole({ activityLog }: DeveloperConsoleProps) {
   return (
     <div className='w-full border-t border-slate-700 bg-slate-900 text-slate-100'>
-      <div className='mx-auto max-w-[1400px] px-4 py-6 sm:px-6'>
+      <div className='mx-auto max-w-[1024px] px-4 py-6 sm:px-6'>
         <p className='text-xs font-semibold uppercase tracking-widest text-slate-400 mb-5'>
           Developer Console
         </p>

@@ -62,7 +62,7 @@ export default function DashboardPage() {
     <div className='min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col'>
       <AppHeader supabaseClient={supabase} />
 
-      <main className='flex-1 w-full max-w-[1400px] mx-auto px-4 py-6 sm:px-6 space-y-6'>
+      <main className='flex-1 w-full max-w-[1024px] mx-auto px-4 py-6 sm:px-6 space-y-6'>
         <DemoBanner />
 
         <AnnotatedPrimitive
