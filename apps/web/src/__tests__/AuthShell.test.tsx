@@ -3,13 +3,12 @@ import { render, screen, act, waitFor } from '@testing-library/react';
 import { useHref } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { useProfileContext } from '@beakerstack/shared/contexts/ProfileContext';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { AuthShell } from '../AuthShell';
 
 vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost:54321');
 vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-anon-key');
 
-const mockSupabaseClient = {
+const mockSupabaseClient = vi.hoisted(() => ({
   auth: {
     getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
     onAuthStateChange: vi.fn().mockReturnValue({
@@ -23,7 +22,7 @@ const mockSupabaseClient = {
       }),
     }),
   }),
-} as unknown as SupabaseClient;
+}));
 
 vi.mock('../lib/supabase', () => ({ supabase: mockSupabaseClient }));
 
@@ -46,14 +45,10 @@ vi.mock('../App', () => ({
 describe('AuthShell', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (
-      mockSupabaseClient.auth.getSession as ReturnType<typeof vi.fn>
-    ).mockResolvedValue({
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
       data: { session: null },
     });
-    (
-      mockSupabaseClient.auth.onAuthStateChange as ReturnType<typeof vi.fn>
-    ).mockReturnValue({
+    mockSupabaseClient.auth.onAuthStateChange.mockReturnValue({
       data: { subscription: { unsubscribe: vi.fn() } },
     });
   });
