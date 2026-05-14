@@ -38,8 +38,9 @@ const hashToken = `'sha256-${hash}'`;
 
 // Phase 1: Content-Security-Policy-Report-Only in CustomHeadersConfig
 // Matches: "- Header: Content-Security-Policy-Report-Only\n  Value: "..."
+// Also matches the !Sub variant used when CloudFormation parameters are interpolated.
 const reportOnlyMatch = cfn.match(
-  /- Header:\s+Content-Security-Policy-Report-Only\s+Value:\s+"([^"]+)"/
+  /- Header:\s+Content-Security-Policy-Report-Only\s+Value:\s+(?:!Sub\s+)?"([^"]+)"/
 );
 
 // Phase 2: ContentSecurityPolicy in SecurityHeadersConfig
