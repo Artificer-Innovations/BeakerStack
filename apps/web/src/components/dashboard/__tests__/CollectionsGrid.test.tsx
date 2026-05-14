@@ -168,11 +168,11 @@ describe('CollectionsGrid', () => {
     const user = userEvent.setup();
     renderGrid([makeCol('col-sel')]);
 
-    await user.click(
-      screen
-        .getByRole('button', { name: /delete collection/i })
-        .closest('[role="button"]')!
-    );
+    const card = screen
+      .getByRole('button', { name: /delete collection/i })
+      .closest('[role="button"]');
+    if (!card) throw new Error('card element not found');
+    await user.click(card);
     expect(onSelect).toHaveBeenCalledWith('col-sel');
   });
 
