@@ -1,6 +1,7 @@
 import { landingConfig } from '../../config/landing';
 import { Nav } from './sections/Nav';
 import { Hero } from './sections/Hero';
+import type { CarouselSlide } from './sections/Hero';
 import { FeatureGrid } from './sections/FeatureGrid';
 import { FeatureRows } from './sections/FeatureRows';
 import { SocialProof } from './sections/SocialProof';
@@ -14,11 +15,25 @@ import { FinalCTA } from './sections/FinalCTA';
 export function LandingPageSSR() {
   const config = landingConfig;
 
+  const carouselSlides: CarouselSlide[] = [
+    {
+      subhead: config.hero.subhead,
+      mediaSrc: config.hero.mediaSrc,
+      mediaAlt: config.hero.mediaAlt,
+    },
+    ...config.featureRows.map(r => ({
+      label: r.title,
+      subhead: r.body,
+      mediaSrc: r.mediaSrc,
+      mediaAlt: r.mediaAlt,
+    })),
+  ];
+
   return (
     <div className='bg-white dark:bg-gray-950 min-h-screen'>
       <Nav config={{ ...config.nav, brand: config.brand }} />
       <main>
-        <Hero config={config.hero} />
+        <Hero config={config.hero} carouselSlides={carouselSlides} />
         <FeatureGrid config={config.featureGrid} />
         <FeatureRows config={config.featureRows} />
         <SocialProof config={config.socialProof} />
