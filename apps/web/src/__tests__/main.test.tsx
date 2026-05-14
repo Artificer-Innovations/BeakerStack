@@ -102,6 +102,20 @@ describe('main.tsx', () => {
     expect(renderCall.type).toBe(React.StrictMode);
   });
 
+  it('should use createRoot even when root has prerendered content', async () => {
+    // Simulate prerendered HTML by adding a child element to #root
+    const prerendered = document.createElement('div');
+    rootElement!.appendChild(prerendered);
+
+    await import('../main');
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    // createRoot is always used — hydrateRoot was dropped due to structural
+    // fiber-tree mismatch between the hand-maintained prerender and App's full tree
+    expect(mockCreateRoot).toHaveBeenCalledWith(rootElement);
+    expect(mockRender).toHaveBeenCalled();
+  });
+
   it('should render app with AuthProvider and ProfileProvider', async () => {
     // Import main.tsx
     await import('../main');
