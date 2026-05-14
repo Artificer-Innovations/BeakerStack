@@ -25,7 +25,9 @@ const { MemoryRouter } = await import('react-router-dom');
 // ThemeProvider needed because AppFooter renders ThemeToggle which calls useTheme().
 const { ThemeProvider } = await import('../src/contexts/ThemeContext');
 const { AppFooter } = await import('../src/components/AppFooter');
-const { LandingPage } = await import('../src/components/landing/LandingPage');
+// LandingPageSSR eagerly imports all sections. LandingPage uses React.lazy() for
+// below-fold sections, which resolve as empty Suspense fallbacks under renderToStaticMarkup.
+const { LandingPageSSR } = await import('../src/components/landing/LandingPageSSR');
 
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -63,7 +65,7 @@ const html = renderToStaticMarkup(
         createElement(
           'div',
           { className: 'flex min-h-screen flex-col' },
-          createElement('div', { className: 'flex-1' }, createElement(LandingPage)),
+          createElement('div', { className: 'flex-1' }, createElement(LandingPageSSR)),
           createElement(AppFooter)
         )
       )
@@ -72,10 +74,10 @@ const html = renderToStaticMarkup(
 );
 
 // Structural smoke check — catches a broken render without hardcoding copy text.
-// Fails the build if LandingPage produced no heading element.
+// Fails the build if LandingPageSSR produced no heading element.
 if (!html.includes('<h1')) {
   console.error(
-    'pre-render smoke check: no <h1> in output — LandingPage did not render'
+    'pre-render smoke check: no <h1> in output — LandingPageSSR did not render'
   );
   process.exit(1);
 }

@@ -172,10 +172,10 @@ describe('HomePage', () => {
     it('renders the pricing cadence toggle with Monthly and Annually buttons', async () => {
       await renderWithAuth(false);
       expect(
-        screen.getByRole('button', { name: /monthly/i })
+        await screen.findByRole('button', { name: /monthly/i })
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', { name: /annually/i })
+        await screen.findByRole('button', { name: /annually/i })
       ).toBeInTheDocument();
     });
   });
