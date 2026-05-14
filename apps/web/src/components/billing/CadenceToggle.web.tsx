@@ -1,4 +1,5 @@
 import { usePlanCatalog } from '@beakerstack/billing';
+import type { Plan } from '@beakerstack/billing';
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { beakerstackBillingConfig } from '../../billing/beakerstackBillingConfig';
@@ -7,12 +8,12 @@ import {
   formatCadenceToggleSavingsBadge,
 } from '../../billing/billingSyncDisplay';
 
-/**
- * URL sync: `?cadence=annual` | `?cadence=monthly` (default monthly = omit param or monthly).
- */
-export function CadenceToggle() {
+export function getCadenceFromSearch(search: URLSearchParams) {
+  return search.get('cadence') === 'annual' ? 'annual' : 'monthly';
+}
+
+function CadenceToggleView({ plans }: { plans: Plan[] }) {
   const [search, setSearch] = useSearchParams();
-  const { plans } = usePlanCatalog<typeof beakerstackBillingConfig>();
   const savings = useMemo(() => cadenceAnnualSavingsFromPlans(plans), [plans]);
   const annualBadgeText = useMemo(
     () => formatCadenceToggleSavingsBadge(savings),
@@ -29,6 +30,7 @@ export function CadenceToggle() {
     },
     [search, setSearch]
   );
+
   return (
     <div className='flex items-center justify-center gap-1'>
       <div className='inline-flex rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-1 shadow-sm'>
@@ -73,6 +75,19 @@ export function CadenceToggle() {
   );
 }
 
-export function getCadenceFromSearch(search: URLSearchParams) {
-  return search.get('cadence') === 'annual' ? 'annual' : 'monthly';
+function CadenceToggleFromCatalog() {
+  const { plans } = usePlanCatalog<typeof beakerstackBillingConfig>();
+  return <CadenceToggleView plans={plans} />;
+}
+
+/**
+ * Billing cadence toggle. Reads/sets `?cadence=annual` (omitted = monthly) via React Router search params.
+ * Pass `plans` to bypass the Supabase catalog lookup (e.g. on anonymous marketing pages).
+ */
+export function CadenceToggle({ plans }: { plans?: Plan[] } = {}) {
+  return plans != null ? (
+    <CadenceToggleView plans={plans} />
+  ) : (
+    <CadenceToggleFromCatalog />
+  );
 }
