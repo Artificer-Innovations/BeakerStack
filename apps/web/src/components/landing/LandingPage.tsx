@@ -1,8 +1,7 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useMemo } from 'react';
 import { landingConfig } from '../../config/landing';
 import { Nav } from './sections/Nav';
-import { Hero } from './sections/Hero';
-import type { CarouselSlide } from './sections/Hero';
+import { Hero, buildCarouselSlides } from './sections/Hero';
 import { FeatureGrid } from './sections/FeatureGrid';
 import { FeatureRows } from './sections/FeatureRows';
 
@@ -23,20 +22,7 @@ const FinalCTA = lazy(() =>
 
 export function LandingPage() {
   const config = landingConfig;
-
-  const carouselSlides: CarouselSlide[] = [
-    {
-      subhead: config.hero.subhead,
-      mediaSrc: config.hero.mediaSrc,
-      mediaAlt: config.hero.mediaAlt,
-    },
-    ...config.featureRows.map(r => ({
-      label: r.title,
-      subhead: r.body,
-      mediaSrc: r.mediaSrc,
-      mediaAlt: r.mediaAlt,
-    })),
-  ];
+  const carouselSlides = useMemo(() => buildCarouselSlides(config), [config]);
 
   return (
     <div className='bg-white dark:bg-gray-950 min-h-screen'>
