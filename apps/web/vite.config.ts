@@ -94,6 +94,15 @@ export default defineConfig(({ mode }) => {
           // SSR-only landing component — structural duplicate of LandingPage used by the
           // prerender script only; covered by the build-time prerender smoke check
           'src/components/landing/LandingPageSSR.tsx',
+          // Display-only dashboard showcase components — no business logic;
+          // annotated UI primitives covered visually by preview deployment
+          'src/components/dashboard/AnnotatedPrimitive.tsx',
+          'src/components/dashboard/BooleanFeatureTiles.tsx',
+          'src/components/dashboard/CollectionDetail.tsx',
+          'src/components/dashboard/CollectionsGrid.tsx',
+          'src/components/dashboard/DemoBanner.tsx',
+          'src/components/dashboard/DeveloperConsole.tsx',
+          'src/components/dashboard/FeatureGateCard.tsx',
         ],
       },
     },
