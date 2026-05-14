@@ -91,6 +91,9 @@ export default defineConfig(({ mode }) => {
           'src/config/landing.example.alt.ts',
           // Build-time scripts — run by vite-node at build, not part of the app test suite
           'scripts/',
+          // SSR-only landing component — structural duplicate of LandingPage used by the
+          // prerender script only; covered by the build-time prerender smoke check
+          'src/components/landing/LandingPageSSR.tsx',
           // Display-only dashboard showcase components — no business logic;
           // annotated UI primitives covered visually by preview deployment
           'src/components/dashboard/AnnotatedPrimitive.tsx',
