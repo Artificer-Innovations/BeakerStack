@@ -62,6 +62,9 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
   const [addErr, setAddErr] = useState<string | null>(null);
   const [featureToast, setFeatureToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Tracks how many summarize RPCs are currently in flight. A ref (not state)
+  // so the guard in onSummarize always sees the current value without a stale closure.
+  const inFlightRef = useRef(0);
 
   // Reset per-item summarize state when the selected collection changes.
   useEffect(() => {
@@ -82,7 +85,8 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
 
   const onSummarize = useCallback(
     async (itemIndex: number) => {
-      if (!collection || usageExceeded) return;
+      if (!collection || usageExceeded || inFlightRef.current > 0) return;
+      inFlightRef.current += 1;
       setSummarizeBusy(prev => new Set(prev).add(itemIndex));
       setSummarizeErrors(prev => {
         const next = new Map(prev);
@@ -121,6 +125,7 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
           new Map(prev).set(itemIndex, mapUnknownError(e))
         );
       } finally {
+        inFlightRef.current -= 1;
         setSummarizeBusy(prev => {
           const next = new Set(prev);
           next.delete(itemIndex);
@@ -154,6 +159,7 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
   }
 
   const itemRows = Array.from({ length: itemCount }, (_, i) => i);
+  const anySummarizeBusy = summarizeBusy.size > 0;
 
   return (
     <div>
@@ -250,24 +256,36 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
                   <span className='text-sm font-medium text-gray-800 dark:text-gray-200'>
                     Item {i + 1}
                   </span>
-                  <button
-                    type='button'
-                    disabled={isBusy || usageExceeded || usageLoading}
+                  {/* Wrapper span carries the tooltip so it's visible even when the button is disabled */}
+                  <span
                     title={
                       usageExceeded
                         ? 'AI summarize limit reached'
-                        : undefined
+                        : anySummarizeBusy && !isBusy
+                          ? 'Another item is being summarized'
+                          : undefined
                     }
-                    onClick={() => void onSummarize(i)}
-                    className='inline-flex items-center gap-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50'
                   >
-                    <Sparkles className='h-3 w-3' aria-hidden />
-                    {isBusy
-                      ? '…'
-                      : usageExceeded
-                        ? 'Limit reached'
-                        : 'Summarize'}
-                  </button>
+                    <button
+                      type='button'
+                      disabled={anySummarizeBusy || usageExceeded || usageLoading}
+                      aria-describedby={anySummarizeBusy && !isBusy ? `summarize-wait-${i}` : undefined}
+                      onClick={() => void onSummarize(i)}
+                      className='inline-flex items-center gap-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50'
+                    >
+                      <Sparkles className='h-3 w-3' aria-hidden />
+                      {isBusy
+                        ? '…'
+                        : usageExceeded
+                          ? 'Limit reached'
+                          : 'Summarize'}
+                    </button>
+                    {anySummarizeBusy && !isBusy && (
+                      <span id={`summarize-wait-${i}`} className='sr-only'>
+                        Another item is being summarized. Please wait.
+                      </span>
+                    )}
+                  </span>
                 </div>
                 {err && (
                   <p className='mt-1 text-xs text-red-600' role='alert'>{err.message}</p>
