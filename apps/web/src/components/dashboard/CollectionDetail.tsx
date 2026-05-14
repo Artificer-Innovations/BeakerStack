@@ -82,7 +82,7 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
 
   const onSummarize = useCallback(
     async (itemIndex: number) => {
-      if (!collection || usageExceeded) return;
+      if (!collection || usageExceeded || summarizeBusy.size > 0) return;
       setSummarizeBusy(prev => new Set(prev).add(itemIndex));
       setSummarizeErrors(prev => {
         const next = new Map(prev);
@@ -154,6 +154,7 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
   }
 
   const itemRows = Array.from({ length: itemCount }, (_, i) => i);
+  const anySummarizeBusy = summarizeBusy.size > 0;
 
   return (
     <div>
@@ -252,11 +253,13 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
                   </span>
                   <button
                     type='button'
-                    disabled={isBusy || usageExceeded || usageLoading}
+                    disabled={anySummarizeBusy || usageExceeded || usageLoading}
                     title={
                       usageExceeded
                         ? 'AI summarize limit reached'
-                        : undefined
+                        : anySummarizeBusy && !isBusy
+                          ? 'Another item is being summarized'
+                          : undefined
                     }
                     onClick={() => void onSummarize(i)}
                     className='inline-flex items-center gap-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50'
