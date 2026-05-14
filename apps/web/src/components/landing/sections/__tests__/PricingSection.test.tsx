@@ -19,11 +19,15 @@ vi.mock('react-router-dom', async importOriginal => {
   };
 });
 
-vi.mock('@beakerstack/billing', () => ({
-  BillingConfigProvider: ({ children }: { children: React.ReactNode }) => (
-    <>{children}</>
-  ),
-}));
+vi.mock('@beakerstack/billing', async importOriginal => {
+  const actual = await importOriginal<typeof import('@beakerstack/billing')>();
+  return {
+    ...actual,
+    BillingConfigProvider: ({ children }: { children: React.ReactNode }) => (
+      <>{children}</>
+    ),
+  };
+});
 
 vi.mock('../../../../billing/staticPlanAdapter', () => ({
   getStaticPlans: getStaticPlansMock,

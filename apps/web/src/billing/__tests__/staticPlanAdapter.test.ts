@@ -52,25 +52,25 @@ describe('configPlanToStaticPlan', () => {
   });
 
   it('defaults description to null when absent', () => {
-    const { description: _, ...withoutDesc } = fullPlan;
+    const { description: _description, ...withoutDesc } = fullPlan;
     const plan = configPlanToStaticPlan(withoutDesc as BillingPlanConfig, 0);
     expect(plan.description).toBeNull();
   });
 
   it('defaults trial_period_days to 0 when absent', () => {
-    const { trialPeriodDays: _, ...withoutTrial } = fullPlan;
+    const { trialPeriodDays: _trialPeriodDays, ...withoutTrial } = fullPlan;
     const plan = configPlanToStaticPlan(withoutTrial as BillingPlanConfig, 0);
     expect(plan.trial_period_days).toBe(0);
   });
 
   it('defaults is_public to true when absent', () => {
-    const { isPublic: _, ...withoutPublic } = fullPlan;
+    const { isPublic: _isPublic, ...withoutPublic } = fullPlan;
     const plan = configPlanToStaticPlan(withoutPublic as BillingPlanConfig, 0);
     expect(plan.is_public).toBe(true);
   });
 
   it('defaults display_order to array index when absent', () => {
-    const { displayOrder: _, ...withoutOrder } = fullPlan;
+    const { displayOrder: _displayOrder, ...withoutOrder } = fullPlan;
     const plan = configPlanToStaticPlan(withoutOrder as BillingPlanConfig, 3);
     expect(plan.display_order).toBe(3);
   });
@@ -102,7 +102,7 @@ describe('getStaticPlans', () => {
   });
 
   it('includes plans with isPublic omitted (defaults to visible)', () => {
-    const { isPublic: _, ...withoutPublic } = fullPlan;
+    const { isPublic: _isPublic, ...withoutPublic } = fullPlan;
     mockedConfig.plans = [withoutPublic as BillingPlanConfig];
     const plans = getStaticPlans();
     expect(plans).toHaveLength(1);
@@ -119,7 +119,7 @@ describe('getStaticPlans', () => {
   });
 
   it('uses array index as fallback display_order when absent', () => {
-    const { displayOrder: _, ...withoutOrder } = fullPlan;
+    const { displayOrder: _displayOrder, ...withoutOrder } = fullPlan;
     mockedConfig.plans = [
       { ...withoutOrder, id: 'a' } as BillingPlanConfig,
       { ...withoutOrder, id: 'b' } as BillingPlanConfig,
