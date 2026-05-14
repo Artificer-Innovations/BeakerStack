@@ -53,6 +53,10 @@ describe('AuthShell', () => {
     });
   });
 
+  afterEach(() => {
+    window.history.pushState({}, '', '/');
+  });
+
   it('renders children without throwing', async () => {
     await act(async () => {
       render(<AuthShell basePath='/' />);
@@ -61,6 +65,7 @@ describe('AuthShell', () => {
   });
 
   it('passes basePath to BrowserRouter as basename', async () => {
+    window.history.pushState({}, '', '/myapp/');
     await act(async () => {
       render(<AuthShell basePath='/myapp' />);
     });
