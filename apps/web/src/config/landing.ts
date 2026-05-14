@@ -143,7 +143,7 @@ export const landingConfig: LandingConfig = {
       'BeakerStack gives you auth, billing, and a cross-platform React foundation — with a three-environment CI/CD pipeline, PR previews, and a layered test suite ready for production.',
     primaryCta: { label: 'Get started free', href: '/signup' },
     secondaryCta: { label: 'See features', href: '#features' },
-    mediaSrc: publicUrl('landing/seo-hero.avif'),
+    mediaSrc: publicUrl('landing/mobile-hero.avif'),
     mediaAlt: 'BeakerStack mobile and web screenshot',
     trustStrip: 'Built on React, React Native, Supabase, and Stripe.',
   },
