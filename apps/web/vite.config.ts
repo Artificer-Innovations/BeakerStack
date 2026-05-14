@@ -59,6 +59,20 @@ export default defineConfig(({ mode }) => {
     define: {
       __DEV__: JSON.stringify(isDev),
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('/node_modules/@supabase/')) {
+              return 'supabase-vendor';
+            }
+            if (id.includes('/node_modules/lucide-react')) {
+              return 'icons-vendor';
+            }
+          },
+        },
+      },
+    },
     // Externalize router packages in SSR/vite-node context so both
     // react-router-dom (ESM, used by app components) and
     // react-router-dom/server (CJS) resolve through the same CJS
@@ -94,6 +108,9 @@ export default defineConfig(({ mode }) => {
           // SSR-only landing component — structural duplicate of LandingPage used by the
           // prerender script only; covered by the build-time prerender smoke check
           'src/components/landing/LandingPageSSR.tsx',
+          // Thin composition wrapper for auth providers — no logic; constituent
+          // providers and routing are tested independently
+          'src/AuthShell.tsx',
           // Display-only dashboard showcase components — no business logic;
           // annotated UI primitives covered visually by preview deployment
           'src/components/dashboard/AnnotatedPrimitive.tsx',

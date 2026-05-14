@@ -52,30 +52,34 @@ describe('configPlanToStaticPlan', () => {
   });
 
   it('defaults description to null when absent', () => {
-    const config = { ...fullPlan } as Partial<BillingPlanConfig>;
-    delete config.description;
-    const plan = configPlanToStaticPlan(config as BillingPlanConfig, 0);
+    const plan = configPlanToStaticPlan(
+      { ...fullPlan, description: undefined } as unknown as BillingPlanConfig,
+      0
+    );
     expect(plan.description).toBeNull();
   });
 
   it('defaults trial_period_days to 0 when absent', () => {
-    const config = { ...fullPlan } as Partial<BillingPlanConfig>;
-    delete config.trialPeriodDays;
-    const plan = configPlanToStaticPlan(config as BillingPlanConfig, 0);
+    const plan = configPlanToStaticPlan(
+      { ...fullPlan, trialPeriodDays: undefined } as unknown as BillingPlanConfig,
+      0
+    );
     expect(plan.trial_period_days).toBe(0);
   });
 
   it('defaults is_public to true when absent', () => {
-    const config = { ...fullPlan } as Partial<BillingPlanConfig>;
-    delete config.isPublic;
-    const plan = configPlanToStaticPlan(config as BillingPlanConfig, 0);
+    const plan = configPlanToStaticPlan(
+      { ...fullPlan, isPublic: undefined } as unknown as BillingPlanConfig,
+      0
+    );
     expect(plan.is_public).toBe(true);
   });
 
   it('defaults display_order to array index when absent', () => {
-    const config = { ...fullPlan } as Partial<BillingPlanConfig>;
-    delete config.displayOrder;
-    const plan = configPlanToStaticPlan(config as BillingPlanConfig, 3);
+    const plan = configPlanToStaticPlan(
+      { ...fullPlan, displayOrder: undefined } as unknown as BillingPlanConfig,
+      3
+    );
     expect(plan.display_order).toBe(3);
   });
 
@@ -106,9 +110,7 @@ describe('getStaticPlans', () => {
   });
 
   it('includes plans with isPublic omitted (defaults to visible)', () => {
-    const config = { ...fullPlan } as Partial<BillingPlanConfig>;
-    delete config.isPublic;
-    mockedConfig.plans = [config];
+    mockedConfig.plans = [{ ...fullPlan, isPublic: undefined }];
     const plans = getStaticPlans();
     expect(plans).toHaveLength(1);
   });
@@ -124,8 +126,7 @@ describe('getStaticPlans', () => {
   });
 
   it('uses array index as fallback display_order when absent', () => {
-    const baseWithoutOrder = { ...fullPlan } as Partial<BillingPlanConfig>;
-    delete baseWithoutOrder.displayOrder;
+    const baseWithoutOrder = { ...fullPlan, displayOrder: undefined };
     mockedConfig.plans = [
       { ...baseWithoutOrder, id: 'a' },
       { ...baseWithoutOrder, id: 'b' },
