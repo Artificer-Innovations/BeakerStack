@@ -115,10 +115,7 @@ export default defineConfig(({ mode }) => {
           // annotated UI primitives covered visually by preview deployment
           'src/components/dashboard/AnnotatedPrimitive.tsx',
           'src/components/dashboard/BooleanFeatureTiles.tsx',
-          'src/components/dashboard/CollectionDetail.tsx',
-          'src/components/dashboard/CollectionsGrid.tsx',
           'src/components/dashboard/DemoBanner.tsx',
-          'src/components/dashboard/DeveloperConsole.tsx',
           'src/components/dashboard/FeatureGateCard.tsx',
         ],
       },
