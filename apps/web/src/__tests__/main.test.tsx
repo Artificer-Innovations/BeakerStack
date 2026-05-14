@@ -55,6 +55,11 @@ vi.mock('../App', () => ({
   default: () => React.createElement('div', null, 'App Component'),
 }));
 
+// Mock HomePage — pre-warm import in main.tsx resolves this before hydrateRoot fires
+vi.mock('../pages/HomePage', () => ({
+  default: () => React.createElement('div', null, 'Home Page'),
+}));
+
 // Mock CSS import
 vi.mock('../index.css', () => ({}));
 
@@ -111,7 +116,8 @@ describe('main.tsx', () => {
     rootElement!.appendChild(prerendered);
 
     await import('../main');
-    await new Promise(resolve => setTimeout(resolve, 10));
+    // Allow the pre-warm import().then() microtask chain to resolve
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     // hydrateRoot should be used for prerendered content
     expect(mockHydrateRoot).toHaveBeenCalledWith(

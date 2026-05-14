@@ -34,7 +34,12 @@ const app = (
 // Use hydrateRoot when prerendered HTML is present (home page served from
 // prerender-home.html), createRoot for all other routes where #root is empty.
 if (rootElement.childElementCount > 0) {
-  hydrateRoot(rootElement, app);
+  // Pre-warm the home page bundle so React.lazy resolves from cache without suspending.
+  // App wraps Routes in <Suspense fallback={null}>; if HomePage suspends at hydrateRoot
+  // time, React shows null against the prerendered DOM — mismatch triggers error #418.
+  import('./pages/HomePage').then(() => {
+    hydrateRoot(rootElement, app);
+  });
 } else {
   ReactDOM.createRoot(rootElement).render(app);
 }
