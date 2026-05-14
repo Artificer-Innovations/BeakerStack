@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus, Sparkles } from 'lucide-react';
 import {
   mapUnknownError,
@@ -61,10 +61,23 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
   const [addBusy, setAddBusy] = useState(false);
   const [addErr, setAddErr] = useState<string | null>(null);
   const [featureToast, setFeatureToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Reset per-item summarize state when the selected collection changes.
+  useEffect(() => {
+    setSummaries(new Map());
+    setSummarizeBusy(new Set());
+    setSummarizeErrors(new Map());
+    setSummarizeKeys(new Map());
+  }, [collection?.id]);
+
+  // Clear any pending toast timer on unmount.
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
   const showToast = useCallback((msg: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
     setFeatureToast(msg);
-    setTimeout(() => setFeatureToast(null), 3000);
+    toastTimer.current = setTimeout(() => setFeatureToast(null), 3000);
   }, []);
 
   const onSummarize = useCallback(
@@ -257,7 +270,7 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
                   </button>
                 </div>
                 {err && (
-                  <p className='mt-1 text-xs text-red-600'>{err.message}</p>
+                  <p className='mt-1 text-xs text-red-600' role='alert'>{err.message}</p>
                 )}
                 {summary && (
                   <p className='mt-2 text-xs text-gray-600 dark:text-gray-400 leading-relaxed'>
