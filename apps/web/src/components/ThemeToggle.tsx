@@ -16,6 +16,7 @@ export function ThemeToggle() {
         <button
           key={value}
           type='button'
+          suppressHydrationWarning
           onClick={() => setTheme(value)}
           aria-label={label}
           title={label}
