@@ -296,4 +296,37 @@ describe('CollectionDetail', () => {
       /feature a requires pro/i
     );
   });
+
+  it('shows feature toast when feature_b is enabled and clicked', async () => {
+    const user = userEvent.setup();
+    hp.featureBEnabled = true;
+    renderDetail(makeCollection());
+
+    await user.click(screen.getByRole('button', { name: /feature b/i }));
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Feature B action triggered'
+    );
+  });
+
+  it('shows upgrade toast when feature_b is disabled and clicked', async () => {
+    const user = userEvent.setup();
+    hp.featureBEnabled = false;
+    renderDetail(makeCollection());
+
+    await user.click(screen.getByRole('button', { name: /feature b/i }));
+    expect(screen.getByRole('status')).toHaveTextContent(
+      /feature b requires max/i
+    );
+  });
+
+  it('add item error: shows addErr alert when addItem rejects', async () => {
+    const user = userEvent.setup();
+    addItem.mockRejectedValue(new Error('Insert failed'));
+    renderDetail(makeCollection({ item_count: 1 }));
+
+    await user.click(screen.getByRole('button', { name: /add item/i }));
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('Insert failed')
+    );
+  });
 });
