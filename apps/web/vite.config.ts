@@ -117,6 +117,8 @@ export default defineConfig(({ mode }) => {
           'src/components/dashboard/BooleanFeatureTiles.tsx',
           'src/components/dashboard/DemoBanner.tsx',
           'src/components/dashboard/FeatureGateCard.tsx',
+          // Pure TypeScript interface file — no executable code to test
+          'src/components/dashboard/types.ts',
         ],
       },
     },
