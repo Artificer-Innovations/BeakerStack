@@ -1,7 +1,6 @@
 import { landingConfig } from '../../config/landing';
 import { Nav } from './sections/Nav';
-import { Hero } from './sections/Hero';
-import type { CarouselSlide } from './sections/Hero';
+import { Hero, buildCarouselSlides } from './sections/Hero';
 import { FeatureGrid } from './sections/FeatureGrid';
 import { FeatureRows } from './sections/FeatureRows';
 import { SocialProof } from './sections/SocialProof';
@@ -14,20 +13,7 @@ import { FinalCTA } from './sections/FinalCTA';
 // Suspense fallbacks under synchronous renderToString — use this file instead.
 export function LandingPageSSR() {
   const config = landingConfig;
-
-  const carouselSlides: CarouselSlide[] = [
-    {
-      subhead: config.hero.subhead,
-      mediaSrc: config.hero.mediaSrc,
-      mediaAlt: config.hero.mediaAlt,
-    },
-    ...config.featureRows.map(r => ({
-      label: r.title,
-      subhead: r.body,
-      mediaSrc: r.mediaSrc,
-      mediaAlt: r.mediaAlt,
-    })),
-  ];
+  const carouselSlides = buildCarouselSlides(config);
 
   return (
     <div className='bg-white dark:bg-gray-950 min-h-screen'>
