@@ -31,9 +31,9 @@ Optional sections (`socialProof`, `hero.trustStrip`, `hero.eyebrow`, `hero.secon
 
 Feature grid icons use `lucide-react`. Pass the icon component directly — e.g. `import { Zap } from 'lucide-react'` then `icon: Zap`.
 
-## Placeholder images
+## Landing images
 
-Dev placeholder images go in `public/landing/`. The config references them as `/landing/placeholder-*.png`. Replace with real assets before launch.
+Landing artwork goes in `public/landing/`. Prefer AVIF or WebP for raster images, sized close to the displayed card dimensions (`560×315` for feature rows), and reference assets from `src/config/landing.ts` with `publicUrl('landing/example.avif')` so Vite's `BASE_URL` is applied for path-prefixed preview deployments.
 
 ## Pricing section
 
