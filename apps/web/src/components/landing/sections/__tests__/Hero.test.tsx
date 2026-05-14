@@ -162,13 +162,22 @@ describe('Hero', () => {
       });
     }
 
+    let originalMatchMedia: typeof window.matchMedia | undefined;
+
     beforeEach(() => {
       vi.useFakeTimers();
+      originalMatchMedia = window.matchMedia;
       mockMatchMedia(false);
     });
 
     afterEach(() => {
       vi.useRealTimers();
+      // Restore original matchMedia so the vi.fn() stub doesn't leak into other test files
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        configurable: true,
+        value: originalMatchMedia,
+      });
     });
 
     it('renders slide 0 visible and others aria-hidden initially', () => {
@@ -184,14 +193,11 @@ describe('Hero', () => {
       expect(
         screen.getByText('Feature one body copy.').parentElement
       ).toHaveAttribute('aria-hidden', 'true');
-      // aria-hidden is directly on each <img>
+      // Only slide 0 image is mounted initially — other images are deferred until active
       expect(screen.getByAltText('Hero image')).not.toHaveAttribute(
         'aria-hidden'
       );
-      expect(screen.getByAltText('Feature one image')).toHaveAttribute(
-        'aria-hidden',
-        'true'
-      );
+      expect(screen.queryByAltText('Feature one image')).not.toBeInTheDocument();
     });
 
     it('advances to slide 1 after one interval', () => {
@@ -209,6 +215,7 @@ describe('Hero', () => {
       expect(
         screen.getByText('Feature one body copy.').parentElement
       ).not.toHaveAttribute('aria-hidden');
+      // Slide 0 stays mounted as the outgoing image (crossfade); slide 1 is newly active
       expect(screen.getByAltText('Hero image')).toHaveAttribute(
         'aria-hidden',
         'true'
@@ -247,20 +254,28 @@ describe('Hero', () => {
       ).not.toHaveAttribute('aria-hidden');
     });
 
-    it('renders slide 0 image with eager loading and others with lazy', () => {
+    it('renders slide 0 with eager loading; defers other images until active', () => {
       render(
         <MemoryRouter>
           <Hero config={baseConfig} carouselSlides={slides} intervalMs={100} />
         </MemoryRouter>
       );
+      // Initially only slide 0 is mounted
       expect(screen.getByAltText('Hero image')).toHaveAttribute(
         'loading',
         'eager'
       );
+      expect(screen.queryByAltText('Feature one image')).not.toBeInTheDocument();
+      // After first interval: slide 0 (outgoing) + slide 1 (active) both mounted
+      act(() => { vi.advanceTimersByTime(100); });
+      expect(screen.getByAltText('Hero image')).toHaveAttribute('loading', 'eager');
       expect(screen.getByAltText('Feature one image')).toHaveAttribute(
         'loading',
         'lazy'
       );
+      // After second interval: slide 1 (outgoing) + slide 2 (active); slide 0 unmounted
+      act(() => { vi.advanceTimersByTime(100); });
+      expect(screen.queryByAltText('Hero image')).not.toBeInTheDocument();
       expect(screen.getByAltText('Feature two image')).toHaveAttribute(
         'loading',
         'lazy'
