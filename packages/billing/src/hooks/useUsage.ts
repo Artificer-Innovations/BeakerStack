@@ -90,7 +90,7 @@ export function useUsage<
     // Guard against StrictMode double-effect and remount races: if the channel
     // is already subscribed (removeChannel is async so cleanup may lag), skip
     // re-attaching handlers — adding .on() after subscribe() throws.
-    if (ch.state !== 'closed' && ch.state !== 'errored') {
+    if (ch.state === 'joined' || ch.state === 'joining') {
       return () => {
         void supabase.removeChannel(ch);
       };

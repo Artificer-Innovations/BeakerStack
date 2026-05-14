@@ -14,10 +14,6 @@ export class AppErrorBoundary extends React.Component<
     return { error };
   }
 
-  componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error('[AppErrorBoundary]', error, info.componentStack);
-  }
-
   render() {
     if (this.state.error) {
       return (
