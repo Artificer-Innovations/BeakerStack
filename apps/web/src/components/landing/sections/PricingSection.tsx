@@ -1,7 +1,8 @@
+import { useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { BillingProvider, usePlanCatalog } from '@beakerstack/billing';
-import { supabase } from '../../../lib/supabase';
+import { BillingConfigProvider } from '@beakerstack/billing';
 import { beakerstackBillingConfig } from '../../../billing/beakerstackBillingConfig';
+import { getStaticPlans } from '../../../billing/staticPlanAdapter';
 import { PlanCard } from '../../billing/PlanCard.web';
 import {
   CadenceToggle,
@@ -18,37 +19,16 @@ interface PricingSectionProps {
   config: LandingConfig['pricing'];
 }
 
-function appBasePath(): string {
-  if (typeof window === 'undefined') return '';
-  return `${window.location.origin}${(import.meta.env.BASE_URL || '/').replace(/\/$/, '')}`;
-}
-
-function LandingPricingTable() {
+function StaticPricingTable() {
   const navigate = useNavigate();
   const [search] = useSearchParams();
   const cadence = getCadenceFromSearch(search);
-  const { plans, loading } = usePlanCatalog<typeof beakerstackBillingConfig>();
-
-  if (loading) {
-    return (
-      <div
-        data-testid='pricing-skeleton'
-        className='grid grid-cols-1 gap-6 md:grid-cols-3'
-      >
-        {[0, 1, 2].map(i => (
-          <div
-            key={i}
-            className='h-96 rounded-xl border border-gray-200 bg-white animate-pulse dark:border-gray-700 dark:bg-gray-800'
-          />
-        ))}
-      </div>
-    );
-  }
+  const plans = useMemo(() => getStaticPlans(), []);
 
   return (
     <div>
       <div className='mb-8'>
-        <CadenceToggle />
+        <CadenceToggle plans={plans} />
       </div>
       <div className='grid grid-cols-1 gap-6 md:grid-cols-3'>
         {plans.map(plan => {
@@ -113,8 +93,6 @@ function LandingPricingTable() {
 }
 
 export function PricingSection({ config }: PricingSectionProps) {
-  const base = appBasePath();
-
   return (
     <section
       id='pricing'
@@ -129,15 +107,9 @@ export function PricingSection({ config }: PricingSectionProps) {
             {config.subhead}
           </p>
         </div>
-        <BillingProvider<typeof beakerstackBillingConfig>
-          supabase={supabase}
-          config={beakerstackBillingConfig}
-          checkoutSuccessUrl={`${base}/billing?checkout=success`}
-          checkoutCancelUrl={`${base}/billing/plans?checkout=cancel`}
-          portalReturnUrl={`${base}/billing`}
-        >
-          <LandingPricingTable />
-        </BillingProvider>
+        <BillingConfigProvider config={beakerstackBillingConfig}>
+          <StaticPricingTable />
+        </BillingConfigProvider>
         {config.disclaimer && (
           <p className='mt-8 text-center text-sm text-gray-500 dark:text-gray-400 max-w-2xl mx-auto'>
             {config.disclaimer}

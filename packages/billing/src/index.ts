@@ -28,6 +28,10 @@ export {
   BillingProvider,
   type BillingProviderProps,
 } from './BillingProvider.js';
+export {
+  BillingConfigProvider,
+  type BillingConfigProviderProps,
+} from './BillingConfigProvider.js';
 export type {
   Plan,
   PlanId,
