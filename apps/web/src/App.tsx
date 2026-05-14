@@ -4,6 +4,7 @@ import { ProtectedRoute } from '@beakerstack/shared/components/auth/ProtectedRou
 import { BillingProviderLayout } from './billing/BillingProviderLayout';
 import { AppFooter } from './components/AppFooter';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
+import { LAYOUT } from './lib/layoutConstants';
 
 function PageFallback() {
   return (
@@ -31,8 +32,8 @@ const BillingInvoicesPage = lazy(
 
 function RootLayout() {
   return (
-    <div className='flex min-h-screen flex-col'>
-      <div className='flex-1'>
+    <div className={LAYOUT.shell}>
+      <div className={LAYOUT.content}>
         <Outlet />
       </div>
       <AppFooter />
@@ -42,7 +43,7 @@ function RootLayout() {
 
 function App() {
   return (
-    <div className='bg-gray-50 dark:bg-gray-900'>
+    <div className={LAYOUT.outer}>
       <AppErrorBoundary>
         <Suspense fallback={<PageFallback />}>
           <Routes>

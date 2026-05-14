@@ -28,6 +28,7 @@ const { AppFooter } = await import('../src/components/AppFooter');
 // LandingPageSSR eagerly imports all sections. LandingPage uses React.lazy() for
 // below-fold sections, which resolve as empty Suspense fallbacks under renderToStaticMarkup.
 const { LandingPageSSR } = await import('../src/components/landing/LandingPageSSR');
+const { LAYOUT } = await import('../src/lib/layoutConstants');
 
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -48,10 +49,6 @@ const routerBasename =
 // match (RR warns and renders nothing). Use the same pathname as publicHomeUrl path.
 const initialEntries = [homePath];
 
-// Layout wrapper classes mirror App.tsx ('bg-gray-50 dark:bg-gray-900') and RootLayout
-// ('flex min-h-screen flex-col'). Update these when the App layout changes to keep the
-// prerendered visual consistent with the hydrated page. No strict tree-match is required —
-// createRoot replaces this subtree on first render without hydration alignment constraints.
 const html = renderToStaticMarkup(
   createElement(
     ThemeProvider,
@@ -61,11 +58,11 @@ const html = renderToStaticMarkup(
       { basename: routerBasename, initialEntries },
       createElement(
         'div',
-        { className: 'bg-gray-50 dark:bg-gray-900' },
+        { className: LAYOUT.outer },
         createElement(
           'div',
-          { className: 'flex min-h-screen flex-col' },
-          createElement('div', { className: 'flex-1' }, createElement(LandingPageSSR)),
+          { className: LAYOUT.shell },
+          createElement('div', { className: LAYOUT.content }, createElement(LandingPageSSR)),
           createElement(AppFooter)
         )
       )
