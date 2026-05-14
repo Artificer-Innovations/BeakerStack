@@ -15,12 +15,7 @@ import {
 import { nextFakeAiSummary } from '../../lib/fakeAi';
 import type { DemoCollectionRow } from '../../billing/useDemoCollections';
 import type { ActivityEntry } from './types';
-
-function limLabel(v: number | null): string {
-  if (v === null) return '…';
-  if (v === -1) return '∞';
-  return String(v);
-}
+import { limLabel } from './utils';
 
 interface Props {
   collection: DemoCollectionRow | undefined;
@@ -61,6 +56,8 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
   const [summarizeErrors, setSummarizeErrors] = useState<
     Map<number, BillingError>
   >(new Map());
+  // Retained per-item idempotency keys: reused on retry, cleared on success.
+  const [summarizeKeys, setSummarizeKeys] = useState<Map<number, string>>(new Map());
   const [addBusy, setAddBusy] = useState(false);
   const [addErr, setAddErr] = useState<string | null>(null);
   const [featureToast, setFeatureToast] = useState<string | null>(null);
@@ -79,6 +76,9 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
         next.delete(itemIndex);
         return next;
       });
+      // Reuse the key from a previous failed attempt; generate a fresh one otherwise.
+      const key = summarizeKeys.get(itemIndex) ?? crypto.randomUUID();
+      setSummarizeKeys(prev => new Map(prev).set(itemIndex, key));
       try {
         const { error: rpcErr } = await supabaseRpc.rpc(
           'billing_record_usage_event',
@@ -87,12 +87,18 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
             p_event_type: BEAKERSTACK_METER_AI_SUMMARIZE,
             p_quantity: 1,
             p_metadata: {},
+            p_idempotency_key: key,
           }
         );
         if (rpcErr) throw rpcErr;
         await refreshUsage();
         const text = nextFakeAiSummary();
         setSummaries(prev => new Map(prev).set(itemIndex, text));
+        setSummarizeKeys(prev => {
+          const next = new Map(prev);
+          next.delete(itemIndex);
+          return next;
+        });
         onActivity({
           label: `Item ${itemIndex + 1} summarized`,
           rpc: 'billing_record_usage_event',
@@ -109,7 +115,7 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
         });
       }
     },
-    [collection, usageExceeded, config.productId, refreshUsage, onActivity]
+    [collection, usageExceeded, config.productId, refreshUsage, onActivity, summarizeKeys]
   );
 
   const onAddItem = useCallback(async () => {

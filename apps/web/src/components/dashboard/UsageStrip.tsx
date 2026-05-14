@@ -40,6 +40,9 @@ export function UsageStrip({ onActivity }: Props) {
   >([]);
   const [pending, setPending] = useState(false);
   const [recordError, setRecordError] = useState<BillingError | null>(null);
+  // Retained across failed attempts so a retry reuses the same key and the
+  // server deduplicates it. Cleared on success so the next action gets a fresh key.
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
 
   const resolveSummaryText = useCallback(async (): Promise<string> => {
     if (useRealAi) {
@@ -62,6 +65,8 @@ export function UsageStrip({ onActivity }: Props) {
   const onSimulate = useCallback(async () => {
     if (exceeded || pending) return;
     const summaryText = await resolveSummaryText();
+    const key = pendingKey ?? crypto.randomUUID();
+    if (!pendingKey) setPendingKey(key);
     setPending(true);
     setRecordError(null);
     try {
@@ -72,6 +77,7 @@ export function UsageStrip({ onActivity }: Props) {
           p_event_type: BEAKERSTACK_METER_AI_SUMMARIZE,
           p_quantity: 1,
           p_metadata: {},
+          p_idempotency_key: key,
         }
       );
       if (rpcErr) throw rpcErr;
@@ -86,6 +92,7 @@ export function UsageStrip({ onActivity }: Props) {
           ...prev,
         ].slice(0, 3)
       );
+      setPendingKey(null);
       onActivity({
         label: 'AI summarize recorded',
         rpc: 'billing_record_usage_event',
@@ -95,7 +102,7 @@ export function UsageStrip({ onActivity }: Props) {
     } finally {
       setPending(false);
     }
-  }, [exceeded, pending, config.productId, refresh, resolveSummaryText, onActivity]);
+  }, [exceeded, pending, pendingKey, config.productId, refresh, resolveSummaryText, onActivity]);
 
   const lim = limit === null ? '∞' : String(limit);
   const pct =

@@ -4,12 +4,7 @@ import { useFeature } from '@beakerstack/billing';
 import { beakerstackBillingConfig } from '../../billing/beakerstackBillingConfig';
 import type { DemoCollectionRow } from '../../billing/useDemoCollections';
 import type { ActivityEntry } from './types';
-
-function limLabel(v: number | null): string {
-  if (v === null) return '…';
-  if (v === -1) return '∞';
-  return String(v);
-}
+import { limLabel } from './utils';
 
 interface Props {
   collections: DemoCollectionRow[];
