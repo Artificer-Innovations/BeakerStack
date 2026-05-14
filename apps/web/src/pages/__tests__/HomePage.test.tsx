@@ -46,7 +46,8 @@ vi.mock('@beakerstack/billing', async importOriginal => {
 });
 
 // Stub the landing config so tests don't depend on placehold.co or Lucide icons.
-// featureRows includes one entry so LandingPage's carouselSlides map callback is covered.
+// featureRows includes one complete entry so LandingPage's carouselSlides map
+// callback (lines 34-37) is covered. All FeatureRows fields are required.
 vi.mock('../../config/landing', () => ({
   landingConfig: {
     brand: { name: 'BeakerStack', tagline: 'Test tagline' },
@@ -65,6 +66,9 @@ vi.mock('../../config/landing', () => ({
         body: 'Test feature body.',
         mediaSrc: 'https://placehold.co/600x338',
         mediaAlt: 'Test feature image',
+        mediaSide: 'right',
+        ctaHref: '/signup',
+        ctaLabel: 'Learn more',
       },
     ],
     pricing: { heading: 'Pricing', subhead: '' },
