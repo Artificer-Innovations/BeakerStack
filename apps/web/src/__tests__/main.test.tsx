@@ -13,9 +13,9 @@ vi.mock('react-dom/client', () => ({
   },
 }));
 
-vi.mock('../AuthShell', () => ({
-  AuthShell: (props: { basePath: string }) =>
-    React.createElement('div', null, `AuthShell(${props.basePath})`),
+vi.mock('../PublicShell', () => ({
+  PublicShell: (props: { basePath: string }) =>
+    React.createElement('div', null, `PublicShell(${props.basePath})`),
 }));
 
 // Mock CSS import
@@ -61,13 +61,11 @@ describe('main.tsx', () => {
     await import('../main');
     await new Promise(resolve => setTimeout(resolve, 10));
 
-    // createRoot is always used — hydrateRoot was dropped due to structural
-    // fiber-tree mismatch between the hand-maintained prerender and App's full tree
     expect(mockCreateRoot).toHaveBeenCalledWith(rootElement);
     expect(mockRender).toHaveBeenCalled();
   });
 
-  it('should render with ThemeProvider wrapping lazy AuthShell', async () => {
+  it('should render ThemeProvider with PublicShell child', async () => {
     await import('../main');
     await new Promise(resolve => setTimeout(resolve, 10));
 
@@ -79,9 +77,8 @@ describe('main.tsx', () => {
     expect(themeProvider).toBeDefined();
     expect(themeProvider.type).toBeDefined();
 
-    const suspense = themeProvider.props.children;
-    expect(suspense).toBeDefined();
-    expect(suspense.type).toBe(React.Suspense);
+    const shell = themeProvider.props.children;
+    expect(shell.props.basePath).toBe('/');
   });
 
   it('should use default base path when VITE_BASE_PATH is not set', async () => {

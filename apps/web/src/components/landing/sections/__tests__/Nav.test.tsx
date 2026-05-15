@@ -1,7 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Nav } from '../Nav';
+
+vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost:54321');
 
 const config = {
   brand: {
@@ -26,6 +28,14 @@ function renderNav() {
 }
 
 describe('Nav', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
   it('prefixes default logo path with PR preview base when pathname matches', () => {
     const originalPath = window.location.pathname;
     const configNoLogo = {
@@ -99,7 +109,36 @@ describe('Nav', () => {
     ).toBeInTheDocument();
   });
 
-  it('mobile menu shows nav links and sign in', () => {
+  it('shows Go to dashboard when localStorage session hint is present', () => {
+    localStorage.setItem(
+      'sb-localhost-auth-token',
+      JSON.stringify({ access_token: 'jwt-token', refresh_token: 'r' })
+    );
+    renderNav();
+    const dash = screen.getByRole('link', { name: 'Go to dashboard' });
+    expect(dash).toHaveAttribute('href', '/dashboard');
+    expect(
+      screen.queryByRole('link', { name: 'Sign in' })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Get started' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('mobile menu shows Go to dashboard when session hint is present', () => {
+    localStorage.setItem(
+      'sb-localhost-auth-token',
+      JSON.stringify({ access_token: 'jwt-token', refresh_token: 'r' })
+    );
+    renderNav();
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle menu' }));
+    const mobileNav = screen.getByRole('navigation', { name: 'Mobile' });
+    expect(mobileNav).toHaveTextContent('Features');
+    expect(mobileNav).toHaveTextContent('Pricing');
+    expect(mobileNav).toHaveTextContent('Go to dashboard');
+  });
+
+  it('mobile menu shows nav links and sign in when no session hint', () => {
     renderNav();
     fireEvent.click(screen.getByRole('button', { name: 'Toggle menu' }));
     const mobileNav = screen.getByRole('navigation', { name: 'Mobile' });
