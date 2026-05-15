@@ -47,6 +47,7 @@ const SUBSCRIPTION_ROW = {
   current_period_start: null,
   current_period_end: null,
   cancel_at_period_end: false,
+  pending_target_plan_id: null,
   canceled_at: null,
   trial_start: null,
   trial_end: null,
