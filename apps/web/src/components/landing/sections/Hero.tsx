@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import type { LandingConfig } from '../../../config/landing';
 
@@ -161,7 +161,11 @@ export function Hero({
                     width={600}
                     height={338}
                     decoding='async'
-                    {...(i === 0 ? ({ fetchPriority: 'high' } as object) : {})}
+                    {...(i === 0
+                      ? ({
+                          fetchpriority: 'high',
+                        } as React.HTMLAttributes<HTMLImageElement>)
+                      : {})}
                   />
                 );
               })
@@ -174,7 +178,9 @@ export function Hero({
                 width={600}
                 height={338}
                 decoding='async'
-                {...({ fetchPriority: 'high' } as object)}
+                {...({
+                  fetchpriority: 'high',
+                } as React.HTMLAttributes<HTMLImageElement>)}
               />
             )}
           </div>

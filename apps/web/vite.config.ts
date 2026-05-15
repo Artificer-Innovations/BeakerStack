@@ -128,9 +128,9 @@ export default defineConfig(({ mode }) => {
           // SSR-only landing component — structural duplicate of LandingPage used by the
           // prerender script only; covered by the build-time prerender smoke check
           'src/components/landing/LandingPageSSR.tsx',
-          // Thin composition wrapper for auth providers — no logic; constituent
-          // providers and routing are tested independently
-          'src/AuthShell.tsx',
+          // Thin composition wrappers — routing/providers tested independently
+          'src/PublicShell.tsx',
+          'src/AuthenticatedApp.tsx',
           // Display-only dashboard showcase components — no business logic;
           // annotated UI primitives covered visually by preview deployment
           'src/components/dashboard/AnnotatedPrimitive.tsx',

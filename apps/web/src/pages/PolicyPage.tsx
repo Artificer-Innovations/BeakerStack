@@ -3,9 +3,8 @@ import {
   POLICIES,
   type PolicyKey,
 } from '@beakerstack/shared/generated/policies';
-import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
 import { BRANDING } from '@beakerstack/shared/config/branding';
-import { supabase } from '@/lib/supabase';
+import { PolicyPublicHeader } from '../components/PolicyPublicHeader';
 
 const TITLES: Record<PolicyKey, string> = {
   terms: 'Terms of Service',
@@ -29,7 +28,7 @@ export default function PolicyPage({ policy }: PolicyPageProps) {
 
   return (
     <>
-      <AppHeader supabaseClient={supabase} />
+      <PolicyPublicHeader />
       <div className='max-w-[800px] mx-auto px-4 py-12 sm:px-6 lg:px-8'>
         {/* prose styles rendered via Tailwind Typography — html is build-time generated from our own markdown, not user input */}
         <div

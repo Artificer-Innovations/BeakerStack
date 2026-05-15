@@ -1,18 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { LandingConfig } from '../../../config/landing';
+import { useMarketingAuthHint } from '../../../hooks/useMarketingAuthHint';
+import { getPrPreviewAssetBasePath } from '../../../lib/prPreviewAssetBasePath';
 
 interface NavProps {
   config: LandingConfig['nav'] & { brand: LandingConfig['brand'] };
 }
 
-function getBasePath(): string {
-  if (typeof window === 'undefined') return '/';
-  const m = window.location.pathname.match(/^(\/pr-\d+)/);
-  return m ? m[1] + '/' : '/';
-}
-
 export function Nav({ config }: NavProps) {
+  const marketingAuthHint = useMarketingAuthHint();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -22,7 +19,8 @@ export function Nav({ config }: NavProps) {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const logoSrc = config.brand.logoSrc ?? `${getBasePath()}demo-flask-icon.svg`;
+  const logoSrc =
+    config.brand.logoSrc ?? `${getPrPreviewAssetBasePath()}demo-flask-icon.svg`;
 
   return (
     <header
@@ -53,18 +51,29 @@ export function Nav({ config }: NavProps) {
         </nav>
 
         <div className='flex items-center gap-3'>
-          <Link
-            to={config.signInHref}
-            className='hidden sm:inline-flex text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700 transition-colors'
-          >
-            Sign in
-          </Link>
-          <Link
-            to={config.signUpHref}
-            className='inline-flex text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 px-4 py-1.5 rounded-md transition-colors'
-          >
-            Get started
-          </Link>
+          {marketingAuthHint ? (
+            <Link
+              to='/dashboard'
+              className='inline-flex text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 px-4 py-1.5 rounded-md transition-colors'
+            >
+              Go to dashboard
+            </Link>
+          ) : (
+            <>
+              <Link
+                to={config.signInHref}
+                className='hidden sm:inline-flex text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700 transition-colors'
+              >
+                Sign in
+              </Link>
+              <Link
+                to={config.signUpHref}
+                className='inline-flex text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 px-4 py-1.5 rounded-md transition-colors'
+              >
+                Get started
+              </Link>
+            </>
+          )}
           <button
             className='md:hidden p-2 rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'
             aria-label='Toggle menu'
@@ -124,13 +133,23 @@ export function Nav({ config }: NavProps) {
                 {link.label}
               </a>
             ))}
-            <Link
-              to={config.signInHref}
-              className='text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors py-2.5'
-              onClick={() => setMenuOpen(false)}
-            >
-              Sign in
-            </Link>
+            {marketingAuthHint ? (
+              <Link
+                to='/dashboard'
+                className='text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors py-2.5'
+                onClick={() => setMenuOpen(false)}
+              >
+                Go to dashboard
+              </Link>
+            ) : (
+              <Link
+                to={config.signInHref}
+                className='text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors py-2.5'
+                onClick={() => setMenuOpen(false)}
+              >
+                Sign in
+              </Link>
+            )}
           </div>
         </nav>
       )}
