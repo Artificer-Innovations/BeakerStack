@@ -1,6 +1,7 @@
-import React, { lazy, Suspense } from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { AuthShell } from './AuthShell';
 import './index.css';
 
 const rootElement = document.getElementById('root');
@@ -11,16 +12,10 @@ if (!rootElement) {
 
 const basePath = import.meta.env.VITE_BASE_PATH || '/';
 
-const AuthShell = lazy(() =>
-  import('./AuthShell').then(m => ({ default: m.AuthShell }))
-);
-
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <ThemeProvider>
-      <Suspense>
-        <AuthShell basePath={basePath} />
-      </Suspense>
+      <AuthShell basePath={basePath} />
     </ThemeProvider>
   </React.StrictMode>
 );
