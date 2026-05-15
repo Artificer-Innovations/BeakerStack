@@ -36,7 +36,7 @@ interface HeroProps {
   intervalMs?: number;
 }
 
-const DEFAULT_INTERVAL_MS = 6000;
+const DEFAULT_INTERVAL_MS = 4000;
 
 export function Hero({
   config,
@@ -86,7 +86,7 @@ export function Hero({
                     aria-hidden={i !== activeIndex ? true : undefined}
                   >
                     {slide.label && (
-                      <p className='text-sm font-semibold text-primary-600 dark:text-primary-400 mb-1'>
+                      <p className='text-lg font-semibold text-primary-600 dark:text-primary-400 mb-1'>
                         {slide.label}
                       </p>
                     )}
