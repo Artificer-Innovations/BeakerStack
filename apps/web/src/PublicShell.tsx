@@ -7,7 +7,13 @@ export interface PublicShellProps {
 
 export function PublicShell({ basePath }: PublicShellProps) {
   return (
-    <BrowserRouter basename={basePath}>
+    <BrowserRouter
+      basename={basePath}
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <App />
     </BrowserRouter>
   );
