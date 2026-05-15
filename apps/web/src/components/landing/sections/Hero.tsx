@@ -38,21 +38,20 @@ interface HeroProps {
 
 const DEFAULT_INTERVAL_MS = 6000;
 
-export function Hero({ config, carouselSlides, intervalMs = DEFAULT_INTERVAL_MS }: HeroProps) {
-  const slides = carouselSlides && carouselSlides.length > 1 ? carouselSlides : null;
-  // Combined state so the functional updater sees the current active index when multiple
-  // ticks fire before a re-render (e.g. fake timers advancing 300 ms in one act()).
-  const [carousel, setCarousel] = useState<{ active: number; prev: number | null }>({
-    active: 0,
-    prev: null,
-  });
-  const { active: activeIndex, prev: prevIndex } = carousel;
+export function Hero({
+  config,
+  carouselSlides,
+  intervalMs = DEFAULT_INTERVAL_MS,
+}: HeroProps) {
+  const slides =
+    carouselSlides && carouselSlides.length > 1 ? carouselSlides : null;
+  const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     if (!slides) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const id = setInterval(() => {
-      setCarousel(s => ({ active: (s.active + 1) % slides.length, prev: s.active }));
+      setActiveIndex(i => (i + 1) % slides.length);
     }, intervalMs);
     return () => clearInterval(id);
   }, [slides, intervalMs]);
@@ -126,14 +125,13 @@ export function Hero({ config, carouselSlides, intervalMs = DEFAULT_INTERVAL_MS 
             )}
           </div>
 
-          {/* aspect-video gives the container a stable size. Only the active and previous
-              slide images are mounted — this prevents all images being fetched on load. */}
+          {/* aspect-video gives the container a stable size. All slide images are always
+              mounted so CSS opacity transitions fire in both directions — true crossfade.
+              Slide 0 uses eager/high-priority loading for LCP; others are lazy. */}
           <div className='rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-lg bg-gray-100 dark:bg-gray-900 aspect-video relative'>
             {slides ? (
               slides.map((slide, i) => {
                 const isActive = i === activeIndex;
-                const isPrev = i === prevIndex;
-                if (!isActive && !isPrev) return null;
                 return (
                   <img
                     key={i}

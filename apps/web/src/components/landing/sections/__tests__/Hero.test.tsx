@@ -193,11 +193,18 @@ describe('Hero', () => {
       expect(
         screen.getByText('Feature one body copy.').parentElement
       ).toHaveAttribute('aria-hidden', 'true');
-      // Only slide 0 image is mounted initially — other images are deferred until active
+      // All images are always mounted — opacity transitions fire in both directions
       expect(screen.getByAltText('Hero image')).not.toHaveAttribute(
         'aria-hidden'
       );
-      expect(screen.queryByAltText('Feature one image')).not.toBeInTheDocument();
+      expect(screen.getByAltText('Feature one image')).toHaveAttribute(
+        'aria-hidden',
+        'true'
+      );
+      expect(screen.getByAltText('Feature two image')).toHaveAttribute(
+        'aria-hidden',
+        'true'
+      );
     });
 
     it('advances to slide 1 after one interval', () => {
@@ -215,7 +222,7 @@ describe('Hero', () => {
       expect(
         screen.getByText('Feature one body copy.').parentElement
       ).not.toHaveAttribute('aria-hidden');
-      // Slide 0 stays mounted as the outgoing image (crossfade); slide 1 is newly active
+      // Both images remain mounted; slide 0 now aria-hidden, slide 1 active
       expect(screen.getByAltText('Hero image')).toHaveAttribute(
         'aria-hidden',
         'true'
@@ -254,32 +261,32 @@ describe('Hero', () => {
       ).not.toHaveAttribute('aria-hidden');
     });
 
-    it('renders slide 0 with eager loading; defers other images until active', () => {
+    it('slide 0 has eager loading; all other slides have lazy loading', () => {
       render(
         <MemoryRouter>
           <Hero config={baseConfig} carouselSlides={slides} intervalMs={100} />
         </MemoryRouter>
       );
-      // Initially only slide 0 is mounted
+      // All images are mounted from the start — loading attributes are fixed, not dynamic
       expect(screen.getByAltText('Hero image')).toHaveAttribute(
         'loading',
         'eager'
       );
-      expect(screen.queryByAltText('Feature one image')).not.toBeInTheDocument();
-      // After first interval: slide 0 (outgoing) + slide 1 (active) both mounted
-      act(() => { vi.advanceTimersByTime(100); });
-      expect(screen.getByAltText('Hero image')).toHaveAttribute('loading', 'eager');
       expect(screen.getByAltText('Feature one image')).toHaveAttribute(
         'loading',
         'lazy'
       );
-      // After second interval: slide 1 (outgoing) + slide 2 (active); slide 0 unmounted
-      act(() => { vi.advanceTimersByTime(100); });
-      expect(screen.queryByAltText('Hero image')).not.toBeInTheDocument();
       expect(screen.getByAltText('Feature two image')).toHaveAttribute(
         'loading',
         'lazy'
       );
+      // Images remain mounted after advancing — the DOM doesn't change, only opacity
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(screen.getByAltText('Hero image')).toBeInTheDocument();
+      expect(screen.getByAltText('Feature one image')).toBeInTheDocument();
+      expect(screen.getByAltText('Feature two image')).toBeInTheDocument();
     });
 
     it('renders feature row label text for non-hero slides', () => {
