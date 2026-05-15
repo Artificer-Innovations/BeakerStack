@@ -49,6 +49,12 @@ export default defineConfig(({ mode }) => {
         );
       }
 
+      if (!transformed.includes('id="critical-theme-fouc"')) {
+        throw new Error(
+          'htmlBrandingPlugin: critical theme CSS was not injected — check index.html has </script> then <!-- Site-wide meta (two newlines between).'
+        );
+      }
+
       return transformed;
     },
   };
