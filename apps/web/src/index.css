@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Match the app's outermost div (LAYOUT.outer = 'bg-gray-50 dark:bg-gray-900').
+ * The inline anti-FOUC script adds .dark to <html> before first paint, but
+ * without these rules the page background stays white (browser default) until
+ * React renders — causing a visible flash.
+ */
+html {
+  background-color: #f9fafb; /* gray-50 */
+}
+html.dark {
+  background-color: #111827; /* gray-900 */
+}
+
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
