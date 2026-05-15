@@ -10,7 +10,7 @@
 module.exports = {
   ci: {
     collect: {
-      numberOfRuns: 1,
+      numberOfRuns: 3,
       settings: {
         // Emulate a mid-range mobile device (Lighthouse default). Switch to
         // { preset: 'desktop' } here if the app is desktop-first.

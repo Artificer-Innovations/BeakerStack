@@ -36,26 +36,41 @@ interface HeroProps {
   intervalMs?: number;
 }
 
-const DEFAULT_INTERVAL_MS = 6000;
+const DEFAULT_INTERVAL_MS = 4000;
 
-export function Hero({ config, carouselSlides, intervalMs = DEFAULT_INTERVAL_MS }: HeroProps) {
-  const slides = carouselSlides && carouselSlides.length > 1 ? carouselSlides : null;
-  // Combined state so the functional updater sees the current active index when multiple
-  // ticks fire before a re-render (e.g. fake timers advancing 300 ms in one act()).
-  const [carousel, setCarousel] = useState<{ active: number; prev: number | null }>({
-    active: 0,
-    prev: null,
-  });
-  const { active: activeIndex, prev: prevIndex } = carousel;
+export function Hero({
+  config,
+  carouselSlides,
+  intervalMs = DEFAULT_INTERVAL_MS,
+}: HeroProps) {
+  const slides =
+    carouselSlides && carouselSlides.length > 1 ? carouselSlides : null;
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const sync = () => setPrefersReducedMotion(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
 
   useEffect(() => {
     if (!slides) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const id = setInterval(() => {
-      setCarousel(s => ({ active: (s.active + 1) % slides.length, prev: s.active }));
+      setActiveIndex(i => (i + 1) % slides.length);
     }, intervalMs);
     return () => clearInterval(id);
   }, [slides, intervalMs]);
+
+  const fadeClass = prefersReducedMotion
+    ? ''
+    : 'transition-opacity duration-700';
 
   return (
     <section className='py-20 md:py-28'>
@@ -74,20 +89,20 @@ export function Hero({ config, carouselSlides, intervalMs = DEFAULT_INTERVAL_MS 
             {slides ? (
               // CSS grid stacking: all slides occupy the same cell so the tallest
               // one sets the container height — CTAs never jump when copy length varies.
-              <div className='grid' aria-live='polite'>
+              <div className='grid isolate' aria-live='polite'>
                 {slides.map((slide, i) => (
                   <div
                     key={i}
                     style={{ gridArea: '1 / 1 / 2 / 2' }}
-                    className={`transition-opacity duration-700 ${
+                    className={`${fadeClass} ${
                       i === activeIndex
-                        ? 'opacity-100'
-                        : 'opacity-0 pointer-events-none select-none'
+                        ? 'opacity-100 z-10'
+                        : 'opacity-0 z-0 pointer-events-none select-none'
                     }`}
                     aria-hidden={i !== activeIndex ? true : undefined}
                   >
                     {slide.label && (
-                      <p className='text-sm font-semibold text-primary-600 dark:text-primary-400 mb-1'>
+                      <p className='text-lg font-semibold text-primary-600 dark:text-primary-400 mb-1'>
                         {slide.label}
                       </p>
                     )}
@@ -126,22 +141,21 @@ export function Hero({ config, carouselSlides, intervalMs = DEFAULT_INTERVAL_MS 
             )}
           </div>
 
-          {/* aspect-video gives the container a stable size. Only the active and previous
-              slide images are mounted — this prevents all images being fetched on load. */}
+          {/* aspect-video gives the container a stable size. All slide images are always
+              mounted so CSS opacity transitions fire in both directions — true crossfade.
+              Slide 0 uses eager/high-priority loading for LCP; others are lazy. */}
           <div className='rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-lg bg-gray-100 dark:bg-gray-900 aspect-video relative'>
             {slides ? (
               slides.map((slide, i) => {
                 const isActive = i === activeIndex;
-                const isPrev = i === prevIndex;
-                if (!isActive && !isPrev) return null;
                 return (
                   <img
                     key={i}
                     src={slide.mediaSrc}
                     alt={slide.mediaAlt}
                     aria-hidden={!isActive ? true : undefined}
-                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
-                      isActive ? 'opacity-100' : 'opacity-0'
+                    className={`absolute inset-0 w-full h-full object-cover ${fadeClass} ${
+                      isActive ? 'opacity-100 z-10' : 'opacity-0 z-0'
                     }`}
                     loading={i === 0 ? 'eager' : 'lazy'}
                     width={600}
