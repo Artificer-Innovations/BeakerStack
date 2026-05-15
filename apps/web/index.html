@@ -19,6 +19,13 @@
         } catch (_) {}
       })();
     </script>
+    <!-- Pin background before Tailwind CSS loads so dark users never see a
+         white flash and light users never see a raw-white-to-styled jump.
+         Values mirror the app's root bg-gray-50 / dark:bg-gray-900 classes. -->
+    <style>
+      html { background-color: #f9fafb; color-scheme: light; }
+      html.dark { background-color: #111827; color-scheme: dark; }
+    </style>
 
     <!-- Site-wide meta — canonical and og:url are home-only and are injected into
          prerender-home.html by scripts/prerender-home.ts; adding them here would
