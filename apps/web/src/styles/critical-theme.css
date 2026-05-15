@@ -1,0 +1,13 @@
+/*
+ * Critical background before Tailwind’s bundle loads (also inlined into index.html by vite.config.ts).
+ * Must stay aligned with LAYOUT.outer in src/lib/layoutConstants.ts (bg-gray-50 / dark:bg-gray-900).
+ */
+html {
+  background-color: #f9fafb;
+  color-scheme: light;
+}
+
+html.dark {
+  background-color: #111827;
+  color-scheme: dark;
+}

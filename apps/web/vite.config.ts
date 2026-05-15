@@ -1,7 +1,15 @@
+import { readFileSync } from 'node:fs';
+import path from 'path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
-import path from 'path';
 import { BRANDING } from '../../packages/shared/src/config/branding';
+
+const viteConfigDir = path.dirname(fileURLToPath(import.meta.url));
+const criticalThemePath = path.join(
+  viteConfigDir,
+  'src/styles/critical-theme.css'
+);
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -16,6 +24,12 @@ export default defineConfig(({ mode }) => {
     name: 'html-branding-transform',
     transformIndexHtml(html: string) {
       let transformed = html.replace(/%APP_TITLE%/g, BRANDING.displayName);
+
+      const criticalCss = readFileSync(criticalThemePath, 'utf8').trim();
+      transformed = transformed.replace(
+        '</script>\n\n    <!-- Site-wide meta',
+        `</script>\n\n    <!-- Critical theme background — source: src/styles/critical-theme.css (also @import in index.css) -->\n    <style id="critical-theme-fouc">\n${criticalCss}\n    </style>\n\n    <!-- Site-wide meta`
+      );
 
       // Transform absolute paths in HTML to respect base path
       // Only transform if base path is not root (e.g., /pr-9)
