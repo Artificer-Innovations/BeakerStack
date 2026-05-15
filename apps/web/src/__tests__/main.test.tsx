@@ -55,7 +55,7 @@ describe('main.tsx', () => {
 
   it('should use createRoot even when root has prerendered content', async () => {
     const prerendered = document.createElement('div');
-    rootElement!.appendChild(prerendered);
+    if (rootElement) rootElement.appendChild(prerendered);
 
     await import('../main');
     await new Promise(resolve => setTimeout(resolve, 10));
@@ -66,7 +66,7 @@ describe('main.tsx', () => {
     expect(mockRender).toHaveBeenCalled();
   });
 
-  it('should render with ThemeProvider wrapping lazy AuthShell', async () => {
+  it('should render with ThemeProvider wrapping AuthShell directly', async () => {
     await import('../main');
     await new Promise(resolve => setTimeout(resolve, 10));
 
@@ -78,9 +78,10 @@ describe('main.tsx', () => {
     expect(themeProvider).toBeDefined();
     expect(themeProvider.type).toBeDefined();
 
-    const suspense = themeProvider.props.children;
-    expect(suspense).toBeDefined();
-    expect(suspense.type).toBe(React.Suspense);
+    // AuthShell is now imported eagerly — no Suspense wrapper
+    const authShell = themeProvider.props.children;
+    expect(authShell).toBeDefined();
+    expect(authShell.type).not.toBe(React.Suspense);
   });
 
   it('should use default base path when VITE_BASE_PATH is not set', async () => {
