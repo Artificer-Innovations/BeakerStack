@@ -40,14 +40,14 @@ describe('authStorageHint', () => {
     expect(getLikelyAuthenticated()).toBe(true);
   });
 
-  it('getLikelyAuthenticated accepts nested currentSession.access_token', () => {
+  it('getLikelyAuthenticated ignores legacy nested currentSession shape (not v2 storage)', () => {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
         currentSession: { access_token: 'jwt', refresh_token: 'r' },
       })
     );
-    expect(getLikelyAuthenticated()).toBe(true);
+    expect(getLikelyAuthenticated()).toBe(false);
   });
 
   it('getLikelyAuthenticated is false for malformed JSON', () => {

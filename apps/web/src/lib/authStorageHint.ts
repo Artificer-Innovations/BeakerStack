@@ -28,17 +28,11 @@ export function getSupabaseAuthStorageKey(): string | null {
   }
 }
 
+/** Matches gotrue-js / supabase-js v2 persisted session JSON (`access_token` at top level). */
 function sessionBlobLooksPresent(parsed: unknown): boolean {
   if (!parsed || typeof parsed !== 'object') return false;
-  const o = parsed as Record<string, unknown>;
-  if (typeof o.access_token === 'string' && o.access_token.length > 0)
-    return true;
-  const current = o.currentSession;
-  if (current && typeof current === 'object') {
-    const t = (current as Record<string, unknown>).access_token;
-    return typeof t === 'string' && t.length > 0;
-  }
-  return false;
+  const token = (parsed as Record<string, unknown>).access_token;
+  return typeof token === 'string' && token.length > 0;
 }
 
 export function getLikelyAuthenticated(): boolean {

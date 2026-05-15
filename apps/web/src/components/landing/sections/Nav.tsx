@@ -2,15 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { LandingConfig } from '../../../config/landing';
 import { useMarketingAuthHint } from '../../../hooks/useMarketingAuthHint';
+import { getPrPreviewAssetBasePath } from '../../../lib/prPreviewAssetBasePath';
 
 interface NavProps {
   config: LandingConfig['nav'] & { brand: LandingConfig['brand'] };
-}
-
-function getBasePath(): string {
-  if (typeof window === 'undefined') return '/';
-  const m = window.location.pathname.match(/^(\/pr-\d+)/);
-  return m ? m[1] + '/' : '/';
 }
 
 export function Nav({ config }: NavProps) {
@@ -24,7 +19,8 @@ export function Nav({ config }: NavProps) {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const logoSrc = config.brand.logoSrc ?? `${getBasePath()}demo-flask-icon.svg`;
+  const logoSrc =
+    config.brand.logoSrc ?? `${getPrPreviewAssetBasePath()}demo-flask-icon.svg`;
 
   return (
     <header

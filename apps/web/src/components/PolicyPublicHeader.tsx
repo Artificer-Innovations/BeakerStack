@@ -1,14 +1,7 @@
 import { Link } from 'react-router-dom';
 import { BRANDING } from '@beakerstack/shared/config/branding';
 import { useMarketingAuthHint } from '../hooks/useMarketingAuthHint';
-
-function getBasePath(): string {
-  if (typeof window === 'undefined' || !window.location) {
-    return '/';
-  }
-  const basePathMatch = window.location.pathname.match(/^(\/pr-\d+)/);
-  return basePathMatch ? `${basePathMatch[1]}/` : '/';
-}
+import { getPrPreviewAssetBasePath } from '../lib/prPreviewAssetBasePath';
 
 /**
  * Policy/legal routes render outside {@link AuthenticatedApp}; this header mirrors
@@ -16,7 +9,7 @@ function getBasePath(): string {
  */
 export function PolicyPublicHeader() {
   const marketingAuthHint = useMarketingAuthHint();
-  const basePath = getBasePath();
+  const basePath = getPrPreviewAssetBasePath();
 
   return (
     <div className='bg-white dark:bg-gray-900 shadow dark:shadow-gray-800 border-b border-transparent dark:border-gray-700'>
