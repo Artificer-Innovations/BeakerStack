@@ -29,12 +29,12 @@ describe('useMarketingAuthHint', () => {
 
     localStorage.removeItem('sb-localhost-auth-token');
     act(() => {
-      window.dispatchEvent(
-        new StorageEvent('storage', {
-          key: 'sb-localhost-auth-token',
-          newValue: null,
-        })
-      );
+      const storageEvent = new Event('storage');
+      Object.defineProperty(storageEvent, 'key', {
+        value: 'sb-localhost-auth-token',
+      });
+      Object.defineProperty(storageEvent, 'newValue', { value: null });
+      window.dispatchEvent(storageEvent);
     });
     expect(result.current).toBe(false);
   });
