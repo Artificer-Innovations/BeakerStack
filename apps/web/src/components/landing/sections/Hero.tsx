@@ -46,15 +46,31 @@ export function Hero({
   const slides =
     carouselSlides && carouselSlides.length > 1 ? carouselSlides : null;
   const [activeIndex, setActiveIndex] = useState(0);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const sync = () => setPrefersReducedMotion(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
 
   useEffect(() => {
     if (!slides) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const id = setInterval(() => {
       setActiveIndex(i => (i + 1) % slides.length);
     }, intervalMs);
     return () => clearInterval(id);
   }, [slides, intervalMs]);
+
+  const fadeClass = prefersReducedMotion
+    ? ''
+    : 'transition-opacity duration-700';
 
   return (
     <section className='py-20 md:py-28'>
@@ -73,15 +89,15 @@ export function Hero({
             {slides ? (
               // CSS grid stacking: all slides occupy the same cell so the tallest
               // one sets the container height — CTAs never jump when copy length varies.
-              <div className='grid' aria-live='polite'>
+              <div className='grid isolate' aria-live='polite'>
                 {slides.map((slide, i) => (
                   <div
                     key={i}
                     style={{ gridArea: '1 / 1 / 2 / 2' }}
-                    className={`transition-opacity duration-700 ${
+                    className={`${fadeClass} ${
                       i === activeIndex
-                        ? 'opacity-100'
-                        : 'opacity-0 pointer-events-none select-none'
+                        ? 'opacity-100 z-10'
+                        : 'opacity-0 z-0 pointer-events-none select-none'
                     }`}
                     aria-hidden={i !== activeIndex ? true : undefined}
                   >
@@ -138,8 +154,8 @@ export function Hero({
                     src={slide.mediaSrc}
                     alt={slide.mediaAlt}
                     aria-hidden={!isActive ? true : undefined}
-                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
-                      isActive ? 'opacity-100' : 'opacity-0'
+                    className={`absolute inset-0 w-full h-full object-cover ${fadeClass} ${
+                      isActive ? 'opacity-100 z-10' : 'opacity-0 z-0'
                     }`}
                     loading={i === 0 ? 'eager' : 'lazy'}
                     width={600}

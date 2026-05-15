@@ -55,7 +55,8 @@ describe('main.tsx', () => {
 
   it('should use createRoot even when root has prerendered content', async () => {
     const prerendered = document.createElement('div');
-    rootElement!.appendChild(prerendered);
+    if (!rootElement) throw new Error('root element not initialized');
+    rootElement.appendChild(prerendered);
 
     await import('../main');
     await new Promise(resolve => setTimeout(resolve, 10));

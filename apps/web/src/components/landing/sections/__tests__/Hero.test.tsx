@@ -246,19 +246,23 @@ describe('Hero', () => {
       ).not.toHaveAttribute('aria-hidden');
     });
 
-    it('does not advance when prefers-reduced-motion is set', () => {
+    it('still advances when prefers-reduced-motion is set (no fade transition)', () => {
       mockMatchMedia(true);
       render(
         <MemoryRouter>
           <Hero config={baseConfig} carouselSlides={slides} intervalMs={100} />
         </MemoryRouter>
       );
+      const slide1 = screen.getByText('Feature one body copy.').parentElement;
+      if (!slide1) throw new Error('expected slide container element');
+      expect(slide1.className).not.toContain('transition-opacity');
       act(() => {
-        vi.advanceTimersByTime(500);
+        vi.advanceTimersByTime(100);
       });
       expect(
         screen.getByText('Hero subhead text.').parentElement
-      ).not.toHaveAttribute('aria-hidden');
+      ).toHaveAttribute('aria-hidden', 'true');
+      expect(slide1).not.toHaveAttribute('aria-hidden');
     });
 
     it('slide 0 has eager loading; all other slides have lazy loading', () => {
