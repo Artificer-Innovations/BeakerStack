@@ -200,12 +200,4 @@ describe('HomePage', () => {
     });
   });
 
-  describe('when user is authenticated', () => {
-    it('redirects to /dashboard', async () => {
-      await renderWithAuth(true);
-      await waitFor(() => {
-        expect(screen.getByText('Dashboard')).toBeInTheDocument();
-      });
-    });
-  });
 });

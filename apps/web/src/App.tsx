@@ -14,13 +14,21 @@ function PageFallback() {
   );
 }
 
+// Public route — no auth context loaded
 const HomePage = lazy(() => import('./pages/HomePage'));
+
+// Auth-flow and protected pages — loaded only when navigating to these routes,
+// inside a lazy AuthenticatedApp that provides AuthContext + ProfileContext.
+// supabase-vendor chunk is deferred until the user visits one of these routes.
+const AuthenticatedApp = lazy(() =>
+  import('./AuthenticatedApp').then(m => ({ default: m.AuthenticatedApp }))
+);
+const PolicyPage = lazy(() => import('./pages/PolicyPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SignupPage = lazy(() => import('./pages/SignupPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage'));
-const PolicyPage = lazy(() => import('./pages/PolicyPage'));
 const BillingOverviewPage = lazy(
   () => import('./pages/billing/BillingOverviewPage')
 );
@@ -48,45 +56,58 @@ function App() {
         <Suspense fallback={<PageFallback />}>
           <Routes>
             <Route element={<RootLayout />}>
+              {/* Public route — no auth context, supabase-vendor not loaded */}
               <Route path='/' element={<HomePage />} />
-              <Route path='/login' element={<LoginPage />} />
-              <Route path='/signup' element={<SignupPage />} />
-              <Route path='/terms' element={<PolicyPage policy='terms' />} />
-              <Route
-                path='/privacy'
-                element={<PolicyPage policy='privacy' />}
-              />
-              <Route
-                path='/refunds'
-                element={<PolicyPage policy='refunds' />}
-              />
-              <Route
-                path='/profile'
-                element={
-                  <ProtectedRoute>
-                    <ProfilePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                element={
-                  <ProtectedRoute>
-                    <Outlet />
-                  </ProtectedRoute>
-                }
-              >
-                <Route element={<BillingProviderLayout />}>
-                  <Route path='/dashboard' element={<DashboardPage />} />
-                  <Route path='/billing' element={<BillingOverviewPage />} />
-                  <Route path='/billing/usage' element={<BillingUsagePage />} />
-                  <Route path='/billing/plans' element={<BillingPlansPage />} />
-                  <Route
-                    path='/billing/invoices'
-                    element={<BillingInvoicesPage />}
-                  />
+
+              {/* Auth-flow + protected routes — AuthenticatedApp loads lazily,
+                  pulling in supabase-vendor only when the user navigates here.
+                  Policy pages use AppHeader which requires auth/profile contexts. */}
+              <Route element={<AuthenticatedApp />}>
+                <Route path='/terms' element={<PolicyPage policy='terms' />} />
+                <Route
+                  path='/privacy'
+                  element={<PolicyPage policy='privacy' />}
+                />
+                <Route
+                  path='/refunds'
+                  element={<PolicyPage policy='refunds' />}
+                />
+                <Route path='/login' element={<LoginPage />} />
+                <Route path='/signup' element={<SignupPage />} />
+                <Route path='/auth/callback' element={<AuthCallbackPage />} />
+                <Route
+                  path='/profile'
+                  element={
+                    <ProtectedRoute>
+                      <ProfilePage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  element={
+                    <ProtectedRoute>
+                      <Outlet />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route element={<BillingProviderLayout />}>
+                    <Route path='/dashboard' element={<DashboardPage />} />
+                    <Route path='/billing' element={<BillingOverviewPage />} />
+                    <Route
+                      path='/billing/usage'
+                      element={<BillingUsagePage />}
+                    />
+                    <Route
+                      path='/billing/plans'
+                      element={<BillingPlansPage />}
+                    />
+                    <Route
+                      path='/billing/invoices'
+                      element={<BillingInvoicesPage />}
+                    />
+                  </Route>
                 </Route>
               </Route>
-              <Route path='/auth/callback' element={<AuthCallbackPage />} />
             </Route>
           </Routes>
         </Suspense>

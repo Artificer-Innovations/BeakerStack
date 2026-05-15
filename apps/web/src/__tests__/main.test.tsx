@@ -13,9 +13,9 @@ vi.mock('react-dom/client', () => ({
   },
 }));
 
-vi.mock('../AuthShell', () => ({
-  AuthShell: (props: { basePath: string }) =>
-    React.createElement('div', null, `AuthShell(${props.basePath})`),
+vi.mock('../PublicShell', () => ({
+  PublicShell: (props: { basePath: string }) =>
+    React.createElement('div', null, `PublicShell(${props.basePath})`),
 }));
 
 // Mock CSS import
@@ -66,7 +66,7 @@ describe('main.tsx', () => {
     expect(mockRender).toHaveBeenCalled();
   });
 
-  it('should render with ThemeProvider wrapping lazy AuthShell', async () => {
+  it('should render with ThemeProvider wrapping PublicShell', async () => {
     await import('../main');
     await new Promise(resolve => setTimeout(resolve, 10));
 
@@ -78,9 +78,8 @@ describe('main.tsx', () => {
     expect(themeProvider).toBeDefined();
     expect(themeProvider.type).toBeDefined();
 
-    const suspense = themeProvider.props.children;
-    expect(suspense).toBeDefined();
-    expect(suspense.type).toBe(React.Suspense);
+    const publicShell = themeProvider.props.children;
+    expect(publicShell).toBeDefined();
   });
 
   it('should use default base path when VITE_BASE_PATH is not set', async () => {
