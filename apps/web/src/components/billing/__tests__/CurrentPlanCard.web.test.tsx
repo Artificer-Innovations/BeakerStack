@@ -26,8 +26,10 @@ vi.mock('@beakerstack/billing/web', () => ({
   SubscriptionStatusBadge: () => <span>badge</span>,
 }));
 
-vi.mock('../../../billing/billingSyncDisplay', () => ({
+vi.mock('@beakerstack/billing/presentation', () => ({
   annualListCentsFromSync: vi.fn(() => 22_800),
+  formatMoneyCents: vi.fn((c: number) => `$${(c / 100).toFixed(2)}`),
+  formatDate: vi.fn((iso: string) => `d:${iso.slice(0, 10)}`),
 }));
 
 const plan: Plan = {

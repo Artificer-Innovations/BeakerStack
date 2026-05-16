@@ -57,7 +57,7 @@ vi.mock('../../../billing/CadenceToggle.web', () => ({
     getCadenceFromSearchMock(search),
 }));
 
-vi.mock('../../../../billing/billingSyncDisplay', () => ({
+vi.mock('@beakerstack/billing/presentation', () => ({
   annualListCentsFromSync: vi.fn(() => 22800),
   planAnnualSavingsCopy: vi.fn(() => ({ kind: 'months', months: 2 })),
   formatSavingsCalloutFromCopy: vi.fn(() => '2 Months Free'),

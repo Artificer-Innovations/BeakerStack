@@ -1,3 +1,6 @@
+/** Expo app scheme (`app.config.js` `scheme`) — used for Stripe return URLs on native. */
+const MOBILE_APP_REDIRECT_KEYS = ['beaker-stack://billing'] as const;
+
 /** Origins commonly used when SUPABASE_URL points at local `supabase start`. */
 const LOCAL_DEV_ORIGINS = [
   'http://localhost:5173',
@@ -73,10 +76,25 @@ function mergeEnvOrigins(set: Set<string>): void {
 export function getBillingAllowedOrigins(): Set<string> {
   const set = new Set<string>();
   mergeEnvOrigins(set);
+  for (const key of MOBILE_APP_REDIRECT_KEYS) set.add(key);
   if (isLocalSupabaseStack(Deno.env.get('SUPABASE_URL'))) {
     for (const o of LOCAL_DEV_ORIGINS) set.add(o);
   }
   return set;
+}
+
+/**
+ * Allowlist key for redirect URLs. Custom schemes (e.g. `beaker-stack://billing`)
+ * have `origin === "null"` in the URL spec, so we use `protocol//host` instead.
+ */
+export function billingRedirectAllowlistKey(url: URL): string {
+  if (url.protocol === 'http:' || url.protocol === 'https:') {
+    return url.origin;
+  }
+  if (url.host) {
+    return `${url.protocol}//${url.host}`;
+  }
+  return url.href;
 }
 
 /** Validates Stripe checkout / portal redirect URLs against the billing origin allowlist. */
@@ -87,9 +105,9 @@ export function assertRedirectUrlAllowed(urlString: string): void {
   } catch {
     throw new RedirectValidationError();
   }
-  const origin = url.origin;
+  const key = billingRedirectAllowlistKey(url);
   const allowed = getBillingAllowedOrigins();
-  if (!allowed.has(origin)) {
+  if (!allowed.has(key)) {
     throw new RedirectValidationError();
   }
   const isLive = (Deno.env.get('STRIPE_SECRET_KEY') ?? '').startsWith(

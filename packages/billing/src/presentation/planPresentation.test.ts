@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Plan } from '@beakerstack/billing';
-import type { ProductBillingConfig } from '@beakerstack/billing';
+import type { Plan } from '../types.js';
+import type { ProductBillingConfig } from '../schema.js';
 import {
   applyTemplate,
   booleanFeatureLabel,
@@ -11,7 +11,7 @@ import {
   mergeUsageLimitsCopy,
   mergeUsageMeterCopy,
   planFeatureLine,
-} from '../planPresentation';
+} from './planPresentation.js';
 
 const basePlan = (over: Partial<Plan>): Plan => ({
   id: 'p1',

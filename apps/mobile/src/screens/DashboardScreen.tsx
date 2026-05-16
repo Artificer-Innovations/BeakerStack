@@ -177,11 +177,7 @@ function DemoControlsBlock(): ReactElement | null {
   );
 }
 
-function DashboardBody({
-  navigation,
-}: {
-  navigation: DashboardScreenNavigationProp;
-}): ReactElement {
+function DashboardBody(): ReactElement {
   const [selectedCollectionId, setSelectedCollectionId] = useState<
     string | null
   >(null);
@@ -213,10 +209,6 @@ function DashboardBody({
     c => c.id === selectedCollectionId
   );
 
-  const onNavigateBilling = useCallback(() => {
-    navigation.navigate('Billing');
-  }, [navigation]);
-
   return (
     <ScrollView
       style={styles.scrollView}
@@ -228,7 +220,7 @@ function DashboardBody({
         variant='usage'
         tooltip='Meter reads from useUsage; the Simulate button records usage via billing_record_usage_event.'
       >
-        <UsageStrip onNavigateBilling={onNavigateBilling} />
+        <UsageStrip />
       </AnnotatedPrimitive>
 
       <AnnotatedPrimitive
@@ -236,7 +228,7 @@ function DashboardBody({
         variant='gate'
         tooltip='When useFeature("feature_a").enabled is false, FeatureGate renders the fallback; when true, children render.'
       >
-        <FeatureGateCard onNavigateBilling={onNavigateBilling} />
+        <FeatureGateCard />
       </AnnotatedPrimitive>
 
       <AnnotatedPrimitive
@@ -307,7 +299,7 @@ export default function DashboardScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <AppHeader supabaseClient={supabase} />
-      <DashboardBody navigation={navigation} />
+      <DashboardBody />
     </SafeAreaView>
   );
 }

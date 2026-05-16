@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { mapUnknownError } from '../errors.js';
 import type { BillingError } from '../errors.js';
 import type { ProductBillingConfig } from '../schema.js';
+import { parseBillingFunctionError } from '../utils/parseBillingFunctionError.js';
 import { useBillingContext } from './useBillingContext.js';
 
 /**
@@ -33,7 +34,7 @@ export function useBillingStripeActions<
       setPending(true);
       setError(null);
       try {
-        const { error: fnErr } = await supabase.functions.invoke(
+        const { data, error: fnErr } = await supabase.functions.invoke(
           stripeFunctionName,
           {
             body: {
@@ -42,7 +43,7 @@ export function useBillingStripeActions<
             },
           }
         );
-        if (fnErr) throw fnErr;
+        if (fnErr) throw parseBillingFunctionError(data, fnErr);
         await refreshSubscription();
         return true;
       } catch (e) {

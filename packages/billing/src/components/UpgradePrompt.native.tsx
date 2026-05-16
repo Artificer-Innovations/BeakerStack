@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useCheckout } from '../hooks/useCheckout.js';
 import type { ProductBillingConfig } from '../schema.js';
+import { launchStripeCheckout } from '../utils/launchStripeCheckout.native.js';
 import type { UpgradePromptProps } from './UpgradePrompt.types.js';
 
 export function UpgradePrompt<P extends ProductBillingConfig>({
@@ -16,11 +17,7 @@ export function UpgradePrompt<P extends ProductBillingConfig>({
 
   const onUpgrade = async () => {
     if (!planId) return;
-    const r = await startCheckout(planId);
-    if (r?.checkoutUrl) {
-      const { Linking } = await import('react-native');
-      await Linking.openURL(r.checkoutUrl);
-    }
+    await launchStripeCheckout(startCheckout, planId);
   };
 
   if (typeof children === 'function') {

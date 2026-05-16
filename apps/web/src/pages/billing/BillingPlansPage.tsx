@@ -17,13 +17,11 @@ import {
 } from '../../billing/beakerstackBillingConfig';
 import {
   annualListCentsFromSync,
+  computeDowngradeBlockers,
   formatSavingsCalloutFromCopy,
   planAnnualSavingsCopy,
-} from '../../billing/billingSyncDisplay';
-import {
-  computeDowngradeBlockers,
   type DowngradeBlockersResult,
-} from '../../billing/constraintBlockers';
+} from '@beakerstack/billing/presentation';
 import { useDemoCollectionCount } from '../../billing/useDemoCollectionCount';
 import {
   CadenceToggle,

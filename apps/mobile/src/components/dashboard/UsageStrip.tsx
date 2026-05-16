@@ -21,10 +21,9 @@ function readDemoUseRealAi(): boolean {
 
 interface Props {
   onActivity?: (entry: Omit<ActivityEntry, 'id' | 'at'>) => void;
-  onNavigateBilling: () => void;
 }
 
-export function UsageStrip({ onActivity, onNavigateBilling }: Props) {
+export function UsageStrip({ onActivity }: Props) {
   const { config } = useBillingContext<typeof beakerstackBillingConfig>();
   const {
     used,
@@ -153,9 +152,9 @@ export function UsageStrip({ onActivity, onNavigateBilling }: Props) {
 
       <View style={styles.actions}>
         {exceeded ? (
-          <Pressable onPress={onNavigateBilling}>
-            <Text style={styles.link}>Upgrade to get more summaries →</Text>
-          </Pressable>
+          <Text style={styles.limitNote}>
+            Monthly limit reached for this meter.
+          </Text>
         ) : (
           <Pressable
             style={[styles.btnPrimary, pending && styles.btnDisabled]}
@@ -197,7 +196,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 14,
@@ -232,7 +231,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6b7280',
   },
-  actions: { marginTop: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  actions: { marginTop: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   btnPrimary: {
     backgroundColor: '#4f46e5',
     paddingHorizontal: 16,
@@ -241,9 +240,9 @@ const styles = StyleSheet.create({
   },
   btnPrimaryText: { color: '#fff', fontWeight: '600', fontSize: 14 },
   btnDisabled: { opacity: 0.5 },
-  link: { fontSize: 14, fontWeight: '600', color: '#4f46e5' },
+  limitNote: { fontSize: 14, color: '#6b7280' },
   err: { marginTop: 8, fontSize: 13, color: '#dc2626' },
-  results: { marginTop: 14, gap: 8 },
+  results: { marginTop: 16, gap: 8 },
   resultItem: {
     borderRadius: 8,
     backgroundColor: '#f9fafb',

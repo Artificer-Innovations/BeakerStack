@@ -7,11 +7,13 @@ import { CadenceToggle } from '../CadenceToggle.web';
 // When static plans are provided, usePlanCatalog must never be invoked.
 vi.mock('@beakerstack/billing', () => ({
   usePlanCatalog: vi.fn(() => {
-    throw new Error('usePlanCatalog must not be called when plans prop is provided');
+    throw new Error(
+      'usePlanCatalog must not be called when plans prop is provided'
+    );
   }),
 }));
 
-vi.mock('../../../billing/billingSyncDisplay', () => ({
+vi.mock('@beakerstack/billing/presentation', () => ({
   cadenceAnnualSavingsFromPlans: vi.fn(() => ({ kind: 'none' as const })),
   formatCadenceToggleSavingsBadge: vi.fn(() => null),
 }));
@@ -68,7 +70,11 @@ describe('CadenceToggle with static plans', () => {
         <CadenceToggle plans={mockPlans} />
       </MemoryRouter>
     );
-    expect(screen.getByRole('button', { name: /monthly/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /annually/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /monthly/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /annually/i })
+    ).toBeInTheDocument();
   });
 });

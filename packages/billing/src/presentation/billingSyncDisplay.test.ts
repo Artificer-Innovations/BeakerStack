@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Plan } from '@beakerstack/billing';
+import type { Plan } from '../types.js';
 import {
   annualListCentsFromSync,
   annualSavingsPercentForPlan,
@@ -9,7 +9,7 @@ import {
   formatSavingsCalloutFromCopy,
   monthlyListCentsFromSync,
   planAnnualSavingsCopy,
-} from '../billingSyncDisplay';
+} from './billingSyncDisplay.js';
 
 describe('billingSyncDisplay', () => {
   it('monthlyListCentsFromSync uses sync JSON when plan exists', () => {

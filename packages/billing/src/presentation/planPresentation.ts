@@ -2,8 +2,8 @@ import type {
   DowngradeConstraintCopy,
   PlanFeatureRowConfig,
   ProductBillingConfig,
-} from '@beakerstack/billing';
-import type { Plan } from '@beakerstack/billing';
+} from '../schema.js';
+import type { Plan } from '../types.js';
 
 /** Default “What’s included” rows when `planFeatureRows` is omitted in config. */
 export const DEFAULT_PLAN_FEATURE_ROWS: PlanFeatureRowConfig[] = [
@@ -70,9 +70,10 @@ export function mergeDowngradeConstraintCopy(
 }
 
 export function applyTemplate(
-  template: string,
+  template: string | undefined,
   vars: Record<string, string | number>
 ): string {
+  if (!template) return '';
   return template.replace(/\{(\w+)\}/g, (_, key: string) =>
     vars[key] !== undefined && vars[key] !== null ? String(vars[key]) : ''
   );
@@ -144,7 +145,10 @@ export function mergeUsageMeterCopy(
     ...DEFAULT_USAGE_METER_COPY,
   };
   for (const [k, v] of Object.entries(config.usageMeterCopy ?? {})) {
-    out[k] = { ...out[k], ...v };
+    const prev = out[k];
+    const label = v.label ?? prev?.label ?? k;
+    const description = v.description ?? prev?.description;
+    out[k] = description !== undefined ? { label, description } : { label };
   }
   return out;
 }
@@ -152,5 +156,12 @@ export function mergeUsageMeterCopy(
 export function mergeUsageLimitsCopy(
   config: ProductBillingConfig
 ): typeof DEFAULT_USAGE_LIMITS_COPY {
-  return { ...DEFAULT_USAGE_LIMITS_COPY, ...(config.usageLimitsCopy ?? {}) };
+  const d = config.usageLimitsCopy ?? {};
+  return {
+    collectionsRowName:
+      d.collectionsRowName ?? DEFAULT_USAGE_LIMITS_COPY.collectionsRowName,
+    itemsRowName: d.itemsRowName ?? DEFAULT_USAGE_LIMITS_COPY.itemsRowName,
+    collectionsFootnote:
+      d.collectionsFootnote ?? DEFAULT_USAGE_LIMITS_COPY.collectionsFootnote,
+  };
 }

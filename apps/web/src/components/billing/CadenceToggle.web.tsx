@@ -6,7 +6,7 @@ import { beakerstackBillingConfig } from '../../billing/beakerstackBillingConfig
 import {
   cadenceAnnualSavingsFromPlans,
   formatCadenceToggleSavingsBadge,
-} from '../../billing/billingSyncDisplay';
+} from '@beakerstack/billing/presentation';
 
 export function getCadenceFromSearch(search: URLSearchParams) {
   return search.get('cadence') === 'annual' ? 'annual' : 'monthly';

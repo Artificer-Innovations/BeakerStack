@@ -1,12 +1,12 @@
-import type { Plan } from '@beakerstack/billing';
-import type { ProductBillingConfig } from '@beakerstack/billing';
+import type { ProductBillingConfig } from '../schema.js';
+import type { Plan } from '../types.js';
 import {
   applyTemplate,
   booleanFeatureLabel,
   exclusiveBooleanFeaturePlanName,
   mergeDowngradeConstraintCopy,
   mergePlanFeatureRows,
-} from './planPresentation';
+} from './planPresentation.js';
 
 export type DowngradeBlockersResult = {
   /** Collections over cap, items-per-collection over cap, meter over cap — block the CTA. */
@@ -39,8 +39,9 @@ export function computeDowngradeBlockers(
   const copy = mergeDowngradeConstraintCopy(billingConfig);
   const hard: string[] = [];
   const soft: string[] = [];
+  const targetPlanName = targetPlan.display_name ?? targetPlan.id;
 
-  const tCap = targetPlan.features.containers_per_account_max as
+  const tCap = targetPlan.features['containers_per_account_max'] as
     | number
     | undefined;
   if (tCap != null && tCap >= 0 && options.collectionCount > tCap) {
@@ -48,13 +49,13 @@ export function computeDowngradeBlockers(
       applyTemplate(copy.collectionsOverCap, {
         current: options.collectionCount,
         cap: tCap,
-        targetPlan: targetPlan.display_name,
+        targetPlan: targetPlanName,
         deleteCount: options.collectionCount - tCap,
       })
     );
   }
 
-  const itemsCap = targetPlan.features.items_per_container_max as
+  const itemsCap = targetPlan.features['items_per_container_max'] as
     | number
     | undefined;
   if (
@@ -66,18 +67,18 @@ export function computeDowngradeBlockers(
       applyTemplate(copy.itemsPerCollectionOverCap, {
         maxItems: options.maxItemsInAnyCollection,
         cap: itemsCap,
-        targetPlan: targetPlan.display_name,
+        targetPlan: targetPlanName,
       })
     );
   }
 
-  const lim = targetPlan.usage_limits.ai_summarize as number | undefined;
+  const lim = targetPlan.usage_limits['ai_summarize'] as number | undefined;
   if (lim != null && lim >= 0 && options.aiUsedThisPeriod > lim) {
     hard.push(
       applyTemplate(copy.meterOverCap, {
         used: options.aiUsedThisPeriod,
         limit: lim,
-        targetPlan: targetPlan.display_name,
+        targetPlan: targetPlanName,
       })
     );
   }
@@ -96,7 +97,7 @@ export function computeDowngradeBlockers(
         applyTemplate(copy.booleanFeatureLoss, {
           featureLabel,
           exclusivePlanName,
-          targetPlanName: targetPlan.display_name,
+          targetPlanName,
         })
       );
     }

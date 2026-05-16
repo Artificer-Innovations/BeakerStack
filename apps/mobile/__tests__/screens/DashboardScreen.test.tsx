@@ -306,32 +306,6 @@ describe('DashboardScreen', () => {
     });
   });
 
-  it('navigates to Billing when usage upgrade link is pressed', async () => {
-    const billing = jest.requireMock('@beakerstack/billing') as {
-      useUsage: jest.Mock;
-    };
-    billing.useUsage.mockImplementation(() => ({
-      used: 30,
-      limit: 30,
-      remaining: 0,
-      resetsAt: '',
-      exceeded: true,
-      loading: false,
-      error: null,
-      refresh: jest.fn().mockResolvedValue(undefined),
-    }));
-
-    const { getByText } = renderWithProviders(
-      <DashboardScreen navigation={mockNavigation} />
-    );
-
-    await waitFor(() => {
-      expect(getByText(/Upgrade to get more summaries/i)).toBeTruthy();
-    });
-    fireEvent.press(getByText(/Upgrade to get more summaries/i));
-    expect(mockNavigate).toHaveBeenCalledWith('Billing');
-  });
-
   it('records metered usage and shows fake AI summary when Simulate AI summarize is pressed', async () => {
     const { getByText } = renderWithProviders(
       <DashboardScreen navigation={mockNavigation} />
@@ -376,7 +350,7 @@ describe('DashboardScreen', () => {
 
     await waitFor(() => {
       expect(getByText('Limit reached')).toBeTruthy();
-      expect(getByText(/Upgrade to get more summaries/i)).toBeTruthy();
+      expect(getByText(/Monthly limit reached for this meter/i)).toBeTruthy();
     });
   });
 
