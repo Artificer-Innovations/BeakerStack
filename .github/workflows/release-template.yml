@@ -41,19 +41,29 @@ jobs:
           fi
 
       # orhun/git-cliff-action@v3 builds a Docker image on Debian buster; apt repos are EOL (404).
+      # When bumping GIT_CLIFF_VERSION, update expected_sha256 from the release asset digests on GitHub.
       - name: Install git-cliff
         env:
           GIT_CLIFF_VERSION: 2.13.1
         run: |
           arch=$(uname -m)
           case "$arch" in
-            x86_64) arch_suffix=x86_64 ;;
-            aarch64) arch_suffix=aarch64 ;;
+            x86_64)
+              arch_suffix=x86_64
+              expected_sha256=9a1263f24e59a2f508c7b3d3283c9dea94a8bf697f96dbc18cc783cac6284546
+              ;;
+            aarch64)
+              arch_suffix=aarch64
+              expected_sha256=9619b7f0c584229f8a2331c1905afe88bd938bdc9102926c2073836a42f02455
+              ;;
             *) echo "unsupported arch: $arch"; exit 1 ;;
           esac
+          archive="git-cliff-${GIT_CLIFF_VERSION}-${arch_suffix}-unknown-linux-gnu.tar.gz"
           curl -fsSL \
-            "https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-${arch_suffix}-unknown-linux-gnu.tar.gz" \
-            | tar xz -C /tmp
+            "https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/${archive}" \
+            -o "/tmp/${archive}"
+          echo "${expected_sha256}  /tmp/${archive}" | sha256sum -c -
+          tar xzf "/tmp/${archive}" -C /tmp
           sudo mv "/tmp/git-cliff-${GIT_CLIFF_VERSION}/git-cliff" /usr/local/bin/git-cliff
           git-cliff --version
 
