@@ -3,8 +3,11 @@ import type { Plan, SubscriptionRow } from '@beakerstack/billing';
 import { SubscriptionStatusBadge } from '@beakerstack/billing/web';
 import { Link } from 'react-router-dom';
 import { Button } from '@beakerstack/shared/components/primitives/Button.web';
-import { annualListCentsFromSync } from '../../billing/billingSyncDisplay';
-import { formatDate, formatMoneyCents } from '../../billing/formatters';
+import {
+  annualListCentsFromSync,
+  formatDate,
+  formatMoneyCents,
+} from '@beakerstack/billing/presentation';
 
 export function CurrentPlanCard({
   plan,

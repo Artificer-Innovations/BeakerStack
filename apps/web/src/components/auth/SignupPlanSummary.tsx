@@ -6,7 +6,7 @@ import {
   annualListCentsFromSync,
   formatSavingsCalloutFromCopy,
   planAnnualSavingsCopy,
-} from '../../billing/billingSyncDisplay';
+} from '@beakerstack/billing/presentation';
 import { getCadenceFromSearch } from '../billing/CadenceToggle.web';
 import { hasPaidPlanIntent } from '../../auth/postAuthRedirect';
 import { planSignupBullets } from '../../auth/planSignupBullets';

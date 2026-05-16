@@ -193,7 +193,7 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
                 showToast('Feature A action triggered');
               } else {
                 showToast(
-                  'Feature A requires Pro or higher. Upgrade at /billing.'
+                  'Feature A is not enabled on your current plan (useFeature returns false).'
                 );
               }
             }}
@@ -217,7 +217,9 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
               if (featureB.enabled) {
                 showToast('Feature B action triggered');
               } else {
-                showToast('Feature B requires Max plan. Upgrade at /billing.');
+                showToast(
+                  'Feature B is not enabled on your current plan (useFeature returns false).'
+                );
               }
             }}
           >

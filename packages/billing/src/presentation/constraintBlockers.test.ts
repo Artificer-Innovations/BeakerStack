@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { Plan } from '@beakerstack/billing';
-import type { ProductBillingConfig } from '@beakerstack/billing';
-import { computeDowngradeBlockers } from '../constraintBlockers';
+import type { Plan } from '../types.js';
+import type { ProductBillingConfig } from '../schema.js';
+import { computeDowngradeBlockers } from './constraintBlockers.js';
 
 const plan = (over: Partial<Plan>): Plan => ({
   id: 'id',

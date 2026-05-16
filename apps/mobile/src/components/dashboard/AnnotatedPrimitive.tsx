@@ -88,5 +88,5 @@ const styles = StyleSheet.create({
     color: '#64748b',
     lineHeight: 15,
   },
-  body: { marginTop: 4 },
+  body: { marginTop: 8 },
 });

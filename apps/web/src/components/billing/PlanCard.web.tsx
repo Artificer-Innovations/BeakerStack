@@ -2,8 +2,8 @@ import type { BillingPlanConfig, Plan } from '@beakerstack/billing';
 import { useBillingConfig } from '@beakerstack/billing';
 import { Button } from '@beakerstack/shared/components/primitives/Button.web';
 import { beakerstackBillingConfig } from '../../billing/beakerstackBillingConfig';
-import type { DowngradeBlockersResult } from '../../billing/constraintBlockers';
-import { annualListCentsFromSync } from '../../billing/billingSyncDisplay';
+import type { DowngradeBlockersResult } from '@beakerstack/billing/presentation';
+import { annualListCentsFromSync } from '@beakerstack/billing/presentation';
 import { ConstraintWarning } from './ConstraintWarning.web';
 import { PlanFeatureList } from './PlanFeatureList.web';
 

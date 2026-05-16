@@ -9,7 +9,7 @@ import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import BillingScreen from '../screens/BillingScreen';
+import BillingNavigator from '../navigation/BillingNavigator';
 import { useFeatureFlags } from '../config/featureFlags';
 
 type RootStackParamList = {
@@ -57,8 +57,8 @@ export const AppNavigator = () => {
         <Stack.Screen name='Profile' component={ProfileScreen} />
         <Stack.Screen
           name='Billing'
-          component={BillingScreen}
-          options={{ title: 'Billing' }}
+          component={BillingNavigator}
+          options={{ headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>

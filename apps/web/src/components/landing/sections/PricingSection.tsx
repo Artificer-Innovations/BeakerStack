@@ -12,7 +12,7 @@ import {
   annualListCentsFromSync,
   planAnnualSavingsCopy,
   formatSavingsCalloutFromCopy,
-} from '../../../billing/billingSyncDisplay';
+} from '@beakerstack/billing/presentation';
 import type { LandingConfig } from '../../../config/landing';
 
 interface PricingSectionProps {

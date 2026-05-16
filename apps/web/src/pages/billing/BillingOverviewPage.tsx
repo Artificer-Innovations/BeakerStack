@@ -14,7 +14,7 @@ import {
   beakerstackBillingConfig,
   BEAKERSTACK_METER_AI_SUMMARIZE,
 } from '../../billing/beakerstackBillingConfig';
-import { formatMonthYear } from '../../billing/formatters';
+import { formatMonthYear } from '@beakerstack/billing/presentation';
 import { useDemoCollectionCount } from '../../billing/useDemoCollectionCount';
 import { Banner } from '../../components/billing/Banner.web';
 import { Button } from '@beakerstack/shared/components/primitives/Button.web';

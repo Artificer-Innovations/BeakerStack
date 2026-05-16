@@ -68,6 +68,22 @@ describe('useCheckout', () => {
     await waitFor(() => expect(result.current.error).not.toBeNull());
   });
 
+  it('surfaces structured error body from failed invoke', async () => {
+    invoke.mockResolvedValue({
+      data: {
+        error: 'invalid_redirect_url',
+        hint: 'Add origin to BILLING_ALLOWED_ORIGINS',
+      },
+      error: new Error('FunctionsHttpError'),
+    });
+    const { result } = renderHook(() => useCheckout());
+    const r = await result.current.startCheckout('plan_free');
+    expect(r).toBeNull();
+    await waitFor(() =>
+      expect(result.current.error?.message).toContain('invalid_redirect_url')
+    );
+  });
+
   it('includes trialDays in invoke body when provided', async () => {
     invoke.mockResolvedValue({
       data: { checkoutUrl: 'https://stripe.test/session' },

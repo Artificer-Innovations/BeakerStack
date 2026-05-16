@@ -1,21 +1,45 @@
 import type { ReactElement } from 'react';
+import { useState } from 'react';
 import { Pressable, Text } from 'react-native';
+import { mapUnknownError } from '../errors.js';
 import { useCustomerPortal } from '../hooks/useCustomerPortal.js';
 import type { ProductBillingConfig } from '../schema.js';
+import { openExternalUrl } from '../utils/openExternalUrl.native.js';
 import type { CustomerPortalLinkProps } from './CustomerPortalLink.types.js';
 
 export function CustomerPortalLink<P extends ProductBillingConfig>({
   children,
   style,
 }: CustomerPortalLinkProps): ReactElement {
-  const { openPortal, pending } = useCustomerPortal<P>();
+  const { openPortal, pending, error: portalError } = useCustomerPortal<P>();
+  const [openError, setOpenError] = useState<string | null>(null);
+
   return (
-    <Pressable
-      style={style}
-      disabled={pending}
-      onPress={() => void openPortal()}
-    >
-      {typeof children === 'string' ? <Text>{children}</Text> : children}
-    </Pressable>
+    <>
+      <Pressable
+        style={style}
+        disabled={pending}
+        onPress={() => {
+          void (async () => {
+            setOpenError(null);
+            try {
+              const url = await openPortal();
+              if (url) {
+                await openExternalUrl(url);
+              }
+            } catch (e) {
+              setOpenError(mapUnknownError(e).message);
+            }
+          })();
+        }}
+      >
+        {typeof children === 'string' ? <Text>{children}</Text> : children}
+      </Pressable>
+      {openError && !portalError ? (
+        <Text style={{ color: '#b91c1c', marginTop: 4, fontSize: 13 }}>
+          {openError}
+        </Text>
+      ) : null}
+    </>
   );
 }

@@ -1,5 +1,9 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import { formatDate, formatMoneyCents, formatMonthYear } from '../formatters';
+import {
+  formatDate,
+  formatMoneyCents,
+  formatMonthYear,
+} from '@beakerstack/billing/presentation';
 
 describe('formatMoneyCents', () => {
   afterEach(() => {

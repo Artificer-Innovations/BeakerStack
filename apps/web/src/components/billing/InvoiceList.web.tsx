@@ -1,6 +1,9 @@
 import type { BillingInvoiceRow } from '@beakerstack/billing';
 import { Link } from 'react-router-dom';
-import { formatDate, formatMoneyCents } from '../../billing/formatters';
+import {
+  formatDate,
+  formatMoneyCents,
+} from '@beakerstack/billing/presentation';
 import { StatusBadge } from './StatusBadge.web';
 
 export function InvoiceList({

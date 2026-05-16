@@ -135,7 +135,7 @@
     "setup:project-label-bridge": "node scripts/github/setup-project-label-bridge.mjs",
     "docs:actions-secrets": "node ./scripts/generate-actions-secrets-doc.mjs",
     "docs:linkcheck": "npx --yes markdown-link-check@3.12.2 README.md QUICKSTART.md -c .markdown-link-check.json",
-    "billing:sync-stripe": "node scripts/sync-billing-stripe.mjs --config apps/web/src/billing/billing-sync.json",
+    "billing:sync-stripe": "node scripts/sync-billing-stripe.mjs --config packages/billing/src/presentation/billing-sync.json",
     "stripe:ensure-webhook": "node scripts/ensure-stripe-webhook-endpoint.mjs",
     "billing:apply-plans": "tsx scripts/apply-billing-plans-from-config.ts"
   },

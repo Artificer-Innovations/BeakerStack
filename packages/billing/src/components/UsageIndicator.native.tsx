@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useUsage } from '../hooks/useUsage.js';
 import type { ProductBillingConfig } from '../schema.js';
 import type { UsageIndicatorProps } from './UsageIndicator.types.js';
+import { billingUi } from './billingUiTokens.js';
 
 export function UsageIndicator<P extends ProductBillingConfig>(
   props: UsageIndicatorProps<P>
@@ -70,14 +71,22 @@ export function UsageIndicator<P extends ProductBillingConfig>(
 
 const styles = StyleSheet.create({
   text: { fontSize: 14 },
-  label: { fontSize: 14, fontWeight: '600', color: '#111827' },
-  description: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  caption: { fontSize: 12, marginTop: 4 },
+  label: { fontSize: 14, fontWeight: '500', color: billingUi.gray900 },
+  description: { fontSize: 12, color: billingUi.gray500, marginTop: 2 },
+  /** Matches web `mt-2` + `text-sm text-gray-600` on expanded caption */
+  caption: {
+    fontSize: 14,
+    marginTop: 8,
+    color: billingUi.gray600,
+    lineHeight: 20,
+  },
+  /** Matches web `mt-2` before progress bar */
   track: {
+    marginTop: 8,
     height: 8,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 4,
+    backgroundColor: billingUi.gray200,
+    borderRadius: 999,
     overflow: 'hidden',
   },
-  fill: { height: 8, backgroundColor: '#4f46e5' },
+  fill: { height: 8, backgroundColor: billingUi.indigo600, borderRadius: 999 },
 });

@@ -2,7 +2,10 @@ import type { BillingInvoiceRow } from '@beakerstack/billing';
 import { Link } from 'react-router-dom';
 import { Button } from '@beakerstack/shared/components/primitives/Button.web';
 import { Skeleton } from '@beakerstack/shared/components/primitives/Skeleton.web';
-import { formatDate, formatMoneyCents } from '../../billing/formatters';
+import {
+  formatDate,
+  formatMoneyCents,
+} from '@beakerstack/billing/presentation';
 import { StatusBadge } from './StatusBadge.web';
 
 export function InvoiceTable({

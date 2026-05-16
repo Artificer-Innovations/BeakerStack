@@ -5,12 +5,12 @@ import { beakerstackBillingConfig } from '../../billing/beakerstackBillingConfig
 import {
   mergePlanFeatureRows,
   planFeatureLine,
-} from '../../billing/planPresentation';
+} from '@beakerstack/billing/presentation';
 
 /**
  * “What’s included” list for a plan card (or future public pricing).
  * Rows and labels come from `beakerstackBillingConfig.planFeatureRows` with
- * defaults in `apps/web/src/billing/planPresentation.ts`.
+ * defaults in `@beakerstack/billing/presentation` (`planPresentation`).
  */
 export function PlanFeatureList({
   plan,

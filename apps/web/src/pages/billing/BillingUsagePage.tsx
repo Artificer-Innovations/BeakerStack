@@ -12,7 +12,7 @@ import {
   booleanFeatureLabel,
   mergeUsageLimitsCopy,
   mergeUsageMeterCopy,
-} from '../../billing/planPresentation';
+} from '@beakerstack/billing/presentation';
 import { useDemoCollectionCount } from '../../billing/useDemoCollectionCount';
 import { Banner } from '../../components/billing/Banner.web';
 import { BillingPageShell } from '../../components/billing/BillingPageShell.web';

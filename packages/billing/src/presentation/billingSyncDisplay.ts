@@ -1,4 +1,4 @@
-import type { Plan } from '@beakerstack/billing';
+import type { Plan } from '../types.js';
 import billingSync from './billing-sync.json';
 
 type SyncPrice = {

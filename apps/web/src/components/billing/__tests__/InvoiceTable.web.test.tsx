@@ -10,7 +10,7 @@ function renderTable(ui: ReactElement) {
   return render(<MemoryRouter>{ui}</MemoryRouter>);
 }
 
-vi.mock('../../../billing/formatters', () => ({
+vi.mock('@beakerstack/billing/presentation', () => ({
   formatDate: (iso: string) => `D:${iso.slice(0, 10)}`,
   formatMoneyCents: (cents: number, currency?: string) =>
     `${currency ?? 'usd'}:${cents}`,

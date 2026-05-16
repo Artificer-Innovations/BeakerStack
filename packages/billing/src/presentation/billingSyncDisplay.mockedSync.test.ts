@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
-import type { Plan } from '@beakerstack/billing';
+import type { Plan } from '../types.js';
 
 const basePaidPlan = (over: Partial<Plan> & Pick<Plan, 'id'>): Plan => ({
   product_id: 'beakerstack',
@@ -21,16 +21,16 @@ const basePaidPlan = (over: Partial<Plan> & Pick<Plan, 'id'>): Plan => ({
 describe('billingSyncDisplay with mocked billing-sync.json', () => {
   beforeEach(() => {
     vi.resetModules();
-    vi.doUnmock('../billing-sync.json');
+    vi.doUnmock('./billing-sync.json');
   });
 
   afterEach(() => {
-    vi.doUnmock('../billing-sync.json');
+    vi.doUnmock('./billing-sync.json');
     vi.resetModules();
   });
 
   it('planAnnualSavingsCopy returns percent when annual discount is not whole months', async () => {
-    vi.doMock('../billing-sync.json', () => ({
+    vi.doMock('./billing-sync.json', () => ({
       default: {
         plans: [
           {
@@ -43,7 +43,7 @@ describe('billingSyncDisplay with mocked billing-sync.json', () => {
         ],
       },
     }));
-    const { planAnnualSavingsCopy } = await import('../billingSyncDisplay');
+    const { planAnnualSavingsCopy } = await import('./billingSyncDisplay.js');
     expect(planAnnualSavingsCopy('frac', 1000)).toEqual({
       kind: 'percent',
       pct: 13,
@@ -51,7 +51,7 @@ describe('billingSyncDisplay with mocked billing-sync.json', () => {
   });
 
   it('planAnnualSavingsCopy returns none when rounded percent is zero', async () => {
-    vi.doMock('../billing-sync.json', () => ({
+    vi.doMock('./billing-sync.json', () => ({
       default: {
         plans: [
           {
@@ -64,12 +64,12 @@ describe('billingSyncDisplay with mocked billing-sync.json', () => {
         ],
       },
     }));
-    const { planAnnualSavingsCopy } = await import('../billingSyncDisplay');
+    const { planAnnualSavingsCopy } = await import('./billingSyncDisplay.js');
     expect(planAnnualSavingsCopy('tiny', 10000)).toEqual({ kind: 'none' });
   });
 
   it('cadenceAnnualSavingsFromPlans returns months_range when month-free counts differ', async () => {
-    vi.doMock('../billing-sync.json', () => ({
+    vi.doMock('./billing-sync.json', () => ({
       default: {
         plans: [
           {
@@ -90,7 +90,7 @@ describe('billingSyncDisplay with mocked billing-sync.json', () => {
       },
     }));
     const { cadenceAnnualSavingsFromPlans } =
-      await import('../billingSyncDisplay');
+      await import('./billingSyncDisplay.js');
     const plans: Plan[] = [
       basePaidPlan({ id: 'mo_lo', display_order: 1 }),
       basePaidPlan({ id: 'mo_hi', display_order: 2 }),
@@ -102,7 +102,7 @@ describe('billingSyncDisplay with mocked billing-sync.json', () => {
   });
 
   it('cadenceAnnualSavingsFromPlans returns single percent when all plans agree on percent savings', async () => {
-    vi.doMock('../billing-sync.json', () => ({
+    vi.doMock('./billing-sync.json', () => ({
       default: {
         plans: [
           {
@@ -123,7 +123,7 @@ describe('billingSyncDisplay with mocked billing-sync.json', () => {
       },
     }));
     const { cadenceAnnualSavingsFromPlans } =
-      await import('../billingSyncDisplay');
+      await import('./billingSyncDisplay.js');
     const plans: Plan[] = [
       basePaidPlan({ id: 'pct_a', price_cents: 1000, display_order: 1 }),
       basePaidPlan({ id: 'pct_b', price_cents: 2000, display_order: 2 }),
@@ -135,7 +135,7 @@ describe('billingSyncDisplay with mocked billing-sync.json', () => {
   });
 
   it('cadenceAnnualSavingsFromPlans returns percent_range when percent savings spread is wide', async () => {
-    vi.doMock('../billing-sync.json', () => ({
+    vi.doMock('./billing-sync.json', () => ({
       default: {
         plans: [
           {
@@ -156,7 +156,7 @@ describe('billingSyncDisplay with mocked billing-sync.json', () => {
       },
     }));
     const { cadenceAnnualSavingsFromPlans } =
-      await import('../billingSyncDisplay');
+      await import('./billingSyncDisplay.js');
     const plans: Plan[] = [
       basePaidPlan({ id: 'wide_a', price_cents: 1000, display_order: 1 }),
       basePaidPlan({ id: 'wide_b', price_cents: 1000, display_order: 2 }),
@@ -168,7 +168,7 @@ describe('billingSyncDisplay with mocked billing-sync.json', () => {
   });
 
   it('cadenceAnnualSavingsFromPlans averages percent when spread is at most one point', async () => {
-    vi.doMock('../billing-sync.json', () => ({
+    vi.doMock('./billing-sync.json', () => ({
       default: {
         plans: [
           {
@@ -189,7 +189,7 @@ describe('billingSyncDisplay with mocked billing-sync.json', () => {
       },
     }));
     const { cadenceAnnualSavingsFromPlans } =
-      await import('../billingSyncDisplay');
+      await import('./billingSyncDisplay.js');
     const plans: Plan[] = [
       basePaidPlan({ id: 'tight_a', price_cents: 1000, display_order: 1 }),
       basePaidPlan({ id: 'tight_b', price_cents: 1000, display_order: 2 }),
@@ -201,7 +201,7 @@ describe('billingSyncDisplay with mocked billing-sync.json', () => {
   });
 
   it('cadenceAnnualSavingsFromPlans falls back to annual percent range when mix of months and percent', async () => {
-    vi.doMock('../billing-sync.json', () => ({
+    vi.doMock('./billing-sync.json', () => ({
       default: {
         plans: [
           {
@@ -222,7 +222,7 @@ describe('billingSyncDisplay with mocked billing-sync.json', () => {
       },
     }));
     const { cadenceAnnualSavingsFromPlans } =
-      await import('../billingSyncDisplay');
+      await import('./billingSyncDisplay.js');
     const plans: Plan[] = [
       basePaidPlan({ id: 'mix_m', price_cents: 1000, display_order: 1 }),
       basePaidPlan({ id: 'mix_p', price_cents: 1000, display_order: 2 }),

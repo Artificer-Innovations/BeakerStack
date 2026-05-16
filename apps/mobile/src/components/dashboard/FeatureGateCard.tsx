@@ -1,14 +1,11 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { usePlan } from '@beakerstack/billing';
 import { FeatureGate } from '@beakerstack/billing/native';
 import { beakerstackBillingConfig } from '../../billing/beakerstackBillingConfig';
+import { LucideLockIcon } from './LucideLockIcon';
 
-interface Props {
-  onNavigateBilling: () => void;
-}
-
-export function FeatureGateCard({ onNavigateBilling }: Props) {
+export function FeatureGateCard() {
   const { loading: planLoading } = usePlan<typeof beakerstackBillingConfig>();
 
   return (
@@ -24,27 +21,20 @@ export function FeatureGateCard({ onNavigateBilling }: Props) {
           fallback={
             <View style={styles.fallbackBox}>
               <View style={styles.lockCircle}>
-                <Text style={styles.lockGlyph}>🔒</Text>
+                <LucideLockIcon size={16} color='#9333ea' />
               </View>
               <View style={styles.fallbackTextWrap}>
                 <Text style={styles.fallbackTitle}>
                   Feature A is locked on your current plan
                 </Text>
                 <Text style={styles.fallbackBody}>
-                  Upgrade to Pro or Max to unlock Feature A.{' '}
                   <Text style={styles.monoSm}>
                     useFeature(&quot;feature_a&quot;).enabled
                   </Text>{' '}
                   returns <Text style={styles.monoSm}>false</Text> on your plan
                   — <Text style={styles.monoSm}>FeatureGate</Text> renders this
-                  fallback.
+                  fallback instead of children.
                 </Text>
-                <Pressable
-                  style={styles.upgradeBtn}
-                  onPress={onNavigateBilling}
-                >
-                  <Text style={styles.upgradeBtnText}>Upgrade →</Text>
-                </Pressable>
               </View>
             </View>
           }
@@ -96,7 +86,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  lockGlyph: { fontSize: 16 },
   fallbackTextWrap: { flex: 1, minWidth: 0 },
   fallbackTitle: {
     fontSize: 13,
@@ -110,15 +99,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   monoSm: { fontFamily: 'monospace', fontSize: 11, color: '#374151' },
-  upgradeBtn: {
-    alignSelf: 'flex-start',
-    marginTop: 10,
-    backgroundColor: '#9333ea',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  upgradeBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
   successBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
