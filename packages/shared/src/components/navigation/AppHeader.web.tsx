@@ -4,6 +4,7 @@ import { useAuthContext } from '../../contexts/AuthContext';
 import { useProfileContext } from '../../contexts/ProfileContext';
 import { UserMenu } from './UserMenu.web';
 import { BRANDING } from '../../config/branding';
+import { ContentContainer } from '../layout/ContentContainer.web';
 
 export interface AppHeaderProps {
   supabaseClient: SupabaseClient;
@@ -32,7 +33,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
 
   return (
     <div className='bg-white dark:bg-gray-900 shadow dark:shadow-gray-800 border-b border-transparent dark:border-gray-700'>
-      <div className='max-w-[1024px] mx-auto px-4 sm:px-6 lg:px-8'>
+      <ContentContainer>
         <div className='flex justify-between items-center h-16'>
           {/* Left side: App icon and title */}
           <div className='flex items-center space-x-3'>
@@ -73,7 +74,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
             )}
           </div>
         </div>
-      </div>
+      </ContentContainer>
     </div>
   );
 }

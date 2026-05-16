@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
+import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 import { useDemoCollections } from '@/billing/useDemoCollections';
 import { supabase } from '@/lib/supabase';
 import { AnnotatedPrimitive } from '@/components/dashboard/AnnotatedPrimitive';
@@ -17,10 +18,10 @@ export default function DashboardPage() {
   const appendActivity = useCallback(
     (entry: Omit<ActivityEntry, 'id' | 'at'>) => {
       setActivityLog(prev =>
-        [
-          { ...entry, id: crypto.randomUUID(), at: new Date() },
-          ...prev,
-        ].slice(0, 30)
+        [{ ...entry, id: crypto.randomUUID(), at: new Date() }, ...prev].slice(
+          0,
+          30
+        )
       );
     },
     []
@@ -62,7 +63,7 @@ export default function DashboardPage() {
     <div className='min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col'>
       <AppHeader supabaseClient={supabase} />
 
-      <main className='flex-1 w-full max-w-[1024px] mx-auto px-4 py-6 sm:px-6 space-y-6'>
+      <ContentContainer as='main' className='flex-1 py-6 space-y-6'>
         <DemoBanner />
 
         <AnnotatedPrimitive
@@ -117,7 +118,7 @@ export default function DashboardPage() {
         >
           <BooleanFeatureTiles />
         </AnnotatedPrimitive>
-      </main>
+      </ContentContainer>
 
       <DeveloperConsole activityLog={activityLog} />
     </div>

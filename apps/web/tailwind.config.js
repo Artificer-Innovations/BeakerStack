@@ -7,9 +7,19 @@ export default {
     './index.html',
     './src/**/*.{js,ts,jsx,tsx}',
     '../../packages/shared/src/components/**/*.{js,ts,jsx,tsx}',
+    '../../packages/shared/src/config/**/*.{js,ts}',
+  ],
+  safelist: [
+    // Emitted from layoutWidth.ts (shared config); ensure JIT includes width tokens
+    'max-w-content',
+    'max-w-prose',
   ],
   theme: {
     extend: {
+      maxWidth: {
+        content: '64rem', // 1024px — headers, footers, page shells
+        prose: '50rem', // 800px — FAQ, policy body
+      },
       colors: {
         primary: {
           50: '#eff6ff',

@@ -1,4 +1,5 @@
 import type { LandingConfig } from '../../../config/landing';
+import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 
 interface FeatureGridProps {
   config: LandingConfig['featureGrid'];
@@ -10,7 +11,7 @@ export function FeatureGrid({ config }: FeatureGridProps) {
       id='features'
       className='py-20 md:py-24 bg-gray-50 dark:bg-gray-900'
     >
-      <div className='max-w-[1200px] mx-auto px-6'>
+      <ContentContainer>
         <div className='text-center mb-12'>
           <h2 className='text-3xl font-bold text-gray-900 dark:text-white mb-3'>
             {config.heading}
@@ -52,7 +53,7 @@ export function FeatureGrid({ config }: FeatureGridProps) {
             );
           })}
         </div>
-      </div>
+      </ContentContainer>
     </section>
   );
 }

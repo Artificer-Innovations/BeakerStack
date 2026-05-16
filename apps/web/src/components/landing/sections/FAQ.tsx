@@ -1,4 +1,5 @@
 import type { LandingConfig } from '../../../config/landing';
+import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 
 interface FAQProps {
   config: LandingConfig['faq'];
@@ -7,7 +8,7 @@ interface FAQProps {
 export function FAQ({ config }: FAQProps) {
   return (
     <section id='faq' className='py-20 md:py-24'>
-      <div className='max-w-[800px] mx-auto px-6'>
+      <ContentContainer variant='prose'>
         <h2 className='text-3xl font-bold text-gray-900 dark:text-white text-center mb-12'>
           {config.heading}
         </h2>
@@ -32,7 +33,7 @@ export function FAQ({ config }: FAQProps) {
             </details>
           ))}
         </div>
-      </div>
+      </ContentContainer>
     </section>
   );
 }

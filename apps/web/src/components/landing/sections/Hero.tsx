@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import type { LandingConfig } from '../../../config/landing';
+import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 
 export interface CarouselSlide {
   /** Feature row title rendered as a small label above the subhead (omit for hero slide 0). */
@@ -74,7 +75,7 @@ export function Hero({
 
   return (
     <section className='py-20 md:py-28'>
-      <div className='max-w-[1200px] mx-auto px-6'>
+      <ContentContainer>
         <div className='grid md:grid-cols-2 gap-12 items-center'>
           <div>
             {config.eyebrow && (
@@ -185,7 +186,7 @@ export function Hero({
             )}
           </div>
         </div>
-      </div>
+      </ContentContainer>
     </section>
   );
 }

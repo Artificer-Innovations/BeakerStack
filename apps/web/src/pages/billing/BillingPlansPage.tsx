@@ -260,7 +260,7 @@ export default function BillingPlansPage() {
   );
 
   return (
-    <BillingPageShell maxWidthClass='max-w-[1024px]'>
+    <BillingPageShell>
       <h1 className='text-2xl font-bold text-gray-900 dark:text-white'>
         Billing
       </h1>

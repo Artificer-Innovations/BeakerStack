@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { LandingConfig } from '../../../config/landing';
 import { useMarketingAuthHint } from '../../../hooks/useMarketingAuthHint';
 import { getPrPreviewAssetBasePath } from '../../../lib/prPreviewAssetBasePath';
+import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 
 interface NavProps {
   config: LandingConfig['nav'] & { brand: LandingConfig['brand'] };
@@ -30,7 +31,7 @@ export function Nav({ config }: NavProps) {
           : ''
       }`}
     >
-      <div className='max-w-[1200px] mx-auto px-6 flex items-center justify-between h-16'>
+      <ContentContainer className='flex items-center justify-between h-16'>
         <Link to='/' className='flex items-center gap-2'>
           <img src={logoSrc} alt='' className='w-8 h-8' />
           <span className='font-semibold text-lg text-gray-900 dark:text-white'>
@@ -114,7 +115,7 @@ export function Nav({ config }: NavProps) {
             )}
           </button>
         </div>
-      </div>
+      </ContentContainer>
 
       {menuOpen && (
         <nav
@@ -122,7 +123,7 @@ export function Nav({ config }: NavProps) {
           className='md:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950'
           aria-label='Mobile'
         >
-          <div className='max-w-[1200px] mx-auto px-6 py-4 flex flex-col gap-1'>
+          <ContentContainer className='py-4 flex flex-col gap-1'>
             {config.links.map(link => (
               <a
                 key={link.href}
@@ -150,7 +151,7 @@ export function Nav({ config }: NavProps) {
                 Sign in
               </Link>
             )}
-          </div>
+          </ContentContainer>
         </nav>
       )}
     </header>
