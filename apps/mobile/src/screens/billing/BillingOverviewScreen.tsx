@@ -10,6 +10,7 @@ import {
 } from '@beakerstack/billing';
 import { formatMonthYear } from '@beakerstack/billing/presentation';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
+import { BRANDING } from '@beakerstack/shared/config/branding';
 import {
   beakerstackBillingConfig,
   BEAKERSTACK_METER_AI_SUMMARIZE,
@@ -78,7 +79,7 @@ function OverviewBanners({
       <Banner
         variant='error'
         title='Payment problem'
-        body='Your last payment did not go through. Update your payment method in the BeakerStack web app.'
+        body={`Your last payment did not go through. Update your payment method in the ${BRANDING.displayName} web app.`}
       />
     );
   }

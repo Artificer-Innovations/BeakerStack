@@ -206,7 +206,9 @@ describe('DashboardPage', () => {
     await renderWithAuth(<DashboardPage />);
 
     expect(
-      screen.getByRole('heading', { name: /beakerstack in action/i })
+      screen.getByRole('heading', {
+        name: new RegExp(`${BRANDING.displayName}\\s+in action`, 'i'),
+      })
     ).toBeInTheDocument();
     expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
   });

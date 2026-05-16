@@ -5,6 +5,7 @@ import {
 } from '@beakerstack/shared/generated/policies';
 import { BRANDING } from '@beakerstack/shared/config/branding';
 import { PolicyPublicHeader } from '../components/PolicyPublicHeader';
+import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 
 const TITLES: Record<PolicyKey, string> = {
   terms: 'Terms of Service',
@@ -29,13 +30,13 @@ export default function PolicyPage({ policy }: PolicyPageProps) {
   return (
     <>
       <PolicyPublicHeader />
-      <div className='max-w-[800px] mx-auto px-4 py-12 sm:px-6 lg:px-8'>
+      <ContentContainer variant='prose' className='py-12'>
         {/* prose styles rendered via Tailwind Typography — html is build-time generated from our own markdown, not user input */}
         <div
           className='prose prose-gray dark:prose-invert max-w-none'
           dangerouslySetInnerHTML={{ __html: html }}
         />
-      </div>
+      </ContentContainer>
     </>
   );
 }

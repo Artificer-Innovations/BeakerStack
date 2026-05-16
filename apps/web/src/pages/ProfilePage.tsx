@@ -3,6 +3,7 @@ import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { useProfileContext } from '@beakerstack/shared/contexts/ProfileContext';
 import { supabase } from '@/lib/supabase';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
+import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 // Import Profile Display Components - Vite will automatically resolve .web.tsx files
 import { ProfileHeader } from '@beakerstack/shared/components/profile/ProfileHeader.web';
 import { ProfileStats } from '@beakerstack/shared/components/profile/ProfileStats.web';
@@ -20,8 +21,8 @@ export default function ProfilePage() {
       <AppHeader supabaseClient={supabase} />
 
       {/* Main Content */}
-      <div className='max-w-[1024px] mx-auto py-6 sm:px-6 lg:px-8'>
-        <div className='px-4 py-6 sm:px-0'>
+      <ContentContainer className='py-6'>
+        <div>
           {/* Loading State */}
           {profile.loading && (
             <div className='text-center py-12'>
@@ -95,7 +96,7 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
-      </div>
+      </ContentContainer>
     </div>
   );
 }

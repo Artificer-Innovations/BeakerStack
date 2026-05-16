@@ -44,7 +44,7 @@ vi.mock('@beakerstack/billing', async importOriginal => {
 
 vi.mock('../../config/landing', () => ({
   landingConfig: {
-    brand: { name: 'BeakerStack', tagline: 'Test tagline' },
+    brand: { name: 'Beaker Stack', tagline: 'Test tagline' },
     nav: { links: [], signInHref: '/login', signUpHref: '/signup' },
     hero: {
       headline: 'Build the full stack. Not the scaffolding.',

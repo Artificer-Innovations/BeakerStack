@@ -1,13 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { BRANDING } from '@beakerstack/shared/config/branding';
 import { Nav } from '../Nav';
 
 vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost:54321');
 
 const config = {
   brand: {
-    name: 'BeakerStack',
+    name: BRANDING.displayName,
     tagline: 'Ship your SaaS faster.',
     logoSrc: '/logo.svg',
   },
@@ -41,7 +42,7 @@ describe('Nav', () => {
     const configNoLogo = {
       ...config,
       brand: {
-        name: 'BeakerStack',
+        name: BRANDING.displayName,
         tagline: 'Ship your SaaS faster.',
       },
     };
@@ -57,7 +58,7 @@ describe('Nav', () => {
         <Nav config={configNoLogo} />
       </MemoryRouter>
     );
-    const brandLink = screen.getByRole('link', { name: 'BeakerStack' });
+    const brandLink = screen.getByRole('link', { name: BRANDING.displayName });
     const img = brandLink.querySelector('img');
     if (!img) {
       throw new Error('expected brand logo img');
@@ -72,7 +73,7 @@ describe('Nav', () => {
 
   it('renders the brand name', () => {
     renderNav();
-    expect(screen.getByText('BeakerStack')).toBeInTheDocument();
+    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
   });
 
   it('renders desktop navigation links', () => {

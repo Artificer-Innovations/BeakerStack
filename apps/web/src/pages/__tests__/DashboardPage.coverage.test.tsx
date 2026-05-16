@@ -11,6 +11,7 @@ import { BillingProvider } from '@beakerstack/billing';
 import DashboardPage from '../DashboardPage';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
+import { BRANDING } from '@beakerstack/shared/config/branding';
 import { beakerstackBillingConfig } from '@/billing/beakerstackBillingConfig';
 
 // vi.mock is hoisted to top of file, so supabaseMock must be defined via vi.hoisted()
@@ -193,7 +194,10 @@ describe('DashboardPage (coverage)', () => {
       unsubscribe: vi.fn().mockResolvedValue(undefined),
     }));
     supabaseMock.removeChannel.mockResolvedValue({ status: 'ok', error: null });
-    supabaseMock.functions.invoke.mockResolvedValue({ data: null, error: null });
+    supabaseMock.functions.invoke.mockResolvedValue({
+      data: null,
+      error: null,
+    });
   });
 
   it('useEffect auto-selects first collection when collections load with selectedId null (lines 48-50)', async () => {
@@ -206,7 +210,9 @@ describe('DashboardPage (coverage)', () => {
     });
     await waitFor(() => {
       expect(
-        screen.getByRole('heading', { name: /beakerstack in action/i })
+        screen.getByRole('heading', {
+          name: new RegExp(`${BRANDING.displayName}\\s+in action`, 'i'),
+        })
       ).toBeInTheDocument();
     });
     // Collections loaded; the first collection should now be auto-selected.

@@ -4,6 +4,7 @@ import {
   BEAKERSTACK_METER_AI_SUMMARIZE,
 } from '../../billing/beakerstackBillingConfig';
 import type { ActivityEntry } from './types';
+import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 
 function val(v: boolean | number | null | undefined, loading: boolean): string {
   if (loading) return '…';
@@ -104,8 +105,7 @@ function ActivityLog({ entries }: ActivityLogProps) {
               <span className='text-slate-500'>
                 [{e.at.toLocaleTimeString()}]
               </span>{' '}
-              {e.label}{' '}
-              <span className='text-slate-500'>({e.rpc})</span>
+              {e.label} <span className='text-slate-500'>({e.rpc})</span>
             </li>
           ))}
         </ul>
@@ -121,7 +121,7 @@ interface DeveloperConsoleProps {
 export function DeveloperConsole({ activityLog }: DeveloperConsoleProps) {
   return (
     <div className='w-full border-t border-slate-700 bg-slate-900 text-slate-100'>
-      <div className='mx-auto max-w-[1024px] px-4 py-6 sm:px-6'>
+      <ContentContainer className='py-6'>
         <p className='text-xs font-semibold uppercase tracking-widest text-slate-400 mb-5'>
           Developer Console
         </p>
@@ -129,7 +129,7 @@ export function DeveloperConsole({ activityLog }: DeveloperConsoleProps) {
           <HookStatePanel />
           <ActivityLog entries={activityLog} />
         </div>
-      </div>
+      </ContentContainer>
     </div>
   );
 }

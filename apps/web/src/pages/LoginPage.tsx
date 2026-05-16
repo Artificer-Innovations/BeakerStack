@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
+import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 import { supabase } from '@/lib/supabase';
 import { SocialLoginButton } from '../components/SocialLoginButton';
 import { LoginPlanSummary } from '../components/auth/SignupPlanSummary';
@@ -77,7 +78,7 @@ function LoginPageContent() {
   return (
     <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
       <AppHeader supabaseClient={supabase} />
-      <div className='max-w-[1024px] mx-auto py-12 px-4 sm:px-6 lg:px-8'>
+      <ContentContainer className='py-12'>
         <div
           className={
             showPlanAside
@@ -184,7 +185,7 @@ function LoginPageContent() {
             </div>
           ) : null}
         </div>
-      </div>
+      </ContentContainer>
     </div>
   );
 }

@@ -1,3 +1,5 @@
+export { LAYOUT_WIDTH } from '@beakerstack/shared/config/layoutWidth';
+
 export const LAYOUT = {
   outer: 'bg-gray-50 dark:bg-gray-900',
   shell: 'flex min-h-screen flex-col',

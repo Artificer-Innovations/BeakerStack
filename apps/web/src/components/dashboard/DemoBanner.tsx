@@ -1,3 +1,4 @@
+import { BRANDING } from '@beakerstack/shared/config/branding';
 import { ExternalLink } from 'lucide-react';
 
 export function DemoBanner() {
@@ -8,14 +9,16 @@ export function DemoBanner() {
           <span className='inline-block rounded bg-indigo-500/40 px-2 py-0.5 font-mono text-xs font-semibold tracking-widest uppercase text-indigo-200 mb-2'>
             Developer Demo
           </span>
-          <h2 className='text-xl font-bold'>BeakerStack in action</h2>
+          <h2 className='text-xl font-bold'>
+            {BRANDING.displayName} in action
+          </h2>
           <p className='mt-1 max-w-2xl text-sm text-indigo-200'>
             Real billing primitives —{' '}
             <code className='font-mono text-indigo-100'>useFeature</code>,{' '}
             <code className='font-mono text-indigo-100'>useUsage</code>, and{' '}
-            <code className='font-mono text-indigo-100'>FeatureGate</code> — wired
-            into a product-style UI. Collections and items are sample domain labels;
-            the billing logic is live.
+            <code className='font-mono text-indigo-100'>FeatureGate</code> —
+            wired into a product-style UI. Collections and items are sample
+            domain labels; the billing logic is live.
           </p>
         </div>
         <div className='flex flex-wrap gap-3 shrink-0'>

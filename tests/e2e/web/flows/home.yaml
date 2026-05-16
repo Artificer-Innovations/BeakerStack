@@ -10,14 +10,13 @@ url: ${WEB_URL}
 # Wait for React app to render (give it time to load)
 - waitForAnimationToEnd
 
-# Verify home page loaded - wait up to 5 seconds for text to appear
-- assertVisible: "Welcome to Beaker Stack"
+# Verify marketing landing loaded
+- assertVisible: "Beaker Stack"
+- assertVisible: "Everything you need to ship a real product."
 
-# Verify Sign Up button exists
-- assertVisible: "Sign Up"
-
-# Click Sign Up button
-- tapOn: "Sign Up"
+# Navigate to signup via nav CTA
+- assertVisible: "Get started"
+- tapOn: "Get started"
 
 # Wait for signup page to load
 - waitForAnimationToEnd
