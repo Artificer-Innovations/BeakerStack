@@ -20,6 +20,36 @@ export function billingError(
   return { kind, message, cause };
 }
 
+function messageFromUnknown(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === 'object') {
+    const o = err as Record<string, unknown>;
+    if (typeof o['message'] === 'string' && o['message'].trim())
+      return o['message'];
+    if (
+      typeof o['error_description'] === 'string' &&
+      o['error_description'].trim()
+    ) {
+      return o['error_description'];
+    }
+    if (typeof o['msg'] === 'string' && o['msg'].trim()) return o['msg'];
+    if (typeof o['code'] === 'string') {
+      const parts = [o['code']];
+      if (typeof o['details'] === 'string' && o['details'].trim())
+        parts.push(o['details']);
+      if (typeof o['hint'] === 'string' && o['hint'].trim())
+        parts.push(o['hint']);
+      return parts.join(' · ');
+    }
+  }
+  if (typeof err === 'string') return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return 'Unknown error';
+  }
+}
+
 export function mapUnknownError(err: unknown): BillingError {
   if (
     err &&
@@ -29,7 +59,7 @@ export function mapUnknownError(err: unknown): BillingError {
   ) {
     return err as BillingError;
   }
-  const msg = err instanceof Error ? err.message : String(err);
+  const msg = messageFromUnknown(err);
   const lower = msg.toLowerCase();
   if (
     lower.includes('jwt') ||
