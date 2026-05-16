@@ -126,7 +126,7 @@ describe('ScrollToTop', () => {
     });
     expect(faq.scrollIntoView).toHaveBeenCalled();
 
-    faq.scrollIntoView.mockClear();
+    vi.mocked(faq.scrollIntoView).mockClear();
     while (rafQueue.length > 0) {
       rafQueue.shift()!(0);
     }

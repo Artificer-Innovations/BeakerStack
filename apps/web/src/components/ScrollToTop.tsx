@@ -31,7 +31,7 @@ export function startHashScroll(hash: string): () => void {
     if (cancelled) return;
     if (scrollToHashElement(hash)) return;
     if (frame >= HASH_SCROLL_MAX_FRAMES) {
-      if (__DEV__) {
+      if (import.meta.env.DEV) {
         console.warn(`ScrollToTop: hash anchor not found: ${hash}`);
       }
       return;
