@@ -3,8 +3,19 @@ import { useLocation } from 'react-router-dom';
 
 const HASH_SCROLL_MAX_FRAMES = 60;
 
-function scrollToHashElement(hash: string): boolean {
-  const id = decodeURIComponent(hash.replace(/^#/, ''));
+function parseHashId(hash: string): string | null {
+  const raw = hash.replace(/^#/, '');
+  if (!raw) return null;
+  try {
+    const id = decodeURIComponent(raw);
+    return id || null;
+  } catch {
+    return null;
+  }
+}
+
+export function scrollToHashElement(hash: string): boolean {
+  const id = parseHashId(hash);
   if (!id) return false;
   const el = document.getElementById(id);
   if (!el) return false;
@@ -12,11 +23,26 @@ function scrollToHashElement(hash: string): boolean {
   return true;
 }
 
-/** Retry until lazy below-fold sections (pricing, FAQ) have mounted. */
-export function scrollToHash(hash: string, frame = 0): void {
-  if (scrollToHashElement(hash)) return;
-  if (frame >= HASH_SCROLL_MAX_FRAMES) return;
-  requestAnimationFrame(() => scrollToHash(hash, frame + 1));
+/** Retry until lazy below-fold sections (pricing, FAQ) have mounted. Returns cleanup. */
+export function startHashScroll(hash: string): () => void {
+  let cancelled = false;
+
+  function attempt(frame: number) {
+    if (cancelled) return;
+    if (scrollToHashElement(hash)) return;
+    if (frame >= HASH_SCROLL_MAX_FRAMES) {
+      if (__DEV__) {
+        console.warn(`ScrollToTop: hash anchor not found: ${hash}`);
+      }
+      return;
+    }
+    requestAnimationFrame(() => attempt(frame + 1));
+  }
+
+  attempt(0);
+  return () => {
+    cancelled = true;
+  };
 }
 
 export function ScrollToTop() {
@@ -25,8 +51,7 @@ export function ScrollToTop() {
 
   useLayoutEffect(() => {
     if (hash) {
-      scrollToHash(hash);
-      return;
+      return startHashScroll(hash);
     }
     window.scrollTo(0, 0);
     topRef.current?.focus({ preventScroll: true });

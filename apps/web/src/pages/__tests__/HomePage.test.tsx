@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { BRANDING } from '@beakerstack/shared/config/branding';
 import HomePage from '../HomePage';
 import type { ReactNode } from 'react';
 
@@ -45,7 +44,7 @@ vi.mock('@beakerstack/billing', async importOriginal => {
 
 vi.mock('../../config/landing', () => ({
   landingConfig: {
-    brand: { name: BRANDING.displayName, tagline: 'Test tagline' },
+    brand: { name: 'Beaker Stack', tagline: 'Test tagline' },
     nav: { links: [], signInHref: '/login', signUpHref: '/signup' },
     hero: {
       headline: 'Build the full stack. Not the scaffolding.',

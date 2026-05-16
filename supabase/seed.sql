@@ -8,7 +8,9 @@ VALUES (
     'Beaker Stack',
     'Template billing demo product'
 )
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET
+    display_name = EXCLUDED.display_name,
+    description = EXCLUDED.description;
 
 INSERT INTO public.billing_plans (
     id, product_id, display_name, description, price_cents, billing_period,

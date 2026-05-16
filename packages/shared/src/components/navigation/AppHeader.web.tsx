@@ -21,7 +21,10 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    const onScroll = () => {
+      const next = window.scrollY > 8;
+      setScrolled(prev => (prev === next ? prev : next));
+    };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);

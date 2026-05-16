@@ -22,7 +22,7 @@ export default function ProfilePage() {
 
       {/* Main Content */}
       <ContentContainer className='py-6'>
-        <div className='px-4 py-6 sm:px-0'>
+        <div>
           {/* Loading State */}
           {profile.loading && (
             <div className='text-center py-12'>

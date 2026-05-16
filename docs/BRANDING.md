@@ -134,7 +134,7 @@ To rebrand, update `branding.ts` (or run `npm run rename`) — do not hardcode t
 
 ### PascalCase / technical name
 
-**`BRANDING.pascalName`** (`BeakerStack`) is for identifiers only: GitHub repo URLs, npm scope (`@beakerstack/*`), domain (`beakerstack.com`), database product ids (`beakerstack`), build artifacts, and CI labels. Do not use it in sentences shown to end users.
+**`BRANDING.pascalName`** (`BeakerStack`) is for code-style identifiers: npm scope (`@beakerstack/*`), TypeScript types, component prefixes, and CI labels. **`BRANDING.flatName`** (`beakerstack`) is the lowercase slug used for database product ids, domains, and billing config keys. GitHub repo URLs use the org/repo name (`Artificer-Innovations/BeakerStack`). Do not use either form in sentences shown to end users.
 
 ### Configuration Files
 
