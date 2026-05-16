@@ -1,7 +1,6 @@
 {
   "name": "@beakerstack/test-utils",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.0.0",
   "description": "Testing utilities for BeakerStack-based projects",
   "keywords": [
     "beakerstack",
@@ -38,6 +37,9 @@
     "README.md",
     "LICENSE"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
     "clean": "rm -rf dist",

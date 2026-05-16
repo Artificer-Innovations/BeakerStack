@@ -1,8 +1,14 @@
 # @beakerstack/test-utils
 
-Internal workspace scaffold for a publishable `@beakerstack/*` package layout. Not published to npm; use the workspace import from the monorepo root.
+Testing utilities for [BeakerStack](https://github.com/Artificer-Innovations/BeakerStack)-based projects.
 
-## Usage (monorepo)
+## Installation
+
+```bash
+npm install --save-dev @beakerstack/test-utils
+```
+
+## Usage
 
 ```typescript
 import { wait, testId } from '@beakerstack/test-utils';

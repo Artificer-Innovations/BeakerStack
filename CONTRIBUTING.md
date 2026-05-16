@@ -109,7 +109,7 @@ When extracting reusable code into a new `@beakerstack/*` package:
 4. Add a changeset for the initial release.
 5. Follow the standard branch flow. The release workflow handles the first publish.
 
-See `packages/test-utils/` for package layout (workspace-only scaffold; not published to npm).
+See `packages/test-utils/` for a minimal working example.
 
 ## Documentation
 
