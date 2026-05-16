@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
@@ -26,6 +26,18 @@ const createMockSupabaseClient = (): SupabaseClient => {
     },
   } as unknown as SupabaseClient;
 };
+
+function renderAppHeader(mockClient = createMockSupabaseClient()) {
+  return render(
+    <BrowserRouter>
+      <AuthProvider supabaseClient={mockClient}>
+        <ProfileProvider supabaseClient={mockClient}>
+          <AppHeader supabaseClient={mockClient} />
+        </ProfileProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  );
+}
 
 describe('AppHeader (Web)', () => {
   beforeEach(() => {
@@ -144,5 +156,55 @@ describe('AppHeader (Web)', () => {
 
     const titleLink = screen.getByText(BRANDING.displayName).closest('a');
     expect(titleLink).toHaveAttribute('href', '/');
+  });
+
+  it('header is sticky at the top of the viewport', () => {
+    renderAppHeader();
+    const header = screen.getByRole('banner');
+    expect(header.className).toContain('sticky');
+    expect(header.className).toContain('top-0');
+    expect(header.className).toContain('z-50');
+  });
+
+  it('adds shadow class after scrolling past threshold', () => {
+    renderAppHeader();
+    const header = screen.getByRole('banner');
+    expect(header.className).not.toContain('shadow-sm');
+
+    act(() => {
+      Object.defineProperty(window, 'scrollY', {
+        value: 50,
+        writable: true,
+        configurable: true,
+      });
+      window.dispatchEvent(new Event('scroll'));
+    });
+
+    expect(header.className).toContain('shadow-sm');
+  });
+
+  it('removes shadow class when scrolled back to top', () => {
+    renderAppHeader();
+    const header = screen.getByRole('banner');
+
+    act(() => {
+      Object.defineProperty(window, 'scrollY', {
+        value: 50,
+        writable: true,
+        configurable: true,
+      });
+      window.dispatchEvent(new Event('scroll'));
+    });
+    expect(header.className).toContain('shadow-sm');
+
+    act(() => {
+      Object.defineProperty(window, 'scrollY', {
+        value: 0,
+        writable: true,
+        configurable: true,
+      });
+      window.dispatchEvent(new Event('scroll'));
+    });
+    expect(header.className).not.toContain('shadow-sm');
   });
 });
