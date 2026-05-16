@@ -1,6 +1,5 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   mapUnknownError,
   useBillingContext,
@@ -15,8 +14,6 @@ import {
 import { nextFakeAiSummary } from '../../lib/fakeAi';
 import { randomUuid } from '../../lib/randomUuid';
 import type { ActivityEntry } from './types';
-
-const supabaseRpc = supabase as unknown as SupabaseClient;
 
 function readDemoUseRealAi(): boolean {
   return process.env?.['EXPO_PUBLIC_DEMO_USE_REAL_AI'] === 'true';
@@ -48,6 +45,7 @@ export function UsageStrip({ onActivity, onNavigateBilling }: Props) {
   const [pending, setPending] = useState(false);
   const [recordError, setRecordError] = useState<BillingError | null>(null);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const simulateInFlightRef = useRef(false);
 
   const resolveSummaryText = useCallback(async (): Promise<string> => {
     if (readDemoUseRealAi()) {
@@ -72,14 +70,15 @@ export function UsageStrip({ onActivity, onNavigateBilling }: Props) {
   }, []);
 
   const onSimulate = useCallback(async () => {
-    if (exceeded || pending) return;
-    const summaryText = await resolveSummaryText();
+    if (exceeded || pending || simulateInFlightRef.current) return;
+    simulateInFlightRef.current = true;
     const key = pendingKey ?? randomUuid();
     if (!pendingKey) setPendingKey(key);
     setPending(true);
     setRecordError(null);
     try {
-      const { error: rpcErr } = await supabaseRpc.rpc(
+      const summaryText = await resolveSummaryText();
+      const { error: rpcErr } = await supabase.rpc(
         'billing_record_usage_event',
         {
           p_product_id: config.productId,
@@ -109,6 +108,7 @@ export function UsageStrip({ onActivity, onNavigateBilling }: Props) {
     } catch (e) {
       setRecordError(mapUnknownError(e));
     } finally {
+      simulateInFlightRef.current = false;
       setPending(false);
     }
   }, [

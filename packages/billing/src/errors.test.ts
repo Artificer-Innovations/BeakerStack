@@ -60,6 +60,18 @@ describe('mapUnknownError', () => {
     expect(e.message).toContain('function does not exist');
   });
 
+  it('maps undefined without throwing (JSON.stringify(undefined) is not a string)', () => {
+    const e = mapUnknownError(undefined);
+    expect(e.kind).toBe('unknown');
+    expect(typeof e.message).toBe('string');
+    expect(() => e.message.toLowerCase()).not.toThrow();
+  });
+
+  it('maps symbols and functions to a string message', () => {
+    expect(typeof mapUnknownError(Symbol('x')).message).toBe('string');
+    expect(typeof mapUnknownError(() => {}).message).toBe('string');
+  });
+
   it('passes through BillingError', () => {
     const inner = billingError('stripe', 'bad');
     const e = mapUnknownError(inner);

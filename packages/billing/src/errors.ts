@@ -43,8 +43,15 @@ function messageFromUnknown(err: unknown): string {
     }
   }
   if (typeof err === 'string') return err;
+  if (typeof err === 'bigint') return err.toString();
   try {
-    return JSON.stringify(err);
+    const j = JSON.stringify(err);
+    if (typeof j === 'string') return j;
+  } catch {
+    /* e.g. cyclic structure, or stringify rejects the value */
+  }
+  try {
+    return String(err);
   } catch {
     return 'Unknown error';
   }

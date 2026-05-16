@@ -63,7 +63,7 @@ const PLANS = [
 const METERS = [BEAKERSTACK_METER_AI_SUMMARIZE] as const;
 
 function DemoControlsBlock(): ReactElement | null {
-  if (!readBillingDashboardDemoMode()) return null;
+  const demoMode = readBillingDashboardDemoMode();
   const { data: plan, loading: planLoading } =
     usePlan<typeof beakerstackBillingConfig>();
   const { refreshSubscription } =
@@ -87,6 +87,8 @@ function DemoControlsBlock(): ReactElement | null {
       setPending(null);
     }
   }, []);
+
+  if (!demoMode) return null;
 
   return (
     <View style={[styles.demoCard, styles.cardDemo]}>

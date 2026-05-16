@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   mapUnknownError,
   useBillingContext,
@@ -18,8 +17,6 @@ import { randomUuid } from '../../lib/randomUuid';
 import type { DemoCollectionRow } from '../../billing/useDemoCollections';
 import type { ActivityEntry } from './types';
 import { limLabel } from './utils';
-
-const supabaseRpc = supabase as unknown as SupabaseClient;
 
 interface Props {
   collection: DemoCollectionRow | undefined;
@@ -100,7 +97,7 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
       const key = summarizeKeys.get(itemIndex) ?? randomUuid();
       setSummarizeKeys(prev => new Map(prev).set(itemIndex, key));
       try {
-        const { error: rpcErr } = await supabaseRpc.rpc(
+        const { error: rpcErr } = await supabase.rpc(
           'billing_record_usage_event',
           {
             p_product_id: config.productId,
