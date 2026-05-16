@@ -1,63 +1,23 @@
-import { Link } from 'react-router-dom';
-import { BRANDING } from '@beakerstack/shared/config/branding';
-import { useMarketingAuthHint } from '../hooks/useMarketingAuthHint';
-import { getPrPreviewAssetBasePath } from '../lib/prPreviewAssetBasePath';
+import { Nav } from './landing/sections/Nav';
+import { landingConfig } from '../config/landing';
 
 /**
- * Policy/legal routes render outside {@link AuthenticatedApp}; this header mirrors
- * {@link AppHeader} chrome without AuthProvider, using the same localStorage hint as landing Nav.
+ * Marketing header for public/policy pages. Delegates to {@link Nav} so sticky
+ * scroll behavior, mobile menu, nav links (Features / Pricing / FAQ), and auth
+ * CTAs are identical to the home page.
+ *
+ * Hash anchors are prefixed with '/' so they navigate home-then-scroll when
+ * followed from a policy URL (e.g. /terms → /#features).
  */
+const publicNavConfig = {
+  ...landingConfig.nav,
+  links: landingConfig.nav.links.map(l => ({
+    ...l,
+    href: l.href.startsWith('#') ? `/${l.href}` : l.href,
+  })),
+  brand: landingConfig.brand,
+};
+
 export function PolicyPublicHeader() {
-  const marketingAuthHint = useMarketingAuthHint();
-  const basePath = getPrPreviewAssetBasePath();
-
-  return (
-    <div className='bg-white dark:bg-gray-900 shadow dark:shadow-gray-800 border-b border-transparent dark:border-gray-700'>
-      <div className='max-w-[1024px] mx-auto px-4 sm:px-6 lg:px-8'>
-        <div className='flex justify-between items-center h-16'>
-          <div className='flex items-center space-x-3'>
-            <Link to='/' className='flex items-center'>
-              <img
-                src={`${basePath}demo-flask-icon.svg`}
-                alt={BRANDING.displayName}
-                className='w-8 h-8'
-              />
-            </Link>
-            <Link
-              to='/'
-              className='text-xl font-semibold text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
-            >
-              {BRANDING.displayName}
-            </Link>
-          </div>
-
-          <div className='flex items-center space-x-4'>
-            {marketingAuthHint ? (
-              <Link
-                to='/dashboard'
-                className='bg-primary-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary-700'
-              >
-                Go to dashboard
-              </Link>
-            ) : (
-              <>
-                <Link
-                  to='/login'
-                  className='text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-3 py-2 rounded-md text-sm font-medium'
-                >
-                  Sign In
-                </Link>
-                <Link
-                  to='/signup'
-                  className='bg-primary-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary-700'
-                >
-                  Sign Up
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return <Nav config={publicNavConfig} />;
 }

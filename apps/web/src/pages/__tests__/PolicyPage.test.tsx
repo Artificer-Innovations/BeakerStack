@@ -50,9 +50,9 @@ describe('PolicyPage', () => {
     expect(screen.getByText('Refunds content.')).toBeInTheDocument();
   });
 
-  it('renders public policy header with Sign In link', () => {
+  it('renders public marketing header with Sign in link', () => {
     renderPolicy('terms');
-    expect(screen.getByRole('link', { name: 'Sign In' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute(
       'href',
       '/login'
     );
