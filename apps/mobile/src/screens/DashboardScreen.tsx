@@ -15,7 +15,6 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
-  BillingProvider,
   mapUnknownError,
   useBillingContext,
   useFeature,
@@ -42,11 +41,6 @@ function readBillingDashboardDemoMode(): boolean {
 function readDemoUseRealAi(): boolean {
   return process.env?.['EXPO_PUBLIC_DEMO_USE_REAL_AI'] === 'true';
 }
-
-const billingBaseUrl =
-  (typeof process !== 'undefined' &&
-    process.env?.['EXPO_PUBLIC_BILLING_DEMO_BASE_URL']) ||
-  'http://127.0.0.1:8081';
 
 type RootStackParamList = {
   Home: undefined;
@@ -612,15 +606,7 @@ export default function DashboardScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <AppHeader supabaseClient={supabase} />
-      <BillingProvider<typeof beakerstackBillingConfig>
-        supabase={supabase}
-        config={beakerstackBillingConfig}
-        checkoutSuccessUrl={`${billingBaseUrl}/billing`}
-        checkoutCancelUrl={`${billingBaseUrl}/billing/plans?checkout=cancel`}
-        portalReturnUrl={`${billingBaseUrl}/billing`}
-      >
-        <DashboardBody navigation={navigation} />
-      </BillingProvider>
+      <DashboardBody navigation={navigation} />
     </SafeAreaView>
   );
 }

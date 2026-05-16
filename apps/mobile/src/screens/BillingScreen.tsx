@@ -1,8 +1,4 @@
-import {
-  BillingProvider,
-  useRecordUsage,
-  useUsage,
-} from '@beakerstack/billing';
+import { useRecordUsage, useUsage } from '@beakerstack/billing';
 import {
   CustomerPortalLink,
   FeatureGate,
@@ -22,14 +18,8 @@ import {
 import { supabase } from '../lib/supabase';
 
 function readBillingScreenDemoMode(): boolean {
-  return process.env?.EXPO_PUBLIC_BILLING_DEMO_MODE === 'true';
+  return process.env?.['EXPO_PUBLIC_BILLING_DEMO_MODE'] === 'true';
 }
-
-/** Set EXPO_PUBLIC_BILLING_DEMO_BASE_URL to your dev machine URL for Stripe return URLs on device. */
-const billingBaseUrl =
-  (typeof process !== 'undefined' &&
-    process.env?.EXPO_PUBLIC_BILLING_DEMO_BASE_URL) ||
-  'http://127.0.0.1:8081';
 
 function MeteredBlock(): ReactElement {
   const { exceeded, refresh } = useUsage<
@@ -117,40 +107,32 @@ export default function BillingScreen(): ReactElement {
           For the full /billing experience (tabs, plans, invoices), use the web
           app. This screen reuses the billing package for dev testing.
         </Text>
-        <BillingProvider<typeof beakerstackBillingConfig>
-          supabase={supabase}
-          config={beakerstackBillingConfig}
-          checkoutSuccessUrl={`${billingBaseUrl}/billing`}
-          checkoutCancelUrl={`${billingBaseUrl}/billing`}
-          portalReturnUrl={`${billingBaseUrl}/billing`}
-        >
-          <DemoRpcButtons />
-          <View style={styles.section}>
-            <Text style={styles.h2}>Subscription</Text>
-            <SubscriptionStatus<typeof beakerstackBillingConfig> />
-            <CustomerPortalLink<typeof beakerstackBillingConfig>
-              style={{ marginTop: 8 }}
-            >
-              <Text style={styles.link}>Customer portal</Text>
-            </CustomerPortalLink>
-            <PricingTable<typeof beakerstackBillingConfig> highlightCurrent />
-          </View>
-          <MeteredBlock />
-          <View style={styles.section}>
-            <Text style={styles.h2}>Feature B (Max)</Text>
-            <FeatureGate<typeof beakerstackBillingConfig>
-              feature='feature_b'
-              fallback={
-                <UpgradePrompt<typeof beakerstackBillingConfig>
-                  targetTier='beakerstack_max'
-                  reason='Feature B requires Max.'
-                />
-              }
-            >
-              <Text style={styles.ok}>Feature B enabled</Text>
-            </FeatureGate>
-          </View>
-        </BillingProvider>
+        <DemoRpcButtons />
+        <View style={styles.section}>
+          <Text style={styles.h2}>Subscription</Text>
+          <SubscriptionStatus<typeof beakerstackBillingConfig> />
+          <CustomerPortalLink<typeof beakerstackBillingConfig>
+            style={{ marginTop: 8 }}
+          >
+            <Text style={styles.link}>Customer portal</Text>
+          </CustomerPortalLink>
+          <PricingTable<typeof beakerstackBillingConfig> highlightCurrent />
+        </View>
+        <MeteredBlock />
+        <View style={styles.section}>
+          <Text style={styles.h2}>Feature B (Max)</Text>
+          <FeatureGate<typeof beakerstackBillingConfig>
+            feature='feature_b'
+            fallback={
+              <UpgradePrompt<typeof beakerstackBillingConfig>
+                targetTier='beakerstack_max'
+                reason='Feature B requires Max.'
+              />
+            }
+          >
+            <Text style={styles.ok}>Feature B enabled</Text>
+          </FeatureGate>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
