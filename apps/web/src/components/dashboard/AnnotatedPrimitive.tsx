@@ -25,8 +25,7 @@ export function AnnotatedPrimitive({
     <div className='relative rounded-xl border-2 border-dashed border-purple-300 dark:border-purple-700 hover:border-purple-400 dark:hover:border-purple-600 transition-colors p-5 pt-8'>
       <div
         className='absolute -top-3 left-4 flex items-center gap-1.5 rounded bg-slate-900 px-2.5 py-1 shadow-sm'
-        title={tooltip}
-        aria-label={tooltip ? `${tag} — ${tooltip}` : tag}
+        aria-label={tag}
       >
         <span
           className={`h-2 w-2 rounded-full shrink-0 ${dotColor[variant]}`}
@@ -36,6 +35,11 @@ export function AnnotatedPrimitive({
           {tag}
         </code>
       </div>
+      {tooltip && (
+        <p className='mt-1 mb-2 text-[11px] leading-4 text-slate-500 dark:text-slate-400'>
+          {tooltip}
+        </p>
+      )}
       {children}
     </div>
   );
