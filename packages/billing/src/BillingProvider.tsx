@@ -202,7 +202,10 @@ export function BillingProvider<P extends ProductBillingConfig>({
   /** After Stripe Checkout, the row is written by `stripe-webhook` (async). Poll briefly so the UI updates even if Realtime lags or the user lands before the webhook finishes. */
   useEffect(() => {
     if (typeof window === 'undefined' || !userId) return;
-    const sp = new URLSearchParams(window.location.search);
+    // React Native / Hermes often defines `window` without `window.location`.
+    const search = window.location?.search ?? '';
+    if (!search) return;
+    const sp = new URLSearchParams(search);
     if (sp.get('checkout') !== 'success') return;
 
     let attempts = 0;

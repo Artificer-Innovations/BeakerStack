@@ -19,6 +19,12 @@ jest.mock('expo-constants', () => ({
   },
 }));
 
+jest.mock('@beakerstack/billing', () => ({
+  __esModule: true,
+  BillingProvider: ({ children }: { children: React.ReactNode }) => children,
+  defineBillingConfig: (c: unknown) => c,
+}));
+
 // Mock expo-updates (added for OTA update debugging)
 jest.mock('expo-updates', () => ({
   isEnabled: false,

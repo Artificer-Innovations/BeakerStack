@@ -150,6 +150,32 @@ describe('BillingProvider', () => {
     expect(db.channel).toHaveBeenCalled();
   });
 
+  it('does not throw when window exists without location (React Native)', async () => {
+    const realWindow = globalThis.window;
+    const windowProxy = new Proxy(realWindow, {
+      get(target, prop, receiver) {
+        if (prop === 'location') return undefined;
+        return Reflect.get(target, prop, receiver);
+      },
+    });
+    vi.stubGlobal('window', windowProxy);
+
+    try {
+      auth.state.session = { user: { id: 'u-rn' } };
+      db.maybeSingle.mockResolvedValue({ data: null, error: null });
+      render(
+        <BillingProvider config={testBillingConfig} {...providerProps}>
+          <Reader />
+        </BillingProvider>
+      );
+      await waitFor(() => {
+        expect(screen.getByTestId('uid').textContent).toBe('u-rn');
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('rejects invalid config with the same schema BillingProvider uses', () => {
     expect(() =>
       productBillingConfigSchema.parse({
