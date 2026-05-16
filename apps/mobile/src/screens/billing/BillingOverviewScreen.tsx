@@ -176,7 +176,7 @@ export function BillingOverviewScreen(): ReactElement {
       ) : currentPlan ? (
         <View style={billingStyles.card}>
           <Text style={billingStyles.cardTitle}>
-            You&apos;re on the {currentPlan.display_name} plan
+            You're on the {currentPlan.display_name} plan
           </Text>
         </View>
       ) : null}
