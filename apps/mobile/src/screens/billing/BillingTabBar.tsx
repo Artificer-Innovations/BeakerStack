@@ -36,6 +36,9 @@ export function BillingTabBar(): React.ReactElement {
           return (
             <Pressable
               key={t.name}
+              accessibilityRole='tab'
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={t.label}
               onPress={() => navigation.navigate(t.name)}
               style={[styles.tab, isActive && styles.tabActive]}
             >

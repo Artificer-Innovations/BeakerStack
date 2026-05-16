@@ -3,6 +3,9 @@
  * Defaults to the Expo scheme (`beaker-stack://billing`) so hosted Supabase accepts
  * redirects without a LAN IP. Override with `EXPO_PUBLIC_BILLING_DEMO_BASE_URL` for
  * web-style paths (e.g. `http://192.168.x.x:8081` on a physical device).
+ *
+ * Hosted Edge: if the scheme/host differs, add `protocol//host` to `BILLING_ALLOWED_ORIGINS`
+ * (see `MOBILE_APP_REDIRECT_KEYS` in `billing-origins.ts`).
  */
 export function getMobileBillingProviderUrls(): {
   checkoutSuccessUrl: string;
@@ -17,7 +20,7 @@ export function getMobileBillingProviderUrls(): {
   if (isDeepLink) {
     return {
       checkoutSuccessUrl: `${base}?checkout=success`,
-      checkoutCancelUrl: `${base}/plans?checkout=cancel`,
+      checkoutCancelUrl: `${base}?checkout=cancel`,
       portalReturnUrl: base,
     };
   }

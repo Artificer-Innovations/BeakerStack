@@ -22,6 +22,9 @@ describe('openExternalUrl (native)', () => {
     vi.mocked(RN.Linking.canOpenURL).mockResolvedValue(false as never);
     await expect(
       openExternalUrl('https://checkout.stripe.test/session')
-    ).rejects.toMatchObject({ kind: 'stripe' });
+    ).rejects.toMatchObject({
+      kind: 'stripe',
+      message: expect.not.stringContaining('cs_'),
+    });
   });
 });

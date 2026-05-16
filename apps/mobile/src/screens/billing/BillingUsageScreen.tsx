@@ -1,20 +1,27 @@
 import React, { type ReactElement } from 'react';
 import { Text, View } from 'react-native';
-import { UsageIndicator } from '@beakerstack/billing/native';
+import type { Plan } from '@beakerstack/billing';
+import {
+  UsageIndicator,
+  FeatureCheckIcon,
+  FeatureXIcon,
+} from '@beakerstack/billing/native';
 import {
   usePlan,
   useBillingState,
   useBillingConfig,
 } from '@beakerstack/billing';
 import {
-  booleanFeatureLabel,
+  mergePlanFeatureRows,
   mergeUsageLimitsCopy,
   mergeUsageMeterCopy,
+  planFeatureLine,
 } from '@beakerstack/billing/presentation';
 import {
   beakerstackBillingConfig,
   BEAKERSTACK_METER_AI_SUMMARIZE,
 } from '../../billing/beakerstackBillingConfig';
+import { numericPlanFeature } from '../../billing/planFeatureValue';
 import { useDemoCollectionCount } from '../../billing/useDemoCollectionCount';
 import { BillingLayout } from './BillingLayout';
 import { billingColors, billingStyles } from './styles';
@@ -43,9 +50,9 @@ function FeatureLimitRow({
   const heavy = ratio >= 0.8 && u < cap;
   const at = u >= cap;
   const rightColor = at
-    ? '#b91c1c'
+    ? billingColors.errorText
     : heavy
-      ? '#b45309'
+      ? billingColors.warnText
       : billingColors.textMuted;
   return (
     <View style={billingStyles.rowBetween}>
@@ -57,23 +64,29 @@ function FeatureLimitRow({
   );
 }
 
-function PlanFeatureRow({
-  name,
-  available,
-}: {
-  name: string;
-  available: boolean;
-}) {
+function BooleanPlanFeatures({ plan }: { plan: Plan }): ReactElement {
+  const billingConfig = useBillingConfig<typeof beakerstackBillingConfig>();
+  const rows = mergePlanFeatureRows(billingConfig).filter(
+    row => row.kind === 'boolean'
+  );
+
   return (
-    <View style={billingStyles.rowBetween}>
-      <Text style={{ color: billingColors.textPrimary }}>
-        {available ? '✓ ' : '✗ '}
-        {name}
-      </Text>
-      <Text style={{ color: billingColors.textMuted }}>
-        {available ? 'Available' : 'Not available'}
-      </Text>
-    </View>
+    <>
+      {rows.map(row => {
+        const { ok, text } = planFeatureLine(plan, row);
+        return (
+          <View key={row.id} style={billingStyles.rowBetween}>
+            <View style={billingStyles.booleanFeatureLabel}>
+              {ok ? <FeatureCheckIcon /> : <FeatureXIcon />}
+              <Text style={billingStyles.booleanFeatureName}>{text}</Text>
+            </View>
+            <Text style={{ color: billingColors.textMuted }}>
+              {ok ? 'Available' : 'Not available'}
+            </Text>
+          </View>
+        );
+      })}
+    </>
   );
 }
 
@@ -81,13 +94,14 @@ export function BillingUsageScreen(): ReactElement {
   const billingConfig = useBillingConfig<typeof beakerstackBillingConfig>();
   const meterCopy = mergeUsageMeterCopy(billingConfig);
   const limitsCopy = mergeUsageLimitsCopy(billingConfig);
-  const featureALabel = booleanFeatureLabel(billingConfig, 'feature_a');
-  const featureBLabel = booleanFeatureLabel(billingConfig, 'feature_b');
   const { data: plan } = usePlan<typeof beakerstackBillingConfig>();
   const { kind, subscription } =
     useBillingState<typeof beakerstackBillingConfig>();
-  const { count: colCount = 0, maxItemsInAnyCollection = 0 } =
-    useDemoCollectionCount();
+  const {
+    count: colCount = 0,
+    maxItemsInAnyCollection = 0,
+    error: colError,
+  } = useDemoCollectionCount();
 
   if (!plan) {
     return (
@@ -96,23 +110,24 @@ export function BillingUsageScreen(): ReactElement {
       </BillingLayout>
     );
   }
-  const containers = plan.features.containers_per_account_max as number;
-  const itemsCap = plan.features.items_per_container_max as number;
+
+  const features = plan.features as Record<string, unknown>;
+  const containers = numericPlanFeature(features, 'containers_per_account_max');
+  const itemsCap = numericPlanFeature(features, 'items_per_container_max');
 
   return (
     <BillingLayout>
       {kind === 'payment_failed' ? (
-        <View
-          style={[
-            billingStyles.card,
-            {
-              backgroundColor: billingColors.errorBg,
-              borderColor: billingColors.errorBorder,
-            },
-          ]}
-        >
+        <View style={[billingStyles.card, billingStyles.paymentFailedCard]}>
           <Text style={{ color: billingColors.errorText }}>
             Payment failed. Limits may change if your plan lapses.
+          </Text>
+        </View>
+      ) : null}
+      {colError ? (
+        <View style={[billingStyles.card, billingStyles.paymentFailedCard]}>
+          <Text style={{ color: billingColors.errorText }}>
+            Could not load demo collection counts.
           </Text>
         </View>
       ) : null}
@@ -124,10 +139,10 @@ export function BillingUsageScreen(): ReactElement {
             : 'Your usage resets on your next billing date (see Usage below for the exact reset date for meters).'}
         </Text>
       </View>
-      <View style={{ marginBottom: 8 }}>
+      <View style={billingStyles.sectionBlock}>
         <Text style={billingStyles.sectionTitle}>Usage</Text>
         {Object.keys(plan.usage_limits).map(m => (
-          <View key={m} style={{ marginTop: 12 }}>
+          <View key={m} style={billingStyles.meterBlock}>
             <UsageIndicator<typeof beakerstackBillingConfig>
               meter={m as typeof BEAKERSTACK_METER_AI_SUMMARIZE}
               variant='expanded'
@@ -137,7 +152,7 @@ export function BillingUsageScreen(): ReactElement {
           </View>
         ))}
       </View>
-      <View style={{ marginBottom: 8 }}>
+      <View style={billingStyles.sectionBlock}>
         <Text style={billingStyles.sectionTitle}>Limits</Text>
         <View style={billingStyles.card}>
           <FeatureLimitRow
@@ -160,14 +175,7 @@ export function BillingUsageScreen(): ReactElement {
       <View>
         <Text style={billingStyles.sectionTitle}>Plan features</Text>
         <View style={billingStyles.card}>
-          <PlanFeatureRow
-            name={featureALabel}
-            available={!!plan.features.feature_a}
-          />
-          <PlanFeatureRow
-            name={featureBLabel}
-            available={!!plan.features.feature_b}
-          />
+          <BooleanPlanFeatures plan={plan} />
         </View>
       </View>
     </BillingLayout>

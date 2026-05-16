@@ -13,6 +13,10 @@ export type {
   BillingCadence,
 } from './components/CadenceToggle.types.js';
 export { PlanFeatureList } from './components/PlanFeatureList.native.js';
+export {
+  FeatureCheckIcon,
+  FeatureXIcon,
+} from './components/FeatureAvailabilityIcon.native.js';
 export type { PlanFeatureListProps } from './components/PlanFeatureList.types.js';
 export { openExternalUrl } from './utils/openExternalUrl.native.js';
 export { launchStripeCheckout } from './utils/launchStripeCheckout.native.js';

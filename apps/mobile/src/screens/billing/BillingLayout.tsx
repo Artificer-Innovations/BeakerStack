@@ -15,6 +15,8 @@ export function BillingLayout({
     <SafeAreaView style={billingStyles.safe} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={billingStyles.scrollContent}>
         <Pressable
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
           onPress={() => {
             const parent = navigation.getParent();
             if (parent?.canGoBack()) {

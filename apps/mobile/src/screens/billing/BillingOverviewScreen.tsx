@@ -14,6 +14,7 @@ import {
   beakerstackBillingConfig,
   BEAKERSTACK_METER_AI_SUMMARIZE,
 } from '../../billing/beakerstackBillingConfig';
+import { numericPlanFeature } from '../../billing/planFeatureValue';
 import { useDemoCollectionCount } from '../../billing/useDemoCollectionCount';
 import { BillingLayout } from './BillingLayout';
 import { billingColors, billingStyles } from './styles';
@@ -27,7 +28,7 @@ function Banner({
   title: string;
   body: string;
 }): ReactElement {
-  const colors =
+  const palette =
     variant === 'error'
       ? {
           bg: billingColors.errorBg,
@@ -47,17 +48,15 @@ function Banner({
           };
   return (
     <View
-      style={{
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: colors.border,
-        backgroundColor: colors.bg,
-        padding: 12,
-        marginBottom: 12,
-      }}
+      style={[
+        billingStyles.banner,
+        { borderColor: palette.border, backgroundColor: palette.bg },
+      ]}
     >
-      <Text style={{ fontWeight: '600', color: colors.text }}>{title}</Text>
-      <Text style={{ marginTop: 4, fontSize: 14, color: colors.text }}>
+      <Text style={[billingStyles.bannerTitle, { color: palette.text }]}>
+        {title}
+      </Text>
+      <Text style={[billingStyles.bannerBody, { color: palette.text }]}>
         {body}
       </Text>
     </View>
@@ -111,20 +110,23 @@ function OverviewBanners({
 
 function StatTile({ label, value }: { label: string; value: string }) {
   return (
-    <View style={[billingStyles.card, { marginBottom: 12 }]}>
+    <View style={[billingStyles.card, billingStyles.statTileCard]}>
       <Text style={billingStyles.small}>{label}</Text>
-      <Text
-        style={{
-          marginTop: 6,
-          fontSize: 15,
-          fontWeight: '600',
-          color: billingColors.textPrimary,
-        }}
-      >
-        {value}
-      </Text>
+      <Text style={billingStyles.statValue}>{value}</Text>
     </View>
   );
+}
+
+function formatCollectionsStat(
+  count: number,
+  cap: number,
+  loading: boolean,
+  error: Error | null
+): string {
+  if (loading) return '—';
+  if (error) return 'Unable to load';
+  if (cap === -1) return `${count} of unlimited`;
+  return `${count} of ${cap}`;
 }
 
 export function BillingOverviewScreen(): ReactElement {
@@ -142,7 +144,11 @@ export function BillingOverviewScreen(): ReactElement {
     typeof beakerstackBillingConfig,
     typeof BEAKERSTACK_METER_AI_SUMMARIZE
   >(BEAKERSTACK_METER_AI_SUMMARIZE);
-  const { count: colCount, loading: colLoad } = useDemoCollectionCount();
+  const {
+    count: colCount,
+    loading: colLoad,
+    error: colError,
+  } = useDemoCollectionCount();
   const { user } = useAuthContext();
 
   const pendingTargetName =
@@ -150,6 +156,13 @@ export function BillingOverviewScreen(): ReactElement {
       ? catalogPlans.find(p => p.id === subscription.pending_target_plan_id)
           ?.display_name
       : undefined;
+
+  const containersCap = currentPlan
+    ? numericPlanFeature(
+        currentPlan.features as Record<string, unknown>,
+        'containers_per_account_max'
+      )
+    : -1;
 
   return (
     <BillingLayout>
@@ -180,16 +193,12 @@ export function BillingOverviewScreen(): ReactElement {
       />
       <StatTile
         label='Collections'
-        value={
-          colLoad
-            ? '—'
-            : (() => {
-                const cap = currentPlan?.features
-                  .containers_per_account_max as number;
-                if (cap === -1) return `${colCount ?? 0} of unlimited`;
-                return `${colCount ?? 0} of ${cap}`;
-              })()
-        }
+        value={formatCollectionsStat(
+          colCount ?? 0,
+          containersCap,
+          colLoad,
+          colError
+        )}
       />
       <StatTile
         label='Member since'

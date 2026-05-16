@@ -79,4 +79,35 @@ export const billingStyles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
   },
+  banner: {
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 12,
+    marginBottom: 12,
+  },
+  bannerTitle: { fontWeight: '600', fontSize: 14 },
+  bannerBody: { marginTop: 4, fontSize: 14 },
+  statTileCard: { marginBottom: 12 },
+  statValue: {
+    marginTop: 6,
+    fontSize: 15,
+    fontWeight: '600',
+    color: billingColors.textPrimary,
+  },
+  paymentFailedCard: {
+    backgroundColor: billingColors.errorBg,
+    borderColor: billingColors.errorBorder,
+  },
+  sectionBlock: { marginBottom: 8 },
+  meterBlock: { marginTop: 12 },
+  booleanFeatureLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  booleanFeatureName: {
+    marginLeft: 8,
+    color: billingColors.textPrimary,
+  },
 });

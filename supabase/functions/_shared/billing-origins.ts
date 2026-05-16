@@ -1,4 +1,8 @@
-/** Expo app scheme (`app.config.js` `scheme`) — used for Stripe return URLs on native. */
+/**
+ * Default mobile deep-link allowlist key (`protocol//host`).
+ * Must match the host in `EXPO_PUBLIC_BILLING_DEMO_BASE_URL` when using a custom scheme;
+ * for non-default schemes, add the same `protocol//host` via `BILLING_ALLOWED_ORIGINS`.
+ */
 const MOBILE_APP_REDIRECT_KEYS = ['beaker-stack://billing'] as const;
 
 /** Origins commonly used when SUPABASE_URL points at local `supabase start`. */
@@ -62,10 +66,10 @@ function mergeEnvOrigins(set: Set<string>): void {
     if (!t) continue;
     try {
       const u = new URL(t);
-      if (u.protocol === 'http:' || u.protocol === 'https:') {
-        set.add(u.origin);
-      } else {
-        set.add(t);
+      try {
+        set.add(billingRedirectAllowlistKey(u));
+      } catch {
+        /* skip env entries that do not normalize to protocol//host */
       }
     } catch {
       set.add(t);
@@ -94,7 +98,7 @@ export function billingRedirectAllowlistKey(url: URL): string {
   if (url.host) {
     return `${url.protocol}//${url.host}`;
   }
-  return url.href;
+  throw new RedirectValidationError();
 }
 
 /** Validates Stripe checkout / portal redirect URLs against the billing origin allowlist. */

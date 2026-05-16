@@ -25,7 +25,7 @@ export function PlanFeatureList<P extends ProductBillingConfig>({
 
   return (
     <View style={style}>
-      <Text style={styles.title}>What&apos;s included</Text>
+      <Text style={styles.title}>What's included</Text>
       <View>
         {rows.map((row, index) => {
           const { ok, text } = planFeatureLine(plan, row);
