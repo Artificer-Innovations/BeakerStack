@@ -143,8 +143,9 @@ export const landingConfig: LandingConfig = {
       'BeakerStack gives you auth, billing, and a cross-platform React foundation — with a three-environment CI/CD pipeline, PR previews, and a layered test suite ready for production.',
     primaryCta: { label: 'Get started free', href: '/signup' },
     secondaryCta: { label: 'See features', href: '#features' },
-    mediaSrc: publicUrl('landing/mobile-hero.avif'),
-    mediaAlt: 'BeakerStack mobile and web screenshot',
+    mediaSrc: publicUrl('landing/hero.avif'),
+    mediaAlt:
+      'BeakerStack pull request checks, environment setup wizard, and mobile app',
     trustStrip: 'Built on React, React Native, Supabase, and Stripe.',
   },
   featureGrid: {
@@ -243,7 +244,7 @@ export const landingConfig: LandingConfig = {
       ctaHref:
         'https://github.com/Artificer-Innovations/BeakerStack/blob/main/apps/web/scripts/prerender-home.ts',
       mediaSrc: publicUrl('landing/seo.avif'),
-      mediaAlt: 'Pre-rendered HTML and meta tags screenshot',
+      mediaAlt: 'Lighthouse performance and SEO audit scores for BeakerStack',
       mediaSide: 'right',
     },
     {
