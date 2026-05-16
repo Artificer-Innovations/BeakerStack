@@ -223,7 +223,7 @@ export const landingConfig: LandingConfig = {
       ctaLabel: 'Learn about mobile',
       ctaHref: '#features',
       mediaSrc: publicUrl('landing/mobile-hero.avif'),
-      mediaAlt: 'Mobile app screenshot',
+      mediaAlt: 'BeakerStack web and mobile app screenshots side by side',
       mediaSide: 'right',
     },
     {
