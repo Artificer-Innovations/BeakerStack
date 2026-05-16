@@ -1,9 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { PolicyPublicHeader } from '../PolicyPublicHeader';
 
 vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost:54321');
+
+function renderHeader() {
+  return render(
+    <MemoryRouter>
+      <PolicyPublicHeader />
+    </MemoryRouter>
+  );
+}
 
 describe('PolicyPublicHeader', () => {
   beforeEach(() => {
@@ -11,20 +19,15 @@ describe('PolicyPublicHeader', () => {
     vi.clearAllMocks();
   });
 
-  it('shows Sign In and Sign Up when no session hint', () => {
-    render(
-      <MemoryRouter>
-        <PolicyPublicHeader />
-      </MemoryRouter>
-    );
-    expect(screen.getByRole('link', { name: 'Sign In' })).toHaveAttribute(
+  it('shows Sign in and Get started when no session hint', () => {
+    renderHeader();
+    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute(
       'href',
       '/login'
     );
-    expect(screen.getByRole('link', { name: 'Sign Up' })).toHaveAttribute(
-      'href',
-      '/signup'
-    );
+    expect(
+      screen.getByRole('link', { name: 'Get started' })
+    ).toHaveAttribute('href', '/signup');
   });
 
   it('shows Go to dashboard when session hint is present', () => {
@@ -32,16 +35,50 @@ describe('PolicyPublicHeader', () => {
       'sb-localhost-auth-token',
       JSON.stringify({ access_token: 'jwt', refresh_token: 'r' })
     );
-    render(
-      <MemoryRouter>
-        <PolicyPublicHeader />
-      </MemoryRouter>
-    );
+    renderHeader();
     expect(
       screen.getByRole('link', { name: 'Go to dashboard' })
     ).toHaveAttribute('href', '/dashboard');
     expect(
-      screen.queryByRole('link', { name: 'Sign In' })
+      screen.queryByRole('link', { name: 'Sign in' })
     ).not.toBeInTheDocument();
+  });
+
+  it('renders Features, Pricing, and FAQ nav links with absolute anchors', () => {
+    renderHeader();
+    const mainNav = screen.getByRole('navigation', { name: 'Main' });
+    const links = mainNav.querySelectorAll('a');
+    const hrefs = Array.from(links).map(a => a.getAttribute('href'));
+    expect(hrefs).toContain('/#features');
+    expect(hrefs).toContain('/#pricing');
+    expect(hrefs).toContain('/#faq');
+  });
+
+  it('header is sticky and gains shadow class after scrolling past threshold', () => {
+    renderHeader();
+    const header = screen.getByRole('banner');
+    expect(header.className).toContain('sticky');
+    expect(header.className).not.toContain('shadow-sm');
+
+    act(() => {
+      Object.defineProperty(window, 'scrollY', {
+        value: 50,
+        writable: true,
+        configurable: true,
+      });
+      window.dispatchEvent(new Event('scroll'));
+    });
+
+    expect(header.className).toContain('shadow-sm');
+  });
+
+  it('opens mobile menu showing nav links and Sign in', () => {
+    renderHeader();
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle menu' }));
+    const mobileNav = screen.getByRole('navigation', { name: 'Mobile' });
+    expect(mobileNav).toHaveTextContent('Features');
+    expect(mobileNav).toHaveTextContent('Pricing');
+    expect(mobileNav).toHaveTextContent('FAQ');
+    expect(mobileNav).toHaveTextContent('Sign in');
   });
 });
