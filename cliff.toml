@@ -10,7 +10,7 @@ body = """
 {{ group }}
 {% for commit in commits %}
 - {{ commit.message | upper_first }}\
-{% if commit.remote.pr_number %} ([#{{ commit.remote.pr_number }}]({{ commit.remote.link }})){% endif %}
+{% if commit.remote.pr_number %} ([#{{ commit.remote.pr_number }}](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/pull/{{ commit.remote.pr_number }})){% endif %}
 
 {% endfor %}
 {% endfor %}\n
@@ -33,3 +33,7 @@ commit_parsers = [
 filter_commits = true
 # Scope tag matching to CalVer template tags only — prevents anchoring to @beakerstack/* package tags
 tag_pattern = "^[0-9]{4}\\."
+
+[remote.github]
+owner = "Artificer-Innovations"
+repo = "BeakerStack"
