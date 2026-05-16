@@ -14,7 +14,8 @@
     "web",
     "mobile-app",
     "@beakerstack/shared",
-    "@beakerstack/shared-tests"
+    "@beakerstack/shared-tests",
+    "@beakerstack/test-utils"
   ],
   "privatePackages": {
     "version": false,
