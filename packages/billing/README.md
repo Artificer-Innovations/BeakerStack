@@ -11,8 +11,6 @@ Reusable **Supabase + Stripe** billing: entitlements (plan `features` / `usage_l
 
 This package does **not** embed product tier names, demo RPCs, or domain vocabulary — those live in the app (see `apps/web/src/billing/`).
 
-Design reference: [`docs/specs/beakerstack-billing-v1.md`](../../docs/specs/beakerstack-billing-v1.md) and [`docs/specs/beakerstack-billing-ui-v1.md`](../../docs/specs/beakerstack-billing-ui-v1.md). Setup and QA: [`docs/stripe-billing-setup.md`](../../docs/stripe-billing-setup.md), [`apps/web/docs/billing-testing.md`](../../apps/web/docs/billing-testing.md).
-
 ## Config typing
 
 ```ts

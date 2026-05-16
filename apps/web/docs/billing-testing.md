@@ -89,6 +89,6 @@ Run the web app, sign in, go to **`/billing/plans`**, use test card `4242 4242 4
 
 `EXPO_PUBLIC_BILLING_DEMO_MODE` and `EXPO_PUBLIC_BILLING_DEMO_BASE_URL` (LAN URL for return URLs on device). Billing package smoke screen: `apps/mobile/src/screens/BillingScreen.tsx`. Full tab parity is web-first; the native app links users to the web for the complete `/billing` UI if needed.
 
-## Routes
+## Legacy
 
-Production billing lives at **`/billing`**, `/billing/usage`, `/billing/plans`, and `/billing/invoices`. The old `/billing-demo` route was removed; use `/billing` instead.
+The old `/billing-demo` route has been removed. If you have bookmarks, use `/billing` instead. See [billing-demo.md](./billing-demo.md) (deprecated) for any retained historical notes.

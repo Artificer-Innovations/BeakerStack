@@ -35,18 +35,11 @@ Start on the repo root **[README.md](../README.md)** and **[QUICKSTART.md](../QU
 
 ## Product and repo maintenance
 
-| Document                   | Purpose             |
-| -------------------------- | ------------------- |
-| [BRANDING.md](BRANDING.md) | Icons, colors, copy |
-| [renaming.md](renaming.md) | Rename the template |
-
-## Specs
-
-| Document                                                                   | Purpose                                                          |
-| -------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| [specs/beakerstack-billing-v1.md](specs/beakerstack-billing-v1.md)         | Billing module design (schema, RPCs, entitlements, app boundary) |
-| [specs/beakerstack-billing-ui-v1.md](specs/beakerstack-billing-ui-v1.md)   | `/billing` route family, UI states, migration (shipped)          |
-| [../apps/web/docs/billing-testing.md](../apps/web/docs/billing-testing.md) | Stripe CLI, webhooks, demo mode QA                               |
+| Document                             | Purpose                                            |
+| ------------------------------------ | -------------------------------------------------- |
+| [BRANDING.md](BRANDING.md)           | Icons, colors, copy                                |
+| [renaming.md](renaming.md)           | Rename the template                                |
+| [project/TASKS.md](project/TASKS.md) | Historical task checklist (may be partially stale) |
 
 ## Guides
 
