@@ -5,7 +5,7 @@
 INSERT INTO public.billing_products (id, display_name, description)
 VALUES (
     'beakerstack',
-    'BeakerStack',
+    'Beaker Stack',
     'Template billing demo product'
 )
 ON CONFLICT (id) DO NOTHING;

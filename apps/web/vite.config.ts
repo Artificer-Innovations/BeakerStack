@@ -23,7 +23,12 @@ export default defineConfig(({ mode }) => {
   const htmlBrandingPlugin: Plugin = {
     name: 'html-branding-transform',
     transformIndexHtml(html: string) {
-      let transformed = html.replace(/%APP_TITLE%/g, BRANDING.displayName);
+      const metaDescription = `${BRANDING.displayName} gives you auth, billing, and a cross-platform React foundation — ready to ship your SaaS.`;
+      const ogTitle = `${BRANDING.displayName} — Ship your SaaS faster.`;
+      let transformed = html
+        .replace(/%APP_TITLE%/g, BRANDING.displayName)
+        .replace(/%META_DESCRIPTION%/g, metaDescription)
+        .replace(/%OG_TITLE%/g, ogTitle);
 
       const criticalCss = readFileSync(criticalThemePath, 'utf8').trim();
       transformed = transformed.replace(

@@ -120,18 +120,25 @@ The favicon files are referenced in `apps/web/index.html` with appropriate link 
 
 ## App Name and Title
 
-### Display Name
+### Display name (canonical for user-facing copy)
 
-The app name "Beaker Stack" appears in:
+All human-readable product copy uses **`BRANDING.displayName`** from `packages/shared/src/config/branding.ts` (currently **Beaker Stack**). That includes:
 
-- **Web header**: `packages/shared/src/components/navigation/AppHeader.web.tsx`
-- **Mobile header**: `packages/shared/src/components/navigation/AppHeader.native.tsx`
+- **Web and mobile headers**: `AppHeader.web.tsx`, `AppHeader.native.tsx`
+- **Marketing landing**: `apps/web/src/config/landing.ts` (nav, hero, FAQ, pricing copy)
+- **Welcome strings**: `packages/shared/src/utils/strings.ts` (`HOME_TITLE`, etc.)
+- **Legal policies**: `LEGAL_CONFIG.brandName` in `packages/shared/src/config/legal.ts`
+- **Browser tab and SEO meta**: `apps/web/vite.config.ts` injects `displayName` into `index.html`
 
-To change the app name, update the text in both header components.
+To rebrand, update `branding.ts` (or run `npm run rename`) — do not hardcode the display name in landing config or headers.
+
+### PascalCase / technical name
+
+**`BRANDING.pascalName`** (`BeakerStack`) is for identifiers only: GitHub repo URLs, npm scope (`@beakerstack/*`), domain (`beakerstack.com`), database product ids (`beakerstack`), build artifacts, and CI labels. Do not use it in sentences shown to end users.
 
 ### Configuration Files
 
-- **Mobile**: `apps/mobile/app.config.js` - `name` and `slug` fields
+- **Mobile**: `apps/mobile/app.config.js` - `name` (display) and `slug` fields
 - **Mobile**: `apps/mobile/app.json` - `name` field (legacy, may be auto-generated)
 
 ## Display Strings

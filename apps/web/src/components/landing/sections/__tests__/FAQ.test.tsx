@@ -1,11 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { BRANDING } from '@beakerstack/shared/config/branding';
 import { FAQ } from '../FAQ';
 
 const faqConfig = {
   heading: 'Frequently Asked Questions',
   items: [
-    { q: 'What is BeakerStack?', a: 'An open-source SaaS template.' },
+    {
+      q: `What is ${BRANDING.displayName}?`,
+      a: 'An open-source SaaS template.',
+    },
     { q: 'Is it free?', a: 'Yes, MIT licensed.' },
     { q: 'Does it support mobile?', a: 'Yes, React Native included.' },
   ],
@@ -19,7 +23,9 @@ describe('FAQ', () => {
 
   it('renders all FAQ questions', () => {
     render(<FAQ config={faqConfig} />);
-    expect(screen.getByText('What is BeakerStack?')).toBeInTheDocument();
+    expect(
+      screen.getByText(`What is ${BRANDING.displayName}?`)
+    ).toBeInTheDocument();
     expect(screen.getByText('Is it free?')).toBeInTheDocument();
     expect(screen.getByText('Does it support mobile?')).toBeInTheDocument();
   });

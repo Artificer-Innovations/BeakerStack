@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { BRANDING } from '@beakerstack/shared/config/branding';
 import { FeatureRows } from '../FeatureRows';
 
 const rows = [
@@ -9,7 +10,7 @@ const rows = [
     ctaLabel: 'Learn about mobile',
     ctaHref: '#features',
     mediaSrc: 'https://placehold.co/560x315?text=Mobile',
-    mediaAlt: 'BeakerStack web and mobile app screenshots side by side',
+    mediaAlt: `${BRANDING.displayName} web and mobile app screenshots side by side`,
     mediaSide: 'right' as const,
   },
   {
@@ -64,7 +65,7 @@ describe('FeatureRows', () => {
     const images = screen.getAllByRole('img');
     expect(images[0]).toHaveAttribute(
       'alt',
-      'BeakerStack web and mobile app screenshots side by side'
+      `${BRANDING.displayName} web and mobile app screenshots side by side`
     );
     expect(images[0]).toHaveAttribute('loading', 'lazy');
     expect(images[1]).toHaveAttribute('alt', 'Setup screenshot');

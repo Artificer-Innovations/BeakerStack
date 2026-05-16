@@ -1,3 +1,4 @@
+import { BRANDING } from '@beakerstack/shared/config/branding';
 import type { LucideIcon } from 'lucide-react';
 import {
   Zap,
@@ -122,9 +123,11 @@ export interface LandingConfig {
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
+const brand = BRANDING.displayName;
+
 export const landingConfig: LandingConfig = {
   brand: {
-    name: 'BeakerStack',
+    name: brand,
     tagline: 'Ship your SaaS faster.',
   },
   nav: {
@@ -139,19 +142,16 @@ export const landingConfig: LandingConfig = {
   hero: {
     eyebrow: 'Open source SaaS template',
     headline: 'Everything you need to ship a real product.',
-    subhead:
-      'BeakerStack gives you auth, billing, and a cross-platform React foundation — with a three-environment CI/CD pipeline, PR previews, and a layered test suite ready for production.',
+    subhead: `${brand} gives you auth, billing, and a cross-platform React foundation — with a three-environment CI/CD pipeline, PR previews, and a layered test suite ready for production.`,
     primaryCta: { label: 'Get started free', href: '/signup' },
     secondaryCta: { label: 'See features', href: '#features' },
     mediaSrc: publicUrl('landing/hero.avif'),
-    mediaAlt:
-      'BeakerStack pull request checks, environment setup wizard, and mobile app',
+    mediaAlt: `${brand} pull request checks, environment setup wizard, and mobile app`,
     trustStrip: 'Built on React, React Native, Supabase, and Stripe.',
   },
   featureGrid: {
     heading: 'Everything wired. Nothing hidden.',
-    subhead:
-      'Stop stitching libraries together. BeakerStack ships cross-platform apps, B2C-ready auth and billing, and a marketable web presence — all pre-integrated.',
+    subhead: `Stop stitching libraries together. ${brand} ships cross-platform apps, B2C-ready auth and billing, and a marketable web presence — all pre-integrated.`,
     items: [
       {
         icon: Smartphone,
@@ -224,7 +224,7 @@ export const landingConfig: LandingConfig = {
       ctaLabel: 'Learn about mobile',
       ctaHref: '#features',
       mediaSrc: publicUrl('landing/mobile-hero.avif'),
-      mediaAlt: 'BeakerStack web and mobile app screenshots side by side',
+      mediaAlt: `${brand} web and mobile app screenshots side by side`,
       mediaSide: 'right',
     },
     {
@@ -244,12 +244,12 @@ export const landingConfig: LandingConfig = {
       ctaHref:
         'https://github.com/Artificer-Innovations/BeakerStack/blob/main/apps/web/scripts/prerender-home.ts',
       mediaSrc: publicUrl('landing/seo.avif'),
-      mediaAlt: 'Lighthouse performance and SEO audit scores for BeakerStack',
+      mediaAlt: `Lighthouse performance and SEO audit scores for ${brand}`,
       mediaSide: 'right',
     },
     {
       title: 'Billing that actually ships.',
-      body: 'Most templates stop at "add Stripe." BeakerStack includes plan gating, usage metering, upgrade prompts, a billing portal, and downgrade blockers — all wired to real Stripe products and ready for your plans.',
+      body: `Most templates stop at "add Stripe." ${brand} includes plan gating, usage metering, upgrade prompts, a billing portal, and downgrade blockers — all wired to real Stripe products and ready for your plans.`,
       ctaLabel: 'See billing docs',
       ctaHref: '#pricing',
       mediaSrc: publicUrl('landing/billing.avif'),
@@ -290,8 +290,7 @@ export const landingConfig: LandingConfig = {
   },
   pricing: {
     heading: 'Simple, transparent pricing.',
-    subhead:
-      'BeakerStack itself is free and open-source (MIT) — clone it and ship your product at no cost. The plans below are a live demo of the billing system built into the template.',
+    subhead: `${brand} itself is free and open-source (MIT) — clone it and ship your product at no cost. The plans below are a live demo of the billing system built into the template.`,
     disclaimer:
       'Stripe is running in test mode for this preview; no real charges are made.',
   },
@@ -299,12 +298,12 @@ export const landingConfig: LandingConfig = {
     heading: 'Frequently asked questions',
     items: [
       {
-        q: 'Is BeakerStack free to use?',
-        a: 'Yes — BeakerStack is free and open source under the MIT license. You can clone the repository, build your product on top of it, and ship commercially with no fees or attribution requirements. The pricing plans shown in the demo are an example of what you can build with the template; they are not a cost to use BeakerStack itself.',
+        q: `Is ${brand} free to use?`,
+        a: `Yes — ${brand} is free and open source under the MIT license. You can clone the repository, build your product on top of it, and ship commercially with no fees or attribution requirements. The pricing plans shown in the demo are an example of what you can build with the template; they are not a cost to use ${brand} itself.`,
       },
       {
-        q: 'What is BeakerStack?',
-        a: 'BeakerStack is an opinionated full-stack template built on React, React Native, Supabase, and Stripe. It gives you auth, billing, and a cross-platform foundation ready to customize for your product.',
+        q: `What is ${brand}?`,
+        a: `${brand} is an opinionated full-stack template built on React, React Native, Supabase, and Stripe. It gives you auth, billing, and a cross-platform foundation ready to customize for your product.`,
       },
       {
         q: 'Is it really open source?',
@@ -316,7 +315,7 @@ export const landingConfig: LandingConfig = {
       },
       {
         q: 'How does billing work?',
-        a: 'BeakerStack uses Stripe for payments and Supabase for subscription state. You define your plans in a config file, run a sync script to create them in Stripe, and the billing UI is ready.',
+        a: `${brand} uses Stripe for payments and Supabase for subscription state. You define your plans in a config file, run a sync script to create them in Stripe, and the billing UI is ready.`,
       },
       {
         q: 'Can I use this for a commercial product?',
@@ -330,7 +329,7 @@ export const landingConfig: LandingConfig = {
   },
   finalCta: {
     headline: 'Ready to stop rebuilding the same foundation?',
-    subhead: 'Clone BeakerStack, swap the config, and ship your product.',
+    subhead: `Clone ${brand}, swap the config, and ship your product.`,
     ctaLabel: 'Get started free',
     ctaHref: '/signup',
     secondaryCta: {
