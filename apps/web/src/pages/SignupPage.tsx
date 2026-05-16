@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
+import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 import { supabase } from '@/lib/supabase';
 import { SocialLoginButton } from '../components/SocialLoginButton';
 import { SignupPlanSummary } from '../components/auth/SignupPlanSummary';
@@ -110,7 +111,7 @@ function SignupPageContent() {
     return (
       <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
         <AppHeader supabaseClient={supabase} />
-        <div className='max-w-[1024px] mx-auto py-12 px-4 sm:px-6 lg:px-8'>
+        <ContentContainer className='py-12'>
           <div className='mx-auto max-w-md rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-sm'>
             <h2 className='text-xl font-semibold text-gray-900 dark:text-white'>
               Check your email
@@ -127,7 +128,7 @@ function SignupPageContent() {
               </Link>
             </p>
           </div>
-        </div>
+        </ContentContainer>
       </div>
     );
   }
@@ -135,7 +136,7 @@ function SignupPageContent() {
   return (
     <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
       <AppHeader supabaseClient={supabase} />
-      <div className='max-w-[1024px] mx-auto py-12 px-4 sm:px-6 lg:px-8'>
+      <ContentContainer className='py-12'>
         <div
           className={
             showPlanAside
@@ -266,7 +267,7 @@ function SignupPageContent() {
             </div>
           ) : null}
         </div>
-      </div>
+      </ContentContainer>
     </div>
   );
 }

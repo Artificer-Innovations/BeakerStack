@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { Plan } from '@beakerstack/billing';
-import type { PlanSavingsCopy } from '../../../billing/billingSyncDisplay';
+import type { PlanSavingsCopy } from '@beakerstack/billing/presentation';
 import { LoginPlanSummary, SignupPlanSummary } from '../SignupPlanSummary';
 
 const proPlan: Plan = {
@@ -38,7 +38,7 @@ vi.mock('../../../auth/planSignupBullets', () => ({
   planSignupBullets: vi.fn(() => ['First bullet', 'Second bullet']),
 }));
 
-vi.mock('../../../billing/billingSyncDisplay', () => ({
+vi.mock('@beakerstack/billing/presentation', () => ({
   annualListCentsFromSync: vi.fn(() => 22_800),
   formatSavingsCalloutFromCopy: vi.fn((copy: PlanSavingsCopy) =>
     copy.kind === 'percent' ? `(Save ~${copy.pct}%)` : ''
@@ -52,7 +52,7 @@ vi.mock('../../../billing/billingSyncDisplay', () => ({
 
 import { usePlanCatalog } from '@beakerstack/billing';
 import { getCadenceFromSearch } from '../../billing/CadenceToggle.web';
-import * as billingSync from '../../../billing/billingSyncDisplay';
+import * as billingSync from '@beakerstack/billing/presentation';
 import { planSignupBullets } from '../../../auth/planSignupBullets';
 
 describe('PlanIntentSummary', () => {

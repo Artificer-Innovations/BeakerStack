@@ -80,6 +80,9 @@ export type BillingContextValue<
   subscriptionLoading: boolean;
   subscriptionError: BillingError | null;
   refreshSubscription: () => Promise<void>;
+  plan: Plan | null;
+  planLoading: boolean;
+  planError: BillingError | null;
   checkoutSuccessUrl: string;
   checkoutCancelUrl: string;
   portalReturnUrl: string;

@@ -11,7 +11,10 @@
       "@beakerstack/shared/*": ["../../packages/shared/src/*"],
       "@beakerstack/billing": ["../../packages/billing/src/index.ts"],
       "@beakerstack/billing/web": ["../../packages/billing/src/web.ts"],
-      "@beakerstack/billing/native": ["../../packages/billing/src/native.ts"]
+      "@beakerstack/billing/native": ["../../packages/billing/src/native.ts"],
+      "@beakerstack/billing/presentation": [
+        "../../packages/billing/src/presentation/index.ts"
+      ]
     }
   },
   "include": [

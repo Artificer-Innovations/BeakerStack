@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { billingError, mapUnknownError } from '../errors.js';
 import type { BillingError } from '../errors.js';
 import type { ProductBillingConfig } from '../schema.js';
+import { parseBillingFunctionError } from '../utils/parseBillingFunctionError.js';
 import { useBillingContext } from './useBillingContext.js';
 
 export function useCustomerPortal<
@@ -35,7 +36,7 @@ export function useCustomerPortal<
           },
         }
       );
-      if (fnErr) throw fnErr;
+      if (fnErr) throw parseBillingFunctionError(data, fnErr);
       const url = (data as { url?: string })?.url;
       if (!url) {
         throw billingError(

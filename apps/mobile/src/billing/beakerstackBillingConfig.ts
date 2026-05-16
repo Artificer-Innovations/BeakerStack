@@ -2,6 +2,7 @@ import {
   defineBillingConfig,
   type InferFeatureKeys,
 } from '@beakerstack/billing';
+import { BRANDING } from '@beakerstack/shared/config/branding';
 
 /**
  * Template-owned billing config (Free / Pro / Max). IDs match `supabase/seed.sql`.
@@ -10,7 +11,7 @@ import {
  */
 export const beakerstackBillingConfig = defineBillingConfig({
   productId: 'beakerstack',
-  displayName: 'BeakerStack',
+  displayName: BRANDING.displayName,
   description: 'Template demo',
   plans: [
     {

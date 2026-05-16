@@ -301,8 +301,4 @@ describe('HomeScreen', () => {
     fireEvent.press(signUps[signUps.length - 1]);
     expect(mockNavigate).toHaveBeenCalledWith('Signup');
   });
-
-  // Note: Debug tools (database test, auth context test) are now in DebugTools component
-  // which is hidden by default and activated via 4 clicks in bottom left corner.
-  // These tests have been removed as the debug components are no longer directly visible.
 });

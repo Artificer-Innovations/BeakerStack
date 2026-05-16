@@ -1,7 +1,8 @@
+import { useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { BillingProvider, usePlanCatalog } from '@beakerstack/billing';
-import { supabase } from '../../../lib/supabase';
+import { BillingConfigProvider } from '@beakerstack/billing';
 import { beakerstackBillingConfig } from '../../../billing/beakerstackBillingConfig';
+import { getStaticPlans } from '../../../billing/staticPlanAdapter';
 import { PlanCard } from '../../billing/PlanCard.web';
 import {
   CadenceToggle,
@@ -11,34 +12,24 @@ import {
   annualListCentsFromSync,
   planAnnualSavingsCopy,
   formatSavingsCalloutFromCopy,
-} from '../../../billing/billingSyncDisplay';
+} from '@beakerstack/billing/presentation';
 import type { LandingConfig } from '../../../config/landing';
+import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 
 interface PricingSectionProps {
   config: LandingConfig['pricing'];
 }
 
-function appBasePath(): string {
-  if (typeof window === 'undefined') return '';
-  return `${window.location.origin}${(import.meta.env.BASE_URL || '/').replace(/\/$/, '')}`;
-}
-
-function LandingPricingTable() {
+function StaticPricingTable() {
   const navigate = useNavigate();
   const [search] = useSearchParams();
   const cadence = getCadenceFromSearch(search);
-  const { plans, loading } = usePlanCatalog<typeof beakerstackBillingConfig>();
-
-  if (loading) {
-    return (
-      <p className='mt-8 text-center text-sm text-gray-500'>Loading plans…</p>
-    );
-  }
+  const plans = useMemo(() => getStaticPlans(), []);
 
   return (
     <div>
       <div className='mb-8'>
-        <CadenceToggle />
+        <CadenceToggle plans={plans} />
       </div>
       <div className='grid grid-cols-1 gap-6 md:grid-cols-3'>
         {plans.map(plan => {
@@ -103,14 +94,12 @@ function LandingPricingTable() {
 }
 
 export function PricingSection({ config }: PricingSectionProps) {
-  const base = appBasePath();
-
   return (
     <section
       id='pricing'
       className='py-20 md:py-24 bg-gray-50 dark:bg-gray-900'
     >
-      <div className='max-w-[1200px] mx-auto px-6'>
+      <ContentContainer>
         <div className='text-center mb-12'>
           <h2 className='text-3xl font-bold text-gray-900 dark:text-white mb-3'>
             {config.heading}
@@ -119,21 +108,15 @@ export function PricingSection({ config }: PricingSectionProps) {
             {config.subhead}
           </p>
         </div>
-        <BillingProvider<typeof beakerstackBillingConfig>
-          supabase={supabase}
-          config={beakerstackBillingConfig}
-          checkoutSuccessUrl={`${base}/billing?checkout=success`}
-          checkoutCancelUrl={`${base}/billing/plans?checkout=cancel`}
-          portalReturnUrl={`${base}/billing`}
-        >
-          <LandingPricingTable />
-        </BillingProvider>
+        <BillingConfigProvider config={beakerstackBillingConfig}>
+          <StaticPricingTable />
+        </BillingConfigProvider>
         {config.disclaimer && (
           <p className='mt-8 text-center text-sm text-gray-500 dark:text-gray-400 max-w-2xl mx-auto'>
             {config.disclaimer}
           </p>
         )}
-      </div>
+      </ContentContainer>
     </section>
   );
 }

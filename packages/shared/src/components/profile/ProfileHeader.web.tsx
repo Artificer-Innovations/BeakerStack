@@ -18,8 +18,12 @@ export function ProfileHeader({
 }: ProfileHeaderProps) {
   if (!profile) {
     return (
-      <div className={`rounded-md bg-gray-50 p-4 ${className}`}>
-        <p className='text-sm text-gray-600'>No profile data available.</p>
+      <div
+        className={`rounded-md bg-gray-50 dark:bg-gray-800 p-4 ${className}`}
+      >
+        <p className='text-sm text-gray-600 dark:text-gray-400'>
+          No profile data available.
+        </p>
       </div>
     );
   }
@@ -34,12 +38,16 @@ export function ProfileHeader({
       <div className='flex items-start space-x-4'>
         <ProfileAvatar profile={profile} size='large' />
         <div className='flex-1 min-w-0'>
-          <h2 className='text-2xl font-bold text-gray-900 truncate'>
+          <h2 className='text-2xl font-bold text-gray-900 dark:text-white truncate'>
             {displayName}
           </h2>
-          {username && <p className='text-sm text-gray-500 mt-1'>{username}</p>}
+          {username && (
+            <p className='text-sm text-gray-500 dark:text-gray-400 mt-1'>
+              {username}
+            </p>
+          )}
           {hasMetadata && (
-            <div className='flex flex-wrap gap-4 mt-2 text-sm text-gray-600'>
+            <div className='flex flex-wrap gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400'>
               {email && (
                 <span className='flex items-center'>
                   <svg
@@ -87,7 +95,7 @@ export function ProfileHeader({
                   href={profile.website}
                   target='_blank'
                   rel='noopener noreferrer'
-                  className='flex items-center text-blue-600 hover:text-blue-800 hover:underline'
+                  className='flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline'
                 >
                   <svg
                     className='w-4 h-4 mr-1'
@@ -112,7 +120,9 @@ export function ProfileHeader({
         </div>
       </div>
       {profile.bio && (
-        <p className='text-gray-700 whitespace-pre-wrap'>{profile.bio}</p>
+        <p className='text-gray-700 dark:text-gray-300 whitespace-pre-wrap'>
+          {profile.bio}
+        </p>
       )}
     </div>
   );

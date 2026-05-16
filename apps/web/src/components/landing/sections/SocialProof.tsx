@@ -1,4 +1,5 @@
 import type { LandingConfig } from '../../../config/landing';
+import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 
 interface SocialProofProps {
   config?: LandingConfig['socialProof'];
@@ -10,7 +11,7 @@ export function SocialProof({ config }: SocialProofProps) {
   if (config.kind === 'metrics') {
     return (
       <section className='py-16 border-y border-gray-200 dark:border-gray-800'>
-        <div className='max-w-[1200px] mx-auto px-6'>
+        <ContentContainer>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-8 text-center'>
             {config.items.map(item => (
               <div key={item.metric}>
@@ -23,7 +24,7 @@ export function SocialProof({ config }: SocialProofProps) {
               </div>
             ))}
           </div>
-        </div>
+        </ContentContainer>
       </section>
     );
   }
@@ -31,7 +32,7 @@ export function SocialProof({ config }: SocialProofProps) {
   if (config.kind === 'testimonials') {
     return (
       <section className='py-20 bg-gray-50 dark:bg-gray-900'>
-        <div className='max-w-[1200px] mx-auto px-6'>
+        <ContentContainer>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             {config.items.map(item => (
               <blockquote
@@ -54,7 +55,7 @@ export function SocialProof({ config }: SocialProofProps) {
               </blockquote>
             ))}
           </div>
-        </div>
+        </ContentContainer>
       </section>
     );
   }

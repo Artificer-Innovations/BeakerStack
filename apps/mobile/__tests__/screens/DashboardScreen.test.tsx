@@ -301,20 +301,9 @@ describe('DashboardScreen', () => {
     );
 
     await waitFor(() => {
-      expect(getByText(/welcome to beakerstack/i)).toBeTruthy();
+      expect(getByText('Simulate AI summarize')).toBeTruthy();
+      expect(getByText('Boolean feature gates')).toBeTruthy();
     });
-  });
-
-  it('navigates to Billing when polished billing link is pressed', async () => {
-    const { getByText } = renderWithProviders(
-      <DashboardScreen navigation={mockNavigation} />
-    );
-
-    await waitFor(() => {
-      expect(getByText(/welcome to beakerstack/i)).toBeTruthy();
-    });
-    fireEvent.press(getByText('View polished billing →'));
-    expect(mockNavigate).toHaveBeenCalledWith('Billing');
   });
 
   it('records metered usage and shows fake AI summary when Simulate AI summarize is pressed', async () => {
@@ -335,6 +324,7 @@ describe('DashboardScreen', () => {
       expect.objectContaining({
         p_product_id: 'beakerstack',
         p_quantity: 1,
+        p_idempotency_key: expect.any(String),
       })
     );
   });
@@ -359,7 +349,8 @@ describe('DashboardScreen', () => {
     );
 
     await waitFor(() => {
-      expect(getByText(/Limit reached — open Billing for plans/i)).toBeTruthy();
+      expect(getByText('Limit reached')).toBeTruthy();
+      expect(getByText(/Monthly limit reached for this meter/i)).toBeTruthy();
     });
   });
 
@@ -399,12 +390,11 @@ describe('DashboardScreen', () => {
     );
 
     await waitFor(() => {
-      expect(getByText('Add collection')).toBeTruthy();
+      expect(getByText('+ New collection')).toBeTruthy();
     });
-    fireEvent.press(getByText('Add collection'));
+    fireEvent.press(getByText('+ New collection'));
 
     await waitFor(() => {
-      expect(getByText(/Collections:/)).toBeTruthy();
       expect(getByText(/1 of 2/)).toBeTruthy();
     });
   });
@@ -589,7 +579,7 @@ describe('DashboardScreen', () => {
     });
   });
 
-  it('shows Failed when addItem throws a non-Error from RPC', async () => {
+  it('shows Action failed when addItem rejects with a non-Error from RPC', async () => {
     const billing = jest.requireMock('@beakerstack/billing') as {
       useFeature: jest.Mock;
     };
@@ -643,12 +633,12 @@ describe('DashboardScreen', () => {
     );
 
     await waitFor(() => {
-      expect(getByText('Add item')).toBeTruthy();
+      expect(getByText('+ Add item')).toBeTruthy();
     });
-    fireEvent.press(getByText('Add item'));
+    fireEvent.press(getByText('+ Add item'));
 
     await waitFor(() => {
-      expect(getByText('Failed')).toBeTruthy();
+      expect(getByText('Action failed.')).toBeTruthy();
     });
   });
 
@@ -694,13 +684,13 @@ describe('DashboardScreen', () => {
     );
 
     await waitFor(() => {
-      expect(getByText('Delete')).toBeTruthy();
+      expect(getByText('Del')).toBeTruthy();
     });
-    fireEvent.press(getByText('Delete'));
+    fireEvent.press(getByText('Del'));
 
     await waitFor(() => {
       expect(
-        getByText(/No collections yet\. Tap Add collection to start\./)
+        getByText(/No collections yet\. Tap 'New collection' to start\./)
       ).toBeTruthy();
     });
   });
@@ -756,7 +746,7 @@ describe('DashboardScreen', () => {
     );
 
     await waitFor(() => {
-      expect(getByText('Limit')).toBeTruthy();
+      expect(getByText('Item limit reached')).toBeTruthy();
     });
   });
 });

@@ -374,7 +374,7 @@ function mergeRecords(base, patch) {
 /**
  * @param {string} cmd
  * @param {string[]} args
- * @param {{ cwd?: string; stdin?: string }} opts
+ * @param {{ cwd?: string; stdin?: string; env?: NodeJS.ProcessEnv }} opts
  */
 function runInteractive(cmd, args, opts = {}) {
   const res = spawnSync(cmd, args, {
@@ -1023,6 +1023,7 @@ function resolveGhRepo() {
   const r = spawnSync('gh', ['repo', 'view', '--json', 'nameWithOwner', '-q', '.nameWithOwner'], {
     cwd: REPO_ROOT,
     encoding: 'utf8',
+    stdio: ['pipe', 'pipe', 'pipe'],
   });
   if (r.status !== 0) return '';
   return (r.stdout || '').trim();
@@ -1257,8 +1258,8 @@ async function phaseSupabase(flags, rl, acc, promptInput) {
           acc.SUPABASE_PREVIEW_PROJECT_REF = 'dry-run-ref';
           acc.SUPABASE_PREVIEW_DB_PASSWORD = dbPlaceholder;
           acc.SUPABASE_PREVIEW_DB_URL = 'postgresql://postgres:[redacted]@db.dry-run-ref.supabase.co:5432/postgres';
-          acc.PR_TESTING_SUPABASE_URL = acc.PREVIEW_SUPABASE_URL;
-          acc.PR_TESTING_SUPABASE_ANON_KEY = acc.PREVIEW_SUPABASE_ANON_KEY;
+          acc.PR_TESTING_SUPABASE_URL = 'https://dry-run.supabase.co';
+          acc.PR_TESTING_SUPABASE_ANON_KEY = 'dry-run-anon';
           acc.PR_TESTING_SUPABASE_PROJECT_REF = 'dry-run-ref';
           acc.PR_TESTING_SUPABASE_SERVICE_ROLE_KEY = 'dry-run-service';
         }
@@ -1624,7 +1625,16 @@ async function phaseAws(flags, rl, acc) {
   }
 
   logInfo('Running bootstrap-aws-stack.sh (outputs go to .env.aws.generated.local)');
-  const code = runInteractive('bash', args, { cwd: REPO_ROOT, env: childProcessEnvForSpawn() });
+  // Merge accumulated Supabase URLs into the child environment so bootstrap-aws-stack.sh
+  // can inject them into the CloudFormation CSP parameters. These values live in acc (not
+  // process.env) because they were discovered interactively during this setup session.
+  const bootstrapEnv = {
+    ...childProcessEnvForSpawn(),
+    ...(acc.PRODUCTION_SUPABASE_URL && { PRODUCTION_SUPABASE_URL: acc.PRODUCTION_SUPABASE_URL }),
+    ...(acc.STAGING_SUPABASE_URL && { STAGING_SUPABASE_URL: acc.STAGING_SUPABASE_URL }),
+    ...(acc.PREVIEW_SUPABASE_URL && { PREVIEW_SUPABASE_URL: acc.PREVIEW_SUPABASE_URL }),
+  };
+  const code = runInteractive('bash', args, { cwd: REPO_ROOT, env: bootstrapEnv });
   if (code !== 0) {
     logWarn(
       'AWS bootstrap failed. Common causes: retained S3 buckets for this apex (see preflight), duplicate CloudFront aliases, IAM permissions, or ACM in us-east-1. Scroll up for [DIAG] lines from bootstrap-aws-stack.sh.',

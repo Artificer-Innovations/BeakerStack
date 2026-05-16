@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { billingError, mapUnknownError } from '../errors.js';
 import type { BillingError } from '../errors.js';
 import type { ProductBillingConfig } from '../schema.js';
+import { parseBillingFunctionError } from '../utils/parseBillingFunctionError.js';
 import { useBillingContext } from './useBillingContext.js';
 
 export function useCheckout<
@@ -50,7 +51,7 @@ export function useCheckout<
           { body }
         );
         if (fnErr) {
-          throw fnErr;
+          throw parseBillingFunctionError(data, fnErr);
         }
         const checkoutUrl = (data as { checkoutUrl?: string })?.checkoutUrl;
         if (!checkoutUrl) {

@@ -5,7 +5,7 @@
  *
  * Usage:
  *   STRIPE_SECRET_KEY=sk_test_... SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \
- *     node scripts/sync-billing-stripe.mjs --config apps/web/src/billing/billing-sync.json
+ *     node scripts/sync-billing-stripe.mjs --config packages/billing/src/presentation/billing-sync.json
  *
  * Free plans are skipped (no Stripe price). Each paid plan should list `prices` with
  * one `interval: "month"` and one `interval: "year"`.
@@ -36,7 +36,7 @@ async function ensurePrice(stripe, stripeProductId, productId, planId, def) {
   });
   const key = lookupKey || `${planId}_${interval}`;
   let price = prices.data.find(
-    (x) => x.lookup_key === key || x.metadata?.billing_plan_cadence === key
+    x => x.lookup_key === key || x.metadata?.billing_plan_cadence === key
   );
   if (!price) {
     price = await stripe.prices.create({
@@ -61,11 +61,15 @@ async function main() {
   const url = process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!sk || !url || !serviceKey) {
-    console.error('Missing STRIPE_SECRET_KEY, SUPABASE_URL, or SUPABASE_SERVICE_ROLE_KEY');
+    console.error(
+      'Missing STRIPE_SECRET_KEY, SUPABASE_URL, or SUPABASE_SERVICE_ROLE_KEY'
+    );
     process.exit(1);
   }
   if (!configPath) {
-    console.error('Usage: node scripts/sync-billing-stripe.mjs --config <path-to-billing-sync.json>');
+    console.error(
+      'Usage: node scripts/sync-billing-stripe.mjs --config <path-to-billing-sync.json>'
+    );
     process.exit(1);
   }
 
@@ -87,7 +91,9 @@ async function main() {
 
   let stripeProductId;
   const existing = await stripe.products.list({ active: true, limit: 100 });
-  const found = existing.data.find((p) => p.metadata?.billing_product_id === productId);
+  const found = existing.data.find(
+    p => p.metadata?.billing_product_id === productId
+  );
   if (found) {
     stripeProductId = found.id;
   } else {
@@ -106,7 +112,11 @@ async function main() {
     let prices = priceList;
     if (!prices && unitAmount != null) {
       prices = [
-        { unitAmount, currency: currency || 'usd', interval: interval || 'month' },
+        {
+          unitAmount,
+          currency: currency || 'usd',
+          interval: interval || 'month',
+        },
       ];
     }
     if (!prices || prices.length === 0) {
@@ -151,7 +161,7 @@ async function main() {
   }
 }
 
-main().catch((e) => {
+main().catch(e => {
   console.error(e);
   process.exit(1);
 });

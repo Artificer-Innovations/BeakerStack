@@ -17,13 +17,11 @@ import {
 } from '../../billing/beakerstackBillingConfig';
 import {
   annualListCentsFromSync,
+  computeDowngradeBlockers,
   formatSavingsCalloutFromCopy,
   planAnnualSavingsCopy,
-} from '../../billing/billingSyncDisplay';
-import {
-  computeDowngradeBlockers,
   type DowngradeBlockersResult,
-} from '../../billing/constraintBlockers';
+} from '@beakerstack/billing/presentation';
 import { useDemoCollectionCount } from '../../billing/useDemoCollectionCount';
 import {
   CadenceToggle,
@@ -262,15 +260,17 @@ export default function BillingPlansPage() {
   );
 
   return (
-    <BillingPageShell maxWidthClass='max-w-[1024px]'>
-      <h1 className='text-2xl font-bold text-gray-900'>Billing</h1>
+    <BillingPageShell>
+      <h1 className='text-2xl font-bold text-gray-900 dark:text-white'>
+        Billing
+      </h1>
       <div className='mt-4'>
         <BillingTabs />
       </div>
-      <h2 className='mt-6 text-xl font-semibold text-gray-900'>
+      <h2 className='mt-6 text-xl font-semibold text-gray-900 dark:text-white'>
         Choose a plan
       </h2>
-      <p className='mt-1 text-sm text-gray-600'>
+      <p className='mt-1 text-sm text-gray-600 dark:text-gray-400'>
         Switch plans or update your billing cadence anytime.
       </p>
       <div className='mt-6'>
@@ -279,13 +279,13 @@ export default function BillingPlansPage() {
       {welcomeFromPricing && welcomePlanMeta ? (
         <div
           role='status'
-          className='mt-6 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-950'
+          className='mt-6 rounded-lg border border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/30 px-4 py-3 text-sm text-indigo-950 dark:text-indigo-100'
         >
           <p className='font-medium'>
             You&apos;re almost there — finish checkout for{' '}
             {welcomePlanMeta.display_name}
           </p>
-          <p className='mt-1 text-indigo-900/90'>
+          <p className='mt-1 text-indigo-900/90 dark:text-indigo-200'>
             {cadence === 'annual'
               ? 'Annual billing is selected below. Use Upgrade to start checkout when you are ready.'
               : 'Monthly billing is selected below. Use Upgrade to start checkout when you are ready.'}
@@ -293,7 +293,9 @@ export default function BillingPlansPage() {
         </div>
       ) : null}
       {catLoad ? (
-        <p className='mt-8 text-sm text-gray-500'>Loading plans…</p>
+        <p className='mt-8 text-sm text-gray-500 dark:text-gray-400'>
+          Loading plans…
+        </p>
       ) : (
         <div className='mt-8 grid grid-cols-1 gap-6 md:grid-cols-3'>
           {plans.map(p => {
@@ -346,7 +348,7 @@ export default function BillingPlansPage() {
           })}
         </div>
       )}
-      <p className='mt-8 text-center text-xs text-gray-500'>
+      <p className='mt-8 text-center text-xs text-gray-500 dark:text-gray-400'>
         All plans billed in USD. Taxes calculated at checkout where applicable.
         Cancel anytime. Plans with a trial convert to paid at trial end unless
         you cancel before then (manage in Stripe customer portal).

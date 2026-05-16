@@ -1,7 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import PolicyPage from '../PolicyPage';
+
+vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost:54321');
 
 vi.mock('@beakerstack/shared/generated/policies', () => ({
   POLICIES: {
@@ -10,12 +12,6 @@ vi.mock('@beakerstack/shared/generated/policies', () => ({
     refunds: '<h1>Refunds Policy</h1><p>Refunds content.</p>',
   },
 }));
-
-vi.mock('@beakerstack/shared/components/navigation/AppHeader.web', () => ({
-  AppHeader: () => <header data-testid='app-header' />,
-}));
-
-vi.mock('@/lib/supabase', () => ({ supabase: {} }));
 
 function renderPolicy(policy: 'terms' | 'privacy' | 'refunds') {
   return render(
@@ -26,6 +22,10 @@ function renderPolicy(policy: 'terms' | 'privacy' | 'refunds') {
 }
 
 describe('PolicyPage', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it('renders terms HTML content', () => {
     renderPolicy('terms');
     expect(
@@ -50,8 +50,11 @@ describe('PolicyPage', () => {
     expect(screen.getByText('Refunds content.')).toBeInTheDocument();
   });
 
-  it('renders app header', () => {
+  it('renders public marketing header with Sign in link', () => {
     renderPolicy('terms');
-    expect(screen.getByTestId('app-header')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute(
+      'href',
+      '/login'
+    );
   });
 });

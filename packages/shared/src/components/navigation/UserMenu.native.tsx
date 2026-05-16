@@ -38,7 +38,6 @@ export interface UserMenuProps {
  */
 export function UserMenu({ user, profile, navigation }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef<View>(null);
   const avatarRef = useRef<View>(null);
   const [avatarLayout, setAvatarLayout] = useState({
     x: 0,
@@ -87,7 +86,7 @@ export function UserMenu({ user, profile, navigation }: UserMenuProps) {
 
   return (
     <>
-      <View style={styles.container} ref={menuRef}>
+      <View style={styles.container}>
         <View ref={avatarRef} collapsable={false}>
           <TouchableOpacity
             accessibilityLabel='Open user menu'
@@ -157,9 +156,7 @@ export function UserMenu({ user, profile, navigation }: UserMenuProps) {
                 style={[styles.menuItem, styles.menuItemDanger]}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.menuItemText, styles.menuItemDangerText]}>
-                  Sign Out
-                </Text>
+                <Text style={styles.menuItemText}>Sign Out</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -222,8 +219,5 @@ const styles = StyleSheet.create({
   menuItemText: {
     fontSize: 14,
     color: '#374151',
-  },
-  menuItemDangerText: {
-    color: '#374151', // Keep same color as web for consistency
   },
 });

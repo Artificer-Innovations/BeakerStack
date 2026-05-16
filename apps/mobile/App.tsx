@@ -2,13 +2,18 @@ import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
+import { BillingProvider } from '@beakerstack/billing';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 // Import from native-specific file for correct types
 import { configureGoogleSignIn } from '@beakerstack/shared/hooks/useAuth.native';
 import { Logger } from '@beakerstack/shared/utils/logger';
+import { beakerstackBillingConfig } from './src/billing/beakerstackBillingConfig';
+import { getMobileBillingProviderUrls } from './src/billing/mobileBillingUrls';
 import { supabase } from './src/lib/supabase';
 import { AppNavigator } from './src/navigation/AppNavigator';
+
+const mobileBillingUrls = getMobileBillingProviderUrls();
 
 export default function App() {
   useEffect(() => {
@@ -105,8 +110,16 @@ export default function App() {
   return (
     <AuthProvider supabaseClient={supabase}>
       <ProfileProvider supabaseClient={supabase}>
-        <AppNavigator />
-        <StatusBar style='auto' />
+        <BillingProvider<typeof beakerstackBillingConfig>
+          supabase={supabase}
+          config={beakerstackBillingConfig}
+          checkoutSuccessUrl={mobileBillingUrls.checkoutSuccessUrl}
+          checkoutCancelUrl={mobileBillingUrls.checkoutCancelUrl}
+          portalReturnUrl={mobileBillingUrls.portalReturnUrl}
+        >
+          <AppNavigator />
+          <StatusBar style='auto' />
+        </BillingProvider>
       </ProfileProvider>
     </AuthProvider>
   );

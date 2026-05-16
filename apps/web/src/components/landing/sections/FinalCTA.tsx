@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { LandingConfig } from '../../../config/landing';
+import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 
 interface FinalCTAProps {
   config: LandingConfig['finalCta'];
@@ -8,7 +9,7 @@ interface FinalCTAProps {
 export function FinalCTA({ config }: FinalCTAProps) {
   return (
     <section className='py-20 bg-gray-100 dark:bg-gray-800'>
-      <div className='max-w-[1200px] mx-auto px-6 text-center'>
+      <ContentContainer className='text-center'>
         <h2 className='text-3xl font-bold text-gray-900 dark:text-white mb-3'>
           {config.headline}
         </h2>
@@ -33,7 +34,7 @@ export function FinalCTA({ config }: FinalCTAProps) {
             </a>
           )}
         </div>
-      </div>
+      </ContentContainer>
     </section>
   );
 }

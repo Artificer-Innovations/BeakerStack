@@ -6,7 +6,7 @@ import {
   annualListCentsFromSync,
   formatSavingsCalloutFromCopy,
   planAnnualSavingsCopy,
-} from '../../billing/billingSyncDisplay';
+} from '@beakerstack/billing/presentation';
 import { getCadenceFromSearch } from '../billing/CadenceToggle.web';
 import { hasPaidPlanIntent } from '../../auth/postAuthRedirect';
 import { planSignupBullets } from '../../auth/planSignupBullets';
@@ -36,8 +36,10 @@ export function PlanIntentSummary({
 
   if (loading) {
     return (
-      <div className='rounded-xl border border-gray-200 bg-white p-6 shadow-sm'>
-        <p className='text-sm text-gray-500'>Loading plan…</p>
+      <div className='rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm'>
+        <p className='text-sm text-gray-500 dark:text-gray-400'>
+          Loading plan…
+        </p>
       </div>
     );
   }
@@ -80,15 +82,15 @@ export function PlanIntentSummary({
     <div
       className={
         mode === 'login'
-          ? 'rounded-lg border border-gray-200 bg-white p-4 shadow-sm'
-          : 'rounded-xl border border-indigo-100 bg-indigo-50/80 p-6 shadow-sm ring-1 ring-indigo-100'
+          ? 'rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm'
+          : 'rounded-xl border border-indigo-200 dark:border-indigo-700 bg-indigo-50/80 dark:bg-indigo-900/30 p-6 shadow-sm ring-1 ring-indigo-100 dark:ring-indigo-800'
       }
     >
       <p
         className={
           mode === 'login'
-            ? 'text-xs font-medium uppercase tracking-wide text-gray-500'
-            : 'text-xs font-semibold uppercase tracking-wide text-indigo-800'
+            ? 'text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400'
+            : 'text-xs font-semibold uppercase tracking-wide text-indigo-800 dark:text-indigo-300'
         }
       >
         {mode === 'login' ? 'Plan from pricing' : 'Your selection'}
@@ -96,14 +98,14 @@ export function PlanIntentSummary({
       <h3
         className={
           mode === 'login'
-            ? 'mt-1 text-lg font-semibold text-gray-900'
-            : 'mt-1 text-xl font-bold text-gray-900'
+            ? 'mt-1 text-lg font-semibold text-gray-900 dark:text-white'
+            : 'mt-1 text-xl font-bold text-gray-900 dark:text-white'
         }
       >
         {catalogPlan.display_name}
       </h3>
       {savingsCallout ? (
-        <p className='mt-1 text-xs font-semibold text-amber-900'>
+        <p className='mt-1 text-xs font-semibold text-amber-900 dark:text-amber-300'>
           {savingsCallout}
         </p>
       ) : null}
@@ -111,16 +113,18 @@ export function PlanIntentSummary({
         <p
           className={
             mode === 'login'
-              ? 'text-xl font-bold text-gray-900'
-              : 'text-2xl font-bold text-gray-900'
+              ? 'text-xl font-bold text-gray-900 dark:text-white'
+              : 'text-2xl font-bold text-gray-900 dark:text-white'
           }
         >
           {priceHeadline}
         </p>
-        <p className='text-sm text-gray-600'>{priceSubline}</p>
+        <p className='text-sm text-gray-600 dark:text-gray-400'>
+          {priceSubline}
+        </p>
       </div>
       {bullets.length > 0 ? (
-        <ul className='mt-4 list-inside list-disc space-y-1 text-sm text-gray-700'>
+        <ul className='mt-4 list-inside list-disc space-y-1 text-sm text-gray-700 dark:text-gray-300'>
           {bullets.map((line, i) => (
             <li key={`${mode}-bullet-${i}`}>{line}</li>
           ))}

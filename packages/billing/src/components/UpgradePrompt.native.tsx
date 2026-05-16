@@ -1,7 +1,10 @@
 import type { ReactElement } from 'react';
+import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { mapUnknownError } from '../errors.js';
 import { useCheckout } from '../hooks/useCheckout.js';
 import type { ProductBillingConfig } from '../schema.js';
+import { launchStripeCheckout } from '../utils/launchStripeCheckout.native.js';
 import type { UpgradePromptProps } from './UpgradePrompt.types.js';
 
 export function UpgradePrompt<P extends ProductBillingConfig>({
@@ -12,14 +15,19 @@ export function UpgradePrompt<P extends ProductBillingConfig>({
   style,
 }: UpgradePromptProps): ReactElement {
   const planId = suggestedPlanId ?? targetTier;
-  const { startCheckout, pending, error } = useCheckout<P>();
+  const { startCheckout, pending, error: checkoutError } = useCheckout<P>();
+  const [openError, setOpenError] = useState<string | null>(null);
 
   const onUpgrade = async () => {
     if (!planId) return;
-    const r = await startCheckout(planId);
-    if (r?.checkoutUrl) {
-      const { Linking } = await import('react-native');
-      await Linking.openURL(r.checkoutUrl);
+    setOpenError(null);
+    try {
+      const ok = await launchStripeCheckout(startCheckout, planId);
+      if (!ok && !checkoutError) {
+        setOpenError('Could not start checkout');
+      }
+    } catch (e) {
+      setOpenError(mapUnknownError(e).message);
     }
   };
 
@@ -27,10 +35,14 @@ export function UpgradePrompt<P extends ProductBillingConfig>({
     return <>{children({ onUpgrade, pending })}</>;
   }
 
+  const displayError = openError ?? checkoutError?.message;
+
   return (
     <View style={style}>
       <Text>{reason}</Text>
-      {error ? <Text style={{ color: 'red' }}>{error.message}</Text> : null}
+      {displayError ? (
+        <Text style={{ color: 'red' }}>{displayError}</Text>
+      ) : null}
       <Pressable disabled={pending} onPress={() => void onUpgrade()}>
         <Text>{pending ? '…' : 'Upgrade'}</Text>
       </Pressable>

@@ -19,6 +19,12 @@ jest.mock('expo-constants', () => ({
   },
 }));
 
+jest.mock('@beakerstack/billing', () => ({
+  __esModule: true,
+  BillingProvider: ({ children }: { children: React.ReactNode }) => children,
+  defineBillingConfig: (c: unknown) => c,
+}));
+
 // Mock expo-updates (added for OTA update debugging)
 jest.mock('expo-updates', () => ({
   isEnabled: false,
@@ -159,7 +165,7 @@ jest.mock('@beakerstack/shared/components/forms/FormError.native', () => ({
 }));
 
 // Avoid loading @beakerstack/billing in Jest (package uses TS paths Jest does not resolve like Metro)
-jest.mock('../src/screens/BillingScreen', () => {
+jest.mock('../src/navigation/BillingNavigator', () => {
   const { View, Text } = require('react-native');
   return {
     __esModule: true,

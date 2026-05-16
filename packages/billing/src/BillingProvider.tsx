@@ -10,7 +10,7 @@ import { BillingConfigReactContext, BillingReactContext } from './context.js';
 import { billingError, mapUnknownError } from './errors.js';
 import type { ProductBillingConfig } from './schema.js';
 import { productBillingConfigSchema } from './schema.js';
-import type { BillingContextValue, SubscriptionRow } from './types.js';
+import type { BillingContextValue, Plan, SubscriptionRow } from './types.js';
 
 export type BillingProviderProps<P extends ProductBillingConfig> = {
   supabase: SupabaseClient;
@@ -43,6 +43,11 @@ export function BillingProvider<P extends ProductBillingConfig>({
   const [subscriptionError, setSubscriptionError] = useState<ReturnType<
     typeof billingError
   > | null>(null);
+  const [plan, setPlan] = useState<Plan | null>(null);
+  const [planLoading, setPlanLoading] = useState(true);
+  const [planError, setPlanError] = useState<ReturnType<
+    typeof billingError
+  > | null>(null);
   const channelRef = useRef<ReturnType<SupabaseClient['channel']> | null>(null);
 
   const loadSubscription = useCallback(
@@ -72,6 +77,48 @@ export function BillingProvider<P extends ProductBillingConfig>({
     if (!userId) return;
     await loadSubscription(userId);
   }, [userId, loadSubscription]);
+
+  useEffect(() => {
+    if (subscriptionLoading) {
+      setPlanLoading(true);
+      return;
+    }
+    if (!subscription?.plan_id) {
+      setPlan(null);
+      setPlanLoading(false);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      setPlanLoading(true);
+      setPlanError(null);
+      try {
+        const { data, error: qErr } = await supabase
+          .from('billing_plans')
+          .select('*')
+          .eq('id', subscription.plan_id)
+          .maybeSingle();
+        if (qErr) throw qErr;
+        if (!cancelled) {
+          setPlan(
+            data
+              ? ({
+                  ...data,
+                  features: data.features as Plan['features'],
+                } as Plan)
+              : null
+          );
+        }
+      } catch (e) {
+        if (!cancelled) setPlanError(mapUnknownError(e));
+      } finally {
+        if (!cancelled) setPlanLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase, subscription?.plan_id, subscriptionLoading]);
 
   useEffect(() => {
     let cancelled = false;
@@ -155,7 +202,10 @@ export function BillingProvider<P extends ProductBillingConfig>({
   /** After Stripe Checkout, the row is written by `stripe-webhook` (async). Poll briefly so the UI updates even if Realtime lags or the user lands before the webhook finishes. */
   useEffect(() => {
     if (typeof window === 'undefined' || !userId) return;
-    const sp = new URLSearchParams(window.location.search);
+    // React Native / Hermes often defines `window` without `window.location`.
+    const search = window.location?.search ?? '';
+    if (!search) return;
+    const sp = new URLSearchParams(search);
     if (sp.get('checkout') !== 'success') return;
 
     let attempts = 0;
@@ -178,6 +228,9 @@ export function BillingProvider<P extends ProductBillingConfig>({
       subscriptionLoading,
       subscriptionError,
       refreshSubscription,
+      plan,
+      planLoading,
+      planError,
       checkoutSuccessUrl,
       checkoutCancelUrl,
       portalReturnUrl,
@@ -191,6 +244,9 @@ export function BillingProvider<P extends ProductBillingConfig>({
       subscriptionLoading,
       subscriptionError,
       refreshSubscription,
+      plan,
+      planLoading,
+      planError,
       checkoutSuccessUrl,
       checkoutCancelUrl,
       portalReturnUrl,

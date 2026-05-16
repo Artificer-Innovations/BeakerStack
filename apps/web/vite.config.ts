@@ -1,7 +1,15 @@
+import { readFileSync } from 'node:fs';
+import path from 'path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
-import path from 'path';
 import { BRANDING } from '../../packages/shared/src/config/branding';
+
+const viteConfigDir = path.dirname(fileURLToPath(import.meta.url));
+const criticalThemePath = path.join(
+  viteConfigDir,
+  'src/styles/critical-theme.css'
+);
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -15,7 +23,18 @@ export default defineConfig(({ mode }) => {
   const htmlBrandingPlugin: Plugin = {
     name: 'html-branding-transform',
     transformIndexHtml(html: string) {
-      let transformed = html.replace(/%APP_TITLE%/g, BRANDING.displayName);
+      const metaDescription = `${BRANDING.displayName} gives you auth, billing, and a cross-platform React foundation — ready to ship your SaaS.`;
+      const ogTitle = `${BRANDING.displayName} — Ship your SaaS faster.`;
+      let transformed = html
+        .replace(/%APP_TITLE%/g, BRANDING.displayName)
+        .replace(/%META_DESCRIPTION%/g, metaDescription)
+        .replace(/%OG_TITLE%/g, ogTitle);
+
+      const criticalCss = readFileSync(criticalThemePath, 'utf8').trim();
+      transformed = transformed.replace(
+        '</script>\n\n    <!-- Site-wide meta',
+        `</script>\n\n    <!-- Critical theme background — source: src/styles/critical-theme.css (also @import in index.css) -->\n    <style id="critical-theme-fouc">\n${criticalCss}\n    </style>\n\n    <!-- Site-wide meta`
+      );
 
       // Transform absolute paths in HTML to respect base path
       // Only transform if base path is not root (e.g., /pr-9)
@@ -32,6 +51,12 @@ export default defineConfig(({ mode }) => {
             // Transform /path to /basePath/path
             return `${attr}="${basePath}${path.substring(1)}"`;
           }
+        );
+      }
+
+      if (!transformed.includes('id="critical-theme-fouc"')) {
+        throw new Error(
+          'htmlBrandingPlugin: critical theme CSS was not injected — check index.html has </script> then <!-- Site-wide meta (two newlines between).'
         );
       }
 
@@ -58,6 +83,20 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       __DEV__: JSON.stringify(isDev),
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('/node_modules/@supabase/')) {
+              return 'supabase-vendor';
+            }
+            if (id.includes('/node_modules/lucide-react')) {
+              return 'icons-vendor';
+            }
+          },
+        },
+      },
     },
     // Externalize router packages in SSR/vite-node context so both
     // react-router-dom (ESM, used by app components) and
@@ -86,12 +125,25 @@ export default defineConfig(({ mode }) => {
           '**/dist/',
           '**/build/',
           '**/types/**',
-          '**/DebugTools.tsx',
           // Pure config/data files — no logic to test, always mocked in tests
           'src/config/landing.ts',
           'src/config/landing.example.alt.ts',
           // Build-time scripts — run by vite-node at build, not part of the app test suite
           'scripts/',
+          // SSR-only landing component — structural duplicate of LandingPage used by the
+          // prerender script only; covered by the build-time prerender smoke check
+          'src/components/landing/LandingPageSSR.tsx',
+          // Thin composition wrappers — routing/providers tested independently
+          'src/PublicShell.tsx',
+          'src/AuthenticatedApp.tsx',
+          // Display-only dashboard showcase components — no business logic;
+          // annotated UI primitives covered visually by preview deployment
+          'src/components/dashboard/AnnotatedPrimitive.tsx',
+          'src/components/dashboard/BooleanFeatureTiles.tsx',
+          'src/components/dashboard/DemoBanner.tsx',
+          'src/components/dashboard/FeatureGateCard.tsx',
+          // Pure TypeScript interface file — no executable code to test
+          '**/components/dashboard/types.ts',
         ],
       },
     },

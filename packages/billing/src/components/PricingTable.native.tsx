@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { usePlan } from '../hooks/usePlan.js';
 import { usePlanCatalog } from '../hooks/usePlanCatalog.js';
 import type { ProductBillingConfig } from '../schema.js';
@@ -28,19 +28,22 @@ export function PricingTable<P extends ProductBillingConfig>({
     );
   }
 
+  // Use plain Views (not FlatList): this component is often nested inside a
+  // parent ScrollView (e.g. mobile billing screen), and same-orientation
+  // VirtualizedList + ScrollView breaks windowing and triggers RN dev errors.
   return (
-    <FlatList
-      style={style}
-      data={plans}
-      keyExtractor={item => item.id}
-      renderItem={({ item: p }) => {
+    <View style={style}>
+      {plans.map(p => {
         const isCurrent =
           (highlightCurrent && currentPlan?.id === p.id) ||
           (highlightPlanId != null &&
             highlightPlanId !== '' &&
             p.id === highlightPlanId);
         return (
-          <View style={[styles.card, isCurrent && styles.cardHighlight]}>
+          <View
+            key={p.id}
+            style={[styles.card, isCurrent && styles.cardHighlight]}
+          >
             <Text style={styles.title}>{p.display_name}</Text>
             <Text>
               {(p.price_cents / 100).toFixed(2)} USD / {p.billing_period}
@@ -57,8 +60,8 @@ export function PricingTable<P extends ProductBillingConfig>({
             ) : null}
           </View>
         );
-      }}
-    />
+      })}
+    </View>
   );
 }
 

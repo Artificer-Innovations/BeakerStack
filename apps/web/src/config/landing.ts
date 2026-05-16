@@ -1,3 +1,4 @@
+import { BRANDING } from '@beakerstack/shared/config/branding';
 import type { LucideIcon } from 'lucide-react';
 import {
   Zap,
@@ -9,7 +10,15 @@ import {
   GitBranch,
   TestTube,
   Database,
+  Megaphone,
+  Search,
+  Bot,
 } from 'lucide-react';
+
+function publicUrl(filename: string): string {
+  const base = (import.meta.env.BASE_URL ?? '/').replace(/\/$/, '');
+  return `${base}/${filename.replace(/^\//, '')}`;
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -114,9 +123,11 @@ export interface LandingConfig {
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
+const brand = BRANDING.displayName;
+
 export const landingConfig: LandingConfig = {
   brand: {
-    name: 'BeakerStack',
+    name: brand,
     tagline: 'Ship your SaaS faster.',
   },
   nav: {
@@ -131,33 +142,46 @@ export const landingConfig: LandingConfig = {
   hero: {
     eyebrow: 'Open source SaaS template',
     headline: 'Everything you need to ship a real product.',
-    subhead:
-      'BeakerStack gives you auth, billing, and a cross-platform React foundation — with a three-environment CI/CD pipeline, PR previews, and a layered test suite ready for production.',
+    subhead: `${brand} gives you auth, billing, and a cross-platform React foundation — with a three-environment CI/CD pipeline, PR previews, and a layered test suite ready for production.`,
     primaryCta: { label: 'Get started free', href: '/signup' },
     secondaryCta: { label: 'See features', href: '#features' },
-    mediaSrc: 'https://placehold.co/600x338?text=BeakerStack',
-    mediaAlt: 'BeakerStack dashboard screenshot',
+    mediaSrc: publicUrl('landing/hero.avif'),
+    mediaAlt: `${brand} pull request checks, environment setup wizard, and mobile app`,
     trustStrip: 'Built on React, React Native, Supabase, and Stripe.',
   },
   featureGrid: {
     heading: 'Everything wired. Nothing hidden.',
-    subhead:
-      'Stop stitching libraries together. BeakerStack ships the hard parts pre-integrated.',
+    subhead: `Stop stitching libraries together. ${brand} ships cross-platform apps, B2C-ready auth and billing, and a marketable web presence — all pre-integrated.`,
     items: [
+      {
+        icon: Smartphone,
+        title: 'Mobile from day one',
+        body: 'Reach users on iOS and Android with the same business logic as your web app — shared hooks, auth, and billing across React and React Native.',
+      },
       {
         icon: Zap,
         title: 'Auth out of the box',
-        body: 'Email, OAuth, and magic links via Supabase — no custom session handling required.',
+        body: 'Email, OAuth, and magic links via Supabase — session handling and protected routes are already wired for web and mobile.',
+      },
+      {
+        icon: Megaphone,
+        title: 'Marketing landing in config',
+        body: 'Hero, features, pricing, FAQ, and footer are driven from a typed config file — rebrand or white-label the landing page without rewriting JSX.',
+      },
+      {
+        icon: Search,
+        title: 'SEO-friendly home page',
+        body: 'The marketing home is pre-rendered to static HTML at build time with canonical and Open Graph URLs — better for crawlers and social previews than a blank SPA shell.',
       },
       {
         icon: CreditCard,
         title: 'Billing that works',
-        body: 'Stripe subscriptions, usage metering, plan gates, and a customer portal — ready to go.',
+        body: 'Stripe subscriptions, plan gates, a customer portal, and upgrade flows — the same patterns you need for self-serve B2C plans.',
       },
       {
-        icon: Smartphone,
-        title: 'Mobile from day one',
-        body: 'Shared business logic between your React web app and React Native mobile app.',
+        icon: BarChart3,
+        title: 'Usage metering',
+        body: 'Track feature usage per user, enforce limits, and surface quota data in the UI — ideal for free tiers and usage-based add-ons.',
       },
       {
         icon: Database,
@@ -170,9 +194,9 @@ export const landingConfig: LandingConfig = {
         body: 'End-to-end types from the database schema to your UI components.',
       },
       {
-        icon: BarChart3,
-        title: 'Usage metering',
-        body: 'Track feature usage per user, enforce limits, and surface quota data in the UI.',
+        icon: Bot,
+        title: 'Agent-friendly codebase',
+        body: 'Typed configs, schema-generated types, colocated tests with a decision matrix, and a clear monorepo layout give AI coding agents the structure they need to make safe, targeted changes.',
       },
       {
         icon: GitBranch,
@@ -195,21 +219,41 @@ export const landingConfig: LandingConfig = {
   },
   featureRows: [
     {
-      title: 'Billing that actually ships.',
-      body: 'Most templates stop at "add Stripe." BeakerStack includes plan gating, usage metering, upgrade prompts, a billing portal, and downgrade blockers — all wired to real Stripe products and ready for your plans.',
-      ctaLabel: 'See billing docs',
-      ctaHref: '#pricing',
-      mediaSrc: 'https://placehold.co/560x315?text=Billing+UI',
-      mediaAlt: 'Billing plans UI screenshot',
-      mediaSide: 'right',
-    },
-    {
       title: 'Web and mobile from a single codebase.',
       body: 'Shared auth logic. Shared billing hooks. Shared business rules. Your React web app and React Native mobile app stay in sync without duplicating work. About 40–60% of the codebase is shared across platforms.',
       ctaLabel: 'Learn about mobile',
       ctaHref: '#features',
-      mediaSrc: 'https://placehold.co/560x315?text=Mobile+App',
-      mediaAlt: 'Mobile app screenshot',
+      mediaSrc: publicUrl('landing/mobile-hero.avif'),
+      mediaAlt: `${brand} web and mobile app screenshots side by side`,
+      mediaSide: 'right',
+    },
+    {
+      title: 'Marketing copy you can rebrand in one file.',
+      body: 'Every piece of landing-page content — hero, features, social proof, pricing, FAQ, footer — lives in a single typed config. Swap the config and the same section components render a completely different product, with zero JSX changes. An alternate example config ships in the repo to prove it.',
+      ctaLabel: 'Read the landing README',
+      ctaHref:
+        'https://github.com/Artificer-Innovations/BeakerStack/blob/main/apps/web/src/components/landing/README.md',
+      mediaSrc: publicUrl('landing/easy-marketing.avif'),
+      mediaAlt: 'Landing page config file screenshot',
+      mediaSide: 'left',
+    },
+    {
+      title: 'Pre-rendered home page for SEO and link previews.',
+      body: 'The marketing home is rendered to static HTML at build time with canonical and Open Graph URLs wired in per environment. Crawlers and social previews see real content immediately — no blank shell, no client-side flash — while the rest of the SPA hydrates as usual.',
+      ctaLabel: 'See the prerender script',
+      ctaHref:
+        'https://github.com/Artificer-Innovations/BeakerStack/blob/main/apps/web/scripts/prerender-home.ts',
+      mediaSrc: publicUrl('landing/seo.avif'),
+      mediaAlt: `Lighthouse performance and SEO audit scores for ${brand}`,
+      mediaSide: 'right',
+    },
+    {
+      title: 'Billing that actually ships.',
+      body: `Most templates stop at "add Stripe." ${brand} includes plan gating, usage metering, upgrade prompts, a billing portal, and downgrade blockers — all wired to real Stripe products and ready for your plans.`,
+      ctaLabel: 'See billing docs',
+      ctaHref: '#pricing',
+      mediaSrc: publicUrl('landing/billing.avif'),
+      mediaAlt: 'Billing plans UI screenshot',
       mediaSide: 'left',
     },
     {
@@ -218,7 +262,7 @@ export const landingConfig: LandingConfig = {
       ctaLabel: 'Read the architecture docs',
       ctaHref:
         'https://github.com/Artificer-Innovations/BeakerStack/blob/main/ARCHITECTURE.md',
-      mediaSrc: 'https://placehold.co/560x315?text=Environments',
+      mediaSrc: publicUrl('landing/environments-pipeline.avif'),
       mediaAlt: 'Three-environment pipeline diagram',
       mediaSide: 'right',
     },
@@ -228,7 +272,7 @@ export const landingConfig: LandingConfig = {
       ctaLabel: 'Read the quickstart',
       ctaHref:
         'https://github.com/Artificer-Innovations/BeakerStack/blob/main/QUICKSTART.md',
-      mediaSrc: 'https://placehold.co/560x315?text=Setup',
+      mediaSrc: publicUrl('landing/setup.avif'),
       mediaAlt: 'Setup guide screenshot',
       mediaSide: 'left',
     },
@@ -246,8 +290,7 @@ export const landingConfig: LandingConfig = {
   },
   pricing: {
     heading: 'Simple, transparent pricing.',
-    subhead:
-      'BeakerStack itself is free and open-source (MIT) — clone it and ship your product at no cost. The plans below are a live demo of the billing system built into the template.',
+    subhead: `${brand} itself is free and open-source (MIT) — clone it and ship your product at no cost. The plans below are a live demo of the billing system built into the template.`,
     disclaimer:
       'Stripe is running in test mode for this preview; no real charges are made.',
   },
@@ -255,12 +298,12 @@ export const landingConfig: LandingConfig = {
     heading: 'Frequently asked questions',
     items: [
       {
-        q: 'Is BeakerStack free to use?',
-        a: 'Yes — BeakerStack is free and open source under the MIT license. You can clone the repository, build your product on top of it, and ship commercially with no fees or attribution requirements. The pricing plans shown in the demo are an example of what you can build with the template; they are not a cost to use BeakerStack itself.',
+        q: `Is ${brand} free to use?`,
+        a: `Yes — ${brand} is free and open source under the MIT license. You can clone the repository, build your product on top of it, and ship commercially with no fees or attribution requirements. The pricing plans shown in the demo are an example of what you can build with the template; they are not a cost to use ${brand} itself.`,
       },
       {
-        q: 'What is BeakerStack?',
-        a: 'BeakerStack is an opinionated full-stack template built on React, React Native, Supabase, and Stripe. It gives you auth, billing, and a cross-platform foundation ready to customize for your product.',
+        q: `What is ${brand}?`,
+        a: `${brand} is an opinionated full-stack template built on React, React Native, Supabase, and Stripe. It gives you auth, billing, and a cross-platform foundation ready to customize for your product.`,
       },
       {
         q: 'Is it really open source?',
@@ -272,7 +315,7 @@ export const landingConfig: LandingConfig = {
       },
       {
         q: 'How does billing work?',
-        a: 'BeakerStack uses Stripe for payments and Supabase for subscription state. You define your plans in a config file, run a sync script to create them in Stripe, and the billing UI is ready.',
+        a: `${brand} uses Stripe for payments and Supabase for subscription state. You define your plans in a config file, run a sync script to create them in Stripe, and the billing UI is ready.`,
       },
       {
         q: 'Can I use this for a commercial product?',
@@ -286,7 +329,7 @@ export const landingConfig: LandingConfig = {
   },
   finalCta: {
     headline: 'Ready to stop rebuilding the same foundation?',
-    subhead: 'Clone BeakerStack, swap the config, and ship your product.',
+    subhead: `Clone ${brand}, swap the config, and ship your product.`,
     ctaLabel: 'Get started free',
     ctaHref: '/signup',
     secondaryCta: {

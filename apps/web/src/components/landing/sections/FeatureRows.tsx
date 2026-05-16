@@ -1,4 +1,5 @@
 import type { LandingConfig } from '../../../config/landing';
+import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 
 interface FeatureRowsProps {
   config: LandingConfig['featureRows'];
@@ -7,7 +8,7 @@ interface FeatureRowsProps {
 export function FeatureRows({ config }: FeatureRowsProps) {
   return (
     <section className='py-20 md:py-24'>
-      <div className='max-w-[1200px] mx-auto px-6 space-y-24'>
+      <ContentContainer className='space-y-24'>
         {config.map(row => {
           const imageFirst = row.mediaSide === 'left';
           const isExternal = row.ctaHref.startsWith('http');
@@ -54,7 +55,7 @@ export function FeatureRows({ config }: FeatureRowsProps) {
             </div>
           );
         })}
-      </div>
+      </ContentContainer>
     </section>
   );
 }

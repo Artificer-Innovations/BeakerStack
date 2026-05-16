@@ -22,7 +22,13 @@ const { renderToStaticMarkup } = await import('react-dom/server');
 // StaticRouter (from react-router-dom/server) is a separate sub-package with its
 // own bundled context, causing a null-context mismatch in vite-node's module graph.
 const { MemoryRouter } = await import('react-router-dom');
-const { LandingPage } = await import('../src/components/landing/LandingPage');
+// ThemeProvider needed because AppFooter renders ThemeToggle which calls useTheme().
+const { ThemeProvider } = await import('../src/contexts/ThemeContext');
+const { AppFooter } = await import('../src/components/AppFooter');
+// LandingPageSSR eagerly imports all sections. LandingPage uses React.lazy() for
+// below-fold sections, which resolve as empty Suspense fallbacks under renderToStaticMarkup.
+const { LandingPageSSR } = await import('../src/components/landing/LandingPageSSR');
+const { LAYOUT } = await import('../src/lib/layoutConstants');
 
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -45,17 +51,30 @@ const initialEntries = [homePath];
 
 const html = renderToStaticMarkup(
   createElement(
-    MemoryRouter,
-    { basename: routerBasename, initialEntries },
-    createElement(LandingPage)
+    ThemeProvider,
+    null,
+    createElement(
+      MemoryRouter,
+      { basename: routerBasename, initialEntries },
+      createElement(
+        'div',
+        { className: LAYOUT.outer },
+        createElement(
+          'div',
+          { className: LAYOUT.shell },
+          createElement('div', { className: LAYOUT.content }, createElement(LandingPageSSR)),
+          createElement(AppFooter)
+        )
+      )
+    )
   )
 );
 
 // Structural smoke check — catches a broken render without hardcoding copy text.
-// Fails the build if LandingPage produced no heading element.
+// Fails the build if LandingPageSSR produced no heading element.
 if (!html.includes('<h1')) {
   console.error(
-    'pre-render smoke check: no <h1> in output — LandingPage did not render'
+    'pre-render smoke check: no <h1> in output — LandingPageSSR did not render'
   );
   process.exit(1);
 }

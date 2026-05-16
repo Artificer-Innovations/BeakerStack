@@ -101,6 +101,26 @@ describe('useAuth', () => {
     });
   });
 
+  it('should set user and session directly after signIn resolves, before onAuthStateChange fires', async () => {
+    const { mockClient, mockUser, mockSession } = createMockSupabaseClient();
+    const { result } = renderHook(() => useAuth(mockClient));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.signIn('test@example.com', 'password123');
+    });
+
+    // user/session must be populated immediately when signIn resolves so that
+    // callers who navigate() right after see a non-null user in ProtectedRoute
+    // (guards against the race condition where only onAuthStateChange set them).
+    expect(result.current.user).toEqual(mockUser);
+    expect(result.current.session).toEqual(mockSession);
+    expect(result.current.loading).toBe(false);
+  });
+
   it('should handle sign up with email and password', async () => {
     const { mockClient } = createMockSupabaseClient();
     const { result } = renderHook(() => useAuth(mockClient));

@@ -53,13 +53,16 @@ jest.mock('../../src/screens/ProfileScreen', () => {
   );
 });
 
-jest.mock('../../src/screens/BillingScreen', () => {
+jest.mock('../../src/navigation/BillingNavigator', () => {
   const { View, Text } = require('react-native');
-  return () => (
-    <View testID='billing-screen'>
-      <Text>Billing Screen</Text>
-    </View>
-  );
+  return {
+    __esModule: true,
+    default: () => (
+      <View testID='billing-screen'>
+        <Text>Billing Screen</Text>
+      </View>
+    ),
+  };
 });
 
 describe('AppNavigator', () => {

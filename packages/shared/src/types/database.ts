@@ -282,6 +282,7 @@ export type Database = {
           quantity: number
           metadata: Json
           created_at: string
+          idempotency_key: string | null
         }
         Insert: {
           id?: string
@@ -291,6 +292,7 @@ export type Database = {
           quantity?: number
           metadata?: Json
           created_at?: string
+          idempotency_key?: string | null
         }
         Update: {
           id?: string
@@ -300,6 +302,7 @@ export type Database = {
           quantity?: number
           metadata?: Json
           created_at?: string
+          idempotency_key?: string | null
         }
         Relationships: []
       }
@@ -395,6 +398,7 @@ export type Database = {
           p_event_type: string
           p_quantity?: number
           p_metadata?: Json
+          p_idempotency_key?: string
         }
         Returns: undefined
       }

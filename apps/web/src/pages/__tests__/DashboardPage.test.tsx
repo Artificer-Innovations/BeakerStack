@@ -47,6 +47,7 @@ const SUBSCRIPTION_ROW = {
   current_period_start: null,
   current_period_end: null,
   cancel_at_period_end: false,
+  pending_target_plan_id: null,
   canceled_at: null,
   trial_start: null,
   trial_end: null,
@@ -205,17 +206,20 @@ describe('DashboardPage', () => {
     await renderWithAuth(<DashboardPage />);
 
     expect(
-      screen.getByRole('heading', { name: /welcome to beakerstack/i })
+      screen.getByRole('heading', {
+        name: new RegExp(`${BRANDING.displayName}\\s+in action`, 'i'),
+      })
     ).toBeInTheDocument();
     expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
   });
 
-  it('links to /billing for polished billing', async () => {
+  it('links to GitHub repo from demo banner', async () => {
     await renderWithAuth(<DashboardPage />);
-    const link = screen.getByRole('link', {
-      name: /view polished billing pages/i,
-    });
-    expect(link).toHaveAttribute('href', '/billing');
+    const link = screen.getByRole('link', { name: /view on github/i });
+    expect(link).toHaveAttribute(
+      'href',
+      'https://github.com/Artificer-Innovations/BeakerStack'
+    );
   });
 
   it('displays user email when authenticated', async () => {

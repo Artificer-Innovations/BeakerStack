@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { LEGAL_CONFIG } from '@beakerstack/shared/config/legal';
+import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 import { ThemeToggle } from './ThemeToggle';
 
 export function AppFooter() {
@@ -7,9 +8,12 @@ export function AppFooter() {
 
   return (
     <footer className='border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'>
-      <div className='max-w-[1024px] mx-auto px-4 py-6 sm:px-6 lg:px-8'>
+      <ContentContainer className='py-6'>
         <div className='flex flex-col items-center gap-3 sm:flex-row sm:justify-between'>
-          <p className='text-sm text-gray-500 dark:text-gray-400'>
+          <p
+            suppressHydrationWarning
+            className='text-sm text-gray-500 dark:text-gray-400'
+          >
             &copy; {year} {LEGAL_CONFIG.legalEntityName}. All rights reserved.
           </p>
           <nav
@@ -37,7 +41,7 @@ export function AppFooter() {
             <ThemeToggle />
           </nav>
         </div>
-      </div>
+      </ContentContainer>
     </footer>
   );
 }

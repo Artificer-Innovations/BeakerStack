@@ -1,18 +1,12 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-# Phase 8: Tooling setup - non-blocking enforcement
-# TODO: Make these blocking once codebase is cleaned up
+# Lint and format staged files only (fast — only changed files, not the whole monorepo).
+npx lint-staged
 
-# Run lint with auto-fix (non-blocking)
-npm run lint:fix || echo "⚠️  Lint issues found (non-blocking in Phase 8)"
-
-# Run type check (non-blocking)
-npm run type-check || echo "⚠️  Type errors found (non-blocking in Phase 8)"
-
-# Check formatting (non-blocking)
-npm run format:check || echo "⚠️  Formatting issues found (non-blocking in Phase 8)"
-
-# Always allow commit to proceed
-exit 0
-
+# Type-check only when TypeScript files are staged.
+# Triggers pretype-check (builds packages/shared) + tsc --noEmit across all packages.
+# Expect a few extra seconds compared to non-TS commits.
+if git diff --cached --name-only | grep -qE '\.(ts|tsx)$'; then
+  npm run type-check
+fi

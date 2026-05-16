@@ -40,6 +40,38 @@ describe('mapUnknownError', () => {
     expect(e.message).toBe('timeout');
   });
 
+  it('extracts message from PostgREST-style error objects', () => {
+    const e = mapUnknownError({
+      code: 'P0001',
+      message: 'Usage limit exceeded for this meter',
+      details: null,
+      hint: null,
+    });
+    expect(e.kind).toBe('unknown');
+    expect(e.message).toBe('Usage limit exceeded for this meter');
+  });
+
+  it('falls back to code and details when message is missing', () => {
+    const e = mapUnknownError({
+      code: '42883',
+      details: 'function does not exist',
+    });
+    expect(e.message).toContain('42883');
+    expect(e.message).toContain('function does not exist');
+  });
+
+  it('maps undefined without throwing (JSON.stringify(undefined) is not a string)', () => {
+    const e = mapUnknownError(undefined);
+    expect(e.kind).toBe('unknown');
+    expect(typeof e.message).toBe('string');
+    expect(() => e.message.toLowerCase()).not.toThrow();
+  });
+
+  it('maps symbols and functions to a string message', () => {
+    expect(typeof mapUnknownError(Symbol('x')).message).toBe('string');
+    expect(typeof mapUnknownError(() => {}).message).toBe('string');
+  });
+
   it('passes through BillingError', () => {
     const inner = billingError('stripe', 'bad');
     const e = mapUnknownError(inner);

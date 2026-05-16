@@ -1,9 +1,11 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useProfileContext } from '../../contexts/ProfileContext';
 import { UserMenu } from './UserMenu.web';
 import { BRANDING } from '../../config/branding';
+import { ContentContainer } from '../layout/ContentContainer.web';
 
 export interface AppHeaderProps {
   supabaseClient: SupabaseClient;
@@ -16,6 +18,16 @@ export interface AppHeaderProps {
 export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
   const auth = useAuthContext();
   const profile = useProfileContext();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const next = window.scrollY > 8;
+      setScrolled(prev => (prev === next ? prev : next));
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // Extract base path from current location (e.g., /pr-9 from /pr-9/login)
   // This handles path-based PR previews where the app is served from /pr-<N>/
@@ -31,8 +43,14 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
   const basePath = getBasePath();
 
   return (
-    <div className='bg-white dark:bg-gray-900 shadow dark:shadow-gray-800 border-b border-transparent dark:border-gray-700'>
-      <div className='max-w-[1024px] mx-auto px-4 sm:px-6 lg:px-8'>
+    <header
+      className={`sticky top-0 z-50 bg-white dark:bg-gray-900 transition-shadow ${
+        scrolled
+          ? 'border-b border-gray-200 dark:border-gray-800 shadow-sm'
+          : ''
+      }`}
+    >
+      <ContentContainer>
         <div className='flex justify-between items-center h-16'>
           {/* Left side: App icon and title */}
           <div className='flex items-center space-x-3'>
@@ -73,7 +91,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </ContentContainer>
+    </header>
   );
 }

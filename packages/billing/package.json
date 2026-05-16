@@ -10,7 +10,8 @@
     ".": "./src/index.ts",
     "./client": "./src/client.ts",
     "./web": "./src/web.ts",
-    "./native": "./src/native.ts"
+    "./native": "./src/native.ts",
+    "./presentation": "./src/presentation/index.ts"
   },
   "scripts": {
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",

@@ -4,15 +4,16 @@ Start on the repo root **[README.md](../README.md)** and **[QUICKSTART.md](../QU
 
 ## Setup and infrastructure
 
-| Document                                                                     | Purpose                                                                        |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| [QUICKSTART.md](../QUICKSTART.md)                                            | First run: local hello-world vs full cloud + CI checklist                      |
-| [pr-preview-setup.md](pr-preview-setup.md)                                   | AWS PR previews, DNS, CloudFormation                                           |
-| [supabase-staging-production-setup.md](supabase-staging-production-setup.md) | Remote staging/production Supabase projects                                    |
-| [supabase-preview-setup.md](supabase-preview-setup.md)                       | Shared PR preview database and redirects                                       |
-| [stripe-billing-setup.md](stripe-billing-setup.md)                           | Stripe + Supabase Edge billing (keys, webhooks, sync, local vs hosted)         |
-| [reference/github-actions-secrets.md](reference/github-actions-secrets.md)   | Actions secret/variable names (regenerate with `npm run docs:actions-secrets`) |
-| [branch-protection-setup.md](branch-protection-setup.md)                     | Branch rules                                                                   |
+| Document                                                                     | Purpose                                                                                      |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [QUICKSTART.md](../QUICKSTART.md)                                            | First run: local hello-world vs full cloud + CI checklist                                    |
+| [pr-preview-setup.md](pr-preview-setup.md)                                   | AWS PR previews, DNS, CloudFormation                                                         |
+| [supabase-staging-production-setup.md](supabase-staging-production-setup.md) | Remote staging/production Supabase projects                                                  |
+| [supabase-preview-setup.md](supabase-preview-setup.md)                       | Shared PR preview database and redirects                                                     |
+| [stripe-billing-setup.md](stripe-billing-setup.md)                           | Stripe + Supabase Edge billing (keys, webhooks, sync, local vs hosted)                       |
+| [reference/github-actions-secrets.md](reference/github-actions-secrets.md)   | Actions secret/variable names (regenerate with `npm run docs:actions-secrets`)               |
+| [project-label-bridge.md](project-label-bridge.md)                           | **Optional:** label-driven org GitHub Project updates (`npm run setup:project-label-bridge`) |
+| [branch-protection-setup.md](branch-protection-setup.md)                     | Branch rules                                                                                 |
 
 ## OAuth (canonical order)
 
@@ -34,11 +35,18 @@ Start on the repo root **[README.md](../README.md)** and **[QUICKSTART.md](../QU
 
 ## Product and repo maintenance
 
-| Document                             | Purpose                                            |
-| ------------------------------------ | -------------------------------------------------- |
-| [BRANDING.md](BRANDING.md)           | Icons, colors, copy                                |
-| [renaming.md](renaming.md)           | Rename the template                                |
-| [project/TASKS.md](project/TASKS.md) | Historical task checklist (may be partially stale) |
+| Document                   | Purpose             |
+| -------------------------- | ------------------- |
+| [BRANDING.md](BRANDING.md) | Icons, colors, copy |
+| [renaming.md](renaming.md) | Rename the template |
+
+## Specs
+
+| Document                                                                   | Purpose                                                          |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| [specs/beakerstack-billing-v1.md](specs/beakerstack-billing-v1.md)         | Billing module design (schema, RPCs, entitlements, app boundary) |
+| [specs/beakerstack-billing-ui-v1.md](specs/beakerstack-billing-ui-v1.md)   | `/billing` route family, UI states, migration (shipped)          |
+| [../apps/web/docs/billing-testing.md](../apps/web/docs/billing-testing.md) | Stripe CLI, webhooks, demo mode QA                               |
 
 ## Guides
 

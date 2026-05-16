@@ -1,0 +1,177 @@
+# Optional: moves org GitHub Project (v2) cards when issues/PRs get mapped labels.
+# The repo does not require this workflow; see docs/project-label-bridge.md for why,
+# setup (secret + variables), and how to align labels with your board.
+#
+# Repository variables must NOT use the GITHUB_ prefix (reserved for built-in context).
+# Use vars.PROJECT_NUMBER and vars.PROJECT_ORG — see docs/project-label-bridge.md.
+
+name: Project label bridge
+
+on:
+  issues:
+    types: [labeled]
+  pull_request:
+    types: [labeled]
+
+concurrency:
+  group: project-label-bridge-${{ github.event_name }}-${{ github.event.issue.node_id || github.event.pull_request.node_id }}-${{ github.event.label.name }}
+  cancel-in-progress: true
+
+jobs:
+  sync-status-from-label:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # Secrets are not available in job-level `if`; gate on vars only (forks can skip via empty var).
+    if: vars.PROJECT_NUMBER != ''
+
+    steps:
+      - name: Resolve label → Status and update Project
+        env:
+          GH_TOKEN: ${{ secrets.ORG_PROJECT_GITHUB_TOKEN }}
+          LABEL_NAME: ${{ github.event.label.name }}
+          CONTENT_NODE_ID: ${{ github.event.issue.node_id || github.event.pull_request.node_id }}
+          PROJECT_ORG: ${{ vars.PROJECT_ORG || 'Artificer-Innovations' }}
+          PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "::warning::ORG_PROJECT_GITHUB_TOKEN is not set; cannot update the org project."
+            exit 0
+          fi
+
+          # Labels: project/status-<kebab> (lowercase a-z, digits, hyphens).
+          # → Project "Status" option: each hyphen becomes a space. Default: Title Case
+          #   per word (e.g. backlog → Backlog, ready-for-qa → Ready For Qa).
+          # Exception: leading segment "in" with more segments → "In " + remaining
+          #   words lowercased (Kanban: "In progress", "In review").
+          if [[ "$LABEL_NAME" != project/status-* ]]; then
+            echo "Label '$LABEL_NAME' is not a project status label (expected prefix project/status-); skipping."
+            exit 0
+          fi
+          slug="${LABEL_NAME#project/status-}"
+          slug="${slug,,}"
+          if [[ -z "$slug" || "$slug" == *[^a-z0-9-]* ]]; then
+            echo "Label '$LABEL_NAME' has an invalid slug after project/status- (use a-z, 0-9, hyphens only); skipping."
+            exit 0
+          fi
+
+          IFS='-' read -ra parts <<< "$slug"
+          n=${#parts[@]}
+          if [[ "$n" -eq 0 ]]; then
+            echo "Label '$LABEL_NAME' is empty after project/status-; skipping."
+            exit 0
+          fi
+          if [[ "${parts[0],,}" == "in" && "$n" -eq 1 ]]; then
+            echo "Label '$LABEL_NAME' is incomplete (project/status-in); skipping."
+            exit 0
+          fi
+
+          if [[ "${parts[0],,}" == "in" && "$n" -ge 2 ]]; then
+            TARGET_STATUS="In"
+            for ((i = 1; i < n; i++)); do
+              w="${parts[i],,}"
+              [[ -z "$w" ]] && continue
+              TARGET_STATUS+=" $w"
+            done
+          else
+            TARGET_STATUS=""
+            for ((i = 0; i < n; i++)); do
+              w="${parts[i],,}"
+              [[ -z "$w" ]] && continue
+              [[ -n "$TARGET_STATUS" ]] && TARGET_STATUS+=" "
+              TARGET_STATUS+="${w^}"
+            done
+          fi
+
+          echo "Mapping label '$LABEL_NAME' → Status '$TARGET_STATUS'"
+
+          gh api graphql -f query='
+            query($org: String!, $number: Int!) {
+              organization(login: $org) {
+                projectV2(number: $number) {
+                  id
+                  fields(first: 40) {
+                    nodes {
+                      ... on ProjectV2SingleSelectField {
+                        id
+                        name
+                        options { id name }
+                      }
+                    }
+                  }
+                }
+              }
+            }' -f org="$PROJECT_ORG" -F number="$PROJECT_NUMBER" --jq . > project_meta.json
+
+          PROJECT_ID=$(jq -r '.data.organization.projectV2.id' project_meta.json)
+          STATUS_FIELD_ID=$(jq -r '.data.organization.projectV2.fields.nodes[] | select(.name == "Status") | .id' project_meta.json)
+          OPTION_ID=$(jq -r --arg s "$TARGET_STATUS" '.data.organization.projectV2.fields.nodes[] | select(.name == "Status") | .options[] | select(.name == $s) | .id' project_meta.json)
+
+          if [[ "$PROJECT_ID" == "null" || -z "$PROJECT_ID" ]]; then
+            echo "::error::Could not load project $PROJECT_ORG#$PROJECT_NUMBER (check vars PROJECT_ORG / PROJECT_NUMBER and token access)."
+            exit 1
+          fi
+          if [[ "$STATUS_FIELD_ID" == "null" || -z "$STATUS_FIELD_ID" ]]; then
+            echo "::error::Project has no single-select field named 'Status'. Rename the field or adjust this workflow."
+            exit 1
+          fi
+          if [[ "$OPTION_ID" == "null" || -z "$OPTION_ID" ]]; then
+            echo "::error::No Status option named '$TARGET_STATUS'. Add it to the project, or use a project/status-<kebab> label that derives to an existing option name (see workflow comments)."
+            exit 1
+          fi
+
+          gh api graphql -f query='
+            query($id: ID!) {
+              node(id: $id) {
+                ... on Issue {
+                  projectItems(first: 30) {
+                    nodes {
+                      id
+                      project { ... on ProjectV2 { id number } }
+                    }
+                  }
+                }
+                ... on PullRequest {
+                  projectItems(first: 30) {
+                    nodes {
+                      id
+                      project { ... on ProjectV2 { id number } }
+                    }
+                  }
+                }
+              }
+            }' -f id="$CONTENT_NODE_ID" --jq . > content_items.json
+
+          ITEM_ID=$(jq -r --argjson n "$PROJECT_NUMBER" '
+            .data.node.projectItems.nodes[]
+            | select(.project.number == $n)
+            | .id
+          ' content_items.json 2>/dev/null || true)
+
+          if [[ -z "$ITEM_ID" || "$ITEM_ID" == "null" ]]; then
+            echo "Item not on project yet — adding content then setting Status."
+            ITEM_ID=$(gh api graphql -f query='
+              mutation($project: ID!, $content: ID!) {
+                addProjectV2ItemById(input: { projectId: $project, contentId: $content }) {
+                  item { id }
+                }
+              }' -f project="$PROJECT_ID" -f content="$CONTENT_NODE_ID" --jq -r '.data.addProjectV2ItemById.item.id')
+          fi
+
+          gh api graphql -f query='
+            mutation($project: ID!, $item: ID!, $field: ID!, $option: String!) {
+              updateProjectV2ItemFieldValue(
+                input: {
+                  projectId: $project
+                  itemId: $item
+                  fieldId: $field
+                  value: { singleSelectOptionId: $option }
+                }
+              ) {
+                projectV2Item { id }
+              }
+            }' -f project="$PROJECT_ID" -f item="$ITEM_ID" -f field="$STATUS_FIELD_ID" -f option="$OPTION_ID" --silent
+
+          echo "Updated project item $ITEM_ID to Status='$TARGET_STATUS'."

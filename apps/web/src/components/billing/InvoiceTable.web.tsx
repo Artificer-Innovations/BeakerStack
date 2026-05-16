@@ -2,7 +2,10 @@ import type { BillingInvoiceRow } from '@beakerstack/billing';
 import { Link } from 'react-router-dom';
 import { Button } from '@beakerstack/shared/components/primitives/Button.web';
 import { Skeleton } from '@beakerstack/shared/components/primitives/Skeleton.web';
-import { formatDate, formatMoneyCents } from '../../billing/formatters';
+import {
+  formatDate,
+  formatMoneyCents,
+} from '@beakerstack/billing/presentation';
 import { StatusBadge } from './StatusBadge.web';
 
 export function InvoiceTable({
@@ -30,7 +33,7 @@ export function InvoiceTable({
         </p>
         <Link
           to='/billing/plans'
-          className='mt-4 inline-block text-sm font-medium text-indigo-600 hover:text-indigo-500'
+          className='mt-4 inline-block text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300'
         >
           View plans
         </Link>
@@ -84,7 +87,7 @@ export function InvoiceTable({
                       href={inv.hosted_invoice_url}
                       target='_blank'
                       rel='noreferrer'
-                      className='mr-3 text-indigo-600 hover:text-indigo-500'
+                      className='mr-3 text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300'
                     >
                       View
                     </a>
@@ -94,7 +97,7 @@ export function InvoiceTable({
                       href={inv.invoice_pdf_url}
                       target='_blank'
                       rel='noreferrer'
-                      className='text-indigo-600 hover:text-indigo-500'
+                      className='text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300'
                     >
                       PDF
                     </a>

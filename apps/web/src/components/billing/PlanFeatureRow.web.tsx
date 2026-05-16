@@ -11,8 +11,8 @@ export function PlanFeatureRow({
   showUpgradeLink?: boolean;
 }): JSX.Element {
   return (
-    <div className='flex items-center justify-between border-b border-gray-100 py-2 text-sm'>
-      <div className='flex items-center gap-2 text-gray-900'>
+    <div className='flex items-center justify-between border-b border-gray-100 dark:border-gray-700 py-2 text-sm'>
+      <div className='flex items-center gap-2 text-gray-900 dark:text-white'>
         {available ? (
           <Check className='h-4 w-4 text-green-600' aria-hidden />
         ) : (
@@ -20,7 +20,7 @@ export function PlanFeatureRow({
         )}
         <span>{name}</span>
       </div>
-      <div className='text-right text-gray-600'>
+      <div className='text-right text-gray-600 dark:text-gray-400'>
         {available ? (
           'Available'
         ) : (

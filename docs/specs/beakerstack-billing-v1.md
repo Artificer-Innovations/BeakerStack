@@ -7,6 +7,8 @@ _A module within BeakerStack, open source MIT_
 **Version:** 1.0 Draft
 **Purpose:** Technical specification for minimal v1 billing features supporting B2C SaaS projects
 
+> **Status:** Implemented in `@beakerstack/billing` and the BeakerStack template. This spec may lag the codebase in minor API naming; use [`apps/web/docs/billing-testing.md`](../../apps/web/docs/billing-testing.md) for operational QA.
+
 ---
 
 ## Purpose
@@ -814,9 +816,12 @@ Plan ids (e.g. `beakerstack_free`, `beakerstack_pro`, `beakerstack_max`) and Str
 
 **Rationale:** “Collection” / “saved item” maps directly to hierarchical caps (containers and items), reads as neutral B2C product surface (similar affordances to Readwise-style saving), and does not imply a specific Artificer shipping product. Alternates with the same entitlement shape: projects/tasks with “AI breakdown,” or notebooks/notes with “AI rewrite.”
 
-### Three entitlement surfaces on one route
+### Three entitlement surfaces (template)
 
-All three shapes are reachable from a single **`/billing-demo`** route (or a settings section that hosts the same component tree).
+The template exercises all three shapes in two places:
+
+- **Dashboard playground** (`/dashboard`) — annotated primitives for metered usage, numeric caps (collections/items), and boolean gates (see `apps/web/src/pages/DashboardPage.tsx`).
+- **Production billing** (`/billing`, `/billing/usage`, …) — product-style pages per [beakerstack-billing-ui-v1.md](./beakerstack-billing-ui-v1.md).
 
 1. **Metered action surface** — Wired to `hasExceededLimit`, `recordUsageEvent`, `UsageIndicator`, and `UpgradePrompt` at the boundary. Must visibly show **reset-date semantics**: Free = **calendar month**; paid = **billing period** (from `getRemainingUsage` / `periodEnd`).
 2. **Numeric feature value surface** — Uses `getFeatureValue` for **containers per account** and **items per container**. Does **not** use the usage events table for those caps. Attempting to exceed limits shows an **inline** limit message with upgrade CTA.
@@ -824,18 +829,18 @@ All three shapes are reachable from a single **`/billing-demo`** route (or a set
 
 ### Module vs app boundary
 
-| Concern                                                               | `packages/billing` | `apps/web` / `apps/mobile` (template)   |
-| --------------------------------------------------------------------- | ------------------ | --------------------------------------- |
-| Types; Zod schema for **config shape**                                | Yes                | Provides concrete config                |
-| Client API; hooks; UI (web + native)                                  | Yes                | Wires routes, copy, ids                 |
-| Stripe: checkout, portal, schedule cancel to free, cancel immediately | Yes                | URLs, env, product id                   |
-| Tier names, marketing copy, domain vocabulary                         | No                 | Yes                                     |
-| Feature keys, metered `eventType` strings                             | No                 | Yes                                     |
-| `simulateUpgrade` / demo usage reset                                  | **Must not**       | Yes (template-only)                     |
-| Demo banner (“not real billing”)                                      | No                 | Yes                                     |
-| `/billing-demo`, collections/items demo state                         | No                 | Yes (e.g. `apps/web/src/billing-demo/`) |
+| Concern                                                               | `packages/billing` | `apps/web` / `apps/mobile` (template)          |
+| --------------------------------------------------------------------- | ------------------ | ---------------------------------------------- |
+| Types; Zod schema for **config shape**                                | Yes                | Provides concrete config                       |
+| Client API; hooks; UI (web + native)                                  | Yes                | Wires routes, copy, ids                        |
+| Stripe: checkout, portal, schedule cancel to free, cancel immediately | Yes                | URLs, env, product id                          |
+| Tier names, marketing copy, domain vocabulary                         | No                 | Yes                                            |
+| Feature keys, metered `eventType` strings                             | No                 | Yes                                            |
+| `simulateUpgrade` / demo usage reset                                  | **Must not**       | Yes (template-only RPCs)                       |
+| Demo banner (“not real billing”)                                      | No                 | Yes (dashboard + optional demo controls)       |
+| Collections/items demo state, dashboard playground                    | No                 | Yes (`apps/web/src/billing/`, dashboard pages) |
 
-**Principle:** A consumer may delete `apps/web/src/billing-demo/` (and mobile equivalents) and retain a fully working `@beakerstack/billing`. Adapting the demo = rename domain + swap keys, **without** editing `packages/billing`.
+**Principle:** A consumer may remove the dashboard playground and demo RPC wiring and retain a fully working `@beakerstack/billing`. Adapting the template = rename domain + swap keys, **without** editing `packages/billing`.
 
 ### `simulateUpgrade` and demo usage reset (template only)
 
@@ -848,7 +853,7 @@ All three shapes are reachable from a single **`/billing-demo`** route (or a set
 
 **Primary approach:** [Stripe CLI](https://stripe.com/docs/stripe-cli) forwarding to the **local** `stripe-webhook` Edge Function, using real Stripe payload shapes and signature verification.
 
-Document in **`apps/web/docs/billing-testing.md`** (canonical CLI walkthrough; **`apps/web/docs/billing-demo.md`** is a short index that points here), including exact commands for:
+Document in **`apps/web/docs/billing-testing.md`** (canonical CLI walkthrough), including exact commands for:
 
 - `invoice.payment_failed` (past_due / dunning behavior)
 - `customer.subscription.trial_will_end`
@@ -858,16 +863,12 @@ Document in **`apps/web/docs/billing-testing.md`** (canonical CLI walkthrough; *
 
 **Explicit non-goal for v1:** No admin **“simulate webhook”** UI in the template — avoids payload drift and scope creep.
 
-### Implementation todos (BeakerStack repo)
+### Implementation checklist (BeakerStack repo — shipped)
 
-When executing in BeakerStack, track at least:
-
-- DB migration: billing tables, RLS, core RPCs (`record_usage_event`, reads, `ensure_free`), pgTAP; ship SQL only under **`supabase/migrations/` at the repo root** (same layout for web and mobile devs — run Supabase CLI migration commands from root).
+- DB migration: billing tables, RLS, core RPCs (`record_usage_event`, reads, `ensure_free`), pgTAP under **`supabase/migrations/`** at repo root.
 - Edge Functions: `stripe-webhook`, `billing-stripe`; secrets and CI deploy.
 - `packages/billing`: generic module (no product vocabulary).
-- Stripe sync script driven by **app-supplied** billing config.
-- App: concrete Free/Pro/Max config; `billing-demo` route with three surfaces; mobile mirror.
-- Template RPCs: `simulateUpgrade` + usage reset with env gating.
-- Docs: `apps/web/docs/billing-testing.md` with Stripe CLI scenario walkthrough (`billing-demo.md` cross-links for legacy appendix references).
-
-The Cursor implementation plan file (`beakerstack_billing_v1_*.plan.md`) may carry the same content in execution form.
+- Stripe sync script driven by **app-supplied** billing config (`npm run billing:sync-stripe`).
+- App: Free/Pro/Max config; `/billing` route family; dashboard playground; mobile smoke screen.
+- Template RPCs: demo upgrade + usage reset with server-side gating.
+- Docs: [`docs/stripe-billing-setup.md`](../stripe-billing-setup.md), [`apps/web/docs/billing-testing.md`](../../apps/web/docs/billing-testing.md).

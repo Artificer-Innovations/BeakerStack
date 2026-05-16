@@ -92,7 +92,7 @@ vi.mock('@beakerstack/billing', async importOriginal => {
   const actual = await importOriginal<typeof import('@beakerstack/billing')>();
   const testBillingConfig = actual.defineBillingConfig({
     productId: 'beakerstack',
-    displayName: 'BeakerStack',
+    displayName: 'Beaker Stack',
     description: 'test',
     plans: [
       {
