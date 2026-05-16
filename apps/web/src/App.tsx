@@ -3,6 +3,7 @@ import { Routes, Route, Outlet } from 'react-router-dom';
 import { ProtectedRoute } from '@beakerstack/shared/components/auth/ProtectedRoute.web';
 import { AppFooter } from './components/AppFooter';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
+import { ScrollToTop } from './components/ScrollToTop';
 import { LAYOUT } from './lib/layoutConstants';
 
 function PageFallback() {
@@ -53,6 +54,7 @@ function App() {
   return (
     <div className={LAYOUT.outer}>
       <AppErrorBoundary>
+        <ScrollToTop />
         <Suspense fallback={<PageFallback />}>
           <Routes>
             <Route element={<RootLayout />}>
