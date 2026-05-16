@@ -1,37 +1,39 @@
 ---
 name: BeakerStack Billing UI v1
-overview: Polish the existing developer-demo billing surface into production-quality, B2C-flavored billing pages that match the existing visual language of the BeakerStack template. Adds /billing route family with Overview, Usage, Plans, and Invoices sub-pages. Extends the data model for monthly/annual cadence and invoice history. Stays scoped to a single route family without a global settings shell.
+overview: Production-quality billing pages for the BeakerStack template. /billing route family (Overview, Usage, Plans, Invoices), monthly/annual cadence, invoice history. Shipped; see apps/web and packages/billing.
 todos:
   - id: routes-and-tabs
     content: Add /billing route family with BillingTabs sub-navigation, BillingProvider wrapping the route group, and avatar menu integration
-    status: pending
+    status: completed
   - id: db-additions
     content: Add stripe_price_id_monthly/annual to billing_plans, create billing_invoices table with RLS, extend webhook handler for invoice events
-    status: pending
+    status: completed
   - id: invoice-page
     content: Build BillingInvoicesPage with paginated table, status badges, and links to Stripe-hosted invoice/PDF URLs
-    status: pending
+    status: completed
   - id: overview-page
     content: Build BillingOverviewPage with current plan card, payment status banner, quick stats, and primary CTAs
-    status: pending
+    status: completed
   - id: usage-page
     content: Build BillingUsagePage with all meters, feature caps, and reset-date semantics rendered clearly
-    status: pending
+    status: completed
   - id: plans-page
     content: Build BillingPlansPage with monthly/annual toggle, three-up plan cards, current-plan affordance, constraint warnings on downgrade
-    status: pending
+    status: completed
   - id: state-matrix
     content: Implement the nine subscription states across all four pages with appropriate banners, badges, and inline messaging
-    status: pending
+    status: completed
   - id: components
     content: Add new shared components (PlanCard, PlanFeatureList, ConstraintWarning, InvoiceTable, BillingTabs) at the right boundary (packages/billing vs apps/web)
-    status: pending
+    status: completed
 isProject: false
 ---
 
 # BeakerStack Billing UI v1
 
-This spec polishes the existing developer-demo billing surface (`/billing-demo`) into production-quality billing pages that match the BeakerStack template's existing visual language. It adds a `/billing` route family with four sub-pages, extends the data model for monthly/annual subscription cadence and invoice history, and integrates with the existing avatar menu. It deliberately does NOT introduce a settings shell — billing is a sibling route to `/profile`, following the same page-shell pattern that already works.
+> **Status:** Shipped in the BeakerStack template. Setup: [`docs/stripe-billing-setup.md`](../stripe-billing-setup.md). QA: [`apps/web/docs/billing-testing.md`](../../apps/web/docs/billing-testing.md). Core module: [`docs/specs/beakerstack-billing-v1.md`](./beakerstack-billing-v1.md).
+
+Production-quality billing pages matching the template's existing visual language. The `/billing` route family has four sub-pages; the data model supports monthly/annual cadence and invoice history. Billing is a sibling route to `/profile` (no global settings shell).
 
 ## 1. Visual conventions
 
@@ -95,7 +97,7 @@ All four routes are protected via `ProtectedRoute.web`. All four are wrapped in 
 </Route>
 ```
 
-The legacy `/billing-demo` route stays in place during migration and is removed once `/billing` ships. The "Billing demo" link on the dashboard is replaced with a "Manage billing" link to `/billing`.
+The legacy `/billing-demo` route has been removed. The dashboard links **Manage billing** → `/billing`; the dashboard playground (`/dashboard`) exercises billing primitives for developers.
 
 ### Sub-navigation: BillingTabs
 
@@ -402,18 +404,18 @@ These are explicitly out of scope. Document them in code comments where the temp
 - **Usage-based metered billing in Stripe.** Our metered features track usage in our DB and gate access; we do not report usage to Stripe Meters in v1.
 - **Multi-currency UI.** Display amounts in the currency stored on the invoice (Stripe-controlled). We don't convert or offer currency selection.
 
-## 8. Migration and rollout
+## 8. Migration and rollout (completed)
 
-1. Ship DB migration adding `stripe_price_id_monthly`/`annual` and `billing_invoices` table; backfill existing data.
-2. Ship webhook handler updates; verify with Stripe CLI against local Edge Function.
-3. Ship `packages/billing` additions (`SubscriptionStatusBadge`, `UsageIndicator` expanded variant).
-4. Ship `apps/web/src/components/billing/` components.
-5. Ship the four pages and routes; wire `BillingProvider` to the route group.
-6. Update `UserMenu` (web + native) to add Billing item.
-7. Replace dashboard's "Billing demo" link with "Manage billing" → `/billing`.
-8. Verify all nine states render correctly using a combination of real Stripe test events (CLI) and `simulateUpgrade` for the demo modes that don't require Stripe traffic.
-9. Remove `/billing-demo` route and component once parity is verified.
-10. Mirror page structure to `apps/mobile` using existing native shell patterns; mobile parity can ship in a follow-up if web ships first.
+1. ~~Ship DB migration~~ — `stripe_price_id_monthly`/`annual`, `billing_invoices`, RLS.
+2. ~~Webhook handler updates~~ — invoice events; verify via Stripe CLI ([`billing-testing.md`](../../apps/web/docs/billing-testing.md)).
+3. ~~`packages/billing` additions~~ — badges, expanded `UsageIndicator`, shared components.
+4. ~~`apps/web/src/components/billing/`~~ — shipped.
+5. ~~Four pages and routes~~ — `BillingProvider` on route group.
+6. ~~`UserMenu`~~ — Billing item (web + native where applicable).
+7. ~~Dashboard link~~ — **Manage billing** → `/billing`.
+8. ~~Nine-state matrix~~ — covered in billing-testing doc and unit tests.
+9. ~~Remove `/billing-demo`~~ — removed; use `/billing`.
+10. **Mobile parity** — web-first; native links to web for full `/billing` UI where needed (`BillingScreen` smoke surface).
 
 ## 9. Testing
 
