@@ -85,25 +85,39 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          is_promotion_pr() {
+            local num="$1"
+            local base head
+            base="$(gh pr view "$num" --json baseRefName --jq .baseRefName)"
+            head="$(gh pr view "$num" --json headRefName --jq .headRefName)"
+            [[ "$base" == "main" && "$head" == "develop" ]]
+          }
+
           PR="${{ inputs.promotion_pr }}"
-          if [[ -z "$PR" ]]; then
-            PR="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" --jq '.[0].number // empty' 2>/dev/null || true)"
+          if [[ -n "$PR" ]] && ! is_promotion_pr "$PR"; then
+            echo "::error::PR #${PR} is not a develop→main promotion PR"
+            exit 1
           fi
+
+          if [[ -z "$PR" ]]; then
+            PR="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
+              --jq '[.[] | select(.base.ref == "main" and .head.ref == "develop") | .number][0] // empty' 2>/dev/null || true)"
+            if [[ -n "$PR" ]] && ! is_promotion_pr "$PR"; then
+              PR=""
+            fi
+          fi
+
           if [[ -z "$PR" ]]; then
             PR="$(gh pr list --state merged --base main --head develop --limit 1 --json number --jq '.[0].number // empty')"
           fi
-          if [[ -z "$PR" ]]; then
+
+          if [[ -z "$PR" ]] || ! is_promotion_pr "$PR"; then
             echo "::error::Could not find a merged develop→main promotion PR. Pass promotion_pr or merge promotion first."
             exit 1
           fi
-          BASE="$(gh pr view "$PR" --json baseRefName --jq .baseRefName)"
-          HEAD="$(gh pr view "$PR" --json headRefName --jq .headRefName)"
-          if [[ "$BASE" != "main" || "$HEAD" != "develop" ]]; then
-            echo "::error::PR #${PR} is ${HEAD}→${BASE}, expected develop→main"
-            exit 1
-          fi
+
           echo "number=${PR}" >> "$GITHUB_OUTPUT"
-          echo "Using promotion PR #${PR} (${HEAD}→${BASE})"
+          echo "Using promotion PR #${PR} (develop→main)"
 
       - name: Extract CalVer release notes from promotion PR
         if: inputs.skip_pr_body != true
@@ -119,8 +133,8 @@ jobs:
         run: |
           set -euo pipefail
           NEW_TAG="${{ steps.tag.outputs.tag }}"
-          # CalVer template tags only (excludes @beakerstack/* npm tags)
-          PREV_TAG="$(git tag -l | grep -E '^[0-9]{4}\.[0-9]{3}$' | sort -V | tail -1 || true)"
+          # Latest CalVer tag strictly before NEW_TAG (supports override_tag out of sequence)
+          PREV_TAG="$(git tag -l | grep -E '^[0-9]{4}\.[0-9]{3}$' | sort -V | awk -v t="$NEW_TAG" '$0 < t' | tail -1 || true)"
 
           if [[ -n "$PREV_TAG" ]]; then
             echo "Generating changelog for ${NEW_TAG} from ${PREV_TAG}..HEAD"
