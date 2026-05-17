@@ -153,53 +153,35 @@ If you see `redirect_uri_mismatch` error:
 
 This guide walks you through setting up Google and Apple OAuth for your Beaker Stack in production. The OAuth implementation is already complete in the codebase - you just need to configure the OAuth providers.
 
----
+### Checklist
 
-## Table of Contents
+**Already in the codebase:**
 
-1. [Overview](#overview)
-2. [Google OAuth Setup](#google-oauth-setup)
-3. [Apple OAuth Setup](#apple-oauth-setup)
-4. [Supabase Configuration](#supabase-configuration)
-5. [Testing OAuth](#testing-oauth)
-6. [Troubleshooting](#troubleshooting)
+- OAuth UI (Google / Apple buttons) and `signInWithOAuth` on web
+- Redirect handling and error states
+- Unit tests for auth flows
 
----
+**You configure:**
 
-## Overview
+- OAuth apps in Google Cloud and Apple Developer
+- Client IDs and secrets in Supabase
+- Redirect URLs that match Supabase callbacks exactly
 
-### What's Already Implemented
-
-✅ OAuth UI components (Google/Apple buttons)
-✅ OAuth authentication logic (`signInWithOAuth`)
-✅ Redirect URL handling
-✅ Error handling and loading states
-✅ Unit tests for OAuth flows
-
-### What You Need to Do
-
-⚠️ Create OAuth applications with Google and Apple
-⚠️ Configure OAuth credentials in Supabase
-⚠️ Set up redirect URLs
-⚠️ Test the OAuth flow
-
-### Expected Time
+**Rough time:**
 
 - **Google OAuth**: ~15 minutes
 - **Apple OAuth**: ~30-45 minutes (requires Apple Developer account)
 - **Supabase Config**: ~5 minutes
 - **Testing**: ~10 minutes
 
----
+### Google OAuth setup
 
-## Google OAuth Setup
-
-### Prerequisites
+#### Prerequisites
 
 - Google account
 - Access to [Google Cloud Console](https://console.cloud.google.com/)
 
-### Step 1: Create a Google Cloud Project
+#### Step 1: Create a Google Cloud Project
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Click "Select a project" → "New Project"
@@ -207,15 +189,9 @@ This guide walks you through setting up Google and Apple OAuth for your Beaker S
 4. Click "Create"
 5. Wait for project creation (usually ~30 seconds)
 
-### Step 2: Enable Google+ API
+#### Step 2: Configure OAuth consent screen
 
-1. In the Google Cloud Console, select your project
-2. Go to "APIs & Services" → "Library"
-3. Search for "Google+ API"
-4. Click on "Google+ API"
-5. Click "Enable"
-
-### Step 3: Configure OAuth Consent Screen
+No additional Google API needs to be enabled for sign-in — configure the OAuth consent screen, then create credentials.
 
 1. Go to "APIs & Services" → "OAuth consent screen"
 2. Select "External" user type
@@ -235,7 +211,7 @@ This guide walks you through setting up Google and Apple OAuth for your Beaker S
 9. Click "Save and Continue"
 10. Review and click "Back to Dashboard"
 
-### Step 4: Create OAuth Credentials
+#### Step 3: Create OAuth credentials
 
 1. Go to "APIs & Services" → "Credentials"
 2. Click "Create Credentials" → "OAuth client ID"
@@ -260,7 +236,7 @@ This guide walks you through setting up Google and Apple OAuth for your Beaker S
    - Client ID (looks like: `123456789-abc123.apps.googleusercontent.com`)
    - Client Secret (looks like: `GOCSPX-abc123xyz789`)
 
-### Step 5: Configure for Mobile (Optional)
+#### Step 4: Configure for mobile (optional)
 
 If you want OAuth to work in the mobile app:
 
@@ -271,14 +247,14 @@ If you want OAuth to work in the mobile app:
 
 ---
 
-## Apple OAuth Setup
+### Apple OAuth setup
 
-### Prerequisites
+#### Prerequisites
 
 - Apple Developer account ($99/year)
 - Access to [Apple Developer Portal](https://developer.apple.com/)
 
-### Step 1: Create an App ID
+#### Step 1: Create an App ID
 
 1. Go to [Apple Developer Portal](https://developer.apple.com/account/)
 2. Navigate to "Certificates, Identifiers & Profiles"
@@ -291,7 +267,7 @@ If you want OAuth to work in the mobile app:
 7. Under "Capabilities", check "Sign in with Apple"
 8. Click "Continue" → "Register"
 
-### Step 2: Create a Services ID (for Web)
+#### Step 2: Create a Services ID (for Web)
 
 1. Go back to "Identifiers" → "+" button
 2. Select "Services IDs" → Click "Continue"
@@ -301,7 +277,7 @@ If you want OAuth to work in the mobile app:
 4. Check "Sign in with Apple"
 5. Click "Continue" → "Register"
 
-### Step 3: Configure Sign in with Apple
+#### Step 3: Configure Sign in with Apple
 
 1. Click on your Services ID (`com.yourcompany.beakerstack.web`)
 2. Check "Sign in with Apple"
@@ -322,7 +298,7 @@ If you want OAuth to work in the mobile app:
 
 7. Click "Next" → "Done" → "Continue" → "Save"
 
-### Step 4: Create a Private Key
+#### Step 4: Create a Private Key
 
 1. Go to "Keys" → "+" button
 2. Enter **Key Name**: `Beaker Stack Sign in with Apple Key`
@@ -331,15 +307,15 @@ If you want OAuth to work in the mobile app:
 5. Select your Primary App ID
 6. Click "Save" → "Continue" → "Register"
 7. **Download the key file** (.p8 file)
-   - ⚠️ **IMPORTANT**: You can only download this once! Save it securely.
+   - **Important:** You can only download this once. Save it securely.
 8. Note the **Key ID** (10-character string, e.g., `ABC123DEFG`)
 
-### Step 5: Get Your Team ID
+#### Step 5: Get Your Team ID
 
 1. Go to "Membership" in the Apple Developer Portal
 2. Note your **Team ID** (10-character string, e.g., `XYZ987WXYZ`)
 
-### Step 6: Prepare Credentials for Supabase
+#### Step 6: Prepare Credentials for Supabase
 
 You'll need these values:
 
@@ -350,9 +326,9 @@ You'll need these values:
 
 ---
 
-## Supabase Configuration
+### Supabase configuration
 
-### For Local Development
+#### For Local Development
 
 1. Open your local Supabase dashboard:
 
@@ -377,14 +353,14 @@ You'll need these values:
    - Paste **Private Key** (entire contents of .p8 file)
    - Click "Save"
 
-### For Production (Supabase Cloud)
+#### For Production (Supabase Cloud)
 
 1. Go to your [Supabase Dashboard](https://app.supabase.com/)
 2. Select your project
 3. Go to "Authentication" → "Providers"
 4. Follow the same steps as local development above
 
-### Redirect URLs
+#### Redirect URLs
 
 Supabase automatically handles redirect URLs at:
 
@@ -397,9 +373,9 @@ Your app will handle the redirect and extract the session.
 
 ---
 
-## Testing OAuth
+### Testing OAuth
 
-### Local Testing (Web App)
+#### Local testing (web)
 
 1. Start your local Supabase:
 
@@ -425,21 +401,11 @@ Your app will handle the redirect and extract the session.
    - User is logged in
    - Redirects to home/dashboard
 
-### Local Testing (Mobile App)
+#### Local testing (mobile)
 
-1. Start your mobile app:
+Mobile Google sign-in uses the native SDK and `signInWithIdToken`, not a browser OAuth redirect. See [Mobile native flow](#mobile-native-flow) and [MOBILE_BUILD_TESTING.md](MOBILE_BUILD_TESTING.md).
 
-   ```bash
-   cd apps/mobile
-   npm start
-   ```
-
-2. OAuth in mobile requires additional setup:
-   - Expo's `AuthSession` for web-based OAuth
-   - Or native modules for true native OAuth
-   - See Expo's [AuthSession docs](https://docs.expo.dev/versions/latest/sdk/auth-session/)
-
-### Manual Verification
+#### Manual verification
 
 After successful OAuth login, verify:
 
@@ -459,11 +425,11 @@ After successful OAuth login, verify:
 
 ---
 
-## Troubleshooting
+### Troubleshooting
 
-### Google OAuth Issues
+#### Google OAuth Issues
 
-#### "Error 400: redirect_uri_mismatch"
+##### "Error 400: redirect_uri_mismatch"
 
 - **Cause**: Redirect URI not configured in Google Cloud Console
 - **Fix**: Add the exact redirect URI to "Authorized redirect URIs"
@@ -471,24 +437,24 @@ After successful OAuth login, verify:
   http://localhost:54321/auth/v1/callback
   ```
 
-#### "Access blocked: This app's request is invalid"
+##### "Access blocked: This app's request is invalid"
 
 - **Cause**: OAuth consent screen not configured
-- **Fix**: Complete the OAuth consent screen setup in Step 3
+- **Fix**: Complete the OAuth consent screen setup in Step 2
 
-#### "Error 401: invalid_client"
+##### "Error 401: invalid_client"
 
 - **Cause**: Client ID or Secret incorrect in Supabase
 - **Fix**: Double-check credentials in Supabase dashboard
 
-### Apple OAuth Issues
+#### Apple OAuth Issues
 
-#### "invalid_client"
+##### "invalid_client"
 
 - **Cause**: Services ID, Team ID, or Key ID incorrect
 - **Fix**: Verify all IDs match exactly (case-sensitive)
 
-#### "Invalid key"
+##### "Invalid key"
 
 - **Cause**: Private key not formatted correctly
 - **Fix**: Paste the entire contents of the .p8 file, including:
@@ -498,80 +464,79 @@ After successful OAuth login, verify:
   -----END PRIVATE KEY-----
   ```
 
-#### "Redirect URI mismatch"
+##### "Redirect URI mismatch"
 
 - **Cause**: Return URL not configured in Apple Developer Portal
 - **Fix**: Add exact URL in Services ID configuration
 
-### General OAuth Issues
+#### General OAuth Issues
 
-#### "OAuth provider not configured"
+##### "OAuth provider not configured"
 
 - **Cause**: Provider not enabled in Supabase
 - **Fix**: Enable provider in Supabase dashboard
 
-#### "Popup blocked"
+##### "Popup blocked"
 
 - **Cause**: Browser blocking OAuth popup
 - **Fix**: Allow popups for localhost/your domain
 
-#### OAuth works locally but not in production
+##### OAuth works locally but not in production
 
 - **Cause**: Production redirect URLs not configured
 - **Fix**: Add production URLs to both OAuth provider and Supabase
 
 ---
 
-## Security Best Practices
+### Security best practices
 
-### Credentials Storage
+#### Credentials storage
 
-❌ **NEVER** commit OAuth credentials to git
-✅ Store in Supabase dashboard only
-✅ Use environment variables for any app-side config
-✅ Keep .p8 files secure and backed up
+- **Never** commit OAuth credentials to git
+- Store secrets in the Supabase dashboard (or your secret manager)
+- Use environment variables for any app-side config
+- Keep `.p8` files secure and backed up
 
-### Redirect URLs
+#### Redirect URLs
 
-✅ Use HTTPS in production (HTTP only for localhost)
-✅ Whitelist specific domains (don't use wildcards)
-✅ Keep redirect URLs as specific as possible
+- Use HTTPS in production (HTTP only for localhost)
+- Whitelist specific domains (avoid wildcards)
+- Keep redirect URLs as specific as possible
 
-### Scopes
+#### Scopes
 
-✅ Only request necessary scopes (email, profile)
-❌ Don't request unnecessary permissions
-✅ Explain to users why you need each scope
+- Only request necessary scopes (email, profile)
+- Do not request unnecessary permissions
+- Explain to users why you need each scope
 
 ---
 
-## Next Steps
+### Next steps
 
 Once OAuth is configured:
 
-1. ✅ Test OAuth login flow
-2. ✅ Verify user creation in database
-3. ✅ Test on multiple browsers
-4. ✅ Test on mobile (if applicable)
-5. ✅ Document any custom OAuth flows for your team
-6. ✅ Set up monitoring for OAuth errors
+1. Test OAuth login flow
+2. Verify user creation in the database
+3. Test on multiple browsers
+4. Test on mobile (see [Mobile native flow](#mobile-native-flow))
+5. Document any custom OAuth flows for your team
+6. Set up monitoring for OAuth errors
 
 ---
 
-## Additional Resources
+### Additional resources
 
 - [Supabase OAuth Documentation](https://supabase.com/docs/guides/auth/social-login)
 - [Google OAuth Documentation](https://developers.google.com/identity/protocols/oauth2)
 - [Apple Sign In Documentation](https://developer.apple.com/sign-in-with-apple/)
-- [Expo AuthSession](https://docs.expo.dev/versions/latest/sdk/auth-session/)
 
 ---
 
-## Support
+### Support
 
 If you encounter issues:
 
-1. Check the [Troubleshooting](#troubleshooting) section above
+1. Check [Troubleshooting](#troubleshooting) under Production setup
 2. Review Supabase logs in dashboard
 3. Check browser console for errors
 4. Verify all credentials are correct
