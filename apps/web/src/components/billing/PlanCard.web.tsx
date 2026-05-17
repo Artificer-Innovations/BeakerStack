@@ -126,7 +126,12 @@ export function PlanCard({
 
 /** Display price: monthly uses DB cents; annual uses yearly amount from billing-sync (Stripe). */
 export function listPriceForPlan(plan: Plan, cadence: 'monthly' | 'annual') {
-  if (plan.price_cents === 0) return 'US$0';
+  if (plan.price_cents === 0)
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0,
+    }).format(0);
   if (cadence === 'monthly') {
     return (
       new Intl.NumberFormat('en-US', {

@@ -1,6 +1,6 @@
 # @beakerstack/test-utils
 
-Testing utilities for [BeakerStack](https://github.com/Artificer-Innovations/BeakerStack)-based projects.
+Testing utilities for [Beaker Stack](https://github.com/Artificer-Innovations/BeakerStack)-based projects.
 
 ## Installation
 

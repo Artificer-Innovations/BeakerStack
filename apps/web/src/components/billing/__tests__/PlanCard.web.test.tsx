@@ -37,7 +37,7 @@ const proPlan: Plan = {
 describe('listPriceForPlan', () => {
   it('formats free and paid cadence copy', () => {
     const free: Plan = { ...proPlan, id: 'beakerstack_free', price_cents: 0 };
-    expect(listPriceForPlan(free, 'monthly')).toBe('US$0');
+    expect(listPriceForPlan(free, 'monthly')).toBe('$0');
     expect(listPriceForPlan(proPlan, 'monthly')).toMatch(/19/);
     expect(listPriceForPlan(proPlan, 'annual')).toMatch(/year/);
   });

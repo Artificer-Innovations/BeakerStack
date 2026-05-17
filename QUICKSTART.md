@@ -58,7 +58,7 @@ You should see a banner and a prompt similar to:
 ```text
 ========================================================================
 +                                                                        +
-+                         BeakerStack                                    +
++                         Beaker Stack                                    +
 +                                                                        +
 +         Choose (1) local setup or (2) full cloud wizard.                +
 +                                                                        +
@@ -164,6 +164,6 @@ Work through these when you are ready; they are intentionally dense.
 - [ ] Firebase / Google Cloud OAuth clients; `google-services.json` where required.
 - [ ] Supabase Auth Google provider + redirect URLs: [docs/supabase-preview-setup.md](docs/supabase-preview-setup.md), [docs/supabase-staging-production-setup.md](docs/supabase-staging-production-setup.md).
 
-**Deep dives:** [docs/pr-preview-setup.md](docs/pr-preview-setup.md), [ARCHITECTURE.md](ARCHITECTURE.md), [docs/README.md](docs/README.md).
+**Deep dives:** [docs/pr-preview-setup.md](docs/pr-preview-setup.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/README.md](docs/README.md).
 
 Do not commit `.env*` files; sensitive paths are listed in [.cursorignore](.cursorignore).

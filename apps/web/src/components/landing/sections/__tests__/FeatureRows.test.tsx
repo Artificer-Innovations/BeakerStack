@@ -18,7 +18,7 @@ const rows = [
     body: 'A single npm run setup provisions your local environment.',
     ctaLabel: 'Read the architecture',
     ctaHref:
-      'https://github.com/Artificer-Innovations/BeakerStack/blob/main/ARCHITECTURE.md',
+      'https://github.com/Artificer-Innovations/BeakerStack/blob/main/docs/ARCHITECTURE.md',
     mediaSrc: 'https://placehold.co/560x315?text=Setup',
     mediaAlt: 'Setup screenshot',
     mediaSide: 'left' as const,
@@ -54,7 +54,7 @@ describe('FeatureRows', () => {
     const link = screen.getByRole('link', { name: /Read the architecture/ });
     expect(link).toHaveAttribute(
       'href',
-      'https://github.com/Artificer-Innovations/BeakerStack/blob/main/ARCHITECTURE.md'
+      'https://github.com/Artificer-Innovations/BeakerStack/blob/main/docs/ARCHITECTURE.md'
     );
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');

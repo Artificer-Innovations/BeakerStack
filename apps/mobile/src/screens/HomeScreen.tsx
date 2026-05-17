@@ -1,15 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { HOME_TITLE, HOME_SUBTITLE } from '@beakerstack/shared/utils/strings';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.native';
+import { colors } from '@beakerstack/shared/theme/colors';
 import { supabase } from '../lib/supabase';
 
 type RootStackParamList = {
@@ -32,6 +34,26 @@ interface Props {
 export default function HomeScreen({ navigation }: Props) {
   const auth = useAuthContext();
 
+  useEffect(() => {
+    if (!auth.loading && auth.user) {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Dashboard' }],
+      });
+    }
+  }, [auth.loading, auth.user, navigation]);
+
+  if (auth.loading || auth.user) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size='large' color={colors.brand} />
+        <Text style={styles.loadingText}>
+          {auth.loading ? 'Loading...' : 'Redirecting...'}
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <AppHeader supabaseClient={supabase} />
@@ -44,46 +66,19 @@ export default function HomeScreen({ navigation }: Props) {
         </View>
 
         <View style={styles.buttonContainer}>
-          {auth.user ? (
-            // Signed in state
-            <>
-              <View style={styles.signedInContainer}>
-                <Text style={styles.signedInText}>Logged in as</Text>
-                <Text style={styles.signedInEmail}>{auth.user.email}</Text>
-              </View>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => navigation.navigate('Login')}
+          >
+            <Text style={styles.primaryButtonText}>Sign In</Text>
+          </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.primaryButton}
-                onPress={() => navigation.navigate('Dashboard')}
-              >
-                <Text style={styles.primaryButtonText}>Go To Dashboard</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={() => navigation.navigate('Profile')}
-              >
-                <Text style={styles.secondaryButtonText}>View Profile</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            // Signed out state
-            <>
-              <TouchableOpacity
-                style={styles.primaryButton}
-                onPress={() => navigation.navigate('Login')}
-              >
-                <Text style={styles.primaryButtonText}>Sign In</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={() => navigation.navigate('Signup')}
-              >
-                <Text style={styles.secondaryButtonText}>Sign Up</Text>
-              </TouchableOpacity>
-            </>
-          )}
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => navigation.navigate('Signup')}
+          >
+            <Text style={styles.secondaryButtonText}>Sign Up</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -93,7 +88,7 @@ export default function HomeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.pageBg,
   },
   content: {
     flex: 1,
@@ -108,13 +103,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6b7280',
+    color: colors.textMuted,
     textAlign: 'center',
     lineHeight: 24,
     maxWidth: 300,
@@ -123,28 +118,15 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 300,
   },
-  signedInContainer: {
-    backgroundColor: '#d1fae5',
-    borderColor: '#6ee7b7',
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    backgroundColor: colors.pageBg,
   },
-  signedInText: {
-    color: '#065f46',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  signedInEmail: {
-    color: '#065f46',
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 4,
-  },
+  loadingText: { marginTop: 16, fontSize: 16, color: colors.textMuted },
   primaryButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.brand,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
@@ -157,17 +139,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   secondaryButton: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.cardBg,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#3b82f6',
+    borderColor: colors.brand,
     alignItems: 'center',
     marginBottom: 12,
   },
   secondaryButtonText: {
-    color: '#3b82f6',
+    color: colors.brand,
     fontSize: 16,
     fontWeight: '600',
   },

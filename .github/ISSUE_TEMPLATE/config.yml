@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions (Discussions)
+    url: https://github.com/Artificer-Innovations/BeakerStack/discussions
+    about: Usage help and design questions
+  - name: Security report
+    url: https://github.com/Artificer-Innovations/BeakerStack/blob/main/SECURITY.md
+    about: Report vulnerabilities privately — do not file a public issue

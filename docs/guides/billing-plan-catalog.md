@@ -1,6 +1,6 @@
 # Billing plan catalog (features and usage limits)
 
-This guide is the **checklist for changing entitlements** in BeakerStack: booleans, numeric caps, and metered `usage_limits`. It complements [stripe-billing-setup.md](../stripe-billing-setup.md) (Stripe keys, webhooks, price sync).
+This guide is the **checklist for changing entitlements** in Beaker Stack: booleans, numeric caps, and metered `usage_limits`. It complements [stripe-billing-setup.md](../stripe-billing-setup.md) (Stripe keys, webhooks, price sync).
 
 ## Source of truth
 

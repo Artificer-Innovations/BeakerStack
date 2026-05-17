@@ -1,19 +1,19 @@
-# BeakerStack Billing v1
+# Beaker Stack Billing v1
 
 **Shared billing and entitlements infrastructure for Artificer Innovations factory products.**
 
-_A module within BeakerStack, open source MIT_
+_A module within Beaker Stack, open source MIT_
 
 **Version:** 1.0 Draft
 **Purpose:** Technical specification for minimal v1 billing features supporting B2C SaaS projects
 
-> **Status:** Implemented in `@beakerstack/billing` and the BeakerStack template. This spec may lag the codebase in minor API naming; use [`apps/web/docs/billing-testing.md`](../../apps/web/docs/billing-testing.md) for operational QA.
+> **Status:** Implemented in `@beakerstack/billing` and the Beaker Stack template. This spec may lag the codebase in minor API naming; use [`apps/web/docs/billing-testing.md`](../../apps/web/docs/billing-testing.md) for operational QA.
 
 ---
 
 ## Purpose
 
-BeakerStack Billing is a shared module within the BeakerStack full-stack template that provides subscription billing, entitlements management, and usage tracking. It's designed to serve multiple products from a single implementation, supporting the Artificer Innovations factory's need for consistent billing infrastructure across seed products.
+Beaker Stack Billing is a shared module within the Beaker Stack full-stack template that provides subscription billing, entitlements management, and usage tracking. It's designed to serve multiple products from a single implementation, supporting the Artificer Innovations factory's need for consistent billing infrastructure across seed products.
 
 V1 is scoped specifically to what simple B2C SaaS products needs for launch, plus a few forward-compatible design choices that make v2 cleaner. The goal is shippable infrastructure in 3-4 weeks, not a complete billing platform.
 
@@ -64,11 +64,11 @@ A user's current entitlements are computed from their active subscription plus t
 
 **Principle 3: Multi-product from day one.**
 
-The schema and APIs support multiple products from the start. Adding multiple simple B2C SaaS products should require zero schema changes to BeakerStack Billing.
+The schema and APIs support multiple products from the start. Adding multiple simple B2C SaaS products should require zero schema changes to Beaker Stack Billing.
 
 **Principle 4: Usage limits enforced at the application layer.**
 
-BeakerStack Billing tracks usage events but does not automatically prevent actions when limits are hit. Each product calls `getRemainingUsage()` and decides how to handle limit exhaustion (typically by showing an upgrade prompt, but products can implement their own logic).
+Beaker Stack Billing tracks usage events but does not automatically prevent actions when limits are hit. Each product calls `getRemainingUsage()` and decides how to handle limit exhaustion (typically by showing an upgrade prompt, but products can implement their own logic).
 
 **Principle 5: Free tier is first class.**
 
@@ -89,7 +89,7 @@ The billing module itself has exactly two modes: Stripe test mode and Stripe liv
              │ API calls
              ▼
 ┌─────────────────────────────────────────────┐
-│     BeakerStack Billing Module               │
+│     Beaker Stack Billing Module               │
 │  - Entitlement checks                        │
 │  - Usage tracking                            │
 │  - Subscription management                   │
@@ -643,7 +643,7 @@ The module itself is agnostic to which mode is configured; Stripe handles the di
 
 - **Development and staging environments:** always use test mode
 - **Production deployments of real products:** use live mode
-- **Demo sites showcasing BeakerStack capabilities:** always use test mode, never live mode
+- **Demo sites showcasing Beaker Stack capabilities:** always use test mode, never live mode
 - **Never mix modes within an environment:** test subscriptions cannot be converted to live subscriptions
 
 A misconfiguration where a production environment accidentally uses test keys results in payments failing silently (Stripe rejects the test keys for live transactions or processes them as test). The inverse (test environment using live keys) is worse: real charges could occur in a demo or development context. Guard against this with environment variable management discipline.
@@ -664,7 +664,7 @@ This pattern lets demo sites show clean instant upgrades by default while preser
 
 ### beakerstack.com specific behavior
 
-The BeakerStack demo site at beakerstack.com implements application-layer demo mode as described above. Specifically:
+The Beaker Stack demo site at beakerstack.com implements application-layer demo mode as described above. Specifically:
 
 - Stripe test mode is configured (test keys only, never live)
 - Default upgrade path shortcuts Stripe entirely for faster exploration
@@ -673,11 +673,11 @@ The BeakerStack demo site at beakerstack.com implements application-layer demo m
 - Demo accounts accumulate without automatic reset (deferred; manual cleanup as needed)
 - README documents the demo vs production configuration clearly
 
-This approach serves as the reference implementation for other BeakerStack users who want to build their own demo sites.
+This approach serves as the reference implementation for other Beaker Stack users who want to build their own demo sites.
 
-### Mode switching for new BeakerStack users
+### Mode switching for new Beaker Stack users
 
-When a developer clones BeakerStack to build their own product, the README walks them through:
+When a developer clones Beaker Stack to build their own product, the README walks them through:
 
 1. Creating a Stripe account (free)
 2. Obtaining test mode API keys
@@ -691,7 +691,7 @@ The mode switch itself is a configuration change, not a code change. The billing
 
 ## Open source considerations
 
-Because BeakerStack is open source MIT, BeakerStack Billing is also open source. This means:
+Because Beaker Stack is open source MIT, Beaker Stack Billing is also open source. This means:
 
 **Generic enough for others to use.** Don't hardcode Artificer Innovations specifics. The module should work for any Stripe-based SaaS using Supabase.
 
@@ -786,15 +786,15 @@ These are beakerstack.com and future-demo-site concerns rather than billing modu
 
 ---
 
-## Appendix: BeakerStack open-source template (billing v1 alignment)
+## Appendix: Beaker Stack open-source template (billing v1 alignment)
 
-This section extends the billing spec for the **BeakerStack** monorepo: a production-quality `packages/billing` module plus a **template-level** B2C demo. It does not change the core architectural principles above; it constrains how the factory ships the module and how the template validates it.
+This section extends the billing spec for the **Beaker Stack** monorepo: a production-quality `packages/billing` module plus a **template-level** B2C demo. It does not change the core architectural principles above; it constrains how the factory ships the module and how the template validates it.
 
 ### Template goals
 
 1. Ship a production-quality `packages/billing` module per this document’s core architecture.
 2. Build a meaningful B2C-flavored demonstration in `apps/web` (and mirror key pieces in `apps/mobile`) that exercises enough of the module surface to genuinely validate it, not just render a pricing table.
-3. Draw a clean, explicit line between the reusable billing module and the BeakerStack template app layer.
+3. Draw a clean, explicit line between the reusable billing module and the Beaker Stack template app layer.
 
 ### Tier structure: Free / Pro / Max (template demo)
 
@@ -863,7 +863,7 @@ Document in **`apps/web/docs/billing-testing.md`** (canonical CLI walkthrough), 
 
 **Explicit non-goal for v1:** No admin **“simulate webhook”** UI in the template — avoids payload drift and scope creep.
 
-### Implementation checklist (BeakerStack repo — shipped)
+### Implementation checklist (Beaker Stack repo — shipped)
 
 - DB migration: billing tables, RLS, core RPCs (`record_usage_event`, reads, `ensure_free`), pgTAP under **`supabase/migrations/`** at repo root.
 - Edge Functions: `stripe-webhook`, `billing-stripe`; secrets and CI deploy.

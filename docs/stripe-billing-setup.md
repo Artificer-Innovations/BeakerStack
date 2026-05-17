@@ -1,6 +1,6 @@
-# Stripe billing setup (BeakerStack)
+# Stripe billing setup (Beaker Stack)
 
-This guide walks you from **zero** to a working **test-mode** Stripe integration with BeakerStack’s billing stack: **Supabase Postgres** (`billing_*` tables), **Edge Functions** (`stripe-webhook`, `billing-stripe`), and the **web/mobile** apps using `@beakerstack/billing`.
+This guide walks you from **zero** to a working **test-mode** Stripe integration with Beaker Stack’s billing stack: **Supabase Postgres** (`billing_*` tables), **Edge Functions** (`stripe-webhook`, `billing-stripe`), and the **web/mobile** apps using `@beakerstack/billing`.
 
 **Related docs (narrower topics):**
 
@@ -12,7 +12,7 @@ This guide walks you from **zero** to a working **test-mode** Stripe integration
 
 ## 0. Billing model overview (what you are actually setting up)
 
-BeakerStack uses Stripe for **commercial billing primitives** and Supabase for **application-side entitlement state**.
+Beaker Stack uses Stripe for **commercial billing primitives** and Supabase for **application-side entitlement state**.
 
 ### Source of truth split
 
@@ -43,9 +43,9 @@ This repo’s `billing:sync-stripe` command can create/update Products and Price
 
 If a plan is paid, it must have a valid Stripe Price and the matching `billing_plans.stripe_price_id`. If that link is missing, checkout is not ready.
 
-### Environment model (BeakerStack default)
+### Environment model (Beaker Stack default)
 
-BeakerStack runs four stack versions, each with its own Supabase target and billing wiring:
+Beaker Stack runs four stack versions, each with its own Supabase target and billing wiring:
 
 | Environment | Supabase target                       | Stripe key mode                | Webhook endpoint in Stripe                                                      |
 | ----------- | ------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------- |
@@ -92,7 +92,7 @@ Stripe **test mode** can deliver the same events to every registered webhook URL
 1. Open [Stripe Dashboard](https://dashboard.stripe.com/) and turn **Test mode** on (toggle in the header).
 2. Go to **Developers → API keys**.
 3. Copy:
-   - **Publishable key** — `pk_test_…` (optional for future client-side Stripe.js; BeakerStack billing checkout is mostly server-driven via Edge).
+   - **Publishable key** — `pk_test_…` (optional for future client-side Stripe.js; Beaker Stack billing checkout is mostly server-driven via Edge).
    - **Secret key** — `sk_test_…` → this value is `STRIPE_SECRET_KEY` for Edge Functions and for the sync script.
 
 Keep secret keys out of git; use Supabase Dashboard secrets and local `.env` files that are gitignored.
@@ -202,7 +202,7 @@ See [supabase/functions/README.md](../supabase/functions/README.md) for JWT beha
 
 Checkout fails if `billing_plans.stripe_price_id` is null for a paid plan. The repo includes:
 
-- **Sync config:** [apps/web/src/billing/billing-sync.json](../apps/web/src/billing/billing-sync.json) — lists paid `planId`s and monthly/annual amounts for the template product.
+- **Sync config:** [packages/billing/src/presentation/billing-sync.json](../packages/billing/src/presentation/billing-sync.json) — lists paid `planId`s and monthly/annual amounts for the template product.
 - **Script:** `npm run billing:sync-stripe` → runs [scripts/sync-billing-stripe.mjs](../scripts/sync-billing-stripe.mjs).
 
 **CI:** [`.github/workflows/pr-preview-environment.yml`](../.github/workflows/pr-preview-environment.yml), [`deploy-staging.yml`](../.github/workflows/deploy-staging.yml), and [`deploy-production.yml`](../.github/workflows/deploy-production.yml) run **`npm run billing:sync-stripe`** after the database is migrated (preview: after the preview DB prepare step; staging/production: after `supabase db push`) and **before** deploying Edge Functions, so `billing_plans` always has Stripe price IDs for checkout without a manual sync.
@@ -215,7 +215,7 @@ export SUPABASE_URL=https://<PROJECT_REF>.supabase.co   # or http://127.0.0.1:54
 export SUPABASE_SERVICE_ROLE_KEY=<service_role key>
 
 npm run billing:sync-stripe
-# equivalent: node scripts/sync-billing-stripe.mjs --config apps/web/src/billing/billing-sync.json
+# equivalent: node scripts/sync-billing-stripe.mjs --config packages/billing/src/presentation/billing-sync.json
 ```
 
 The script creates or reuses a Stripe Product (tagged with `billing_product_id` metadata), creates Prices as needed, and **updates** `billing_plans` rows for the listed `planId`s.

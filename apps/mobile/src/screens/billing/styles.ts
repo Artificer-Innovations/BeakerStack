@@ -1,34 +1,29 @@
 import { StyleSheet } from 'react-native';
+import { colors } from '@beakerstack/shared/theme/colors';
 
 export const billingColors = {
-  pageBg: '#f9fafb',
-  cardBg: '#ffffff',
-  border: '#e5e7eb',
-  textPrimary: '#111827',
-  textMuted: '#6b7280',
-  indigo: '#4f46e5',
-  indigoDark: '#4338ca',
-  errorBg: '#fef2f2',
-  errorBorder: '#fecaca',
-  errorText: '#991b1b',
-  infoBg: '#eff6ff',
-  infoBorder: '#bfdbfe',
-  infoText: '#1e3a8a',
-  warnBg: '#fffbeb',
-  warnBorder: '#fde68a',
-  warnText: '#92400e',
+  pageBg: colors.pageBg,
+  cardBg: colors.cardBg,
+  border: colors.border,
+  rowDivider: colors.rowDivider,
+  textPrimary: colors.textPrimary,
+  textMuted: colors.textMuted,
+  indigo: colors.brand,
+  indigoDark: colors.brandDark,
+  errorBg: colors.errorBg,
+  errorBorder: colors.errorBorder,
+  errorText: colors.errorText,
+  infoBg: colors.infoBg,
+  infoBorder: colors.infoBorder,
+  infoText: colors.infoText,
+  warnBg: colors.warnBg,
+  warnBorder: colors.warnBorder,
+  warnText: colors.warnText,
 };
 
 export const billingStyles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: billingColors.pageBg },
   scrollContent: { padding: 16, paddingBottom: 40 },
-  h1: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: billingColors.textPrimary,
-    marginBottom: 4,
-  },
-  backLink: { color: billingColors.indigo, fontSize: 15, marginBottom: 8 },
   card: {
     backgroundColor: billingColors.cardBg,
     borderRadius: 12,
@@ -77,7 +72,7 @@ export const billingStyles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: billingColors.rowDivider,
   },
   banner: {
     borderRadius: 8,

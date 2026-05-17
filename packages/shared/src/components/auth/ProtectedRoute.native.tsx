@@ -4,6 +4,7 @@ import { ParamListBase, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { Logger } from '../../utils/logger';
+import { colors } from '../../theme/colors';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -42,7 +43,7 @@ export function ProtectedRoute({
   if (auth.loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size='large' color='#4F46E5' />
+        <ActivityIndicator size='large' color={colors.brand} />
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
@@ -52,7 +53,7 @@ export function ProtectedRoute({
   if (!auth.user) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size='large' color='#4F46E5' />
+        <ActivityIndicator size='large' color={colors.brand} />
         <Text style={styles.loadingText}>Redirecting...</Text>
       </View>
     );
@@ -68,11 +69,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.pageBg,
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.textMuted,
   },
 });

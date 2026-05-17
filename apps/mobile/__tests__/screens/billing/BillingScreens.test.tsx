@@ -118,6 +118,14 @@ jest.mock('@beakerstack/billing/native', () => {
   };
 });
 
+jest.mock('@beakerstack/shared/components/navigation/AppHeader.native', () => ({
+  AppHeader: () => null,
+}));
+
+jest.mock('../../../src/lib/supabase', () => ({
+  supabase: {},
+}));
+
 function renderWithNav(ui: React.ReactElement) {
   return render(<NavigationContainer>{ui}</NavigationContainer>);
 }

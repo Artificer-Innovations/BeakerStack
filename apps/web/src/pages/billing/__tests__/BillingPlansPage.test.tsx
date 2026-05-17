@@ -246,6 +246,16 @@ describe('BillingPlansPage', () => {
     expect(screen.getByRole('heading', { name: 'Pro' })).toBeInTheDocument();
   });
 
+  it('renders $0 price headline for the Free plan card (not US$0)', () => {
+    plansState.current = plansState.freePlan;
+    plansState.subscription = null;
+    renderPage();
+    const freeCard = document.getElementById('plan-card-beakerstack_free');
+    expect(freeCard).not.toBeNull();
+    expect(within(freeCard as HTMLElement).getByText('$0')).toBeInTheDocument();
+    expect(within(freeCard as HTMLElement).queryByText('US$0')).not.toBeInTheDocument();
+  });
+
   it('shows Free as current plan when subscription is null', () => {
     plansState.current = plansState.freePlan;
     plansState.subscription = null;

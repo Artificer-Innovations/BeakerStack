@@ -58,7 +58,7 @@ VALUES
     NULL,
     NULL,
     NULL,
-    '{"containers_per_account_max": -1, "items_per_container_max": -1, "feature_a": true, "feature_b": true, "feature_c": true}'::jsonb,
+    '{"containers_per_account_max": -1, "items_per_container_max": -1, "feature_a": true, "feature_b": true}'::jsonb,
     '{"ai_summarize": -1}'::jsonb,
     5,
     true,

@@ -1,0 +1,29 @@
+name: Feature request
+description: Propose a change to the upstream template
+title: "[feat]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For large or opinionated changes, open a [Discussion](https://github.com/Artificer-Innovations/BeakerStack/discussions) first.
+        Stack swaps (e.g. different auth or payment provider) usually belong in forks — see [CONTRIBUTING.md](https://github.com/Artificer-Innovations/BeakerStack/blob/main/CONTRIBUTING.md).
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to accomplish?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false

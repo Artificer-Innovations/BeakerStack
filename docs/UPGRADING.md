@@ -1,10 +1,10 @@
 # Upgrading
 
-This guide covers how to pull BeakerStack changes into a fork you have already set up. See [VERSIONING.md](VERSIONING.md) for how template tags and package versions work.
+This guide covers how to pull Beaker Stack changes into a fork you have already set up. See [VERSIONING.md](VERSIONING.md) for how template tags and package versions work.
 
 ## Prerequisites
 
-Add the BeakerStack repo as an upstream remote if you have not already:
+Add the Beaker Stack repo as an upstream remote if you have not already:
 
 ```bash
 git remote add upstream https://github.com/Artificer-Innovations/BeakerStack.git

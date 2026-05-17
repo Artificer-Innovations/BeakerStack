@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useFeature } from '@beakerstack/billing';
+import { colors } from '@beakerstack/shared/theme/colors';
 import { beakerstackBillingConfig } from '../../billing/beakerstackBillingConfig';
 
 interface TileProps {
@@ -78,7 +79,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
@@ -90,12 +91,12 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   tileOn: {
-    borderColor: '#86efac',
-    backgroundColor: '#f0fdf4',
+    borderColor: colors.featureOnBorder,
+    backgroundColor: colors.featureOnBg,
   },
   tileOff: {
-    borderColor: '#e5e7eb',
-    backgroundColor: '#f9fafb',
+    borderColor: colors.border,
+    backgroundColor: colors.pageBg,
   },
   tileHeader: {
     flexDirection: 'row',
@@ -103,21 +104,21 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 8,
   },
-  tileLabel: { fontSize: 13, fontWeight: '600', color: '#111827' },
-  tilePlan: { marginTop: 2, fontSize: 11, color: '#6b7280' },
+  tileLabel: { fontSize: 13, fontWeight: '600', color: colors.textPrimary },
+  tilePlan: { marginTop: 2, fontSize: 11, color: colors.textMuted },
   iconWrap: {
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  iconOn: { backgroundColor: '#dcfce7' },
-  iconOff: { backgroundColor: '#e5e7eb' },
+  iconOn: { backgroundColor: colors.featureOnIconBg },
+  iconOff: { backgroundColor: colors.iconOffBg },
   iconPlaceholder: { width: 14, height: 14 },
-  iconText: { fontSize: 12, fontWeight: '800', color: '#9ca3af' },
-  iconTextOn: { color: '#16a34a' },
+  iconText: { fontSize: 12, fontWeight: '800', color: colors.textFaint },
+  iconTextOn: { color: colors.featureOnIcon },
   codeBox: {
     marginTop: 10,
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.codeBg,
     borderRadius: 6,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -125,8 +126,8 @@ const styles = StyleSheet.create({
   codeText: {
     fontFamily: 'monospace',
     fontSize: 11,
-    color: '#cbd5e1',
+    color: colors.codeText,
   },
-  codeValOn: { color: '#4ade80' },
-  codeValOff: { color: '#64748b' },
+  codeValOn: { color: colors.codeValTrue },
+  codeValOff: { color: colors.codeValFalse },
 });

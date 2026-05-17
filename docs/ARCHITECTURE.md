@@ -2455,7 +2455,7 @@ git commit -m "docs: update setup instructions in README"
    - Deploy to S3: `s3://deploy-bucket/pr-{number}/`
    - Invalidate CloudFront cache for `/pr-{number}/*`
    - **Duration**: ~2-3 minutes
-   - **Result**: https://deploy.yourdomain.com/pr-{number}/
+   - **Result**: `https://deploy.yourdomain.com/pr-{number}/`
 
 4. **Deploy Mobile Preview**
    - Download database types artifact

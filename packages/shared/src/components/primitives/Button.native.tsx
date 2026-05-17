@@ -5,6 +5,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
+import { colors } from '../../theme/colors';
 
 export type ButtonSize = 'sm' | 'md' | 'lg';
 export type ButtonVariant = 'primary' | 'secondary' | 'destructive' | 'ghost';
@@ -34,17 +35,18 @@ function variantColors(variant: ButtonVariant): {
   bg: string;
   text: string;
   border: string;
+  borderWidth: number;
 } {
   switch (variant) {
     case 'primary':
-      return { bg: '#4F46E5', text: '#FFFFFF', border: 'transparent' };
+      return { bg: colors.brand, text: colors.white, border: 'transparent', borderWidth: 0 };
     case 'secondary':
-      return { bg: '#FFFFFF', text: '#111827', border: '#E5E7EB' };
+      return { bg: colors.cardBg, text: colors.textPrimary, border: colors.border, borderWidth: 1 };
     case 'destructive':
-      return { bg: '#DC2626', text: '#FFFFFF', border: 'transparent' };
+      return { bg: colors.errorIcon, text: colors.white, border: 'transparent', borderWidth: 0 };
     case 'ghost':
     default:
-      return { bg: 'transparent', text: '#374151', border: 'transparent' };
+      return { bg: 'transparent', text: colors.textBody, border: 'transparent', borderWidth: 0 };
   }
 }
 
@@ -64,7 +66,7 @@ export function Button({
 }: ButtonProps) {
   const isDisabled = disabled || loading;
   const { v, h, font } = sizePadding[size];
-  const colors = variantColors(variant);
+  const vc = variantColors(variant);
 
   return (
     <TouchableOpacity
@@ -82,19 +84,19 @@ export function Button({
           minHeight: size === 'lg' ? 48 : 40,
           width: fullWidth ? '100%' : undefined,
           opacity: isDisabled ? 0.5 : 1,
-          backgroundColor: colors.bg,
-          borderWidth: variant === 'secondary' ? 1 : 0,
-          borderColor: colors.border,
+          backgroundColor: vc.bg,
+          borderWidth: vc.borderWidth,
+          borderColor: vc.border,
         },
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={colors.text} />
+        <ActivityIndicator color={vc.text} />
       ) : typeof children === 'string' ? (
         <Text
           style={[
-            { fontSize: font, fontWeight: '600', color: colors.text },
+            { fontSize: font, fontWeight: '600', color: vc.text },
             textStyle,
           ]}
         >

@@ -1,153 +1,136 @@
 # Beaker Stack
 
-Beaker Stack is a **monorepo template** for building **Supabase-backed** applications that ship on **web (React + Vite)** and **mobile (React Native + Expo)** at the same time: **one product, two surfaces, one backend, one deploy pipeline.**
+**Ship your SaaS faster.**
 
-Most full-stack templates optimize for getting an app running. Beaker Stack optimizes for the **pipeline around it**—local parity, PR previews, staging from `develop`, production from `main`, and shared business logic so web and mobile do not drift.
+[![Test](https://github.com/Artificer-Innovations/BeakerStack/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/Artificer-Innovations/BeakerStack/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)](package.json)
+[![Release](https://img.shields.io/github/v/release/Artificer-Innovations/BeakerStack?label=template&display_name=release)](https://github.com/Artificer-Innovations/BeakerStack/releases/tag/2026.001)
+[![Discussions](https://img.shields.io/github/discussions/Artificer-Innovations/BeakerStack)](https://github.com/Artificer-Innovations/BeakerStack/discussions)
 
-> **What you end up with:** **Production** at `https://yourdomain.com`, **staging** at `https://staging.yourdomain.com`, and **every pull request** getting an **ephemeral web URL** at `https://deploy.yourdomain.com/pr-<number>/` (path-based previews on AWS). When CI secrets are configured, **Expo EAS** update channels align to preview, staging, and production. Env keys and GitHub Actions secrets follow a **single manifest** so pipelines trust the same layout you use locally. It is the small-team version of infrastructure many solo stacks skip—without giving up a sane SDLC.
+Beaker Stack is the foundation we wished existed for shipping real B2C SaaS: **one product, two surfaces, one backend, one deploy pipeline**. Web and mobile from a shared codebase, auth and billing past the demo, a three-environment pipeline that catches mistakes before production, and a structure that AI coding agents can modify without breaking things.
+
+React + Vite on the web. React Native + Expo on mobile. Supabase underneath. Stripe when you take money.
+
+![Beaker Stack PR checks, setup wizard, and mobile app](docs/images/readme/hero.png)
+
+[beakerstack.com](https://beakerstack.com) · [Quick start](QUICKSTART.md) · [Releases](https://github.com/Artificer-Innovations/BeakerStack/releases)
 
 ## Why this shape
 
-**1. SDLC from day one, not later.** The usual small-project arc is: move fast, add CI when it hurts, add staging when it really hurts, skip PR previews entirely. That is cheap on day one and expensive on day ninety—manual deploys, no rollback story, and a “staging” environment that is really hope. Beaker Stack assumes the **pipeline is part of the product**: developers test against **local** Supabase; **every PR** gets a **deploy URL** (and optional mobile channel) so the change runs in an environment close to production; **merged work on `develop`** flows to **staging**; **production** is fed by a **deliberate `develop` → `main`** promotion, not ad-hoc pushes.
+**The wedge.** A credible B2C app needs web, iOS, Android, auth, billing, entitlements, and a marketing site that ranks — not eventually, from day one. Most templates give you one slice. Stitching the rest is a four-to-six-week integration project before you write product code. Beaker Stack is that work already done, in a shape that still holds when you customize it.
 
-**2. Review discipline: the artifact under review is the running change, not only the diff.** Every PR gets a **URL** so reviewers answer whether the behavior works **in situ**, without cloning the branch. That catches integration issues before merge. There is a one-time cost to wire DNS and secrets; **per-PR marginal cost stays low** once the stack exists.
+**One codebase, not three products that drift.** The slow death of cross-platform apps is duplicated business logic: validation on web, different validation on mobile, billing hooks that only exist on one surface. Shared hooks, shared types, shared billing in `packages/shared` mean one bug, one fix, three platforms. That is not a reuse percentage; it is how you keep “one product” true after the fork.
 
-**3. Shared code as discipline, not a headline percentage.** Most teams end up with a React tree and a React Native tree that **drift**. Putting business logic, validation, and types in **`packages/shared`** is not mainly a reuse metric—it is a rule that **one product on two surfaces** stays true **by construction**, not aspirationally.
+**Three environments because “works on my machine” is not a release strategy.** B2C apps that take payments cannot ship migrations that break production, and stakeholders need to click a feature in a PR, not read a diff. Beaker Stack mirrors your branch model in Supabase — local Docker, shared PR preview DB, staging on `develop`, production on `main` — and deploys path-based web previews so the artifact under review is the running change.
 
-## Why the setup wizard exists
+The test pyramid (unit, integration, E2E, database) catches regressions across web and mobile in a single PR, before merge. Optional EAS Update channels align mobile to the same preview → staging → production flow.
 
-Standing up Route 53, ACM, three Supabase tiers, EAS, and GitHub secrets **by hand** would contradict the claim that small teams can afford this shape. **`npm run setup`** (local path: Docker Supabase, `.env.local`, type generation) and **`npm run setup:full`** (remote resources, optional AWS bootstrap, optional `gh` sync) exist **because** the thesis is that ceremony is cheap **when the template does the work on day one**. One command (plus honest prerequisites in [QUICKSTART.md](QUICKSTART.md)) is how “SDLC from day one” stops being aspirational.
+**Built for AI coding agents.** Dozens of full-stack templates exist. Few say plainly: we designed this to be modified by AI coding agents, and here is how. Typed landing and billing configs fail loudly instead of silently rendering wrong copy. Schema-generated types tie the database to TypeScript so an agent cannot drift from RLS reality. Tests are colocated with a documented decision matrix so an agent knows where new coverage belongs. Monorepo boundaries scope changes. When an agent still ships something broken, PR previews and CI are the safety net — not hope.
 
-**Who it is for:** Teams whose bottleneck is **shipping safely** (reviews, previews, staged promotion) at least as much as raw feature throughput—and who want Supabase plus **paired web and mobile** without two divergent codebases.
+**Fork the template; update the packages.** Every template fork diverges immediately — that is fine. Beaker Stack does two things about it. **CalVer tags** (`2026.001`, …) mark exact snapshot baselines so you know what you forked and can merge upstream deliberately ([docs/UPGRADING.md](docs/UPGRADING.md)). Reusable pieces ship as **`@beakerstack/*` npm packages** (semver, Changesets) so you can bump test helpers or billing without re-merging the whole monorepo. See [docs/VERSIONING.md](docs/VERSIONING.md).
 
-**How this differs from app-first starters (e.g. T3, create-t3-turbo, default Expo templates):** Those optimize for **getting an app running**. Beaker Stack optimizes for the **pipeline around the app**: local parity, PR-in-situ review, staging from `develop`, production from `main`, and secrets/env layout that CI can trust. If you only need one surface and a single deploy button, a simpler template is the right trade. If you want **small-team SDLC without the usual “add it when we need it” regret**, this shape is the bet.
+## Template + npm packages
 
-The specific machinery (tiered Supabase, AWS static hosting with PR paths, EAS channels, and the `setup-manifest` map for Actions secrets) is listed below. **That list is how the opinions are implemented, not why you would adopt them.**
+| Distribution     | What it is                                                                                                                  |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **Template**     | Fork or “Use this template”; CalVer tags + [GitHub Releases](https://github.com/Artificer-Innovations/BeakerStack/releases) |
+| **npm packages** | Optional `@beakerstack/*` for existing apps; semver via Changesets                                                          |
 
-**Stack versions (from the repo today):** web uses **React 18.2** and **Vite 5**; mobile uses **Expo SDK ~50** and **React Native 0.73**; CI uses **Node 20** and **Supabase CLI 2.54.11** (see `.github/workflows`).
+| Package                   | Status                                                                         | Install                            |
+| ------------------------- | ------------------------------------------------------------------------------ | ---------------------------------- |
+| `@beakerstack/test-utils` | Published on npm (`0.0.1`; workspace may show `0.0.0` until release PR merges) | `npm i -D @beakerstack/test-utils` |
+| `@beakerstack/billing`    | In template (npm planned)                                                      | Workspace in fork today            |
+| `@beakerstack/shared`     | In template (npm planned)                                                      | Workspace in fork today            |
 
-**Out of the box you get:** Email + Google auth flows (with optional Apple per [docs/oauth/OAUTH_SETUP.md](docs/oauth/OAUTH_SETUP.md)), user profiles + RLS patterns, Maestro-oriented E2E layout, and scripts for local Docker Supabase plus full-cloud bootstrap.
+## What's in the repo
 
----
+Reference inventory — the argument is above.
 
-**[Get started → QUICKSTART.md](QUICKSTART.md)** — **Use this template**, local “hello world” in minutes, full-cloud checklist when you are ready.
+| Area      | What you get                                                                                                        | Doc                                                              |
+| --------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Apps      | Web (Vite), mobile (Expo), shared `packages/*`                                                                      | [ARCHITECTURE](docs/ARCHITECTURE.md)                             |
+| Auth      | Email/password, Google OAuth, optional Apple; RLS-first profiles; schema-generated types                            | [OAUTH](docs/OAUTH.md)                                           |
+| Billing   | Stripe subscriptions (not one-off checkout-only), plan gates, customer portal, usage metering                       | [stripe-billing-setup](docs/stripe-billing-setup.md)             |
+| Marketing | Config-driven landing; prerendered SEO home (canonical + Open Graph)                                                | [landing README](apps/web/src/components/landing/README.md)      |
+| CI/CD     | Path-based PR previews on AWS (S3/CloudFront), staging on `develop`, production on `main`, EAS channels             | [pr-preview-setup](docs/pr-preview-setup.md)                     |
+| Setup     | `npm run setup` / `setup:full` (local + optional full cloud)                                                        | [QUICKSTART](QUICKSTART.md)                                      |
+| Tests     | Unit, integration, Maestro E2E, pgTAP DB tests; colocated with decision matrix                                      | [TESTING](docs/TESTING.md)                                       |
+| Agents    | Typed configs, generated DB types, package boundaries, test placement rules — conventions in ARCHITECTURE + TESTING | [ARCHITECTURE](docs/ARCHITECTURE.md), [TESTING](docs/TESTING.md) |
 
-| Need                  | Doc                                                          |
-| --------------------- | ------------------------------------------------------------ |
-| Full topic index      | [docs/README.md](docs/README.md)                             |
-| Stripe billing setup  | [docs/stripe-billing-setup.md](docs/stripe-billing-setup.md) |
-| Environments & design | [ARCHITECTURE.md](ARCHITECTURE.md)                           |
-| Contributing          | [CONTRIBUTING.md](CONTRIBUTING.md)                           |
+Stack: React 18.2, Vite 5, Expo SDK ~50, React Native 0.73, Node 20 in CI.
 
-## Features
+## Screenshots
 
-- **Monorepo** — `apps/web`, `apps/mobile`, `packages/shared`, `supabase/`.
-- **Supabase** — Local Docker + shared preview + staging + production remotes ([ARCHITECTURE.md](ARCHITECTURE.md)).
-- **Auth** — Email/password and Google (Supabase + native Google on mobile when configured); user-scoped RLS; extend migrations for org/tenant models if needed.
-- **Web (AWS)** — PR previews, staging, production static hosting via CloudFormation helpers under `scripts/pr-preview/`.
-- **Mobile (Expo)** — EAS dev client workflow; CI can publish OTA updates per environment when secrets are set.
-- **CI/CD** — PR workflow, `develop` → staging, `main` → production ([.github/workflows](.github/workflows)).
-- **Setup UX** — `npm run setup` menu and `npm run setup:full` phased wizard (`--dry-run`, `--from=PHASE`); secrets only in gitignored files.
+| Billing UI                                          | Environments pipeline                                                       | Web + mobile                                          |
+| --------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------- |
+| ![Billing plans UI](docs/images/readme/billing.png) | ![Three-environment pipeline](docs/images/readme/environments-pipeline.png) | ![Web and mobile](docs/images/readme/mobile-hero.png) |
 
-## Prerequisites (summary)
+## Quick start
 
-- **Local dev:** Node **20** recommended (`>=18` in `package.json`), npm `>=9`, Docker Desktop, Supabase CLI; native toolchains if you build iOS/Android; Maestro for some E2E commands. **Typical time:** about **5–15 minutes** after `npm install` if Docker images are warm (see [QUICKSTART.md](QUICKSTART.md)).
-- **Full cloud + CI:** accounts, DNS, ACM, IAM, Supabase PAT, `EXPO_TOKEN`, GitHub secret sync — often **1–3 hours** the first time. Details and checklists: [QUICKSTART.md](QUICKSTART.md) and [docs/reference/github-actions-secrets.md](docs/reference/github-actions-secrets.md).
+```bash
+git clone https://github.com/<your-org>/<your-repo>.git
+cd <your-repo>
+npm install
+npm run setup
+```
 
-### What is not included (costs and vendor bills)
+The setup wizard handles Docker Supabase, `.env.local`, and type generation. Full cloud + CI checklist: [QUICKSTART.md](QUICKSTART.md).
 
-This template wires **real** cloud resources. You pay vendors under **their** pricing, not ours. Expect ongoing charges roughly along these lines (order-of-magnitude; check current pricing):
+**Node 18+** (`>=18` in `package.json`); **Node 20** matches CI. Docker Desktop + Supabase CLI for local work.
 
-- **Supabase** — Remote projects typically need a **paid** tier for serious staging/production (often on the order of **~$25/month per project** on Pro-class plans; preview can sometimes stay smaller). Local dev stays free in Docker.
-- **AWS** — Route 53 hosted zones, ACM (certs are usually free), S3 storage, CloudFront egress, and Lambda@Edge or function charges where the stack uses them—all **usage-based**.
-- **Expo / EAS** — Free tier exists; **EAS Update** and **build minutes** can move you to paid plans as usage grows.
-- **Google Cloud** — OAuth clients and Firebase-related APIs may incur charges at scale; small teams often stay within free tiers for auth-only usage.
+### Renaming the template
 
-If you need a **zero-cloud** path, stay on **local** Supabase and skip `setup:full` until you are ready.
+```bash
+npm run rename -- --from "Beaker Stack" --to "Your Product" --dry-run
+```
 
-## Documentation
+[docs/renaming.md](docs/renaming.md)
 
-- [QUICKSTART.md](QUICKSTART.md) — **Start here**
-- [docs/README.md](docs/README.md) — All guides (OAuth, AWS, Supabase, testing)
-- [docs/guides/MOBILE.md](docs/guides/MOBILE.md) — Native rebuild and dev-client commands
-- [docs/BRANDING.md](docs/BRANDING.md) — Icons and theme
-- [docs/TESTING.md](docs/TESTING.md) — Test strategy
-- [docs/renaming.md](docs/renaming.md) — Rename the template (also [QUICKSTART.md](QUICKSTART.md) after install)
-
-## Project Structure
+## Project structure
 
 ```
 BeakerStack/
-├── apps/
-│   ├── mobile/          # React Native (Expo)
-│   └── web/             # React (Vite) web app
-├── packages/
-│   └── shared/          # Shared components, hooks, types
-├── supabase/            # Database migrations, functions
-├── tests/               # Integration & E2E tests
-├── scripts/             # Development and setup scripts
-└── docs/                # Documentation
+├── apps/web, apps/mobile
+├── packages/shared, packages/billing, packages/test-utils
+├── supabase/          # migrations, Edge Functions
+├── tests/             # integration & E2E
+├── scripts/           # setup, deploy, codegen
+└── docs/
 ```
+
+## Documentation
+
+| Topic          | Doc                                                          |
+| -------------- | ------------------------------------------------------------ |
+| First run      | [QUICKSTART.md](QUICKSTART.md)                               |
+| All guides     | [docs/README.md](docs/README.md)                             |
+| Development    | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)                   |
+| Architecture   | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                 |
+| Versioning     | [docs/VERSIONING.md](docs/VERSIONING.md)                     |
+| OAuth          | [docs/OAUTH.md](docs/OAUTH.md)                               |
+| Stripe billing | [docs/stripe-billing-setup.md](docs/stripe-billing-setup.md) |
+| Testing        | [docs/TESTING.md](docs/TESTING.md)                           |
+| Mobile native  | [docs/guides/MOBILE.md](docs/guides/MOBILE.md)               |
+| Contributing   | [CONTRIBUTING.md](CONTRIBUTING.md)                           |
+| Security       | [SECURITY.md](SECURITY.md)                                   |
 
 ## Development
 
-### Useful scripts
+Day-to-day commands: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Native rebuilds and EAS: [docs/guides/MOBILE.md](docs/guides/MOBILE.md).
 
-- `npm run setup` — Interactive: local stack (default) or full cloud wizard
-- `npm run setup:local` — Local only
-- `npm run setup:full` — Cloud provisioning and optional `gh` sync
-- `npm run dev:all` — Local Supabase + web + mobile
-- `npm run test` / `npm run lint` / `npm run type-check` / `npm run format`
+## Releases
 
-### Database
-
-- **`supabase/migrations/` is canonical at the repo root** — run `supabase migration new …`, `supabase start`, and `supabase db reset` from the repository root (mobile developers: see [`apps/mobile/supabase/migrations/README.md`](apps/mobile/supabase/migrations/README.md)).
-- `supabase start` / `supabase stop` — Local Supabase
-- `npm run gen:types` — TypeScript types from DB
-- `supabase db reset` — Reset local DB
-
-### Testing
-
-- `npm run test:unit` — Unit tests (mobile, web, shared, and `scripts/`)
-- `npm run test:unit:scripts` — Repo script tests only (`scripts/__tests__/`, Node test runner)
-- `npm run test:integration` — Integration tests
-- `npm run test:e2e` — E2E (Maestro)
-- `npm run test:db` — Database tests
-
-### Development helper
-
-- `npm run dev:check` / `npm run dev:clean` / `npm run dev:start`
-
-### Mobile (from repo root)
-
-- `npm run mobile` / `npm run mobile:ios` / `npm run mobile:android` / `npm run mobile:clean`
-
-For **native clean rebuilds**, simulator uninstall, and `prebuild --clean`, see **[docs/guides/MOBILE.md](docs/guides/MOBILE.md)**.
-
-## Deployment (CI/CD)
-
-| Trigger               | Workflow                                                                   |
-| --------------------- | -------------------------------------------------------------------------- |
-| **Pull requests**     | [pr-preview-environment.yml](.github/workflows/pr-preview-environment.yml) |
-| **Push to `develop`** | [deploy-staging.yml](.github/workflows/deploy-staging.yml)                 |
-| **Push to `main`**    | [deploy-production.yml](.github/workflows/deploy-production.yml)           |
-
-Details: [docs/pr-preview-setup.md](docs/pr-preview-setup.md).
-
-## Releases and versioning
-
-Template snapshots are tagged on `main` using **CalVer** (`2026.001`, `2026.002`, …). Each release includes generated notes covering what changed and whether there are any breaking steps. `@beakerstack/*` packages use independent **semver** on npm.
-
-| Trigger             | Workflow                                                                                                  |
-| ------------------- | --------------------------------------------------------------------------------------------------------- |
-| **Manual dispatch** | [release-template.yml](.github/workflows/release-template.yml) — cuts a new CalVer tag and GitHub Release |
-
-See [VERSIONING.md](VERSIONING.md) for what counts as a breaking change and [UPGRADING.md](UPGRADING.md) for how to pull template changes into an existing fork.
+Template: CalVer tags (`2026.001`, …), notes from conventional commits — [Releases](https://github.com/Artificer-Innovations/BeakerStack/releases). Packages: independent semver on npm.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+Bug fixes, docs, agent-friendly structure improvements, and shared packages welcome. For larger changes, open a [Discussion](https://github.com/Artificer-Innovations/BeakerStack/discussions) first. Stack swaps (different auth, payments, or framework) belong in your fork — [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
 [MIT](LICENSE)
+
+## Built with
+
+[Supabase](https://supabase.com), [Stripe](https://stripe.com), [React](https://react.dev), [React Native](https://reactnative.dev), [Expo](https://expo.dev), [Vite](https://vitejs.dev).
