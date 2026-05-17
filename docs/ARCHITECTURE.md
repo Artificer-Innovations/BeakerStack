@@ -310,7 +310,7 @@ project-root/
 │   ├── check-db-status.sh              # Check migrations across environments
 │   └── run-e2e.sh                      # Run Maestro E2E tests
 ├── docs/
-│   ├── ARCHITECTURE.md                 # This file
+│   ├── docs/ARCHITECTURE.md            # This file
 │   ├── DEVELOPMENT.md                  # Development guide
 │   ├── DEPLOYMENT.md                   # Deployment guide
 │   └── API.md                          # API documentation
@@ -2455,7 +2455,7 @@ git commit -m "docs: update setup instructions in README"
    - Deploy to S3: `s3://deploy-bucket/pr-{number}/`
    - Invalidate CloudFront cache for `/pr-{number}/*`
    - **Duration**: ~2-3 minutes
-   - **Result**: https://deploy.yourdomain.com/pr-{number}/
+   - **Result**: `https://deploy.yourdomain.com/pr-{number}/`
 
 4. **Deploy Mobile Preview**
    - Download database types artifact

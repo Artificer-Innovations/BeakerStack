@@ -13,6 +13,7 @@
   "ignore": [
     "web",
     "mobile-app",
+    "@beakerstack/billing",
     "@beakerstack/shared",
     "@beakerstack/shared-tests"
   ],

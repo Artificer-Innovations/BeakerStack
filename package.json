@@ -1,7 +1,7 @@
 {
   "name": "beakerstack",
-  "version": "1.0.0",
-  "description": "Opinionated monorepo template for Supabase-backed apps shipping to web (React + Vite) and mobile (React Native + Expo), with PR previews, staged deploys, and shared business logic across surfaces.",
+  "version": "2026.1.0",
+  "description": "Ship your SaaS faster — opinionated Supabase template for web (React + Vite) and mobile (Expo), with billing, PR previews, and staged CI/CD.",
   "private": true,
   "workspaces": [
     "packages/*",
@@ -134,7 +134,7 @@
     "rename": "node ./scripts/rename-project.mjs",
     "setup:project-label-bridge": "node scripts/github/setup-project-label-bridge.mjs",
     "docs:actions-secrets": "node ./scripts/generate-actions-secrets-doc.mjs",
-    "docs:linkcheck": "npx --yes markdown-link-check@3.12.2 README.md QUICKSTART.md -c .markdown-link-check.json",
+    "docs:linkcheck": "bash -c 'set -euo pipefail; shopt -s nullglob; files=(README.md QUICKSTART.md CONTRIBUTING.md SECURITY.md docs/*.md docs/guides/*.md docs/oauth/*.md docs/reference/*.md docs/specs/*.md docs/testing/*.md); npx --yes markdown-link-check@3.12.2 \"${files[@]}\" -c .markdown-link-check.json'",
     "billing:sync-stripe": "node scripts/sync-billing-stripe.mjs --config packages/billing/src/presentation/billing-sync.json",
     "stripe:ensure-webhook": "node scripts/ensure-stripe-webhook-endpoint.mjs",
     "billing:apply-plans": "tsx scripts/apply-billing-plans-from-config.ts"

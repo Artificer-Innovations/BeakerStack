@@ -5,6 +5,9 @@
     },
     {
       "pattern": "^https://github.com/<your-org>/<your-repo>"
+    },
+    {
+      "pattern": "^https://deploy\\.yourdomain\\.com"
     }
   ]
 }

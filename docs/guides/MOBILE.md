@@ -21,7 +21,7 @@ Use these when native projects are stale, simulators lost the app, or native mod
 | `npm run ios:uninstall` / `npm run android:uninstall` | Remove the app from booted simulator / connected device before reinstalling                    |
 | `npm run prebuild:clean`                              | Regenerate `ios/` and `android/` with Expo prebuild (destructive; review diffs)                |
 
-For EAS builds, dev-client install flows, and CI-driven previews, see [MOBILE_BUILD_TESTING.md](../MOBILE_BUILD_TESTING.md) and [oauth/MOBILE_OAUTH_SETUP.md](../oauth/MOBILE_OAUTH_SETUP.md).
+For EAS builds, dev-client install flows, and CI-driven previews, see [MOBILE_BUILD_TESTING.md](../MOBILE_BUILD_TESTING.md) and [OAUTH.md](../OAUTH.md) (mobile native flow).
 
 ## Local Supabase schema
 

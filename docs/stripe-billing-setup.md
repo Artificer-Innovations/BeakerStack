@@ -202,7 +202,7 @@ See [supabase/functions/README.md](../supabase/functions/README.md) for JWT beha
 
 Checkout fails if `billing_plans.stripe_price_id` is null for a paid plan. The repo includes:
 
-- **Sync config:** [apps/web/src/billing/billing-sync.json](../apps/web/src/billing/billing-sync.json) — lists paid `planId`s and monthly/annual amounts for the template product.
+- **Sync config:** [packages/billing/src/presentation/billing-sync.json](../packages/billing/src/presentation/billing-sync.json) — lists paid `planId`s and monthly/annual amounts for the template product.
 - **Script:** `npm run billing:sync-stripe` → runs [scripts/sync-billing-stripe.mjs](../scripts/sync-billing-stripe.mjs).
 
 **CI:** [`.github/workflows/pr-preview-environment.yml`](../.github/workflows/pr-preview-environment.yml), [`deploy-staging.yml`](../.github/workflows/deploy-staging.yml), and [`deploy-production.yml`](../.github/workflows/deploy-production.yml) run **`npm run billing:sync-stripe`** after the database is migrated (preview: after the preview DB prepare step; staging/production: after `supabase db push`) and **before** deploying Edge Functions, so `billing_plans` always has Stripe price IDs for checkout without a manual sync.
@@ -215,7 +215,7 @@ export SUPABASE_URL=https://<PROJECT_REF>.supabase.co   # or http://127.0.0.1:54
 export SUPABASE_SERVICE_ROLE_KEY=<service_role key>
 
 npm run billing:sync-stripe
-# equivalent: node scripts/sync-billing-stripe.mjs --config apps/web/src/billing/billing-sync.json
+# equivalent: node scripts/sync-billing-stripe.mjs --config packages/billing/src/presentation/billing-sync.json
 ```
 
 The script creates or reuses a Stripe Product (tagged with `billing_product_id` metadata), creates Prices as needed, and **updates** `billing_plans` rows for the listed `planId`s.

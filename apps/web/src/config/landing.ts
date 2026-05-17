@@ -261,7 +261,7 @@ export const landingConfig: LandingConfig = {
       body: 'Three Supabase databases—local Docker, shared PR testing, and staging—mirror your branching model. Migrations are validated before they touch production. PR previews deploy automatically to path-based S3/CloudFront URLs. EAS Update channels give mobile the same preview → staging → production flow.',
       ctaLabel: 'Read the architecture docs',
       ctaHref:
-        'https://github.com/Artificer-Innovations/BeakerStack/blob/main/ARCHITECTURE.md',
+        'https://github.com/Artificer-Innovations/BeakerStack/blob/main/docs/ARCHITECTURE.md',
       mediaSrc: publicUrl('landing/environments-pipeline.avif'),
       mediaAlt: 'Three-environment pipeline diagram',
       mediaSide: 'right',

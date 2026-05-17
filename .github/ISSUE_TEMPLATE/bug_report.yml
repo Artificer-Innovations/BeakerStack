@@ -1,0 +1,34 @@
+name: Bug report
+description: Something broken in the template or published packages
+title: "[bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Search [existing issues](https://github.com/Artificer-Innovations/BeakerStack/issues) first.
+        For usage questions, prefer [Discussions](https://github.com/Artificer-Innovations/BeakerStack/discussions).
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: What did you expect vs what you saw?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. npm run setup\n2. ..."
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Template tag or commit
+      placeholder: "2026.001 or abc1234"
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: "Node 20, macOS, local Supabase"

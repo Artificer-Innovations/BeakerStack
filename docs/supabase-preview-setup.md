@@ -279,5 +279,5 @@ If you change your preview domain:
 
 - [Supabase Auth Configuration](https://supabase.com/docs/guides/auth)
 - [Google OAuth Setup](https://supabase.com/docs/guides/auth/social-login/auth-google)
-- [Supabase URL Configuration](https://supabase.com/docs/guides/auth/url-configuration)
+- [Supabase redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls)
 - [Email Auth Settings](https://supabase.com/docs/guides/auth/auth-email)
