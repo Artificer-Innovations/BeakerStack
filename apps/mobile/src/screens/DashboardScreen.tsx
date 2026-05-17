@@ -17,6 +17,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useBillingContext, usePlan, useUsage } from '@beakerstack/billing';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.native';
+import { colors } from '@beakerstack/shared/theme/colors';
 import { supabase } from '../lib/supabase';
 import {
   beakerstackBillingConfig,
@@ -281,7 +282,7 @@ export default function DashboardScreen({ navigation }: Props) {
   if (auth.loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size='large' color='#4F46E5' />
+        <ActivityIndicator size='large' color={colors.brand} />
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
@@ -290,7 +291,7 @@ export default function DashboardScreen({ navigation }: Props) {
   if (!auth.user) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size='large' color='#4F46E5' />
+        <ActivityIndicator size='large' color={colors.brand} />
         <Text style={styles.loadingText}>Redirecting...</Text>
       </View>
     );
@@ -305,7 +306,7 @@ export default function DashboardScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
+  container: { flex: 1, backgroundColor: colors.pageBg },
   scrollView: { flex: 1 },
   scrollContent: {
     paddingHorizontal: 16,
@@ -319,18 +320,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.pageBg,
   },
-  loadingText: { marginTop: 16, fontSize: 16, color: '#6B7280' },
+  loadingText: { marginTop: 16, fontSize: 16, color: colors.textMuted },
   demoCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.cardBg,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border,
     padding: 16,
     marginBottom: 8,
   },
-  cardDemo: { borderStyle: 'dashed', borderColor: '#d1d5db' },
+  cardDemo: { borderStyle: 'dashed', borderColor: colors.gray[300] },
   badge: {
     position: 'absolute',
     right: 12,
@@ -340,42 +341,42 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
   },
-  badgeText: { fontSize: 10, fontWeight: '600', color: '#92400e' },
+  badgeText: { fontSize: 10, fontWeight: '600', color: colors.warnText },
   demoTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.textPrimary,
     paddingRight: 100,
   },
   demonstratesLabel: {
     marginTop: 4,
     fontSize: 10,
     fontWeight: '600',
-    color: '#6b7280',
+    color: colors.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  demonstratesMono: { fontFamily: 'monospace', fontSize: 12, color: '#374151' },
-  demoDesc: { marginTop: 6, fontSize: 14, color: '#4b5563' },
+  demonstratesMono: { fontFamily: 'monospace', fontSize: 12, color: colors.textBody },
+  demoDesc: { marginTop: 6, fontSize: 14, color: colors.textSubtle },
   demoBody: { marginTop: 12 },
-  bodyText: { fontSize: 14, color: '#374151' },
+  bodyText: { fontSize: 14, color: colors.textBody },
   btnRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
   btnSecondary: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: colors.gray[300],
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
-    backgroundColor: '#fff',
+    backgroundColor: colors.cardBg,
   },
-  btnSecondaryText: { color: '#374151', fontSize: 12, fontWeight: '500' },
+  btnSecondaryText: { color: colors.textBody, fontSize: 12, fontWeight: '500' },
   btnDisabled: { opacity: 0.5 },
-  muted: { color: '#6b7280', fontSize: 13, marginTop: 4 },
-  tinyLegal: { fontSize: 10, color: '#6b7280', marginTop: 8 },
+  muted: { color: colors.textMuted, fontSize: 13, marginTop: 4 },
+  tinyLegal: { fontSize: 10, color: colors.textMuted, marginTop: 8 },
   codeLine: {
     marginTop: 12,
     fontSize: 11,
     fontFamily: 'monospace',
-    color: '#6b7280',
+    color: colors.textMuted,
   },
 });

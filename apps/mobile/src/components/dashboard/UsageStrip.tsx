@@ -6,6 +6,7 @@ import {
   useUsage,
 } from '@beakerstack/billing';
 import type { BillingError } from '@beakerstack/billing';
+import { colors } from '@beakerstack/shared/theme/colors';
 import { supabase } from '../../lib/supabase';
 import {
   beakerstackBillingConfig,
@@ -201,10 +202,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.textPrimary,
   },
   limitBadge: {
-    backgroundColor: '#fee2e2',
+    backgroundColor: colors.errorBg,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
@@ -212,42 +213,42 @@ const styles = StyleSheet.create({
   limitBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#b91c1c',
+    color: colors.errorTextAlt,
   },
   barTrack: {
     height: 8,
     width: '100%',
     borderRadius: 4,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: colors.border,
     overflow: 'hidden',
   },
   barFill: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#4f46e5',
+    backgroundColor: colors.brand,
   },
   capLine: {
     marginTop: 6,
     fontSize: 13,
-    color: '#6b7280',
+    color: colors.textMuted,
   },
   actions: { marginTop: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   btnPrimary: {
-    backgroundColor: '#4f46e5',
+    backgroundColor: colors.brand,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
   },
   btnPrimaryText: { color: '#fff', fontWeight: '600', fontSize: 14 },
   btnDisabled: { opacity: 0.5 },
-  limitNote: { fontSize: 14, color: '#6b7280' },
-  err: { marginTop: 8, fontSize: 13, color: '#dc2626' },
+  limitNote: { fontSize: 14, color: colors.textMuted },
+  err: { marginTop: 8, fontSize: 13, color: colors.errorIcon },
   results: { marginTop: 16, gap: 8 },
   resultItem: {
     borderRadius: 8,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.pageBg,
     padding: 12,
   },
-  resultTs: { fontSize: 11, color: '#9ca3af', marginBottom: 4 },
-  resultBody: { fontSize: 13, color: '#374151' },
+  resultTs: { fontSize: 11, color: colors.textFaint, marginBottom: 4 },
+  resultBody: { fontSize: 13, color: colors.textBody },
 });

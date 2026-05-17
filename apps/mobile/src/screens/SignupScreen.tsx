@@ -13,6 +13,7 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.native';
+import { colors } from '@beakerstack/shared/theme/colors';
 import { supabase } from '../lib/supabase';
 import { SocialLoginButton } from '../components/SocialLoginButton';
 import { useFeatureFlags } from '../config/featureFlags';
@@ -174,7 +175,7 @@ export default function SignupScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.pageBg,
   },
   scrollView: {
     flex: 1,
@@ -192,7 +193,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#111827',
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -207,17 +208,17 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#d1d5db',
+    backgroundColor: colors.gray[300],
   },
   dividerText: {
     marginHorizontal: 12,
-    color: '#6b7280',
+    color: colors.textMuted,
     fontSize: 14,
   },
   input: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.cardBg,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: colors.gray[300],
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -225,7 +226,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   signupButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.brand,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   linkText: {
-    color: '#3b82f6',
+    color: colors.brand,
     fontSize: 14,
   },
 });

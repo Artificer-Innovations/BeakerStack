@@ -14,6 +14,7 @@ import { useAuthContext } from '../../contexts/AuthContext';
 import { useProfileContext } from '../../contexts/ProfileContext';
 import { UserMenu } from './UserMenu.native';
 import { BRANDING } from '../../config/branding';
+import { colors } from '../../theme/colors';
 
 export interface AppHeaderProps {
   supabaseClient: SupabaseClient;
@@ -55,32 +56,32 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
             {/* @ts-expect-error - react-native-svg types have JSX compatibility issues in monorepo setup, but runtime works correctly */}
             <Svg width={32} height={32} viewBox='0 0 200 200'>
               {/* Background circle for app icon */}
-              <Circle cx='100' cy='100' r='90' fill='#4F46E5' />
+              <Circle cx='100' cy='100' r='90' fill={colors.iconBg} />
 
               {/* Erlenmeyer Flask outline */}
               <Path
                 d='M 75 40 L 75 75 L 55 130 Q 50 145 55 155 Q 60 165 75 165 L 125 165 Q 140 165 145 155 Q 150 145 145 130 L 125 75 L 125 40 Z'
-                fill='#E0E7FF'
-                stroke='#8B5CF6'
+                fill={colors.iconFill}
+                stroke={colors.iconStroke}
                 strokeWidth='3'
               />
 
               {/* Flask neck (darker for depth) */}
-              <Rect x='75' y='40' width='50' height='8' fill='#C7D2FE' />
+              <Rect x='75' y='40' width='50' height='8' fill={colors.iconNeck} />
 
               {/* Liquid inside */}
               <Path
                 d='M 60 140 Q 65 150 75 155 L 125 155 Q 135 150 140 140 L 127 80 L 73 80 Z'
-                fill='#818CF8'
+                fill={colors.iconLiquid}
                 opacity='0.7'
               />
 
               {/* Bubbles rising */}
-              <Circle cx='85' cy='130' r='4' fill='#E0E7FF' opacity='0.8' />
-              <Circle cx='95' cy='115' r='3' fill='#E0E7FF' opacity='0.9' />
-              <Circle cx='105' cy='125' r='3.5' fill='#E0E7FF' opacity='0.85' />
-              <Circle cx='90' cy='100' r='2.5' fill='#E0E7FF' opacity='0.95' />
-              <Circle cx='110' cy='110' r='3' fill='#E0E7FF' opacity='0.9' />
+              <Circle cx='85' cy='130' r='4' fill={colors.iconFill} opacity='0.8' />
+              <Circle cx='95' cy='115' r='3' fill={colors.iconFill} opacity='0.9' />
+              <Circle cx='105' cy='125' r='3.5' fill={colors.iconFill} opacity='0.85' />
+              <Circle cx='90' cy='100' r='2.5' fill={colors.iconFill} opacity='0.95' />
+              <Circle cx='110' cy='110' r='3' fill={colors.iconFill} opacity='0.9' />
 
               {/* Measurement lines on flask */}
               <Line
@@ -88,7 +89,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
                 y1='120'
                 x2='70'
                 y2='120'
-                stroke='#8B5CF6'
+                stroke={colors.iconStroke}
                 strokeWidth='1.5'
                 opacity='0.6'
               />
@@ -97,7 +98,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
                 y1='140'
                 x2='70'
                 y2='140'
-                stroke='#8B5CF6'
+                stroke={colors.iconStroke}
                 strokeWidth='1.5'
                 opacity='0.6'
               />
@@ -106,7 +107,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
                 y1='120'
                 x2='140'
                 y2='120'
-                stroke='#8B5CF6'
+                stroke={colors.iconStroke}
                 strokeWidth='1.5'
                 opacity='0.6'
               />
@@ -115,7 +116,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
                 y1='140'
                 x2='140'
                 y2='140'
-                stroke='#8B5CF6'
+                stroke={colors.iconStroke}
                 strokeWidth='1.5'
                 opacity='0.6'
               />
@@ -156,7 +157,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.cardBg,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -188,7 +189,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.textPrimary,
   },
   rightSection: {
     flexDirection: 'row',
@@ -201,13 +202,13 @@ const styles = StyleSheet.create({
   },
   headerButtonText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textMuted,
     fontWeight: '500',
   },
   headerButtonPrimary: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#4F46E5',
+    backgroundColor: colors.brand,
     borderRadius: 6,
   },
   headerButtonPrimaryText: {

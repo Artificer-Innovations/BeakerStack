@@ -12,6 +12,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { useProfileContext } from '@beakerstack/shared/contexts/ProfileContext';
 import { Logger } from '@beakerstack/shared/utils/logger';
+import { colors } from '@beakerstack/shared/theme/colors';
 import { supabase } from '../lib/supabase';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.native';
 // Import Profile Display Components - Metro will automatically resolve .native.tsx files
@@ -59,7 +60,7 @@ export default function ProfileScreen({ navigation }: Props) {
   if (auth.loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size='large' color='#4F46E5' />
+        <ActivityIndicator size='large' color={colors.brand} />
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
@@ -69,7 +70,7 @@ export default function ProfileScreen({ navigation }: Props) {
   if (!auth.user) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size='large' color='#4F46E5' />
+        <ActivityIndicator size='large' color={colors.brand} />
         <Text style={styles.loadingText}>Redirecting...</Text>
       </View>
     );
@@ -114,7 +115,7 @@ function ProfileScreenContent({ navigation: _navigation }: Props) {
         {/* Loading State */}
         {profile.loading && (
           <View style={styles.loadingSection}>
-            <ActivityIndicator size='large' color='#4F46E5' />
+            <ActivityIndicator size='large' color={colors.brand} />
             <Text style={styles.loadingText}>Loading profile...</Text>
           </View>
         )}
@@ -172,7 +173,7 @@ function ProfileScreenContent({ navigation: _navigation }: Props) {
                   />
                 ) : (
                   <View style={styles.loadingSection}>
-                    <ActivityIndicator size='small' color='#4F46E5' />
+                    <ActivityIndicator size='small' color={colors.brand} />
                     <Text style={styles.loadingText}>Loading editor...</Text>
                   </View>
                 )}
@@ -188,18 +189,18 @@ function ProfileScreenContent({ navigation: _navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.pageBg,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.pageBg,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#6b7280',
+    color: colors.textMuted,
   },
   scrollView: {
     flex: 1,
@@ -214,8 +215,8 @@ const styles = StyleSheet.create({
     paddingVertical: 48,
   },
   errorCard: {
-    backgroundColor: '#fef2f2',
-    borderColor: '#fecaca',
+    backgroundColor: colors.errorBg,
+    borderColor: colors.errorBorder,
     borderWidth: 1,
     borderRadius: 8,
     padding: 16,
@@ -224,18 +225,18 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#991b1b',
+    color: colors.errorText,
     marginBottom: 8,
   },
   errorMessage: {
     fontSize: 14,
-    color: '#b91c1c',
+    color: colors.errorTextAlt,
   },
   profileContent: {
     gap: 16,
   },
   card: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.cardBg,
     borderRadius: 8,
     padding: 16,
     shadowColor: '#000',
@@ -245,7 +246,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   editButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: colors.brand,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
