@@ -226,32 +226,28 @@ const PHASE_INTROS = {
     body: [
       'Creates or selects remote Supabase projects and fetches anon + service keys (not printed).',
       'Prepare: Supabase CLI auth (PASTE token or SUPABASE_ACCESS_TOKEN; avoid embedded supabase login in IDE).',
-      'Also collects SUPABASE_ACCESS_TOKEN for GitHub Actions migrations.',
+      'After all tiers: prompts for account personal access token (SUPABASE_ACCESS_TOKEN) for GitHub Actions — not project anon/service keys.',
     ],
   },
   aws: {
     title: 'AWS CloudFormation (PR preview stack)',
     body: [
-      'Runs scripts/pr-preview/bootstrap-aws-stack.sh to create/update the shared preview/staging/prod buckets and CloudFront.',
-      'Prepare: apex domain in Route53; hosted zone ID and ACM certificate ARN in us-east-1 (apex + *.wildcard) can be auto-detected from the apex when they exist in the same AWS account.',
-      'AWS credentials with CloudFormation + S3 + CloudFront + IAM.',
-      'S3 bucket names are fixed as <apex>-prod, <apex>-staging, <apex>-deploy with Retain policies; if the stack was removed, leftover buckets block redeploy until you delete or empty them (CloudFormation early validation).',
-      'If preflight detects conflicts, setup can skip AWS, continue deploy anyway, delete FAILED change sets, or run an interactive teardown of only those three buckets (not CloudFront).',
+      'Creates/updates S3 + CloudFront for production, staging, and PR previews (bootstrap-aws-stack.sh).',
+      'If you choose Yes, a full prerequisites checklist prints next — Route53, ACM cert, AWS CLI login.',
     ],
   },
   expo: {
     title: 'Expo / EAS',
     body: [
-      'Ensures apps/mobile is not stuck on the template EAS project; may run eas init or link by UUID.',
-      'Prepare: Expo account; run eas login in Terminal.app if the IDE terminal fails; EXPO_TOKEN for CI.',
-      'After eas init, the script reads the new project id from apps/mobile/.eas/project.json (and app.config.js), not only from CLI text.',
+      'Links apps/mobile to your Expo project and collects EXPO_TOKEN for CI (EAS Update / Build).',
+      'If you choose Yes, a prerequisites checklist prints next — account, project link vs create, access token.',
     ],
   },
   google: {
     title: 'Google Services (optional)',
     body: [
-      'Imports GOOGLE_SERVICES_* from a google-services.json path for EAS/CI.',
-      'Prepare: path to the JSON file from Firebase / Google Cloud.',
+      'Imports google-services.json into GOOGLE_SERVICES_* keys for mobile CI (EAS Build / Update).',
+      'If you choose Yes, a prerequisites checklist prints next — optional; press Enter to skip.',
     ],
   },
   write: {
@@ -264,13 +260,296 @@ const PHASE_INTROS = {
   github: {
     title: 'GitHub Actions sync',
     body: [
-      'Uses gh to set repository secrets and variables from the manifest, merged with .env.local, .env.cloud.generated.local, and .env.aws.generated.local (wizard values override files on conflicts).',
-      'If required CI keys are still missing, you can enter them here (masked where appropriate) or point at a dotenv file; they are merged into the gitignored env files then pushed to GitHub.',
-      'Deploy and PR-preview workflows need AWS credentials, Supabase tokens/URLs, and PR preview domain/stack vars—not only Expo/Google; see docs/reference/github-actions-secrets.md (npm run docs:actions-secrets).',
-      'Prepare: gh auth login; repo permission to configure Actions secrets.',
+      'Pushes secrets/variables to GitHub from merged .env files + values collected earlier in this run.',
+      'If you choose Yes, a prerequisites checklist prints next — gh auth, what may still be missing, and prompts.',
     ],
   },
 };
+
+/**
+ * Prerequisites checklist shown after you confirm the AWS phase (before bootstrap runs).
+ * @param {LogCtx} ctx
+ */
+export function printAwsPhaseReadinessBriefing(ctx) {
+  const { logInfo } = ctx;
+  const doc = 'docs/pr-preview-setup.md#before-the-aws-wizard-phase';
+  logInfo('');
+  logInfo('── Before AWS bootstrap runs ──');
+  logInfo('');
+  logInfo(
+    'Complete these in the AWS account you will use (same account as `aws sts get-caller-identity`):'
+  );
+  logInfo('');
+  logInfo('1) Apex domain in Route 53');
+  logInfo(
+    '   • You own a domain (e.g. example.com) with a **public** Route 53 hosted zone for that apex.'
+  );
+  logInfo(
+    '   • If the domain is registered elsewhere, its NS records must point at that hosted zone.'
+  );
+  logInfo(
+    '   • The wizard can auto-detect the zone ID when it exists in this account.'
+  );
+  logInfo('');
+  logInfo('2) TLS certificate in ACM (required for CloudFront)');
+  logInfo(
+    '   • Region: **us-east-1 only** (CloudFront requirement — not your stack region choice).'
+  );
+  logInfo(
+    '   • Request a certificate for the **apex** and ***.apex** (e.g. example.com + *.example.com).'
+  );
+  logInfo(
+    '   • Validation: **DNS** in Route 53; status must be **Issued** before bootstrap.'
+  );
+  logInfo(
+    '   • The wizard can auto-detect the certificate ARN when one matches.'
+  );
+  logInfo('');
+  logInfo('3) AWS credentials on this machine (for the wizard right now)');
+  logInfo(
+    '   • `aws sts get-caller-identity` must succeed (IAM access keys via `aws configure`, or SSO profile).'
+  );
+  logInfo(
+    '   • IAM needs CloudFormation, S3, CloudFront, Route 53, ACM (read), and IAM pass-role for the stack.'
+  );
+  logInfo(
+    '   • This is separate from GitHub Actions deploy keys (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY in github phase).'
+  );
+  logInfo('');
+  logInfo('4) Know your apex domain name');
+  logInfo(
+    '   • You will type it when prompted (e.g. example.com — no https://, no path).'
+  );
+  logInfo('');
+  logInfo(
+    'During bootstrap the wizard may ask for stack name, region, and preview URL prefix (defaults are fine).'
+  );
+  logInfo(
+    'S3 buckets are named <apex>-prod, <apex>-staging, <apex>-deploy. Leftover buckets from a'
+  );
+  logInfo(
+    'removed stack can block redeploy; preflight may offer skip, continue, or destructive cleanup.'
+  );
+  logInfo('');
+  logInfo(`Full checklist and rotation notes: ${doc}`);
+  logInfo('');
+}
+
+/**
+ * Prerequisites checklist shown after you confirm the Expo phase.
+ * @param {LogCtx} ctx
+ */
+export function printExpoPhaseReadinessBriefing(ctx) {
+  const { logInfo } = ctx;
+  const doc = 'docs/MOBILE_BUILD_TESTING.md#before-the-expo-wizard-phase';
+  logInfo('');
+  logInfo('── Before Expo / EAS setup runs ──');
+  logInfo('');
+  logInfo(
+    'This phase wires apps/mobile to **your** Expo account (not the template BeakerStack project).'
+  );
+  logInfo('');
+  logInfo('1) Expo account');
+  logInfo('   • Sign in at https://expo.dev (personal or org account).');
+  logInfo(
+    '   • `eas whoami` should work after login — use Terminal.app if the IDE terminal hangs on `eas login`.'
+  );
+  logInfo('');
+  logInfo('2) EAS project for this app (choose during setup)');
+  logInfo(
+    '   • **[l] Link** — paste **Project ID** UUID (expo.dev → Projects → your app → Project settings).'
+  );
+  logInfo(
+    '   •     apps/mobile uses dynamic app.config.js — eas init may exit 1; setup patches projectId for you.'
+  );
+  logInfo(
+    '   • **[n] New** — run `eas init` to create a project under your account (wizard patches app.config.js + .eas/project.json).'
+  );
+  logInfo(
+    '   • **[s] Skip** — web-only repo or mobile later (`--skip-mobile` skips this entire phase).'
+  );
+  logInfo(
+    '   • The template EAS project id is removed — do not keep the shipped BeakerStack project id.'
+  );
+  logInfo('');
+  logInfo('3) Expo access token for GitHub Actions (end of this phase)');
+  logInfo(
+    '   • Type: **Access token** at https://expo.dev/settings/access-tokens (automation / CI — not your password).'
+  );
+  logInfo(
+    '   • Stored as GitHub secret **EXPO_TOKEN** for PR preview OTA, staging/production mobile deploys, and `eas build` in CI.'
+  );
+  logInfo(
+    '   • Also collected: **EXPO_PROJECT_ID**, **EXPO_ACCOUNT** (variable) from your linked project.'
+  );
+  logInfo(
+    '   • Copy the token when created — you cannot view it again. Rotate: see doc below.'
+  );
+  logInfo('');
+  logInfo(
+    '4) Optional next phase: google-services.json (Firebase) for native Google Sign-In in mobile CI builds.'
+  );
+  logInfo('');
+  logInfo(`Full checklist, scopes, and rotation: ${doc}`);
+  logInfo('');
+}
+
+/**
+ * Prerequisites checklist shown after you confirm the Google phase.
+ * @param {LogCtx} ctx
+ */
+export function printGooglePhaseReadinessBriefing(ctx) {
+  const { logInfo } = ctx;
+  const doc = 'docs/MOBILE_BUILD_TESTING.md#before-the-google-wizard-phase';
+  const oauthDoc = 'docs/OAUTH.md';
+  logInfo('');
+  logInfo('── Before Google Services import (optional) ──');
+  logInfo('');
+  logInfo(
+    'This phase is **optional**. Press Enter at the path prompt with blank to skip.'
+  );
+  logInfo('');
+  logInfo('What it is for:');
+  logInfo(
+    '  • **Native Android Google Sign-In** in mobile CI builds (EAS), not web OAuth in the browser.'
+  );
+  logInfo(
+    '  • The wizard reads **google-services.json** and stores **GOOGLE_SERVICES_*** for GitHub Actions.'
+  );
+  logInfo(
+    '  • Web + Supabase Google OAuth (client id/secret in Supabase) is separate — see OAUTH.md.'
+  );
+  logInfo('');
+  logInfo('If you want mobile Google Sign-In in CI, have ready:');
+  logInfo('');
+  logInfo('1) Firebase / Google Cloud project');
+  logInfo(
+    '   • https://console.firebase.google.com (or link an existing GCP project).'
+  );
+  logInfo(
+    '   • Register an **Android** app whose package name matches apps/mobile (see app.config.js `android.package`).'
+  );
+  logInfo(
+    '   • Default template package: **com.anonymous.beakerstack** (change after `npm run rename`).'
+  );
+  logInfo('');
+  logInfo('2) Download google-services.json');
+  logInfo(
+    '   • Firebase Console → your project → Project settings (gear) → **Your apps** → Android app'
+  );
+  logInfo(
+    '   • Download **google-services.json** (not the OAuth client JSON from GCP Credentials alone).'
+  );
+  logInfo(
+    '   • Know the full path on disk (e.g. ~/Downloads/google-services.json).'
+  );
+  logInfo('');
+  logInfo('3) What the wizard does');
+  logInfo(
+    '   • Parses the file and fills GOOGLE_SERVICES_PROJECT_*, *_CLIENT_ID, API_KEY, etc.'
+  );
+  logInfo(
+    '   • Values sync to GitHub in the **github** phase (optional secrets in manifest).'
+  );
+  logInfo(
+    '   • CI can regenerate apps/mobile/google-services.json from those secrets during deploy.'
+  );
+  logInfo('');
+  logInfo(
+    'Skip if: web-only repo, no native Google login yet, or you will add secrets later (`--from=google` or github phase).'
+  );
+  logInfo('');
+  logInfo(`Full steps: ${doc}`);
+  logInfo(`Supabase / web Google OAuth (different credentials): ${oauthDoc}`);
+  logInfo('');
+}
+
+/**
+ * Prerequisites checklist shown after you confirm the GitHub sync phase.
+ * @param {LogCtx} ctx
+ */
+export function printGithubPhaseReadinessBriefing(ctx) {
+  const { logInfo } = ctx;
+  const secretsDoc = 'docs/reference/github-actions-secrets.md';
+  logInfo('');
+  logInfo('── Before GitHub Actions sync ──');
+  logInfo('');
+  logInfo(
+    'This phase uses the **GitHub CLI** (`gh`) to set repository **secrets** and **variables**'
+  );
+  logInfo('from values in this wizard run and your gitignored .env files.');
+  logInfo('');
+  logInfo('1) Which repository? (read this before Yes)');
+  logInfo(
+    '   • Secrets go to **`gh repo view`** in this folder — usually `git remote origin`.'
+  );
+  logInfo(
+    '   • **Adopters:** fork BeakerStack, clone **your** fork, then sync — not the upstream template.'
+  );
+  logInfo(
+    '   • If `origin` is Artificer-Innovations/BeakerStack, you will get an extra type-to-confirm warning.'
+  );
+  logInfo('   • Override: `--github-repo=youruser/YourRepo`');
+  logInfo('');
+  logInfo('2) GitHub CLI + permissions');
+  logInfo(
+    '   • Install https://cli.github.com and run `gh auth login` (HTTPS or SSH).'
+  );
+  logInfo(
+    '   • Your user needs **admin** on the target repo (manage Actions secrets/variables).'
+  );
+  logInfo('');
+  logInfo('3) What gets synced (from earlier phases + .env files)');
+  logInfo('   • **Core:** SUPABASE_ACCESS_TOKEN');
+  logInfo(
+    '   • **AWS:** AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY (+ optional session token)'
+  );
+  logInfo(
+    '   • **Supabase tiers:** staging / production / preview URLs, keys, project refs, DB passwords'
+  );
+  logInfo(
+    '   • **PR preview:** PR_PREVIEW_* domain, hosted zone, stack name, certificate ARN, etc.'
+  );
+  logInfo(
+    '   • **Stripe (if set):** STAGING_*, PRODUCTION_*, PREVIEW_* Stripe keys + webhook secrets'
+  );
+  logInfo(
+    '   • **Mobile (if enabled):** EXPO_TOKEN, EXPO_PROJECT_ID, EXPO_ACCOUNT, GOOGLE_SERVICES_*'
+  );
+  logInfo('');
+  logInfo('4) If you skipped earlier phases');
+  logInfo(
+    '   • Missing values are listed and you can paste them now (masked for secrets).'
+  );
+  logInfo(
+    '   • Skipped **expo** / **google** but still want web-only CI? Set MOBILE_ENABLED=false (variable) when prompted,'
+  );
+  logInfo('     or re-run setup with `--skip-mobile`.');
+  logInfo(
+    '   • Skipped **AWS** or **Supabase**? Add secrets manually later or re-run `--from=aws` / `--from=supabase`.'
+  );
+  logInfo('');
+  logInfo('5) During this phase');
+  logInfo('   • `gh auth login` if needed');
+  logInfo('   • Optional: path to a .env file to bulk-import missing keys');
+  logInfo(
+    '   • Per-key prompts for anything still missing → then `gh secret set` / `gh variable set`'
+  );
+  logInfo('   • Nothing is printed to the terminal except secret **names**');
+  logInfo('');
+  logInfo('6) Skip entirely');
+  logInfo(
+    '   • Answer **N** at Run github now, use `--skip-github`, or set secrets in GitHub Settings manually.'
+  );
+  logInfo('');
+  logInfo(
+    `Full name list (generated): ${secretsDoc}  (npm run docs:actions-secrets)`
+  );
+  logInfo(
+    'Post-wizard: Stripe webhooks, OAuth providers — docs/stripe-billing-setup.md, docs/OAUTH.md'
+  );
+  logInfo('');
+}
 
 /**
  * @param {LogCtx} ctx
@@ -376,19 +655,24 @@ export function printManualInstructions(ctx, phaseId) {
       logInfo('5. https://docs.expo.dev/eas/');
       break;
     case 'google':
-      logInfo('1. Obtain google-services.json from Firebase Console.');
       logInfo(
-        '2. Set each GOOGLE_SERVICES_* secret in GitHub or merge into .env.cloud.generated.local'
+        '1. Download google-services.json from Firebase (Android app matching your package name).'
+      );
+      logInfo('2. Re-run: npm run setup:full -- --from=google');
+      logInfo(
+        '3. Or set GOOGLE_SERVICES_* GitHub secrets manually — see docs/reference/github-actions-secrets.md'
+      );
+      logInfo(
+        '4. See docs/MOBILE_BUILD_TESTING.md#before-the-google-wizard-phase'
       );
       break;
     case 'github':
-      logInfo('1. gh auth login');
+      logInfo('1. gh auth login with admin on the repository');
       logInfo(
-        "2. For each name in scripts/lib/setup-manifest.mjs: printf '…' | gh secret set NAME --repo OWNER/REPO"
+        '2. Set secrets/variables per docs/reference/github-actions-secrets.md'
       );
-      logInfo(
-        '3. gh variable set for PR_PREVIEW_* and EXPO_ACCOUNT per workflows'
-      );
+      logInfo('3. Or re-run: npm run setup:full -- --from=github');
+      logInfo('4. See docs/setup-prep-checklist.md (github section)');
       break;
     default:
       logInfo('(No extra manual text for this phase.)');

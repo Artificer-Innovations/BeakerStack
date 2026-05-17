@@ -95,7 +95,7 @@ Do not commit filled-in values or `.env*` files with secrets.
 - `Choose org index [0]:`
 - `Default region for new projects [us-east-1]:`
 - Each tier: `(c)reate or (s)elect?` → slug and **database password** (masked), or project index
-- PAT again for GitHub Actions
+- After all tiers: **personal access token** for GitHub — **Press Enter** opens [account tokens](https://supabase.com/dashboard/account/tokens); create **personal access token** (`sbp_…`), expiry **90 days–1 year** (not project API keys); rotate later per [supabase-staging-production-setup.md § Rotating](supabase-staging-production-setup.md#rotating-supabase_access_token)
 
 **Saved as:** `STAGING_*`, `PRODUCTION_*`, `PREVIEW_*`, `PR_TESTING_*`, `SUPABASE_PREVIEW_*` → `.env.cloud.generated.local` / `.env.local`; `SUPABASE_ACCESS_TOKEN` on GitHub.
 
@@ -105,45 +105,67 @@ Do not commit filled-in values or `.env*` files with secrets.
 
 ### aws
 
-**Have ready:**
+**Have ready (before you answer Yes to the aws phase — wizard shows checklist + Enter):**
 
-- AWS credentials (IAM or SSO) for CloudFormation, S3, CloudFront, Route53, ACM
-- **Apex domain** (e.g. `example.com`)
-- Route 53 **public** hosted zone for that apex
-- ACM cert in **us-east-1** covering apex + `*.apex` (DNS validated)
-- Stack name, region, preview URL prefix (defaults are fine)
+1. **Route 53** — public hosted zone for your **apex** domain (NS delegated to Route 53 if registered elsewhere).
+2. **ACM (us-east-1 only)** — certificate **Issued** for **apex + \*.apex**, DNS-validated in Route 53 (required for CloudFront).
+3. **AWS CLI on this machine** — `aws sts get-caller-identity` works (`aws configure` keys or SSO); IAM can run CloudFormation, S3, CloudFront, Route 53.
+4. **CI keys (later)** — separate IAM **access key ID + secret** for GitHub Actions (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` in **github** phase).
 
 **You will be asked:**
 
+- **Press Enter** when the checklist above is done
 - Fix AWS login if `sts get-caller-identity` fails
 - `APEX domain` → confirm or enter hosted zone ID + ACM ARN (auto-discovered when possible)
 - `CloudFormation stack name`, `AWS region`, `Preview URL prefix`
-- On conflicts: skip / continue / **destructive** bucket teardown (`ACKNOWLEDGE CLOUDFRONT RISK`, `PERMANENTLY DELETE BUCKETS`)
+- On conflicts: skip / continue / **destructive** bucket teardown
 - Existing stack: deploy or refresh outputs
 
 **Saved as:** `PR_PREVIEW_*` → `.env.aws.generated.local` + GitHub variables.
 
-**More:** [pr-preview-setup.md](pr-preview-setup.md)
+**More:** [pr-preview-setup.md § Before the AWS wizard phase](pr-preview-setup.md#before-the-aws-wizard-phase)
 
 ---
 
 ### expo (mobile only)
 
-**Have ready:** Expo account; optional existing EAS project UUID; [EXPO_TOKEN](https://expo.dev/settings/access-tokens) for CI (**save when created**).
+**Have ready (before Yes — wizard shows checklist + Enter):**
 
-**You will be asked:** `eas login`? → link UUID / `eas init` / skip → paste `EXPO_TOKEN`.
+1. **Expo account** — [expo.dev](https://expo.dev); use Terminal.app if `eas login` fails in the IDE.
+2. **EAS project** — existing **Project ID** (UUID) to **[l]ink**, or plan **[n]ew** `eas init`; template BeakerStack project id must be replaced.
+3. **Access token for CI** — create at [expo.dev/settings/access-tokens](https://expo.dev/settings/access-tokens) when prompted (**save when created**).
+
+**You will be asked:**
+
+- **Press Enter** when ready
+- `eas login`? (if `eas whoami` failed)
+- `[l] Link` / `[n] New` / `[s] Skip` / `[q] Quit` for EAS project
+- **Press Enter** → browser → paste **EXPO_TOKEN** (automation access token, not password)
 
 **Saved as:** `EXPO_PROJECT_ID`, `EXPO_TOKEN`, `EXPO_ACCOUNT` → env + GitHub.
 
+**More:** [MOBILE_BUILD_TESTING.md § Before the Expo wizard phase](MOBILE_BUILD_TESTING.md#before-the-expo-wizard-phase)
+
 ---
 
-### google (mobile only)
+### google (mobile only, optional)
 
-**Have ready:** path to `google-services.json` (Firebase / Google Cloud).
+**Have ready (before Yes — wizard shows checklist + Enter):**
 
-**You will be asked:** `Path to google-services.json`.
+1. **Optional** — skip entirely if you have no native mobile Google Sign-In yet.
+2. **Firebase** Android app with package name matching `apps/mobile` (`com.anonymous.beakerstack` unless renamed).
+3. **`google-services.json`** downloaded (Firebase → Project settings → Your apps → Android).
 
-**Saved as:** `GOOGLE_SERVICES_*` env keys.
+**You will be asked:**
+
+- **Press Enter** to continue (or skip with blank at path prompt)
+- `Path to google-services.json` — absolute or relative path; **Enter** = skip
+
+**Saved as:** `GOOGLE_SERVICES_*` → GitHub secrets in **github** phase.
+
+**Not this phase:** Supabase web Google OAuth → [OAUTH.md](OAUTH.md).
+
+**More:** [MOBILE_BUILD_TESTING.md § Before the Google wizard phase](MOBILE_BUILD_TESTING.md#before-the-google-wizard-phase)
 
 ---
 
@@ -157,19 +179,25 @@ Do not commit filled-in values or `.env*` files with secrets.
 
 ### github
 
-**Have ready:**
+**Have ready (before Yes — wizard shows checklist + Enter):**
 
-- `gh auth login` with permission to set Actions secrets on **your** repo
-- Any values still missing after earlier phases (Stripe, optional CloudFront signing keys, etc.)
-- Optional: dotenv file path to bulk-fill secrets
+1. **Your fork, not upstream** — clone the repo you own (`git remote -v` → your `owner/name`). The wizard runs `gh secret set` / `gh variable set` on **`gh repo view`** for this directory. If you cloned `Artificer-Innovations/BeakerStack` directly, you would be asked to type the repo name to confirm before touching the public template. Prefer **N** / `--skip-github` on upstream clones; sync on your fork instead.
+2. **[GitHub CLI](https://cli.github.com)** installed; `gh auth login`; **admin** on **your** fork (manage Actions secrets).
+3. **Values from earlier phases** in `.env.local` / `.env.cloud.generated.local` / `.env.aws.generated.local` (wizard merges them). Anything you skipped (AWS, Supabase, expo, google, Stripe) may be prompted now.
+4. **Web-only after skipping mobile?** Plan to set **`MOBILE_ENABLED=false`** when asked, or re-run with `--skip-mobile`.
+5. Optional: a **.env file** with remaining keys to paste in bulk.
 
 **You will be asked:**
 
-- `gh auth login`?
-- Enter missing CI values or path to a dotenv file
-- Per missing manifest key (masked when secret)
+- **Press Enter** when ready (or **N** to skip entire phase / use `--skip-github`)
+- **Target repo summary** + confirm (type full `owner/repo` if upstream template; otherwise Y/n)
+- `gh auth login`? if not authenticated
+- Enter missing CI values? → path to dotenv file → per-key prompts (secrets masked)
+- Then `gh secret set` / `gh variable set` for each resolved value (names only logged)
 
-**Saved as:** GitHub secrets/variables — see [reference/github-actions-secrets.md](reference/github-actions-secrets.md).
+**Saved as:** GitHub repository **secrets** and **variables** — full list: [reference/github-actions-secrets.md](reference/github-actions-secrets.md).
+
+**Still manual after sync:** Stripe webhooks per env, OAuth in Supabase — not pushed by this phase alone.
 
 ---
 

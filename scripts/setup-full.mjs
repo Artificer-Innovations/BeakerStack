@@ -49,6 +49,10 @@ import {
 import {
   printIntroBanner,
   printPhaseIntro,
+  printAwsPhaseReadinessBriefing,
+  printExpoPhaseReadinessBriefing,
+  printGooglePhaseReadinessBriefing,
+  printGithubPhaseReadinessBriefing,
   confirmRunPhase,
   printManualInstructions,
   SetupQuit,
@@ -58,6 +62,11 @@ import {
   clearExpoKeysFromAcc,
   ensureNonTemplateEasProject,
 } from './lib/setup-expo-eas.mjs';
+import {
+  confirmGithubRepoSyncTarget,
+  logGithubSyncTargetSummary,
+  resolveGhRepoContext,
+} from './lib/setup-github-repo.mjs';
 import {
   formatSupabaseProjectChoiceLine,
   parseApiKeysJson,
@@ -102,7 +111,7 @@ const PHASE_ORDER = [
 /** Merged from dotenv-style secret files / pastes (allowlisted keys only). */
 const MERGEABLE_SETUP_ENV_KEYS = mergeableSetupEnvKeys();
 
-/** @typedef {{ dryRun: boolean; fromPhase: string; skipRename: boolean; awsProfile: string; skipGithub: boolean; mobileEnabled: boolean; plainSecretPrompts: boolean; guide: 'full' | 'brief'; guideFromCli: boolean }} CliFlags */
+/** @typedef {{ dryRun: boolean; fromPhase: string; skipRename: boolean; awsProfile: string; skipGithub: boolean; githubRepo: string; mobileEnabled: boolean; plainSecretPrompts: boolean; guide: 'full' | 'brief'; guideFromCli: boolean }} CliFlags */
 
 function printHelp() {
   console.log(`Usage: node scripts/setup-full.mjs [options]
@@ -115,6 +124,7 @@ Options:
                          merges existing .env*.local first when resuming)
   --skip-rename          Skip the identity / rename phase entirely
   --skip-github          Skip GitHub Actions secret/variable sync
+  --github-repo=OWNER/NAME  Override repo for gh secret/variable sync (default: gh repo view in cwd)
   --skip-mobile          Skip Expo, EAS, and Google Services setup (web-only repos)
   --aws-profile=NAME     Pass through to bootstrap-aws-stack.sh
   --plain-secret-prompts Echo secret prompts in plain text (default: mask typed secrets on a TTY)
@@ -156,6 +166,7 @@ function parseArgv(argv) {
     skipRename: false,
     awsProfile: '',
     skipGithub: false,
+    githubRepo: '',
     mobileEnabled: true,
     plainSecretPrompts: false,
     guide: 'full',
@@ -165,6 +176,8 @@ function parseArgv(argv) {
     if (a === '--dry-run') flags.dryRun = true;
     else if (a === '--skip-rename') flags.skipRename = true;
     else if (a === '--skip-github') flags.skipGithub = true;
+    else if (a.startsWith('--github-repo='))
+      flags.githubRepo = a.slice('--github-repo='.length).trim();
     else if (a === '--skip-mobile') flags.mobileEnabled = false;
     else if (a === '--plain-secret-prompts') flags.plainSecretPrompts = true;
     else if (a === '--brief-guide') {
@@ -611,24 +624,91 @@ async function promptSupabaseAccessTokenForGithub(rl, promptInput, acc, flags) {
     );
     return;
   }
+  const existing = (acc.SUPABASE_ACCESS_TOKEN || '').trim();
+  if (existing) {
+    logInfo(
+      'SUPABASE_ACCESS_TOKEN already collected in this run (stored for GitHub sync in the github phase; value not printed).'
+    );
+    return;
+  }
+
   const dash = 'https://supabase.com/dashboard/account/tokens';
-  logInfo(`Supabase access token for GitHub migrations: ${dash}`);
+  const rotateDoc =
+    'docs/supabase-staging-production-setup.md#rotating-supabase_access_token';
+  logInfo('');
+  logInfo('── Supabase account token for GitHub Actions ──');
+  logInfo('');
+  logInfo(
+    'Project URLs and API keys for preview/staging/production are already saved locally.'
+  );
+  logInfo(
+    'GitHub Actions cannot use your laptop supabase login — it needs a separate account token.'
+  );
+  logInfo('');
+  logInfo('Create this token type (on the page that opens next):');
+  logInfo(
+    '  • Personal access token — Account → Access Tokens (value starts with sbp_)'
+  );
+  logInfo('  • NOT project anon / service_role keys (Project Settings → API)');
+  logInfo('  • NOT a database password or connection string');
+  logInfo('');
+  logInfo('Suggested settings when generating:');
+  logInfo('  • Name: beakerstack-github-actions (any label is fine)');
+  logInfo(
+    '  • Expiry: 90 days to 1 year (recommended); set a reminder before it expires'
+  );
+  logInfo(
+    '  • Never expire: only if you will still rotate on a schedule (see rotation doc below)'
+  );
+  logInfo('');
+  logInfo('CI stores it as GitHub secret SUPABASE_ACCESS_TOKEN for:');
+  logInfo(
+    '  • supabase link, database migrations (db push), Edge Function deploys'
+  );
+  logInfo('');
+  logInfo(`Rotate later: ${rotateDoc}`);
+  logInfo('');
+  logInfo(
+    'If you pasted the same token earlier for supabase login in this wizard, paste it again here.'
+  );
+  logInfo(
+    'Press Enter at the paste prompt with blank to skip (github phase or manual secret).'
+  );
+  logInfo('');
+
+  if (input.isTTY) {
+    await rlQuestion(
+      rl,
+      'Press Enter to open the Supabase access tokens page in your browser…'
+    );
+  } else {
+    logInfo(`Open in your browser: ${dash}`);
+  }
   if (process.platform === 'darwin') {
     spawnSync('open', [dash], { stdio: 'ignore' });
+  } else if (input.isTTY) {
+    logInfo(`If the page did not open: ${dash}`);
   }
+
   const line = await readSecretLineMaskedOrVisible(
     rl,
     promptInput,
     flags,
-    'Paste token, path to file (bare secret or .env), blank to skip, q=quit entire setup: '
+    'Paste SUPABASE_ACCESS_TOKEN (account PAT), path to file, blank to skip, q=quit entire setup: '
   );
   checkSecretInputQuit(line);
-  if (!line.trim()) return;
+  if (!line.trim()) {
+    logInfo(
+      'Skipped SUPABASE_ACCESS_TOKEN for now — add it during the github phase or set the GitHub secret manually.'
+    );
+    return;
+  }
   const resolved = await resolveSecretInputForSetup(
     line,
     'SUPABASE_ACCESS_TOKEN'
   );
   applySecretResolutionToAcc(acc, resolved, 'SUPABASE_ACCESS_TOKEN');
+  logInfo('SUPABASE_ACCESS_TOKEN stored for this run (value not printed).');
 }
 
 /**
@@ -650,26 +730,80 @@ async function promptExpoTokenForGithub(rl, promptInput, acc, flags) {
     logInfo('Using EXPO_TOKEN from environment (value not printed).');
     return;
   }
-  const dash = 'https://expo.dev/accounts/[account]/settings/access-tokens';
-  logInfo(
-    `Expo access token (EXPO_TOKEN) for CI: create at expo.dev → Account → Access tokens`
-  );
-  logInfo(`Docs: ${dash}`);
-  if (process.platform === 'darwin') {
-    spawnSync('open', ['https://expo.dev/settings/access-tokens'], {
-      stdio: 'ignore',
-    });
+  const existing = (acc.EXPO_TOKEN || '').trim();
+  if (existing) {
+    logInfo(
+      'EXPO_TOKEN already collected in this run (stored for GitHub sync in the github phase; value not printed).'
+    );
+    return;
   }
+
+  const dash = 'https://expo.dev/settings/access-tokens';
+  const rotateDoc = 'docs/MOBILE_BUILD_TESTING.md#rotating-expo_token';
+  logInfo('');
+  logInfo('── Expo access token for GitHub Actions ──');
+  logInfo('');
+  logInfo(
+    'CI cannot use your local `eas login` session — it needs a separate access token (EXPO_TOKEN).'
+  );
+  logInfo('');
+  logInfo('Create this token type (on the page that opens next):');
+  logInfo(
+    '  • **Access token** — expo.dev → Account settings → Access tokens → Create token'
+  );
+  logInfo(
+    '  • Use for automation / CI (EAS Update, EAS Build in GitHub Actions)'
+  );
+  logInfo(
+    '  • NOT your Expo account password; NOT the project UUID (that is EXPO_PROJECT_ID)'
+  );
+  logInfo('');
+  logInfo('Suggested settings:');
+  logInfo('  • Name: beakerstack-github-actions');
+  logInfo(
+    '  • Expiry: match your security policy (set a reminder; expired token breaks mobile CI)'
+  );
+  logInfo(
+    '  • Scopes: allow EAS Build + Update for this project if the UI asks'
+  );
+  logInfo('');
+  logInfo(`Rotate later: ${rotateDoc}`);
+  logInfo('');
+  logInfo(
+    'Press Enter at the paste prompt with blank to skip (github phase or GitHub secret manually).'
+  );
+  logInfo('');
+
+  if (input.isTTY) {
+    await rlQuestion(
+      rl,
+      'Press Enter to open Expo access tokens in your browser…'
+    );
+  } else {
+    logInfo(`Open in your browser: ${dash}`);
+  }
+  if (process.platform === 'darwin') {
+    spawnSync('open', [dash], { stdio: 'ignore' });
+  } else if (input.isTTY) {
+    logInfo(`If the page did not open: ${dash}`);
+  }
+
   const line = await readSecretLineMaskedOrVisible(
     rl,
     promptInput,
     flags,
-    'Paste EXPO_TOKEN, path to file (bare secret or .env), blank to skip, q=quit entire setup: '
+    'Paste EXPO_TOKEN (access token), path to file, blank to skip, q=quit entire setup: '
   );
   checkSecretInputQuit(line);
-  if (!line.trim()) return;
+  if (!line.trim()) {
+    logInfo(
+      'Skipped EXPO_TOKEN for now — add it during the github phase or set the GitHub secret manually.'
+    );
+    return;
+  }
   const resolved = await resolveSecretInputForSetup(line, 'EXPO_TOKEN');
   applySecretResolutionToAcc(acc, resolved, 'EXPO_TOKEN');
+  logInfo('EXPO_TOKEN stored for this run (value not printed).');
 }
 
 /**
@@ -1188,20 +1322,6 @@ function ghVariableSetSync(repo, name, value, dryRun) {
     logWarn(`gh variable set ${name} failed: ${redactForLog(r.stderr || '')}`);
   }
   return r.status ?? 1;
-}
-
-function resolveGhRepo() {
-  const r = spawnSync(
-    'gh',
-    ['repo', 'view', '--json', 'nameWithOwner', '-q', '.nameWithOwner'],
-    {
-      cwd: REPO_ROOT,
-      encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-    }
-  );
-  if (r.status !== 0) return '';
-  return (r.stdout || '').trim();
 }
 
 function which(cmd) {
@@ -2016,10 +2136,6 @@ async function phaseAws(flags, rl, acc) {
  * @param {import('stream').Readable & { isTTY?: boolean; setRawMode?: (flag: boolean) => void }} promptInput
  */
 async function phaseExpo(flags, rl, acc, promptInput) {
-  logInfo(
-    'If `eas login` misbehaves in this terminal, use Terminal.app — Expo often expects a real TTY (this script uses /dev/tty when available).'
-  );
-
   if (!flags.dryRun && !easWhoamiOk()) {
     logWarn(
       'EAS CLI: `eas whoami` failed (not logged in or invalid EXPO_TOKEN).'
@@ -2081,12 +2197,25 @@ async function phaseExpo(flags, rl, acc, promptInput) {
  * @param {Record<string, string>} acc
  */
 async function phaseGoogle(flags, rl, acc) {
+  logInfo('');
+  logInfo(
+    'Paste the path to your downloaded google-services.json (absolute or relative to repo root).'
+  );
+  logInfo(
+    'Press Enter with blank to skip — you can add GOOGLE_SERVICES_* later in the github phase.'
+  );
+  logInfo('');
   const p = await rlQuestion(
     rl,
-    'Path to google-services.json for CI (optional, Enter to skip): '
+    'Path to google-services.json (optional, Enter to skip): '
   );
   const fp = p.trim();
-  if (!fp) return;
+  if (!fp) {
+    logInfo(
+      'Skipped Google Services import — mobile CI can still run without native Google keys until you add them.'
+    );
+    return;
+  }
   if (flags.dryRun) {
     logInfo(
       `[dry-run] would import GOOGLE_SERVICES_* from ${fp} (skipped; no file read).`
@@ -2261,12 +2390,12 @@ async function phaseGithub(flags, rl, acc, promptInput) {
     }
   }
 
-  const repo = resolveGhRepo();
+  const ghCtx = resolveGhRepoContext(REPO_ROOT, flags.githubRepo);
+  const repo = ghCtx.repo;
   if (!repo) {
-    logWarn('Could not resolve repo (gh repo view).');
+    logWarn('Could not resolve repo (gh repo view / git origin).');
     return;
   }
-  logInfo(`Using repository: ${repo}`);
 
   const localEnv = await readEnvFileIfExists(LOCAL_ENV_PATH);
   const cloudEnv = await readEnvFileIfExists(CLOUD_ENV_PATH);
@@ -2301,6 +2430,20 @@ async function phaseGithub(flags, rl, acc, promptInput) {
   const secrets = collectGithubSecretPayload(acc);
   const variables = collectGithubVariablePayload(acc);
   logMissingRequiredGithubForCi(acc);
+
+  const secretCount = Object.values(secrets).filter(v => v).length;
+  const variableCount = Object.values(variables).filter(v => v).length;
+  logGithubSyncTargetSummary({ logInfo, logWarn }, ghCtx, {
+    secretCount,
+    variableCount,
+  });
+  const proceed = await confirmGithubRepoSyncTarget(
+    rl,
+    { logInfo, logWarn },
+    ghCtx,
+    { dryRun: flags.dryRun, interactive: input.isTTY }
+  );
+  if (!proceed) return;
 
   let ok = 0;
   let fail = 0;
@@ -2454,6 +2597,46 @@ async function main() {
           clearExpoKeysFromAcc(acc);
         }
         continue;
+      }
+
+      if (phase === 'aws') {
+        printAwsPhaseReadinessBriefing(logCtx);
+        if (!flags.dryRun && input.isTTY) {
+          await rlQuestion(
+            rl,
+            'Press Enter when Route53, ACM (us-east-1), and AWS CLI credentials above are ready…'
+          );
+        }
+      }
+
+      if (phase === 'expo') {
+        printExpoPhaseReadinessBriefing(logCtx);
+        if (!flags.dryRun && input.isTTY) {
+          await rlQuestion(
+            rl,
+            'Press Enter when you have an Expo account and know link vs new project (above)…'
+          );
+        }
+      }
+
+      if (phase === 'google') {
+        printGooglePhaseReadinessBriefing(logCtx);
+        if (!flags.dryRun && input.isTTY) {
+          await rlQuestion(
+            rl,
+            'Press Enter to continue (have google-services.json path ready, or skip with blank at next prompt)…'
+          );
+        }
+      }
+
+      if (phase === 'github' && !flags.skipGithub) {
+        printGithubPhaseReadinessBriefing(logCtx);
+        if (!flags.dryRun && input.isTTY) {
+          await rlQuestion(
+            rl,
+            'Press Enter when gh is authenticated and you are ready to sync secrets (or skip this phase with N)…'
+          );
+        }
       }
 
       switch (phase) {
