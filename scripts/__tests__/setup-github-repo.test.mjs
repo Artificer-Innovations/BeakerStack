@@ -37,9 +37,16 @@ test('parseGithubOwnerRepoFromRemoteUrl empty', () => {
   assert.equal(parseGithubOwnerRepoFromRemoteUrl(null), '');
 });
 
-test('parseGithubOwnerRepoFromRemoteUrl non-github', () => {
+test('parseGithubOwnerRepoFromRemoteUrl non-github https', () => {
   assert.equal(
     parseGithubOwnerRepoFromRemoteUrl('https://gitlab.com/myorg/my-app.git'),
+    ''
+  );
+});
+
+test('parseGithubOwnerRepoFromRemoteUrl non-github ssh', () => {
+  assert.equal(
+    parseGithubOwnerRepoFromRemoteUrl('git@gitlab.com:myorg/my-app.git'),
     ''
   );
 });
