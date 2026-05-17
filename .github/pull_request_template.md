@@ -10,14 +10,18 @@
 - [ ] Refactoring
 - [ ] Other (please describe)
 
-## Merge Strategy Reminder
+## Merge strategy
 
-⚠️ **Important**: Please use the correct merge strategy when merging this PR:
+⚠️ **Use the correct merge strategy for your target branch:**
 
-- **If this PR targets `develop`**: Use **"Squash and merge"** ✅
-- **If this PR targets `main`**: Use **"Create a merge commit"** ✅ (NOT squash merge)
+| Target branch | Merge method                             |
+| ------------- | ---------------------------------------- |
+| **`develop`** | **Squash and merge**                     |
+| **`main`**    | **Create a merge commit** (never squash) |
 
-Squash merging to `main` can cause conflicts when merging `develop` → `main` later.
+Squash merging to `main` causes painful conflicts on the next `develop` → `main` promotion.
+
+**Promoting `develop` → `main`?** Close this PR and open a new one with the [**Promote develop to main** template](?template=promote-develop-to-main.md) (`?template=promote-develop-to-main.md`). CalVer release prose lives in that template’s **CalVer release notes** section.
 
 ## Checklist
 

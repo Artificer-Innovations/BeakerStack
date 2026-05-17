@@ -6,6 +6,13 @@ on:
       override_tag:
         description: 'Override computed tag (e.g. 2026.003) — leave blank to auto-compute'
         required: false
+      promotion_pr:
+        description: 'Merged develop→main PR number (blank = auto-detect from HEAD)'
+        required: false
+      skip_pr_body:
+        description: 'Skip promotion PR body; publish git-cliff changelog only'
+        type: boolean
+        default: false
 
 jobs:
   release:
@@ -13,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: read
 
     steps:
       - uses: actions/checkout@v4
@@ -34,7 +42,8 @@ jobs:
             echo "tag=${{ inputs.override_tag }}" >> $GITHUB_OUTPUT
           else
             YEAR=$(date +%Y)
-            LAST_N=$(git tag -l "${YEAR}.*" | sed "s/${YEAR}\.//" | sort -n | tail -1)
+            # CalVer YYYY.NNN only (exclude semver-shaped tags like 2026.1.0)
+            LAST_N=$(git tag -l | grep -E "^${YEAR}\\.[0-9]{3}$" | sed "s/${YEAR}\.//" | sort -n | tail -1)
             NEXT_N=$(( ${LAST_N:-0} + 1 ))
             printf -v PADDED_N "%03d" $NEXT_N
             echo "tag=${YEAR}.${PADDED_N}" >> $GITHUB_OUTPUT
@@ -67,17 +76,108 @@ jobs:
           sudo mv "/tmp/git-cliff-${GIT_CLIFF_VERSION}/git-cliff" /usr/local/bin/git-cliff
           git-cliff --version
 
-      - name: Generate release notes
+      # Do NOT use --latest here: it regenerates the previous CalVer tag's full changelog
+      # (e.g. 2026.002 would repeat all of 2026.001). Anchor on the latest YYYY.NNN tag
+      # across all years (2027.001 diffs from 2026.xxx, not from repo root).
+      - name: Resolve promotion PR
+        id: promotion
+        if: inputs.skip_pr_body != true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git-cliff \
-            --config cliff.toml \
-            --tag-pattern '^[0-9]{4}\.' \
-            --tag "${{ steps.tag.outputs.tag }}" \
-            --latest \
-            --output RELEASE_NOTES.md
+          set -euo pipefail
+          is_promotion_pr() {
+            local num="$1"
+            local base head
+            read -r base head < <(gh pr view "$num" --json baseRefName,headRefName --jq '[.baseRefName,.headRefName]|@tsv')
+            [[ "$base" == "main" && "$head" == "develop" ]]
+          }
+
+          PR="${{ inputs.promotion_pr }}"
+          if [[ -n "$PR" ]] && ! is_promotion_pr "$PR"; then
+            echo "::error::PR #${PR} is not a develop→main promotion PR"
+            exit 1
+          fi
+
+          if [[ -z "$PR" ]]; then
+            # workflow_dispatch: GITHUB_SHA is main HEAD at trigger time (may be after the promotion merge)
+            PR="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
+              --jq '[.[] | select(.base.ref == "main" and .head.ref == "develop") | .number][0] // empty' 2>/dev/null || true)"
+          fi
+
+          if [[ -z "$PR" ]]; then
+            PR="$(gh pr list --state merged --base main --head develop --limit 1 --json number --jq '.[0].number // empty')"
+          fi
+
+          if [[ -z "$PR" ]]; then
+            echo "::error::Could not find a merged develop→main promotion PR. Pass promotion_pr or merge promotion first."
+            exit 1
+          fi
+
+          echo "number=${PR}" >> "$GITHUB_OUTPUT"
+          echo "Using promotion PR #${PR} (develop→main)"
+
+      - name: Extract CalVer release notes from promotion PR
+        if: inputs.skip_pr_body != true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh pr view "${{ steps.promotion.outputs.number }}" --json body --jq .body > pr-body.md
+          bash scripts/extract-calver-release-notes.sh pr-body.md > calver-release-notes.md
+          echo "Extracted $(wc -l < calver-release-notes.md) lines from PR #${{ steps.promotion.outputs.number }}"
+
+      - name: Generate git-cliff changelog
+        run: |
+          set -euo pipefail
+          NEW_TAG="${{ steps.tag.outputs.tag }}"
+          # Latest CalVer tag strictly before NEW_TAG (supports override_tag out of sequence)
+          # awk string compare is safe: grep above guarantees fixed-width YYYY.NNN tags
+          PREV_TAG="$(git tag -l | grep -E '^[0-9]{4}\.[0-9]{3}$' | sort -V | awk -v t="$NEW_TAG" '$0 < t' | tail -1 || true)"
+
+          if [[ -n "$PREV_TAG" ]]; then
+            echo "Generating changelog for ${NEW_TAG} from ${PREV_TAG}..HEAD"
+            git-cliff \
+              --config cliff.toml \
+              --tag-pattern '^[0-9]{4}\.' \
+              --tag "$NEW_TAG" \
+              "${PREV_TAG}..HEAD" \
+              --output cliff-changelog.md
+          else
+            echo "No prior CalVer tag — first template release"
+            git-cliff \
+              --config cliff.toml \
+              --tag-pattern '^[0-9]{4}\.' \
+              --tag "$NEW_TAG" \
+              --unreleased \
+              --output cliff-changelog.md
+          fi
+
+          if ! grep -qF "## ${NEW_TAG}" cliff-changelog.md; then
+            echo "::error::cliff-changelog.md missing header for ${NEW_TAG} (git-cliff may have anchored on the wrong tag)"
+            head -20 cliff-changelog.md || true
+            exit 1
+          fi
         env:
           GITHUB_REPO: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Assemble GitHub Release body
+        run: |
+          set -euo pipefail
+          if [[ "${{ inputs.skip_pr_body }}" == "true" ]]; then
+            cp cliff-changelog.md RELEASE_BODY.md
+          else
+            {
+              echo "## CalVer release notes"
+              echo ""
+              cat calver-release-notes.md
+              echo ""
+              echo "---"
+              echo ""
+              cat cliff-changelog.md
+            } > RELEASE_BODY.md
+          fi
 
       - name: Create annotated tag
         run: |
@@ -91,4 +191,4 @@ jobs:
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: ${{ steps.tag.outputs.tag }}
-          body_path: RELEASE_NOTES.md
+          body_path: RELEASE_BODY.md

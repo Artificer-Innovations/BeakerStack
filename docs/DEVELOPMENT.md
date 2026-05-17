@@ -68,7 +68,7 @@ PR preview setup: [pr-preview-setup.md](pr-preview-setup.md). Environment design
 ## Branch flow
 
 - Feature branches → PR into `develop` (squash merge)
-- `develop` → promotion PR into `main` (merge commit)
+- `develop` → promotion PR into `main` (merge commit; use [promote-develop-to-main](../.github/PULL_REQUEST_TEMPLATE/promote-develop-to-main.md) template — CalVer prose in **`## CalVer release notes`**)
 - `main` → production deploys and npm package releases (when changesets are pending)
 
 See [ARCHITECTURE.md](ARCHITECTURE.md#pull-request-process) and [CONTRIBUTING.md](../CONTRIBUTING.md).

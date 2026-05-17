@@ -290,7 +290,8 @@ apps/mobile/google-services.json
 # AWS build artifacts
 .aws-build/
 
-# Agent / IDE skill trees (Stripe docs mirror + symlinks); install locally, do not commit
+# Agent skill installs (Stripe docs mirror + vendor symlinks) — local only, do not commit.
+# BeakerStack project skills live in .cursor/skills/ and ARE committed.
 .agents/
 .augment/skills/
 .claude/skills/
