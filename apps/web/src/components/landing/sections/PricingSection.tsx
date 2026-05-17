@@ -46,11 +46,9 @@ function StaticPricingTable() {
             }).format(cents / 100);
 
           const priceHeadline =
-            plan.price_cents === 0
-              ? 'US$0'
-              : isAnnual && annualCents != null
-                ? fmt(annualCents)
-                : fmt(plan.price_cents);
+            isAnnual && annualCents != null
+              ? fmt(annualCents)
+              : fmt(plan.price_cents);
 
           const priceSubline =
             plan.price_cents === 0

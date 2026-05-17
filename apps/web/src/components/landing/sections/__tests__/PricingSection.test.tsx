@@ -36,14 +36,17 @@ vi.mock('../../../../billing/staticPlanAdapter', () => ({
 vi.mock('../../../billing/PlanCard.web', () => ({
   PlanCard: ({
     plan,
+    priceHeadline,
     primary,
   }: {
     plan: { id: string; display_name: string };
+    priceHeadline: string;
     primary: { label: string; onClick: () => void };
   }) => (
     <button
       type='button'
       data-testid={`plan-card-${plan.id}`}
+      data-price-headline={priceHeadline}
       onClick={primary.onClick}
     >
       {plan.display_name}
@@ -109,6 +112,14 @@ describe('PricingSection', () => {
     expect(screen.getByTestId('plan-card-free')).toHaveTextContent('Free');
     expect(screen.getByTestId('plan-card-pro')).toHaveTextContent('Pro');
     expect(screen.getByTestId('plan-card-team')).toHaveTextContent('Team');
+  });
+
+  it('passes $0 as priceHeadline for the Free plan (not US$0)', () => {
+    renderSection();
+    expect(screen.getByTestId('plan-card-free')).toHaveAttribute(
+      'data-price-headline',
+      '$0'
+    );
   });
 
   it('navigates to signup with encoded plan id', async () => {
