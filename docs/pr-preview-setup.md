@@ -43,6 +43,28 @@ locally ensure the following are available:
 - `jq` (JSON parsing in scripts)
 - Optional: set `SUPABASE_MAX_RETRIES` (default `3`) to raise retry attempts when Supabase CLI operations are flaky.
 
+## Before the AWS wizard phase
+
+If you use `npm run setup:full`, the **aws** phase runs `scripts/pr-preview/bootstrap-aws-stack.sh`. Have the following **before** you answer **Yes** to that phase (the wizard prints the same checklist and waits for Enter).
+
+### Checklist
+
+| #   | Requirement                           | Details                                                                                                                                                                                                                              |
+| --- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | **Apex domain in Route 53**           | Public hosted zone for your apex (e.g. `example.com`). If DNS is elsewhere, NS records must delegate to this zone.                                                                                                                   |
+| 2   | **ACM certificate (TLS)**             | In **us-east-1**, status **Issued**, covering **apex** and **\*.apex** (DNS validation in Route 53). Required for CloudFront — not optional.                                                                                         |
+| 3   | **AWS CLI credentials (local)**       | `aws sts get-caller-identity` succeeds on the machine running setup (`aws configure` access keys or `aws sso login`). IAM permissions for CloudFormation, S3, CloudFront, Route 53, ACM (read).                                      |
+| 4   | **GitHub deploy credentials (later)** | Separate **IAM access key + secret** for CI (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) — collected in the setup **github** phase or added manually. Not the same as “CLI works on my laptop” unless you reuse the same IAM user. |
+
+The wizard will ask for your **apex domain** and can auto-detect the hosted zone ID and certificate ARN when they already exist in the account.
+
+### Rotating AWS deploy credentials
+
+1. Create a new IAM access key for the deploy user (or replace SSO role policy as your org requires).
+2. Update GitHub secrets **`AWS_ACCESS_KEY_ID`** and **`AWS_SECRET_ACCESS_KEY`** (and **`AWS_SESSION_TOKEN`** if temporary).
+3. Disable/delete the old access key after a successful deploy workflow run.
+4. Re-run `npm run setup:full -- --from=github` if you use the wizard to sync secrets.
+
 ## Infrastructure Provisioning
 
 1. **Wildcard Certificate**
@@ -290,7 +312,7 @@ Re-run jobs using GitHub Actions UI after addressing configuration issues.
 ## Maintenance & Extension
 
 - **Cache policy tuning:** adjust `deploy-web.sh` cache headers for hashed assets.
-- **Secrets rotation:** rotate AWS, Supabase, Expo credentials periodically.
+- **Secrets rotation:** rotate AWS, Supabase, Expo credentials periodically — AWS deploy keys: [Rotating AWS deploy credentials](#rotating-aws-deploy-credentials).
 - **Cleanup retention:** schedule periodic runs of `teardown.sh` for stale PRs.
 - **Monitoring:** enable AWS S3/CloudFront access logs (already configured) and
   integrate with monitoring stack if desired.

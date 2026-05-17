@@ -66,6 +66,7 @@ If the hook blocks your commit, fix the reported errors and re-commit. Do not us
 
 - Prefer small PRs over large mixed ones.
 - If you change `scripts/lib/setup-manifest.mjs`, run `npm run docs:actions-secrets` and commit updates to `docs/reference/github-actions-secrets.md`.
+- If you add or change setup wizard prompts in `scripts/setup-full.mjs` or `scripts/lib/setup-manual-instructions.mjs`, update `docs/setup-prep-checklist.md`.
 - Do not commit `.env*` files or real secrets.
 
 ## Branch flow and releases
