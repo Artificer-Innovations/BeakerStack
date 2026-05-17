@@ -158,6 +158,11 @@ Triggered when a PR is `closed` (merged or abandoned).
    - Deletes S3 prefix `pr-<number>/` from deploy bucket.
    - Creates CloudFront invalidation for `/pr-<number>/*` on deploy distribution.
    - Drops Supabase schema `preview_pr_<number>` (if DB URL provided).
+3. Cleans up GitHub metadata via the Deployments API:
+   - Marks all deployments for `pr-<number>-preview` as `inactive`.
+   - Deletes each deployment record.
+   - Deletes the `pr-<number>-preview` environment so it no longer appears in the repository Environments / Deployments views.
+   - Skipped for fork PRs; 404s are treated as non-fatal so teardown never fails over stale or already-removed GitHub metadata.
 
 ## Helper Scripts
 
