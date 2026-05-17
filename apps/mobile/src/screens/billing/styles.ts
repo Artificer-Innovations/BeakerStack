@@ -22,13 +22,6 @@ export const billingColors = {
 export const billingStyles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: billingColors.pageBg },
   scrollContent: { padding: 16, paddingBottom: 40 },
-  h1: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: billingColors.textPrimary,
-    marginBottom: 4,
-  },
-  backLink: { color: billingColors.indigo, fontSize: 15, marginBottom: 8 },
   card: {
     backgroundColor: billingColors.cardBg,
     borderRadius: 12,
