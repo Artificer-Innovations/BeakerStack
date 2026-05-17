@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
   },
-  btnPrimaryText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  btnPrimaryText: { color: colors.white, fontWeight: '600', fontSize: 14 },
   btnDisabled: { opacity: 0.5 },
   limitNote: { fontSize: 14, color: colors.textMuted },
   err: { marginTop: 8, fontSize: 13, color: colors.errorIcon },

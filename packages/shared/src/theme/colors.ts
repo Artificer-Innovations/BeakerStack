@@ -6,6 +6,10 @@
  *   - Tailwind config: `../../packages/shared/src/theme/colors` (jiti resolves .ts)
  *
  * `colors.indigo` drives the Tailwind `primary` scale (web) and `colors.brand` (mobile).
+ *
+ * Follow-ups:
+ *   - #250: split into palette + semantic layers; add palette.brand alias for fork support
+ *   - #251: add sparse red/amber/green/slate sub-scales so status tokens derive from named steps
  */
 
 const gray = {
@@ -34,13 +38,20 @@ const indigo = {
   900: '#312e81',
 } as const;
 
+const white = '#ffffff' as const;
+
+// Shared green-50 value — successBg and featureOnBg are intentionally the same
+// shade; a single const prevents them silently drifting apart.
+const green50 = '#f0fdf4' as const;
+
 export const colors = {
   gray,
   indigo,
+  white,
 
   // Surfaces
   pageBg: gray[50],
-  cardBg: '#ffffff', // pure white — no gray scale equivalent
+  cardBg: white,
   border: gray[200],
   rowDivider: gray[100],
 
@@ -66,7 +77,7 @@ export const colors = {
   errorIcon: '#dc2626',     // red-600 — icon and err text
 
   // Status: success
-  successBg: '#f0fdf4',     // green-50
+  successBg: green50,       // green-50
   successBorder: '#6ee7b7', // green-300
   successText: '#065f46',   // green-900
   successTextAlt: '#15803d', // green-700 — lighter variant
@@ -82,7 +93,7 @@ export const colors = {
   infoText: '#1e3a8a',
 
   // Feature gate UI
-  featureOnBg: '#f0fdf4',      // green-50 — tile background when feature enabled
+  featureOnBg: green50,        // green-50 — same as successBg; shared const prevents drift
   featureOnBorder: '#86efac',  // green-300
   featureOnIconBg: '#dcfce7',  // green-100
   featureOnIcon: '#16a34a',    // green-600
