@@ -1,4 +1,155 @@
-# OAuth Setup Guide for Production
+# OAuth
+
+BeakerStack ships OAuth UI and session handling for web and mobile. You configure providers in Google/Apple consoles and Supabase — the app code is already wired.
+
+## Overview
+
+### What's already implemented
+
+- OAuth UI (Google / Apple buttons)
+- `signInWithOAuth`, redirect handling, error states
+- Web callback route and mobile deep-link flow (`expo-auth-session`)
+- Unit tests for auth flows
+
+### What you configure
+
+- OAuth apps in Google Cloud (and Apple Developer for Sign in with Apple)
+- Client IDs/secrets in Supabase (local: `config.toml` + `.env.local`; cloud: dashboard)
+- Redirect URLs that match Supabase's callback exactly
+
+### Reading order
+
+1. **Quick local setup** (below) — localhost Google + Supabase in ~15 minutes
+2. **Production setup** — staging/production Google + Apple, Supabase cloud
+3. **Mobile native flow** — deep links and Expo AuthSession
+
+Related: [testing/TESTING_OAUTH.md](testing/TESTING_OAUTH.md)
+
+---
+
+## Quick local setup
+
+This is a quick reference for setting up OAuth with your existing Google OAuth credentials.
+
+## Step 1: Configure Google OAuth Redirect URLs
+
+**IMPORTANT**: Google sees Supabase's callback URL, NOT your app's callback URL.
+
+Your Google OAuth app needs to allow these redirect URLs:
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Navigate to "APIs & Services" → "Credentials"
+3. Click on your OAuth client ID
+4. **Clear any existing redirect URIs** that point to your app (like `http://localhost:5173/auth/callback`)
+5. Add **BOTH** of these **Authorized redirect URIs** (Supabase might use either):
+
+   ```
+   http://localhost:54321/auth/v1/callback
+   http://127.0.0.1:54321/auth/v1/callback
+   ```
+
+   **Why both?** Supabase may send either `localhost` or `127.0.0.1` depending on how it's accessed. Google treats them as different URLs, so we need both.
+
+   **Note**: These are `localhost:54321` or `127.0.0.1:54321` (Supabase), NOT `localhost:5173` (your web app)
+
+   (For production, also add: `https://your-project-ref.supabase.co/auth/v1/callback`)
+
+6. Click "Save"
+
+**How it works:**
+
+- Your app redirects to Google → Google redirects to Supabase (`localhost:54321/auth/v1/callback`) → Supabase redirects to your app (`localhost:5173/auth/callback`)
+- Google only sees the Supabase URL, so that's what must be in Google Cloud Console
+
+## Step 2: Configure Supabase (Local Development)
+
+**Note**: Local Supabase Studio doesn't have a "Providers" UI. You must configure OAuth via `config.toml` and environment variables.
+
+1. **Create/Update `.env.local`** in the root directory (create it if it doesn't exist):
+
+   ```bash
+   SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID=your-client-id-here
+   SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=your-client-secret-here
+   ```
+
+   Replace `your-client-id-here` with your actual Google Client ID and `your-client-secret-here` with your actual Google Client Secret.
+
+2. **Verify config.toml** is set up correctly:
+   - The file `supabase/config.toml` should already have `[auth.external.google]` section
+   - It should have `enabled = true`
+   - It uses environment variables: `env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)` and `env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)`
+
+3. **Restart Supabase** to load the new configuration:
+
+   ```bash
+   supabase stop
+   supabase start
+   ```
+
+   **Important**: Supabase reads `.env.local` from the root directory where you run `supabase start`
+
+## Step 3: Verify Configuration
+
+1. **Check config**:
+
+   ```bash
+   # Verify Supabase is reading the config
+   supabase status
+   ```
+
+2. **Test OAuth in your app**:
+   - Navigate to `/login` in your web app
+   - Click "Sign in with Google"
+   - You should be redirected to Google's OAuth consent screen
+   - After consent, you should be redirected back and logged in
+
+## Troubleshooting
+
+**Issue: "redirect_uri_mismatch" error (Error 400)**
+
+- **Common mistake**: You added `http://localhost:5173/auth/callback` to Google → **WRONG!**
+- **Correct solution**: Add **BOTH** to Google Cloud Console:
+  - `http://localhost:54321/auth/v1/callback`
+  - `http://127.0.0.1:54321/auth/v1/callback`
+- **Why both?** Supabase may use either `localhost` or `127.0.0.1` - Google treats them as different URLs
+- Remove any app URLs from Google Cloud Console redirect URIs
+- The flow: Google → Supabase → Your App (Google only sees Supabase's URL)
+- **Still failing?** Check browser Network tab to see which redirect_uri Supabase actually sends
+
+**Issue: OAuth button doesn't work**
+
+- Solution: Check that `enabled = true` in `config.toml` and you've restarted Supabase
+
+**Issue: "Invalid client" error**
+
+- Solution: Verify your Client ID and Secret are correct in Supabase Studio
+
+## Next Steps
+
+Once Google OAuth is working, you can:
+
+- Test the full sign-in flow
+- Test sign-up flow (first-time Google user)
+- Test protected routes with OAuth users
+
+## Testing Checklist
+
+After configuring everything:
+
+- [ ] Restarted Supabase (`supabase stop && supabase start`)
+- [ ] Waited 2-3 minutes for Google settings to propagate (if just changed)
+- [ ] Tried OAuth flow in incognito/private browser window
+- [ ] Verified redirect URI in browser Network tab matches `http://localhost:54321/auth/v1/callback`
+
+If you see `redirect_uri_mismatch` error:
+
+1. Check browser Network tab → find Google OAuth request → verify the `redirect_uri` parameter
+2. Ensure it's exactly: `http://localhost:54321/auth/v1/callback` (not `127.0.0.1`, not your app URL)
+3. If different, the issue is in Supabase config or Google hasn't updated yet
+
+---
+
+## Production setup
 
 This guide walks you through setting up Google and Apple OAuth for your Beaker Stack in production. The OAuth implementation is already complete in the codebase - you just need to configure the OAuth providers.
 
@@ -427,3 +578,117 @@ If you encounter issues:
 5. Ensure redirect URLs match exactly
 
 **Common gotcha**: Redirect URLs must match EXACTLY (including protocol, port, and path).
+
+---
+
+## Mobile native flow
+
+This guide explains how OAuth works in the mobile app (iOS and Android) vs the web app.
+
+## Key Differences: Mobile vs Web OAuth
+
+### Web App Flow:
+
+1. User clicks "Sign in with Google"
+2. Browser redirects to Google → User authorizes → Google redirects to Supabase
+3. Supabase redirects to `http://localhost:5173/auth/callback` (web URL)
+4. Web app handles the callback and extracts session
+
+### Mobile App Flow:
+
+1. User clicks "Sign in with Google"
+2. App opens OAuth in browser (using Expo AuthSession)
+3. User authorizes → Google redirects to Supabase
+4. Supabase redirects to `beaker-stack://auth/callback` (deep link)
+5. Deep link opens the app → App handles callback and sets session
+
+## Configuration Completed
+
+✅ **Installed Dependencies:**
+
+- `expo-auth-session` - Handles OAuth flows
+- `expo-web-browser` - Opens OAuth in browser
+
+✅ **Updated `app.json`:**
+
+- Added `scheme: "beaker-stack"` for deep linking
+- Added iOS `bundleIdentifier` and Android `package`
+
+✅ **Created Mobile OAuth Handler:**
+
+- `apps/mobile/src/lib/oauth.ts` - Mobile-specific OAuth implementation
+
+✅ **Created Platform-Specific Hook:**
+
+- `packages/shared/src/hooks/useAuth.native.ts` - Uses mobile OAuth handler
+
+✅ **Updated Supabase Config:**
+
+- Added mobile redirect URLs to `additional_redirect_urls`
+
+## Testing Mobile OAuth
+
+### Prerequisites:
+
+1. **Restart Supabase** (to load new redirect URLs):
+
+   ```bash
+   supabase stop
+   supabase start
+   ```
+
+2. **Rebuild/Reload Mobile App:**
+   ```bash
+   cd apps/mobile
+   npm start
+   # Then press 'i' for iOS or 'a' for Android
+   ```
+
+### Test Flow:
+
+1. Open the mobile app (iOS or Android)
+2. Navigate to Login screen
+3. Tap "Sign in with Google"
+4. Browser should open with Google OAuth
+5. After authorizing, app should automatically open
+6. User should be logged in and redirected to Dashboard
+
+## Troubleshooting
+
+**Issue: OAuth opens browser but app doesn't reopen after auth**
+
+- Solution: Verify `scheme: "beaker-stack"` is configured in your Expo app (`app.config.js` or `app.json`)
+- Solution: Restart Expo dev server after changing `app.json`
+
+**Issue: "redirect_uri_mismatch" error in mobile**
+
+- Solution: The mobile redirect URL (`beaker-stack://auth/callback`) is automatically handled by Supabase
+- Solution: Ensure Supabase config includes `beaker-stack://auth/callback` in `additional_redirect_urls`
+
+**Issue: Deep link not working**
+
+- Solution: On iOS, may need to build with EAS or use Expo Go
+- Solution: On Android, ensure `android.package` matches your app
+
+**Issue: "Cannot find module '../../mobile/src/lib/oauth'"**
+
+- Solution: This is expected - the path is resolved at runtime
+- Solution: Make sure `apps/mobile/src/lib/oauth.ts` exists
+
+## Production Considerations
+
+For production mobile apps:
+
+1. Update `scheme` in `app.json` to your production scheme
+2. Add production deep link URL to Supabase `additional_redirect_urls`
+3. Configure iOS/Android OAuth client IDs in Google Cloud Console
+4. Test with production build (not just Expo Go)
+
+## Next Steps
+
+After testing:
+
+- ✅ OAuth works on web
+- ⏳ OAuth works on iOS (test)
+- ⏳ OAuth works on Android (test)
+- ⏳ User profiles created automatically (verify in Supabase Studio)
