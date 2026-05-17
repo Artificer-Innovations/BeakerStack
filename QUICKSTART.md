@@ -170,6 +170,8 @@ Work through these when you are ready; they are intentionally dense. For **promp
 - [ ] Firebase / Google Cloud OAuth clients; `google-services.json` where required.
 - [ ] Supabase Auth Google provider + redirect URLs: [docs/supabase-preview-setup.md](docs/supabase-preview-setup.md), [docs/supabase-staging-production-setup.md](docs/supabase-staging-production-setup.md).
 
-**Deep dives:** [docs/pr-preview-setup.md](docs/pr-preview-setup.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/README.md](docs/README.md).
+**Optional — signed-cookie preview access:** after the AWS stack, run [docs/preview-access-control.md](docs/preview-access-control.md) (`setup-signed-cookies.sh`); not part of `setup:full`.
+
+**Deep dives:** [docs/pr-preview-setup.md](docs/pr-preview-setup.md), [docs/preview-access-control.md](docs/preview-access-control.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/README.md](docs/README.md).
 
 Do not commit `.env*` files; sensitive paths are listed in [.cursorignore](.cursorignore).

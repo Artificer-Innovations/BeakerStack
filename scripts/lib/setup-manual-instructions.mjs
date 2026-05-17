@@ -145,7 +145,7 @@ function printWizardCapabilities(logInfo) {
   logInfo('  • Optionally push secrets and variables to GitHub Actions (gh).');
   logInfo('');
   logInfo(
-    'Also read: README.md, docs/pr-preview-setup.md, docs/supabase-staging-production-setup.md, docs/renaming.md'
+    'Also read: README.md, docs/pr-preview-setup.md, docs/preview-access-control.md (optional signed cookies), docs/renaming.md'
   );
   logInfo('');
   logInfo(
