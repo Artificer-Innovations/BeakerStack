@@ -89,9 +89,9 @@ Infrastructure for npm publish (Changesets, `NPM_TOKEN`, build on `main`) is in 
 
 ## Cutting releases (maintainers)
 
-| Kind            | Trigger                                                                                                                                                                                                                                                                                   |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Template CalVer | [release-template.yml](../.github/workflows/release-template.yml) on `main` after a promotion merge — copies **`## CalVer release notes`** from the merged `develop`→`main` PR (above its `---` separator) and appends git-cliff commits since the latest prior `YYYY.NNN` tag (any year) |
-| npm packages    | Push to `main` with pending changesets → Changesets "chore: release packages" PR → merge → publish                                                                                                                                                                                        |
+| Kind            | Trigger                                                                                                                                                                   |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Template CalVer | Manual: [release-template.yml](../.github/workflows/release-template.yml) — paste prose from [RELEASE_TEMPLATE.md](../.github/RELEASE_TEMPLATE.md) above git-cliff output |
+| npm packages    | Push to `main` with pending changesets → Changesets "chore: release packages" PR → merge → publish                                                                        |
 
 Commits on the template must use **conventional commits** (`feat:`, `fix:`, etc.) so git-cliff can group release notes. Changes under publishable `packages/*` require `npx changeset` in the PR. See [CONTRIBUTING.md](../CONTRIBUTING.md).
