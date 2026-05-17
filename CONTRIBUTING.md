@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for helping improve BeakerStack.
+Thank you for helping improve Beaker Stack.
 
 ## What belongs upstream
 

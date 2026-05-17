@@ -28,7 +28,7 @@ Include a description, steps to reproduce, and impact. We aim to acknowledge rep
 
 ## Template disclaimer
 
-BeakerStack is a **starting point**, not a certified secure product. Before production use, review authentication, authorization (especially Row Level Security), billing webhooks, and Edge Function secrets in **your** fork. Customize policies and threat model for your product and compliance needs.
+Beaker Stack is a **starting point**, not a certified secure product. Before production use, review authentication, authorization (especially Row Level Security), billing webhooks, and Edge Function secrets in **your** fork. Customize policies and threat model for your product and compliance needs.
 
 ## Supported versions
 

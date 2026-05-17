@@ -1,4 +1,4 @@
-# BeakerStack
+# Beaker Stack
 
 **Ship your SaaS faster.**
 
@@ -8,27 +8,27 @@
 [![Release](https://img.shields.io/github/v/release/Artificer-Innovations/BeakerStack?label=template&display_name=release)](https://github.com/Artificer-Innovations/BeakerStack/releases/tag/2026.001)
 [![Discussions](https://img.shields.io/github/discussions/Artificer-Innovations/BeakerStack)](https://github.com/Artificer-Innovations/BeakerStack/discussions)
 
-BeakerStack is the foundation we wished existed for shipping real B2C SaaS: **one product, two surfaces, one backend, one deploy pipeline**. Web and mobile from a shared codebase, auth and billing past the demo, a three-environment pipeline that catches mistakes before production, and a structure that AI coding agents can modify without breaking things.
+Beaker Stack is the foundation we wished existed for shipping real B2C SaaS: **one product, two surfaces, one backend, one deploy pipeline**. Web and mobile from a shared codebase, auth and billing past the demo, a three-environment pipeline that catches mistakes before production, and a structure that AI coding agents can modify without breaking things.
 
 React + Vite on the web. React Native + Expo on mobile. Supabase underneath. Stripe when you take money.
 
-![BeakerStack PR checks, setup wizard, and mobile app](docs/images/readme/hero.png)
+![Beaker Stack PR checks, setup wizard, and mobile app](docs/images/readme/hero.png)
 
 [beakerstack.com](https://beakerstack.com) · [Quick start](QUICKSTART.md) · [Releases](https://github.com/Artificer-Innovations/BeakerStack/releases)
 
 ## Why this shape
 
-**The wedge.** A credible B2C app needs web, iOS, Android, auth, billing, entitlements, and a marketing site that ranks — not eventually, from day one. Most templates give you one slice. Stitching the rest is a four-to-six-week integration project before you write product code. BeakerStack is that work already done, in a shape that still holds when you customize it.
+**The wedge.** A credible B2C app needs web, iOS, Android, auth, billing, entitlements, and a marketing site that ranks — not eventually, from day one. Most templates give you one slice. Stitching the rest is a four-to-six-week integration project before you write product code. Beaker Stack is that work already done, in a shape that still holds when you customize it.
 
 **One codebase, not three products that drift.** The slow death of cross-platform apps is duplicated business logic: validation on web, different validation on mobile, billing hooks that only exist on one surface. Shared hooks, shared types, shared billing in `packages/shared` mean one bug, one fix, three platforms. That is not a reuse percentage; it is how you keep “one product” true after the fork.
 
-**Three environments because “works on my machine” is not a release strategy.** B2C apps that take payments cannot ship migrations that break production, and stakeholders need to click a feature in a PR, not read a diff. BeakerStack mirrors your branch model in Supabase — local Docker, shared PR preview DB, staging on `develop`, production on `main` — and deploys path-based web previews so the artifact under review is the running change.
+**Three environments because “works on my machine” is not a release strategy.** B2C apps that take payments cannot ship migrations that break production, and stakeholders need to click a feature in a PR, not read a diff. Beaker Stack mirrors your branch model in Supabase — local Docker, shared PR preview DB, staging on `develop`, production on `main` — and deploys path-based web previews so the artifact under review is the running change.
 
 The test pyramid (unit, integration, E2E, database) catches regressions across web and mobile in a single PR, before merge. Optional EAS Update channels align mobile to the same preview → staging → production flow.
 
 **Built for AI coding agents.** Dozens of full-stack templates exist. Few say plainly: we designed this to be modified by AI coding agents, and here is how. Typed landing and billing configs fail loudly instead of silently rendering wrong copy. Schema-generated types tie the database to TypeScript so an agent cannot drift from RLS reality. Tests are colocated with a documented decision matrix so an agent knows where new coverage belongs. Monorepo boundaries scope changes. When an agent still ships something broken, PR previews and CI are the safety net — not hope.
 
-**Fork the template; update the packages.** Every template fork diverges immediately — that is fine. BeakerStack does two things about it. **CalVer tags** (`2026.001`, …) mark exact snapshot baselines so you know what you forked and can merge upstream deliberately ([docs/UPGRADING.md](docs/UPGRADING.md)). Reusable pieces ship as **`@beakerstack/*` npm packages** (semver, Changesets) so you can bump test helpers or billing without re-merging the whole monorepo. See [docs/VERSIONING.md](docs/VERSIONING.md).
+**Fork the template; update the packages.** Every template fork diverges immediately — that is fine. Beaker Stack does two things about it. **CalVer tags** (`2026.001`, …) mark exact snapshot baselines so you know what you forked and can merge upstream deliberately ([docs/UPGRADING.md](docs/UPGRADING.md)). Reusable pieces ship as **`@beakerstack/*` npm packages** (semver, Changesets) so you can bump test helpers or billing without re-merging the whole monorepo. See [docs/VERSIONING.md](docs/VERSIONING.md).
 
 ## Template + npm packages
 

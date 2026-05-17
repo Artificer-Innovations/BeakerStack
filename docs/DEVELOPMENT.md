@@ -1,6 +1,6 @@
 # Development
 
-Day-to-day commands for working on BeakerStack (or a fork). For first-time setup, see [QUICKSTART.md](../QUICKSTART.md).
+Day-to-day commands for working on Beaker Stack (or a fork). For first-time setup, see [QUICKSTART.md](../QUICKSTART.md).
 
 ## Prerequisites
 

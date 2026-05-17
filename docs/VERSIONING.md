@@ -1,6 +1,6 @@
 # Versioning
 
-BeakerStack uses **two parallel versioning schemes**: CalVer for the monorepo **template**, and semver for **npm packages**. They are intentional and serve different consumers.
+Beaker Stack uses **two parallel versioning schemes**: CalVer for the monorepo **template**, and semver for **npm packages**. They are intentional and serve different consumers.
 
 | Distribution | Version format                      | How it ships                                           | Release notes                                                             |
 | ------------ | ----------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------- |
@@ -13,7 +13,7 @@ Template release notes: [GitHub Releases](https://github.com/Artificer-Innovatio
 
 ## Template releases — `YYYY.NNN`
 
-Template releases are **monorepo snapshot tags** on `main`. A tag like `2026.003` means: _this is what BeakerStack looked like at that point in time, and it is a good base to fork from._
+Template releases are **monorepo snapshot tags** on `main`. A tag like `2026.003` means: _this is what Beaker Stack looked like at that point in time, and it is a good base to fork from._
 
 Tags use **CalVer with a zero-padded sequence number** within the year:
 
@@ -52,7 +52,7 @@ Breaking changes are called out explicitly in the release notes generated for th
 | `main`     | Current stable HEAD | Following along with active development                             |
 | `2026.NNN` | Snapshot tag        | Starting a new fork; upgrading an existing fork in a controlled way |
 
-If you are forking BeakerStack to build a product, start from a tagged release so your upgrade story is clear from day one.
+If you are forking Beaker Stack to build a product, start from a tagged release so your upgrade story is clear from day one.
 
 ### Pulling template updates into a fork
 

@@ -1,6 +1,6 @@
-# Stripe billing setup (BeakerStack)
+# Stripe billing setup (Beaker Stack)
 
-This guide walks you from **zero** to a working **test-mode** Stripe integration with BeakerStack’s billing stack: **Supabase Postgres** (`billing_*` tables), **Edge Functions** (`stripe-webhook`, `billing-stripe`), and the **web/mobile** apps using `@beakerstack/billing`.
+This guide walks you from **zero** to a working **test-mode** Stripe integration with Beaker Stack’s billing stack: **Supabase Postgres** (`billing_*` tables), **Edge Functions** (`stripe-webhook`, `billing-stripe`), and the **web/mobile** apps using `@beakerstack/billing`.
 
 **Related docs (narrower topics):**
 
@@ -12,7 +12,7 @@ This guide walks you from **zero** to a working **test-mode** Stripe integration
 
 ## 0. Billing model overview (what you are actually setting up)
 
-BeakerStack uses Stripe for **commercial billing primitives** and Supabase for **application-side entitlement state**.
+Beaker Stack uses Stripe for **commercial billing primitives** and Supabase for **application-side entitlement state**.
 
 ### Source of truth split
 
@@ -43,9 +43,9 @@ This repo’s `billing:sync-stripe` command can create/update Products and Price
 
 If a plan is paid, it must have a valid Stripe Price and the matching `billing_plans.stripe_price_id`. If that link is missing, checkout is not ready.
 
-### Environment model (BeakerStack default)
+### Environment model (Beaker Stack default)
 
-BeakerStack runs four stack versions, each with its own Supabase target and billing wiring:
+Beaker Stack runs four stack versions, each with its own Supabase target and billing wiring:
 
 | Environment | Supabase target                       | Stripe key mode                | Webhook endpoint in Stripe                                                      |
 | ----------- | ------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------- |
@@ -92,7 +92,7 @@ Stripe **test mode** can deliver the same events to every registered webhook URL
 1. Open [Stripe Dashboard](https://dashboard.stripe.com/) and turn **Test mode** on (toggle in the header).
 2. Go to **Developers → API keys**.
 3. Copy:
-   - **Publishable key** — `pk_test_…` (optional for future client-side Stripe.js; BeakerStack billing checkout is mostly server-driven via Edge).
+   - **Publishable key** — `pk_test_…` (optional for future client-side Stripe.js; Beaker Stack billing checkout is mostly server-driven via Edge).
    - **Secret key** — `sk_test_…` → this value is `STRIPE_SECRET_KEY` for Edge Functions and for the sync script.
 
 Keep secret keys out of git; use Supabase Dashboard secrets and local `.env` files that are gitignored.

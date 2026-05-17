@@ -58,7 +58,7 @@ You should see a banner and a prompt similar to:
 ```text
 ========================================================================
 +                                                                        +
-+                         BeakerStack                                    +
++                         Beaker Stack                                    +
 +                                                                        +
 +         Choose (1) local setup or (2) full cloud wizard.                +
 +                                                                        +

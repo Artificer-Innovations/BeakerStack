@@ -1,6 +1,6 @@
 # OAuth
 
-BeakerStack ships OAuth UI and session handling for web and mobile. You configure providers in Google/Apple consoles and Supabase — the app code is already wired.
+Beaker Stack ships OAuth UI and session handling for web and mobile. You configure providers in Google/Apple consoles and Supabase — the app code is already wired.
 
 ## Overview
 
