@@ -1426,13 +1426,21 @@ async function phaseIdentity(flags, rl) {
     }
   }
 
+  const doFullRebrand = await rlQuestion(
+    rl,
+    'Fully rebrand npm scope (@beakerstack) and upgrade docs? (y/N): '
+  );
+  const preserveArgs = /^y(es)?$/i.test(doFullRebrand.trim())
+    ? ['--full-rebrand']
+    : ['--preserve-upstream'];
+
   const dry = flags.dryRun ? ['--dry-run'] : [];
   const legalArgs =
     toLegal && fromLegal && fromLegal !== toLegal
       ? ['--from-legal', fromLegal, '--to-legal', toLegal]
       : [];
   logInfo(
-    `Running rename: display "${fromName}" -> "${toName}"${legalArgs.length ? ' + legal entity' : ''}`
+    `Running rename: display "${fromName}" -> "${toName}"${legalArgs.length ? ' + legal entity' : ''} (${preserveArgs.includes('--full-rebrand') ? 'full rebrand' : 'preserve upstream'})`
   );
   const code = runInteractiveWithRl(
     rl,
@@ -1445,6 +1453,7 @@ async function phaseIdentity(flags, rl) {
       fromName,
       '--to',
       toName,
+      ...preserveArgs,
       ...legalArgs,
       ...dry,
     ],

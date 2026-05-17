@@ -12,7 +12,10 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 
 // Match ANSI escape sequences (ESC = U+001B) without control chars in the regex literal (eslint no-control-regex).
-const ANSI_PATTERN = new RegExp(`${String.fromCharCode(0x1b)}\\[[0-9;]*[A-Za-z]`, 'g');
+const ANSI_PATTERN = new RegExp(
+  `${String.fromCharCode(0x1b)}\\[[0-9;]*[A-Za-z]`,
+  'g'
+);
 
 function stripAnsi(value) {
   if (!value) {
@@ -34,7 +37,7 @@ const DEFAULT_IGNORE_DIRS = new Set([
   'ios',
   'dist',
   'build',
-  'coverage'
+  'coverage',
 ]);
 
 const DEFAULT_IGNORE_FILES = new Set([
@@ -42,7 +45,14 @@ const DEFAULT_IGNORE_FILES = new Set([
   'pnpm-lock.yaml',
   'yarn.lock',
   'Podfile.lock',
-  'Gemfile.lock'
+  'Gemfile.lock',
+]);
+
+/** Relative paths skipped entirely when --preserve-upstream is active (default). */
+export const PRESERVE_UPSTREAM_RELATIVE_PATHS = new Set([
+  'docs/UPGRADING.md',
+  'docs/VERSIONING.md',
+  'CONTRIBUTING.md',
 ]);
 
 const BINARY_EXTENSIONS = new Set([
@@ -63,7 +73,7 @@ const BINARY_EXTENSIONS = new Set([
   '.db',
   '.sqlite',
   '.mp3',
-  '.mp4'
+  '.mp4',
 ]);
 
 export function tokenizeName(name) {
@@ -78,7 +88,7 @@ export function tokenizeName(name) {
     .trim()
     .split(' ')
     .filter(Boolean)
-    .map((token) => token.toLowerCase());
+    .map(token => token.toLowerCase());
 }
 
 export function capitalize(word) {
@@ -101,8 +111,8 @@ export function buildNameVariants(name) {
   const camelCase = [tokens[0], ...tokens.slice(1).map(capitalize)].join('');
   const kebabCase = tokens.join('-');
   const snakeCase = tokens.join('_');
-  const upperSnakeCase = tokens.map((token) => token.toUpperCase()).join('_');
-  const upperFlat = tokens.map((token) => token.toUpperCase()).join('');
+  const upperSnakeCase = tokens.map(token => token.toUpperCase()).join('_');
+  const upperFlat = tokens.map(token => token.toUpperCase()).join('');
   const flatLower = tokens.join('');
 
   return {
@@ -115,7 +125,7 @@ export function buildNameVariants(name) {
     snakeCase,
     upperSnakeCase,
     upperFlat,
-    flatLower
+    flatLower,
   };
 }
 
@@ -140,21 +150,118 @@ export function buildReplacementPairs(fromName, toName) {
   const toVariants = buildNameVariants(toName);
 
   const pairs = [
-    { from: fromVariants.original, to: toVariants.original, description: 'Original casing' },
-    { from: fromVariants.titleCase, to: toVariants.titleCase, description: 'Title case' },
-    { from: fromVariants.pascalCase, to: toVariants.pascalCase, description: 'PascalCase' },
-    { from: fromVariants.camelCase, to: toVariants.camelCase, description: 'camelCase' },
-    { from: fromVariants.kebabCase, to: toVariants.kebabCase, description: 'kebab-case' },
-    { from: fromVariants.snakeCase, to: toVariants.snakeCase, description: 'snake_case' },
-    { from: fromVariants.upperSnakeCase, to: toVariants.upperSnakeCase, description: 'SCREAMING_SNAKE_CASE' },
-    { from: fromVariants.upperFlat, to: toVariants.upperFlat, description: 'UPPERFLAT' },
-    { from: fromVariants.flatLower, to: toVariants.flatLower, description: 'flatlower' }
+    {
+      from: fromVariants.original,
+      to: toVariants.original,
+      description: 'Original casing',
+    },
+    {
+      from: fromVariants.titleCase,
+      to: toVariants.titleCase,
+      description: 'Title case',
+    },
+    {
+      from: fromVariants.pascalCase,
+      to: toVariants.pascalCase,
+      description: 'PascalCase',
+    },
+    {
+      from: fromVariants.camelCase,
+      to: toVariants.camelCase,
+      description: 'camelCase',
+    },
+    {
+      from: fromVariants.kebabCase,
+      to: toVariants.kebabCase,
+      description: 'kebab-case',
+    },
+    {
+      from: fromVariants.snakeCase,
+      to: toVariants.snakeCase,
+      description: 'snake_case',
+    },
+    {
+      from: fromVariants.upperSnakeCase,
+      to: toVariants.upperSnakeCase,
+      description: 'SCREAMING_SNAKE_CASE',
+    },
+    {
+      from: fromVariants.upperFlat,
+      to: toVariants.upperFlat,
+      description: 'UPPERFLAT',
+    },
+    {
+      from: fromVariants.flatLower,
+      to: toVariants.flatLower,
+      description: 'flatlower',
+    },
   ];
 
   return {
     variants: { from: fromVariants, to: toVariants },
-    replacements: uniquePairs(pairs)
+    replacements: uniquePairs(pairs),
   };
+}
+
+/**
+ * @param {string} relativePath POSIX-style path relative to repo root
+ * @returns {boolean}
+ */
+export function isPreserveUpstreamPath(relativePath) {
+  return PRESERVE_UPSTREAM_RELATIVE_PATHS.has(relativePath.replace(/\\/g, '/'));
+}
+
+/**
+ * @param {{ preserveUpstream?: boolean; fullRebrand?: boolean }} flags
+ * @returns {boolean}
+ */
+export function resolvePreserveUpstream(flags) {
+  if (flags.fullRebrand) {
+    return false;
+  }
+  return flags.preserveUpstream !== false;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Replace flatlower only at word boundaries and not inside @scope/package names.
+ * @param {string} content
+ * @param {string} from
+ * @param {string} to
+ */
+export function replaceFlatLowerPreservingScope(content, from, to) {
+  if (!from || from === to) {
+    return { updated: content, replacementsMade: 0 };
+  }
+
+  const pattern = new RegExp(`(?<!@)\\b${escapeRegExp(from)}\\b`, 'g');
+  let replacementsMade = 0;
+  const updated = content.replace(pattern, () => {
+    replacementsMade += 1;
+    return to;
+  });
+
+  return { updated, replacementsMade };
+}
+
+/**
+ * @param {ReturnType<typeof buildReplacementPairs>['replacements']} replacements
+ * @param {boolean} preserveUpstream
+ */
+export function annotateReplacementsForPreserveMode(
+  replacements,
+  preserveUpstream
+) {
+  if (!preserveUpstream) {
+    return replacements;
+  }
+
+  return replacements.map(pair =>
+    pair.description === 'flatlower' ? { ...pair, preserveScope: true } : pair
+  );
 }
 
 function parseArgs(argv) {
@@ -163,6 +270,8 @@ function parseArgs(argv) {
     verbose: false,
     strict: false,
     skipSupabaseCheck: false,
+    preserveUpstream: true,
+    fullRebrand: false,
     from: undefined,
     to: undefined,
     fromLegal: undefined,
@@ -189,6 +298,21 @@ function parseArgs(argv) {
 
     if (value === '--no-supabase-check') {
       args.skipSupabaseCheck = true;
+      continue;
+    }
+
+    if (value === '--preserve-upstream') {
+      args.preserveUpstream = true;
+      continue;
+    }
+
+    if (value === '--no-preserve-upstream') {
+      args.preserveUpstream = false;
+      continue;
+    }
+
+    if (value === '--full-rebrand') {
+      args.fullRebrand = true;
       continue;
     }
 
@@ -290,12 +414,20 @@ async function readTextFile(filePath) {
   return buffer.toString('utf8');
 }
 
-function replaceAll(content, replacements) {
+export function replaceAll(content, replacements) {
   let updated = content;
   let replacementsMade = 0;
 
-  for (const { from, to } of replacements) {
+  for (const pair of replacements) {
+    const { from, to, preserveScope } = pair;
     if (!from) {
+      continue;
+    }
+
+    if (preserveScope) {
+      const result = replaceFlatLowerPreservingScope(updated, from, to);
+      updated = result.updated;
+      replacementsMade += result.replacementsMade;
       continue;
     }
 
@@ -366,22 +498,48 @@ async function collectRemainingMatches(files, patterns) {
 function logUsage() {
   const relativeScript = path.relative(repoRoot, __filename);
   console.log(
-    `Usage: npm run rename -- --from "Old Name" --to "New Name" [--from-legal "…"] [--to-legal "…"] [--dry-run] [--strict] [--verbose]`,
+    `Usage: npm run rename -- --from "Old Name" --to "New Name" [--from-legal "…"] [--to-legal "…"] [--dry-run] [--strict] [--verbose]`
   );
   console.log('');
   console.log('Options:');
   console.log('  --from "Old Name"     Existing project name (display form).');
-  console.log('  --to "New Name"       Replacement project name (display form).');
-  console.log('  --from-legal "…"      Optional exact string to replace (e.g. legal entity in package.json).');
-  console.log('  --to-legal "…"        Replacement for --from-legal (both required if either set).');
-  console.log('  --dry-run             Show files that would change without writing.');
-  console.log('  --strict              Exit with failure if any legacy names remain.');
-  console.log('  --no-supabase-check   Skip the running Supabase instance guard (required in CI / no TTY).');
+  console.log(
+    '  --to "New Name"       Replacement project name (display form).'
+  );
+  console.log(
+    '  --from-legal "…"      Optional exact string to replace (e.g. legal entity in package.json).'
+  );
+  console.log(
+    '  --to-legal "…"        Replacement for --from-legal (both required if either set).'
+  );
+  console.log(
+    '  --dry-run             Show files that would change without writing.'
+  );
+  console.log(
+    '  --strict              Exit with failure if any legacy names remain.'
+  );
+  console.log(
+    '  --no-supabase-check   Skip the running Supabase instance guard (required in CI / no TTY).'
+  );
+  console.log(
+    '  --preserve-upstream   Keep @beakerstack scope and upgrade docs unchanged (default).'
+  );
+  console.log(
+    '  --no-preserve-upstream  Same as --full-rebrand for upstream preservation.'
+  );
+  console.log(
+    '  --full-rebrand        Rename npm scope and upgrade docs (legacy behavior).'
+  );
   console.log('  --verbose             Print detailed progress information.');
   console.log('');
-  console.log(`Example: npm run rename -- --from "Beaker Stack" --to "Acme App"`);
   console.log(
-    `Example: npm run rename -- --from "Beaker Stack" --to "Acme App" --from-legal "Artificer Innovations, LLC" --to-legal "Acme Corp"`,
+    `Example: npm run rename -- --from "Beaker Stack" --to "Acme App"`
+  );
+  console.log(
+    `Example: npm run rename -- --from "Beaker Stack" --to "Acme App" --full-rebrand`
+  );
+  console.log(
+    `Example: npm run rename -- --from "Beaker Stack" --to "Acme App" --from-legal "Artificer Innovations, LLC" --to-legal "Acme Corp"`
   );
   console.log(`Script: ${relativeScript}`);
 }
@@ -393,7 +551,7 @@ function logUsage() {
 export function checkSupabaseStatus(opts = {}) {
   const verbose = Boolean(opts.verbose);
   const cwd = opts.cwd ?? process.cwd();
-  const logVerbose = (message) => {
+  const logVerbose = message => {
     if (verbose) {
       console.log(`[supabase-check] ${message}`);
     }
@@ -405,10 +563,12 @@ export function checkSupabaseStatus(opts = {}) {
       jsonResult = spawnSync('supabase', ['status', '--output', 'json'], {
         cwd,
         encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'pipe']
+        stdio: ['ignore', 'pipe', 'pipe'],
       });
     } catch (error) {
-      logVerbose(`Supabase CLI not available: ${error instanceof Error ? error.message : error}`);
+      logVerbose(
+        `Supabase CLI not available: ${error instanceof Error ? error.message : error}`
+      );
     }
 
     if (jsonResult && jsonResult.status === 0 && jsonResult.stdout.trim()) {
@@ -416,12 +576,13 @@ export function checkSupabaseStatus(opts = {}) {
         const data = JSON.parse(jsonResult.stdout);
         const services = Object.values(data.services ?? {});
         const running = services.filter(
-          (service) => String(service.state || '').toUpperCase() === 'RUNNING'
+          service => String(service.state || '').toUpperCase() === 'RUNNING'
         );
         if (running.length > 0) {
           return {
-            projectId: data.project_id ?? data.projectId ?? data.projectRef ?? null,
-            running
+            projectId:
+              data.project_id ?? data.projectId ?? data.projectRef ?? null,
+            running,
           };
         }
       } catch (error) {
@@ -429,18 +590,24 @@ export function checkSupabaseStatus(opts = {}) {
           `Failed to parse Supabase status JSON: ${error instanceof Error ? error.message : error}`
         );
       }
-    } else if (jsonResult && jsonResult.status !== 0 && jsonResult.stderr.trim()) {
+    } else if (
+      jsonResult &&
+      jsonResult.status !== 0 &&
+      jsonResult.stderr.trim()
+    ) {
       logVerbose(`Supabase status command failed: ${jsonResult.stderr.trim()}`);
     }
 
     const textResult = spawnSync('supabase', ['status'], {
       cwd,
       encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe']
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
 
     if (textResult.error) {
-      logVerbose(`Supabase CLI not available (fallback): ${textResult.error.message}`);
+      logVerbose(
+        `Supabase CLI not available (fallback): ${textResult.error.message}`
+      );
       return null;
     }
 
@@ -449,7 +616,8 @@ export function checkSupabaseStatus(opts = {}) {
       return null;
     }
 
-    const stdoutRaw = (textResult.stdout || '') + '\n' + (textResult.stderr || '');
+    const stdoutRaw =
+      (textResult.stdout || '') + '\n' + (textResult.stderr || '');
     const stdout = stripAnsi(stdoutRaw);
     const normalized = stdout.toLowerCase();
 
@@ -460,14 +628,14 @@ export function checkSupabaseStatus(opts = {}) {
 
       return {
         projectId: projectMatch ? projectMatch[1] : null,
-        running: [{ name: 'Supabase local development stack' }]
+        running: [{ name: 'Supabase local development stack' }],
       };
     }
 
     const running = stdout
       .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => /\bRUNNING\b/i.test(line));
+      .map(line => line.trim())
+      .filter(line => /\bRUNNING\b/i.test(line));
 
     if (running.length === 0) {
       return { projectId: null, running: [] };
@@ -475,10 +643,12 @@ export function checkSupabaseStatus(opts = {}) {
 
     return {
       projectId: null,
-      running: running.map((line) => ({ name: line }))
+      running: running.map(line => ({ name: line })),
     };
   } catch (error) {
-    logVerbose(`Supabase status check failed: ${error instanceof Error ? error.message : error}`);
+    logVerbose(
+      `Supabase status check failed: ${error instanceof Error ? error.message : error}`
+    );
     return null;
   }
 }
@@ -493,33 +663,39 @@ async function resolveSupabaseForRename(ctx) {
     return 'ok';
   }
 
-  const projectIdText = status.projectId ? ` (project ID: ${status.projectId})` : '';
+  const projectIdText = status.projectId
+    ? ` (project ID: ${status.projectId})`
+    : '';
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     console.error(`Supabase services appear to be running${projectIdText}.`);
     console.error(
-      'Stop them before renaming (for example `supabase stop`), or pass --no-supabase-check when stdin is not a TTY (e.g. CI).',
+      'Stop them before renaming (for example `supabase stop`), or pass --no-supabase-check when stdin is not a TTY (e.g. CI).'
     );
     return 'abort';
   }
 
   console.error('');
   console.error(
-    `A local Supabase instance appears to be running${projectIdText}. Clones often share the same supabase/config.toml project_id,`,
+    `A local Supabase instance appears to be running${projectIdText}. Clones often share the same supabase/config.toml project_id,`
   );
-  console.error('so this can refer to a stack started from another directory on this machine.');
+  console.error(
+    'so this can refer to a stack started from another directory on this machine.'
+  );
   console.error('');
   console.error(
-    'If you are renaming this checkout and the running stack belongs to this tree, stop it before continuing.',
+    'If you are renaming this checkout and the running stack belongs to this tree, stop it before continuing.'
   );
   console.error(
-    'If you are rebranding a new template in this directory and the stack is only from elsewhere, you may proceed without stopping.',
+    'If you are rebranding a new template in this directory and the stack is only from elsewhere, you may proceed without stopping.'
   );
   console.error('');
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   try {
     for (;;) {
-      const raw = await rl.question('(S)top local Supabase now / (P)roceed anyway / (Q)uit [S]: ');
+      const raw = await rl.question(
+        '(S)top local Supabase now / (P)roceed anyway / (Q)uit [S]: '
+      );
       const line = raw.trim().toLowerCase();
       const key = line === '' ? 's' : line[0];
       if (key === 'q') {
@@ -531,7 +707,11 @@ async function resolveSupabaseForRename(ctx) {
       if (key === 's') {
         const pid = status.projectId;
         const stopArgs = pid ? ['stop', '--project-id', String(pid)] : ['stop'];
-        spawnSync('supabase', stopArgs, { cwd: ctx.cwd, stdio: 'inherit', encoding: 'utf8' });
+        spawnSync('supabase', stopArgs, {
+          cwd: ctx.cwd,
+          stdio: 'inherit',
+          encoding: 'utf8',
+        });
         status = checkSupabaseStatus({ verbose: ctx.verbose, cwd: ctx.cwd });
         if (!status?.running?.length) {
           return 'ok';
@@ -551,7 +731,11 @@ async function resolveSupabaseForRename(ctx) {
 function mergeLegalAndNameReplacements(fromLegal, toLegal, nameReplacements) {
   const list = [];
   if (fromLegal && toLegal && fromLegal !== toLegal) {
-    list.push({ from: fromLegal, to: toLegal, description: 'Legal entity (literal)' });
+    list.push({
+      from: fromLegal,
+      to: toLegal,
+      description: 'Legal entity (literal)',
+    });
   }
   list.push(...nameReplacements);
   return uniquePairs(list);
@@ -568,53 +752,117 @@ async function main() {
   }
 
   if ((args.fromLegal || args.toLegal) && (!args.fromLegal || !args.toLegal)) {
-    console.error('Error: both --from-legal and --to-legal are required when renaming a legal string.');
+    console.error(
+      'Error: both --from-legal and --to-legal are required when renaming a legal string.'
+    );
     logUsage();
     process.exitCode = 1;
     return;
   }
 
   if (!args.skipSupabaseCheck) {
-    const gate = await resolveSupabaseForRename({ verbose: args.verbose, cwd: repoRoot });
+    const gate = await resolveSupabaseForRename({
+      verbose: args.verbose,
+      cwd: repoRoot,
+    });
     if (gate === 'abort') {
       process.exitCode = 1;
       return;
     }
   }
 
-  const { replacements: nameReplacements } = buildReplacementPairs(args.from, args.to);
-  const replacements = mergeLegalAndNameReplacements(args.fromLegal, args.toLegal, nameReplacements);
+  const preserveUpstream = resolvePreserveUpstream(args);
+  if (
+    args.fullRebrand &&
+    args.preserveUpstream === true &&
+    process.argv.includes('--preserve-upstream')
+  ) {
+    console.warn(
+      'Warning: --full-rebrand takes precedence over --preserve-upstream.'
+    );
+  }
+
+  const { replacements: nameReplacements } = buildReplacementPairs(
+    args.from,
+    args.to
+  );
+  const annotated = annotateReplacementsForPreserveMode(
+    nameReplacements,
+    preserveUpstream
+  );
+  const replacements = mergeLegalAndNameReplacements(
+    args.fromLegal,
+    args.toLegal,
+    annotated
+  );
   const files = await walkDirectory(repoRoot);
 
   const stats = {
     filesChanged: 0,
     replacements: 0,
-    examined: files.length
+    examined: files.length,
+    skippedPreservePaths: 0,
   };
 
   const changedFiles = [];
 
   for (const file of files) {
-    const { changed, replacements: count } = await processFile(file, replacements, args);
+    const relativePath = path.relative(repoRoot, file).replace(/\\/g, '/');
+    if (preserveUpstream && isPreserveUpstreamPath(relativePath)) {
+      stats.skippedPreservePaths += 1;
+      if (args.verbose) {
+        console.log(`[skip-upstream] ${relativePath}`);
+      }
+      continue;
+    }
+
+    const { changed, replacements: count } = await processFile(
+      file,
+      replacements,
+      args
+    );
     if (changed) {
       stats.filesChanged += 1;
       stats.replacements += count;
       changedFiles.push({ file, count });
 
       if (args.verbose) {
-        console.log(`${args.dryRun ? '[dry-run]' : '[update]'} ${path.relative(repoRoot, file)} (${count} replacements)`);
+        console.log(
+          `${args.dryRun ? '[dry-run]' : '[update]'} ${path.relative(repoRoot, file)} (${count} replacements)`
+        );
       }
     }
   }
 
-  const searchPatterns = replacements.map((item) => item.from);
-  const remaining = await collectRemainingMatches(files, searchPatterns);
+  const searchPatterns = replacements.map(item => item.from);
+  const filesForRemaining = preserveUpstream
+    ? files.filter(
+        file =>
+          !isPreserveUpstreamPath(
+            path.relative(repoRoot, file).replace(/\\/g, '/')
+          )
+      )
+    : files;
+  const remaining = await collectRemainingMatches(
+    filesForRemaining,
+    searchPatterns
+  );
 
   console.log('');
   console.log('Rename Summary');
   console.log('--------------');
+  console.log(
+    `Mode:               ${preserveUpstream ? 'preserve upstream (default)' : 'full rebrand'}`
+  );
   console.log(`Files scanned:      ${stats.examined}`);
-  console.log(`Files ${args.dryRun ? 'to update' : 'updated'}: ${stats.filesChanged}`);
+  if (preserveUpstream && stats.skippedPreservePaths > 0) {
+    console.log(
+      `Paths skipped:      ${stats.skippedPreservePaths} (upstream docs)`
+    );
+  }
+  console.log(
+    `Files ${args.dryRun ? 'to update' : 'updated'}: ${stats.filesChanged}`
+  );
   console.log(`Total replacements: ${stats.replacements}`);
 
   if (remaining.length > 0) {
@@ -626,24 +874,27 @@ async function main() {
     }
 
     if (args.strict) {
-      console.error('\nRename failed due to remaining legacy identifiers (strict mode).');
+      console.error(
+        '\nRename failed due to remaining legacy identifiers (strict mode).'
+      );
       process.exitCode = 1;
       return;
     }
   }
 
   if (args.dryRun) {
-    console.log('\nDry-run complete. Re-run without --dry-run to apply changes.');
+    console.log(
+      '\nDry-run complete. Re-run without --dry-run to apply changes.'
+    );
   } else {
     console.log('\nRename complete.');
   }
 }
 
 if (import.meta.url === url.pathToFileURL(process.argv[1] || '').href) {
-  main().catch((error) => {
+  main().catch(error => {
     console.error('Rename script failed.');
     console.error(error instanceof Error ? error.stack : error);
     process.exitCode = 1;
   });
 }
-
