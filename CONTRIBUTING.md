@@ -14,6 +14,8 @@ Issues: use [GitHub Issues](https://github.com/Artificer-Innovations/BeakerStack
 
 ## Workflow
 
+**Package manager:** This repo uses **npm** exclusively — `pnpm` and `yarn` are not supported. The `engines` field in `package.json` requires `npm >= 9.0.0` and all CI runs use `npm ci`. Both `pnpm-lock.yaml` and `yarn.lock` are listed in `.gitignore` to prevent accidental commits.
+
 1. Create a branch from `develop` (or the branch your team uses for integration).
 2. Make focused changes; match existing style, types, and test patterns.
 3. Run checks locally:
