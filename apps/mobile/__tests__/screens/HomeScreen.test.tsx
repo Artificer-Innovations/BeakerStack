@@ -66,7 +66,6 @@ import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { HOME_TITLE, HOME_SUBTITLE } from '@beakerstack/shared/utils/strings';
-import { BRANDING } from '@beakerstack/shared/config/branding';
 
 describe('HomeScreen', () => {
   let mockSupabaseClient: Partial<SupabaseClient>;
@@ -154,144 +153,73 @@ describe('HomeScreen', () => {
     );
   };
 
-  it('renders home screen with title and subtitle', () => {
+  // Signed-out tests use waitFor because auth.loading starts true (getSession is async)
+  // and the screen shows a spinner until loading resolves to unauthenticated.
+
+  it('renders home screen with title and subtitle', async () => {
     const { getAllByText, getByText } = renderWithAuth(
       <HomeScreen navigation={mockNavigation} />,
       false
     );
 
-    // Title appears in both header and main content
-    const titles = getAllByText(HOME_TITLE);
-    expect(titles.length).toBeGreaterThan(0);
-    // Check subtitle using the shared string constant
+    await waitFor(() => {
+      // Title appears in both header and main content
+      const titles = getAllByText(HOME_TITLE);
+      expect(titles.length).toBeGreaterThan(0);
+    });
     expect(getByText(HOME_SUBTITLE)).toBeTruthy();
   });
 
-  it('shows sign in button when not authenticated', () => {
+  it('shows sign in button when not authenticated', async () => {
     const { getAllByText } = renderWithAuth(
       <HomeScreen navigation={mockNavigation} />,
       false
     );
 
-    // Sign In appears in both header and main content
-    const signInButtons = getAllByText('Sign In');
-    expect(signInButtons.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      // Sign In appears in both header and main content
+      const signInButtons = getAllByText('Sign In');
+      expect(signInButtons.length).toBeGreaterThan(0);
+    });
   });
 
-  it('shows sign up button when not authenticated', () => {
+  it('shows sign up button when not authenticated', async () => {
     const { getAllByText } = renderWithAuth(
       <HomeScreen navigation={mockNavigation} />,
       false
     );
 
-    // Sign Up appears in both header and main content
-    const signUpButtons = getAllByText('Sign Up');
-    expect(signUpButtons.length).toBeGreaterThan(0);
-  });
-
-  it('shows dashboard link when authenticated', async () => {
-    const { getByText } = renderWithAuth(
-      <HomeScreen navigation={mockNavigation} />,
-      true
-    );
-
     await waitFor(() => {
-      expect(getByText('Go To Dashboard')).toBeTruthy();
+      // Sign Up appears in both header and main content
+      const signUpButtons = getAllByText('Sign Up');
+      expect(signUpButtons.length).toBeGreaterThan(0);
     });
   });
 
-  it('shows profile link when authenticated', async () => {
-    const { getByText } = renderWithAuth(
-      <HomeScreen navigation={mockNavigation} />,
-      true
-    );
-
-    await waitFor(() => {
-      expect(getByText('View Profile')).toBeTruthy();
-    });
-  });
-
-  it('shows navigation header with dashboard and profile links when authenticated', async () => {
-    const { getAllByText } = renderWithAuth(
-      <HomeScreen navigation={mockNavigation} />,
-      true
-    );
-
-    // The header should be visible with "Beaker Stack" text
-    // Dashboard and Profile are in the user menu dropdown, not directly visible
-    await waitFor(() => {
-      const beakerStackText = getAllByText(BRANDING.displayName);
-      expect(beakerStackText.length).toBeGreaterThan(0);
-    });
-  });
-
-  it('shows navigation header with sign in and sign up when not authenticated', () => {
+  it('shows navigation header with sign in and sign up when not authenticated', async () => {
     const { getAllByText } = renderWithAuth(
       <HomeScreen navigation={mockNavigation} />,
       false
     );
 
-    const signInLinks = getAllByText('Sign In');
-    const signUpLinks = getAllByText('Sign Up');
-    expect(signInLinks.length).toBeGreaterThan(0);
-    expect(signUpLinks.length).toBeGreaterThan(0);
-  });
-
-  it('has dashboard button that can navigate', async () => {
-    const { getByText } = renderWithAuth(
-      <HomeScreen navigation={mockNavigation} />,
-      true
-    );
-
     await waitFor(() => {
-      const button = getByText('Go To Dashboard');
-      expect(button).toBeTruthy();
+      const signInLinks = getAllByText('Sign In');
+      const signUpLinks = getAllByText('Sign Up');
+      expect(signInLinks.length).toBeGreaterThan(0);
+      expect(signUpLinks.length).toBeGreaterThan(0);
     });
   });
 
-  it('has profile button that can navigate', async () => {
-    const { getByText } = renderWithAuth(
-      <HomeScreen navigation={mockNavigation} />,
-      true
-    );
-
-    await waitFor(() => {
-      const button = getByText('View Profile');
-      expect(button).toBeTruthy();
-    });
-  });
-
-  it('navigates to Dashboard when Go To Dashboard is pressed', async () => {
-    const { getByText } = renderWithAuth(
-      <HomeScreen navigation={mockNavigation} />,
-      true
-    );
-
-    await waitFor(() => {
-      expect(getByText('Go To Dashboard')).toBeTruthy();
-    });
-    fireEvent.press(getByText('Go To Dashboard'));
-    expect(mockNavigate).toHaveBeenCalledWith('Dashboard');
-  });
-
-  it('navigates to Profile when View Profile is pressed', async () => {
-    const { getByText } = renderWithAuth(
-      <HomeScreen navigation={mockNavigation} />,
-      true
-    );
-
-    await waitFor(() => {
-      expect(getByText('View Profile')).toBeTruthy();
-    });
-    fireEvent.press(getByText('View Profile'));
-    expect(mockNavigate).toHaveBeenCalledWith('Profile');
-  });
-
-  it('navigates to Login and Signup from signed-out buttons', () => {
+  it('navigates to Login and Signup from signed-out buttons', async () => {
     const { getAllByText } = renderWithAuth(
       <HomeScreen navigation={mockNavigation} />,
       false
     );
+
+    // Wait for auth to resolve before interacting with buttons
+    await waitFor(() => {
+      expect(getAllByText('Sign In').length).toBeGreaterThan(0);
+    });
 
     const signIns = getAllByText('Sign In');
     fireEvent.press(signIns[signIns.length - 1]);
@@ -300,5 +228,27 @@ describe('HomeScreen', () => {
     const signUps = getAllByText('Sign Up');
     fireEvent.press(signUps[signUps.length - 1]);
     expect(mockNavigate).toHaveBeenCalledWith('Signup');
+  });
+
+  it('resets navigation to Dashboard when authenticated', async () => {
+    renderWithAuth(<HomeScreen navigation={mockNavigation} />, true);
+
+    await waitFor(() => {
+      expect(mockReset).toHaveBeenCalledWith({
+        index: 0,
+        routes: [{ name: 'Dashboard' }],
+      });
+    });
+  });
+
+  it('shows redirecting indicator when authenticated', async () => {
+    const { getByText } = renderWithAuth(
+      <HomeScreen navigation={mockNavigation} />,
+      true
+    );
+
+    await waitFor(() => {
+      expect(getByText('Redirecting...')).toBeTruthy();
+    });
   });
 });
