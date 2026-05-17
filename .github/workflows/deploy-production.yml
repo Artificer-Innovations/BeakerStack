@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   id-token: write
+  deployments: write
 
 concurrency:
   group: production-deploy
@@ -145,6 +146,49 @@ jobs:
             --domain "${DOMAIN}" \
             --environment prod \
             --region "${AWS_REGION_VALUE}"
+
+      - name: Create GitHub Deployment (production)
+        uses: actions/github-script@v7
+        env:
+          PRODUCTION_URL: ${{ format('https://{0}/', env.DOMAIN) }}
+        with:
+          script: |
+            const environmentUrl = process.env.PRODUCTION_URL;
+            const logUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: 'production',
+              auto_merge: false,
+              required_contexts: [],
+              description: 'Production deployment',
+            });
+            if (!deployment.data.id) {
+              core.warning(`createDeployment returned no id (HTTP ${deployment.status}): ${deployment.data.message ?? JSON.stringify(deployment.data)}`);
+              return;
+            }
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.data.id,
+              state: 'success',
+              environment_url: environmentUrl,
+              log_url: logUrl,
+              description: 'Production deployed',
+            });
+
+      - name: Write Actions run summary
+        shell: bash
+        env:
+          PRODUCTION_URL: ${{ format('https://{0}/', env.DOMAIN) }}
+        run: |
+          set -euo pipefail
+          cat >> "${GITHUB_STEP_SUMMARY}" <<SUMMARY
+          ## Production Deployment
+
+          **Production URL:** ${PRODUCTION_URL}
+          SUMMARY
 
   deploy-mobile-production:
     if: vars.MOBILE_ENABLED != 'false'
