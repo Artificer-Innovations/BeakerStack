@@ -112,13 +112,13 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   iconOn: { backgroundColor: colors.featureOnIconBg },
-  iconOff: { backgroundColor: colors.border },
+  iconOff: { backgroundColor: colors.iconOffBg },
   iconPlaceholder: { width: 14, height: 14 },
   iconText: { fontSize: 12, fontWeight: '800', color: colors.textFaint },
   iconTextOn: { color: colors.featureOnIcon },
   codeBox: {
     marginTop: 10,
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.codeBg,
     borderRadius: 6,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -126,8 +126,8 @@ const styles = StyleSheet.create({
   codeText: {
     fontFamily: 'monospace',
     fontSize: 11,
-    color: '#cbd5e1',
+    color: colors.codeText,
   },
-  codeValOn: { color: '#4ade80' },
-  codeValOff: { color: '#64748b' },
+  codeValOn: { color: colors.codeValTrue },
+  codeValOff: { color: colors.codeValFalse },
 });

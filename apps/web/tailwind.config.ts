@@ -22,6 +22,11 @@ export default {
         prose: '50rem', // 800px — FAQ, policy body
       },
       colors: {
+        // Pin gray and indigo Tailwind scales to shared tokens so future
+        // changes to colors.ts propagate to gray-* / indigo-* classes automatically.
+        gray: colors.gray,
+        indigo: colors.indigo,
+        // primary-* → indigo, aligning web with mobile colors.brand (#4f46e5)
         primary: colors.indigo,
       },
     },

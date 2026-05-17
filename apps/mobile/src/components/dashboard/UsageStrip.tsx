@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   limitBadge: {
-    backgroundColor: colors.errorBg,
+    backgroundColor: colors.errorBadgeBg,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,

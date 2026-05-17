@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
   },
   featBtnAOn: { backgroundColor: colors.brandLight },
   featBtnBOn: { backgroundColor: colors.featureBOnBg },
-  featBtnOff: { backgroundColor: colors.rowDivider },
+  featBtnOff: { backgroundColor: colors.featureOffBg },
   featBtnText: { fontSize: 11, fontWeight: '700', color: colors.brandDark },
   featBtnTextOff: { color: colors.textFaint },
   toast: {

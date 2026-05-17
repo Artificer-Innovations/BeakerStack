@@ -35,17 +35,18 @@ function variantColors(variant: ButtonVariant): {
   bg: string;
   text: string;
   border: string;
+  borderWidth: number;
 } {
   switch (variant) {
     case 'primary':
-      return { bg: colors.brand, text: '#ffffff', border: 'transparent' };
+      return { bg: colors.brand, text: '#ffffff', border: 'transparent', borderWidth: 0 };
     case 'secondary':
-      return { bg: colors.cardBg, text: colors.textPrimary, border: colors.border };
+      return { bg: colors.cardBg, text: colors.textPrimary, border: colors.border, borderWidth: 1 };
     case 'destructive':
-      return { bg: colors.errorIcon, text: '#ffffff', border: 'transparent' };
+      return { bg: colors.errorIcon, text: '#ffffff', border: 'transparent', borderWidth: 0 };
     case 'ghost':
     default:
-      return { bg: 'transparent', text: colors.textBody, border: 'transparent' };
+      return { bg: 'transparent', text: colors.textBody, border: 'transparent', borderWidth: 0 };
   }
 }
 
@@ -84,7 +85,7 @@ export function Button({
           width: fullWidth ? '100%' : undefined,
           opacity: isDisabled ? 0.5 : 1,
           backgroundColor: vc.bg,
-          borderWidth: variant === 'secondary' ? 1 : 0,
+          borderWidth: vc.borderWidth,
           borderColor: vc.border,
         },
         style,
