@@ -247,7 +247,7 @@ All scripts support `--dry-run` and write outputs to `GITHUB_OUTPUT` (CI) or
   Check CloudFront invalidation progress. Propagation can take up to 10 minutes.
 
 - **Unexpected production content**  
-  Ensure `SubdomainFolders` function deployed with latest code. Redeploy using
+  Ensure `PRPathRouter` function is deployed with the latest code (see `infra/aws/functions/PRPathRouter.js`). Redeploy using
   `bootstrap-aws-stack.sh`.
 
 - **Missing SSL certificate**  
