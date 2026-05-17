@@ -55,7 +55,10 @@ export async function clearTemplateEasLinkageFromMobileApp(ctx) {
 
   let next = text;
   // Strip updates block only when it references the template project on Expo's update server
-  const updatesRe = new RegExp(`\\n  updates:\\s*\\{[^}]*${esc}[^}]*\\},?`, 'm');
+  const updatesRe = new RegExp(
+    `\\n  updates:\\s*\\{[^}]*${esc}[^}]*\\},?`,
+    'm'
+  );
   if (updatesRe.test(next)) {
     next = next.replace(updatesRe, '\n');
     logInfo('Stripped template updates.url block from app.config.js.');
@@ -64,7 +67,7 @@ export async function clearTemplateEasLinkageFromMobileApp(ctx) {
   // Strip extra.eas.projectId block only for the known template UUID
   const easRe = new RegExp(
     `\\n\\s+eas:\\s*\\{\\s*\\n\\s+projectId:\\s*['"]${esc}['"],?\\s*\\n\\s+\\},?`,
-    'm',
+    'm'
   );
   if (easRe.test(next)) {
     next = next.replace(easRe, '\n');
@@ -79,14 +82,17 @@ export async function clearTemplateEasLinkageFromMobileApp(ctx) {
 /**
  * @param {string} text
  * @param {string} [templateId]
- * @returns {string} first plausible EAS project UUID not equal to template, else ''
+ * @returns {string} last plausible EAS project UUID not equal to template, else ''
  */
-export function extractEasProjectIdFromCliOutput(text, templateId = TEMPLATE_EAS_PROJECT_ID) {
+export function extractEasProjectIdFromCliOutput(
+  text,
+  templateId = TEMPLATE_EAS_PROJECT_ID
+) {
   const combined = String(text || '');
   const re = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
   const found = combined.match(re) || [];
   const tid = templateId.toLowerCase();
-  const nonTemplate = found.filter((id) => id.toLowerCase() !== tid);
+  const nonTemplate = found.filter(id => id.toLowerCase() !== tid);
   if (nonTemplate.length) {
     return nonTemplate[nonTemplate.length - 1];
   }
@@ -94,10 +100,26 @@ export function extractEasProjectIdFromCliOutput(text, templateId = TEMPLATE_EAS
 }
 
 /**
+ * EAS init often exits 1 for app.config.js repos after printing the project id to add manually.
+ * Dynamic config (app.config.js) cannot be patched by eas init automatically — it prints the
+ * project id and exits non-zero; we detect that so integrateEasProjectIdForDynamicConfig can apply
+ * the patch.
+ * @param {string} combined stdout + stderr from eas init
+ */
+export function easInitFailedDueToDynamicAppConfig(combined) {
+  return /dynamic app configuration|Cannot automatically write to dynamic config/i.test(
+    String(combined || '')
+  );
+}
+
+/**
  * @param {string} text
  * @param {string} [templateId]
  */
-export function tryRecoverEasProjectFromInitOutput(text, templateId = TEMPLATE_EAS_PROJECT_ID) {
+export function tryRecoverEasProjectFromInitOutput(
+  text,
+  templateId = TEMPLATE_EAS_PROJECT_ID
+) {
   const id = extractEasProjectIdFromCliOutput(text, templateId);
   if (id) return id;
   const raw = String(text || '');
@@ -105,7 +127,9 @@ export function tryRecoverEasProjectFromInitOutput(text, templateId = TEMPLATE_E
   if (m) return m[2];
   const m2 = raw.match(/projectId['"]?\s*[:=]\s*['"]?([0-9a-f-]{36})['"]?/i);
   if (m2) return m2[1];
-  const m3 = raw.match(/Linked[^\n]*\b([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/i);
+  const m3 = raw.match(
+    /Linked[^\n]*\b([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/i
+  );
   if (m3) return m3[1];
   return '';
 }
@@ -134,7 +158,9 @@ export async function readResolvedEasProjectId(ctx) {
   try {
     const text = await fs.readFile(appConfigPath, 'utf8');
     const tid = templateId.toLowerCase();
-    const m = text.match(/eas:\s*\{[^}]*projectId:\s*['"]([0-9a-f-]{36})['"]/is);
+    const m = text.match(
+      /eas:\s*\{[^}]*projectId:\s*['"]([0-9a-f-]{36})['"]/is
+    );
     if (m && m[1].toLowerCase() !== tid) return m[1];
     // Any projectId line (multiline-safe; eas init may format extra.eas differently).
     const re = /projectId:\s*['"]([0-9a-f-]{36})['"]/gi;
@@ -187,18 +213,27 @@ export async function integrateEasProjectIdForDynamicConfig(ctx, projectId) {
   let next = text;
 
   if (/updates:\s*\{/.test(next)) {
-    next = next.replace(/url:\s*['"]https:\/\/u\.expo\.dev\/[^'"]+['"]/i, `url: '${updatesUrl}'`);
+    next = next.replace(
+      /url:\s*['"]https:\/\/u\.expo\.dev\/[^'"]+['"]/i,
+      `url: '${updatesUrl}'`
+    );
   } else {
     next = next.replace(
       /(runtimeVersion:\s*\{[^}]+\},)(\s*\n)/,
-      `$1\n  updates: {\n    url: '${updatesUrl}',\n  },$2`,
+      `$1\n  updates: {\n    url: '${updatesUrl}',\n  },$2`
     );
   }
 
   if (/\beas:\s*\{/.test(next) && /projectId:\s*['"]/.test(next)) {
-    next = next.replace(/projectId:\s*['"][0-9a-f-]{36}['"]/i, `projectId: '${projectId}'`);
+    next = next.replace(
+      /projectId:\s*['"][0-9a-f-]{36}['"]/i,
+      `projectId: '${projectId}'`
+    );
   } else if (!/\beas:\s*\{/.test(next)) {
-    next = next.replace(/(extra:\s*\{)/, `$1\n    eas: {\n      projectId: '${projectId}',\n    },`);
+    next = next.replace(
+      /(extra:\s*\{)/,
+      `$1\n    eas: {\n      projectId: '${projectId}',\n    },`
+    );
   }
 
   await fs.writeFile(appConfigPath, next, 'utf8');
@@ -212,7 +247,7 @@ export async function integrateEasProjectIdForDynamicConfig(ctx, projectId) {
       projectId,
     },
     null,
-    2,
+    2
   );
   await fs.writeFile(projectJson, `${body}\n`, 'utf8');
   logInfo('Wrote apps/mobile/.eas/project.json.');
@@ -230,7 +265,9 @@ export async function applyEasProjectJsonToAcc(acc, projectJsonPath, ctx = {}) {
     const j = JSON.parse(raw);
     if (j.accountName) acc.EXPO_ACCOUNT = String(j.accountName);
     if (j.projectId) acc.EXPO_PROJECT_ID = String(j.projectId);
-    logInfo('Merged Expo account / project id from .eas/project.json into setup accumulator (values not printed).');
+    logInfo(
+      'Merged Expo account / project id from .eas/project.json into setup accumulator (values not printed).'
+    );
   } catch {
     /* */
   }
@@ -251,28 +288,44 @@ export function clearExpoKeysFromAcc(acc) {
  */
 export async function ensureNonTemplateEasProject(ctx) {
   const templateId = ctx.templateId || TEMPLATE_EAS_PROJECT_ID;
-  const resolved = await readResolvedEasProjectId({ repoRoot: ctx.repoRoot, templateId });
+  const resolved = await readResolvedEasProjectId({
+    repoRoot: ctx.repoRoot,
+    templateId,
+  });
   if (resolved && resolved.toLowerCase() !== templateId.toLowerCase()) {
     ctx.logInfo('Mobile app is already linked to a non-template EAS project.');
     if (!ctx.dryRun) {
       await applyEasProjectJsonToAcc(ctx.acc, easProjectJsonPath(ctx), ctx);
     } else {
-      ctx.logInfo('[dry-run] would read .eas/project.json into EXPO_* keys (skipped).');
+      ctx.logInfo(
+        '[dry-run] would read .eas/project.json into EXPO_* keys (skipped).'
+      );
     }
     return 'ok';
   }
 
-  ctx.logWarn('apps/mobile is still using the template EAS project id (or none). Clearing template linkage…');
+  ctx.logWarn(
+    'apps/mobile is still using the template EAS project id (or none). Clearing template linkage…'
+  );
   if (!ctx.dryRun) {
     await clearTemplateEasLinkageFromMobileApp(ctx);
   }
 
   for (let attempt = 0; attempt < 12; attempt += 1) {
-    const choice = (await ctx.question('[l] Link existing EAS project UUID, [n] New (eas init), [s] Skip, [q] Quit: '))
+    const choice = (
+      await ctx.question(
+        '[l] Link existing EAS project UUID, [n] New (eas init), [s] Skip, [q] Quit: '
+      )
+    )
       .trim()
       .toLowerCase();
 
-    if (choice === 'q' || choice === 'quit' || choice === 'exit' || choice === 'x') {
+    if (
+      choice === 'q' ||
+      choice === 'quit' ||
+      choice === 'exit' ||
+      choice === 'x'
+    ) {
       throw new SetupQuit();
     }
 
@@ -288,23 +341,51 @@ export async function ensureNonTemplateEasProject(ctx) {
         continue;
       }
       if (ctx.dryRun) {
-        ctx.logInfo(`[dry-run] would run: npx eas-cli init --id ${id} --force --non-interactive`);
+        ctx.logInfo(
+          `[dry-run] would run: npx eas-cli init --id ${id} --force --non-interactive`
+        );
         return 'ok';
       }
-      const args = ['--yes', 'eas-cli', 'init', '--id', id, '--force', '--non-interactive'];
-      const code = ctx.runEasOnTty(args);
-      if (code !== 0) {
-        ctx.logWarn(`eas init --id failed (exit ${code}).`);
-        continue;
+      const args = [
+        '--yes',
+        'eas-cli',
+        'init',
+        '--id',
+        id,
+        '--force',
+        '--non-interactive',
+      ];
+      const r = ctx.runEasCapture(args);
+      const combined = `${r.stdout || ''}\n${r.stderr || ''}`.trim();
+      const linkedOnDisk =
+        (
+          await readResolvedEasProjectId({ repoRoot: ctx.repoRoot, templateId })
+        ).toLowerCase() === id.toLowerCase();
+      if (
+        r.status === 0 ||
+        easInitFailedDueToDynamicAppConfig(combined) ||
+        linkedOnDisk
+      ) {
+        if (r.status !== 0) {
+          ctx.logInfo(
+            'eas init could not edit app.config.js (dynamic config) — BeakerStack will patch app.config.js and .eas/project.json.'
+          );
+        }
+        await integrateEasProjectIdForDynamicConfig(ctx, id);
+        await applyEasProjectJsonToAcc(ctx.acc, easProjectJsonPath(ctx), ctx);
+        return 'ok';
       }
-      await integrateEasProjectIdForDynamicConfig(ctx, id);
-      await applyEasProjectJsonToAcc(ctx.acc, easProjectJsonPath(ctx), ctx);
-      return 'ok';
+      ctx.logWarn(`eas init --id failed (exit ${r.status ?? 1}).`);
+      const tail = combined.slice(-1600);
+      if (tail) ctx.logWarn(`EAS CLI output (truncated):\n${tail}`);
+      continue;
     }
 
     if (choice === 'n' || choice === 'new') {
       if (ctx.dryRun) {
-        ctx.logInfo('[dry-run] would run: npx --yes eas-cli init --force --non-interactive');
+        ctx.logInfo(
+          '[dry-run] would run: npx --yes eas-cli init --force --non-interactive'
+        );
         return 'ok';
       }
       // First --yes is for npx only; eas init accepts --force and --non-interactive (no --yes on eas).
@@ -312,7 +393,10 @@ export async function ensureNonTemplateEasProject(ctx) {
       const r = ctx.runEasCapture(args);
       const combined = `${r.stdout || ''}\n${r.stderr || ''}`.trim();
       // eas init almost always writes apps/mobile/.eas/project.json; CLI output often has no UUID.
-      let id = await readResolvedEasProjectId({ repoRoot: ctx.repoRoot, templateId });
+      let id = await readResolvedEasProjectId({
+        repoRoot: ctx.repoRoot,
+        templateId,
+      });
       if (id && id.toLowerCase() === templateId.toLowerCase()) {
         id = '';
       }
@@ -321,22 +405,39 @@ export async function ensureNonTemplateEasProject(ctx) {
           tryRecoverEasProjectFromInitOutput(combined, templateId) ||
           extractEasProjectIdFromCliOutput(combined, templateId);
       }
-      if (!id && r.status !== 0) {
-        ctx.logWarn(`eas init exited with status ${r.status}. Check EXPO_TOKEN / auth (eas whoami).`);
+      if (
+        !id &&
+        r.status !== 0 &&
+        !easInitFailedDueToDynamicAppConfig(combined)
+      ) {
+        ctx.logWarn(
+          `eas init exited with status ${r.status}. Check EXPO_TOKEN / auth (eas whoami).`
+        );
         const tail = combined.slice(-1600);
         if (tail) ctx.logWarn(`EAS CLI output (truncated):\n${tail}`);
       }
-      if (!id) {
-        ctx.logWarn(
-          'No project id found on disk or in CLI output after eas init. If the project was created, copy its ID from https://expo.dev → your account → Projects → open the app → Project settings → Project ID.',
-        );
-        const pasted = (
-          await ctx.question('Project UUID (paste Project ID; blank to return to [l]/[n] menu): ')
-        ).trim();
-        id = tryRecoverEasProjectFromInitOutput(pasted, templateId) || extractEasProjectIdFromCliOutput(pasted, templateId);
+      if (!id && easInitFailedDueToDynamicAppConfig(combined)) {
+        id =
+          tryRecoverEasProjectFromInitOutput(combined, templateId) ||
+          extractEasProjectIdFromCliOutput(combined, templateId);
       }
       if (!id) {
-        ctx.logWarn('Still no project id; choose [l] to link an existing UUID or [n] to retry after fixing eas whoami / EXPO_TOKEN.');
+        ctx.logWarn(
+          'No project id found on disk or in CLI output after eas init. If the project was created, copy its ID from https://expo.dev → your account → Projects → open the app → Project settings → Project ID.'
+        );
+        const pasted = (
+          await ctx.question(
+            'Project UUID (paste Project ID; blank to return to [l]/[n] menu): '
+          )
+        ).trim();
+        id =
+          tryRecoverEasProjectFromInitOutput(pasted, templateId) ||
+          extractEasProjectIdFromCliOutput(pasted, templateId);
+      }
+      if (!id) {
+        ctx.logWarn(
+          'Still no project id; choose [l] to link an existing UUID or [n] to retry after fixing eas whoami / EXPO_TOKEN.'
+        );
         continue;
       }
       await integrateEasProjectIdForDynamicConfig(ctx, id);

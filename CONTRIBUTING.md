@@ -66,6 +66,7 @@ If the hook blocks your commit, fix the reported errors and re-commit. Do not us
 
 - Prefer small PRs over large mixed ones.
 - If you change `scripts/lib/setup-manifest.mjs`, run `npm run docs:actions-secrets` and commit updates to `docs/reference/github-actions-secrets.md`.
+- If you add or change setup wizard prompts in `scripts/setup-full.mjs` or `scripts/lib/setup-manual-instructions.mjs`, update `docs/setup-prep-checklist.md`.
 - Do not commit `.env*` files or real secrets.
 
 ## Branch flow and releases
@@ -77,6 +78,13 @@ Beaker Stack uses a two-stage branch flow:
 - **`main`** → triggers deploy workflows and, for changes to publishable packages, the npm release workflow
 
 Feature branches should always target `develop`, never `main` directly. The `develop` → `main` promotion is done deliberately when the integrated state is ready for production.
+
+### Promoting `develop` → `main`
+
+1. Open a PR: `develop` → `main` using the [**Promote develop to main** template](.github/PULL_REQUEST_TEMPLATE/promote-develop-to-main.md) (GitHub UI: choose the template when opening the PR, or append `?template=promote-develop-to-main.md` to the compare URL). **CLI / agents:** follow [`.cursor/skills/promote-develop-to-main/SKILL.md`](.cursor/skills/promote-develop-to-main/SKILL.md) and use `gh pr create --base main --head develop --body-file <filled-promotion-body.md>` (`gh` has no `--template` flag).
+2. Fill in **`## CalVer release notes`** (Summary, Highlights, Adopter notes). Content **above** the `---` separator is published on the CalVer GitHub Release; content below is maintainer-only.
+3. Merge with **Create a merge commit** (not squash).
+4. After production deploy, run the [**Release Template** workflow](.github/workflows/release-template.yml) on `main`. It copies the CalVer section from the merged promotion PR and appends a git-cliff changelog.
 
 ## Working with packages
 
@@ -150,7 +158,7 @@ See `packages/test-utils/` for a minimal working example.
 
 ## Template releases (maintainers)
 
-CalVer template releases use [.github/workflows/release-template.yml](.github/workflows/release-template.yml). Before publishing, paste the prose block from [.github/RELEASE_TEMPLATE.md](.github/RELEASE_TEMPLATE.md) **above** the git-cliff-generated notes in the GitHub Release body.
+CalVer template releases use [.github/workflows/release-template.yml](.github/workflows/release-template.yml). Release prose is written in the **`## CalVer release notes`** section of the merged `develop` → `main` promotion PR (see [.github/PULL_REQUEST_TEMPLATE/promote-develop-to-main.md](.github/PULL_REQUEST_TEMPLATE/promote-develop-to-main.md)). The workflow publishes that section plus a git-cliff changelog — no manual paste unless you use `skip_pr_body` or an old promotion PR without the section. See [.github/RELEASE_TEMPLATE.md](.github/RELEASE_TEMPLATE.md).
 
 ## Questions
 

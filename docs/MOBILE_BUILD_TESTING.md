@@ -36,9 +36,63 @@ You must use a **Development Build** (also called a "custom dev client") which:
 - Still supports OTA updates via EAS Updates
 - Can be installed on simulators, emulators, or physical devices
 
+## Before the Expo wizard phase
+
+If you use `npm run setup:full` with mobile enabled, the **expo** phase:
+
+1. Logs you into EAS (`eas login`) if needed.
+2. Links **apps/mobile** to your Expo project (**link existing UUID** or **`eas init` new**).
+3. Asks for an **access token** for GitHub Actions (`EXPO_TOKEN`).
+
+### Checklist (before you answer Yes to the expo phase)
+
+| #   | Requirement             | Details                                                                                                                                                                                                                                                                                                          |
+| --- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Expo account**        | https://expo.dev — personal or org; `eas whoami` works after login.                                                                                                                                                                                                                                              |
+| 2   | **EAS project**         | Existing **Project ID** (UUID) to link, or plan to create one with `eas init`. Do not keep the template BeakerStack project id. **Note:** `eas init` often prints “Cannot automatically write to dynamic config” for `app.config.js` — that is expected; the setup wizard patches `extra.eas.projectId` for you. |
+| 3   | **Access token for CI** | Create at [expo.dev → Access tokens](https://expo.dev/settings/access-tokens) at the end of the phase; saved as **`EXPO_TOKEN`** on GitHub.                                                                                                                                                                      |
+| 4   | **Web-only fork?**      | Use `--skip-mobile` to skip expo + google phases entirely.                                                                                                                                                                                                                                                       |
+
+Outputs written locally: `apps/mobile/.eas/project.json`, `app.config.js` (`extra.eas.projectId`), and setup accumulator keys **`EXPO_PROJECT_ID`**, **`EXPO_ACCOUNT`**, **`EXPO_TOKEN`**.
+
+### Rotating `EXPO_TOKEN`
+
+1. Create a new access token at [expo.dev/settings/access-tokens](https://expo.dev/settings/access-tokens).
+2. Update GitHub secret **`EXPO_TOKEN`** (Settings → Secrets and variables → Actions), or run `npm run setup:full -- --from=github` and paste when prompted.
+3. Revoke the old token in the Expo dashboard after a successful mobile deploy workflow.
+4. If you store the token in EAS project secrets for cloud builds, update those entries too.
+
+## Before the Google wizard phase
+
+The **google** phase in `npm run setup:full` is **optional**. It imports a Firebase **`google-services.json`** file into **`GOOGLE_SERVICES_*`** keys for GitHub Actions (mobile CI). It does **not** configure Supabase web OAuth — that is [OAUTH.md](OAUTH.md).
+
+### When you need this
+
+| Need it now                                                                 | Can skip for now                                   |
+| --------------------------------------------------------------------------- | -------------------------------------------------- |
+| Native **Google Sign-In on Android** in EAS builds / PR preview mobile      | Web-only product, or no Google login on mobile yet |
+| PR preview workflow runs **mobile** deploy with `GOOGLE_SERVICES_*` secrets | You skipped **expo** and will add mobile CI later  |
+
+### Checklist
+
+1. **Firebase project** at [console.firebase.google.com](https://console.firebase.google.com) (or use an existing GCP project).
+2. **Android app** registered with package name matching `android.package` in `apps/mobile/app.config.js` (template default: `com.anonymous.beakerstack`).
+3. **Download** `google-services.json`: Firebase → Project settings → Your apps → your Android app → download.
+4. At the wizard prompt, paste the **file path** (e.g. `~/Downloads/google-services.json`).
+
+The wizard extracts keys such as `GOOGLE_SERVICES_WEB_CLIENT_ID`, `GOOGLE_SERVICES_ANDROID_CLIENT_ID`, `GOOGLE_SERVICES_IOS_CLIENT_ID`, and `GOOGLE_SERVICES_API_KEY` for the **github** sync phase.
+
+### Not the same as Supabase Google OAuth
+
+|                  | **google-services.json** (this phase) | **Supabase Google provider** ([OAUTH.md](OAUTH.md))                   |
+| ---------------- | ------------------------------------- | --------------------------------------------------------------------- |
+| Purpose          | Native mobile Google Sign-In (EAS)    | Web (and server) OAuth via Supabase Auth                              |
+| Where configured | Firebase Android app + this file      | Google Cloud OAuth client + Supabase dashboard / `config.toml`        |
+| Env / secrets    | `GOOGLE_SERVICES_*`                   | `SUPABASE_AUTH_EXTERNAL_GOOGLE_*` (local), Supabase dashboard (cloud) |
+
 ## Prerequisites
 
-1. **Expo Account Access**: You need access to the `artificer-innovations-llc` organization on Expo
+1. **Expo Account Access**: You need access to your Expo account (or org) that owns the EAS project linked in setup
 2. **Development Build** installed on your device/simulator (see below)
 3. **Physical Device or Simulator/Emulator**
 

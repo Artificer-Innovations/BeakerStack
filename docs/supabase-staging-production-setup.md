@@ -82,6 +82,25 @@ You should have saved these when creating the projects. If not:
 4. Copy the token (you can only see it once!)
    - This is `SUPABASE_ACCESS_TOKEN` (same token works for all projects)
 
+### Token type and expiry (for CI)
+
+Create a **personal access token** at [Account → Access Tokens](https://supabase.com/dashboard/account/tokens) — **not** a project **anon** / **service_role** key from **Project Settings → API**.
+
+| Setting    | Recommendation                                                                                                                                   |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Type**   | Personal access token (starts with `sbp_`)                                                                                                       |
+| **Name**   | e.g. `beakerstack-github-actions`                                                                                                                |
+| **Expiry** | **90 days–1 year** for team repos (set a calendar reminder before it expires). Use **Never expire** only if you will still rotate on a schedule. |
+
+When the token expires, deploy workflows that run `supabase link` / `db push` / Edge deploys will fail until you rotate.
+
+### Rotating `SUPABASE_ACCESS_TOKEN`
+
+1. [Generate a new token](https://supabase.com/dashboard/account/tokens) (same type and expiry policy as above).
+2. Update the GitHub repository secret **`SUPABASE_ACCESS_TOKEN`** (Settings → Secrets and variables → Actions), or run `npm run setup:full -- --from=github` and paste when prompted.
+3. **Revoke** the old token on the Supabase tokens page after a successful staging deploy confirms the new secret works.
+4. Optional local copy: update `SUPABASE_ACCESS_TOKEN` in `.env.local` if you use the CLI against remote projects from your machine.
+
 ## Step 3: Apply Database Migrations
 
 Your CI/CD will automatically apply migrations on first deploy, but you can also do it manually to verify everything works.
@@ -332,5 +351,5 @@ Migrations are applied automatically - you don't need to run them manually!
 - Never commit secrets to git
 - Use Pro tier for production (not free tier)
 - Enable email confirmation in production
-- Regularly rotate access tokens and passwords
+- Regularly rotate access tokens and passwords — see [Rotating `SUPABASE_ACCESS_TOKEN`](#rotating-supabase_access_token) above
 - Use different OAuth credentials per environment (optional but recommended)
