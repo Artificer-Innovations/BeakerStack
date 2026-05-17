@@ -153,58 +153,73 @@ describe('HomeScreen', () => {
     );
   };
 
-  it('renders home screen with title and subtitle', () => {
+  // Signed-out tests use waitFor because auth.loading starts true (getSession is async)
+  // and the screen shows a spinner until loading resolves to unauthenticated.
+
+  it('renders home screen with title and subtitle', async () => {
     const { getAllByText, getByText } = renderWithAuth(
       <HomeScreen navigation={mockNavigation} />,
       false
     );
 
-    // Title appears in both header and main content
-    const titles = getAllByText(HOME_TITLE);
-    expect(titles.length).toBeGreaterThan(0);
-    // Check subtitle using the shared string constant
+    await waitFor(() => {
+      // Title appears in both header and main content
+      const titles = getAllByText(HOME_TITLE);
+      expect(titles.length).toBeGreaterThan(0);
+    });
     expect(getByText(HOME_SUBTITLE)).toBeTruthy();
   });
 
-  it('shows sign in button when not authenticated', () => {
+  it('shows sign in button when not authenticated', async () => {
     const { getAllByText } = renderWithAuth(
       <HomeScreen navigation={mockNavigation} />,
       false
     );
 
-    // Sign In appears in both header and main content
-    const signInButtons = getAllByText('Sign In');
-    expect(signInButtons.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      // Sign In appears in both header and main content
+      const signInButtons = getAllByText('Sign In');
+      expect(signInButtons.length).toBeGreaterThan(0);
+    });
   });
 
-  it('shows sign up button when not authenticated', () => {
+  it('shows sign up button when not authenticated', async () => {
     const { getAllByText } = renderWithAuth(
       <HomeScreen navigation={mockNavigation} />,
       false
     );
 
-    // Sign Up appears in both header and main content
-    const signUpButtons = getAllByText('Sign Up');
-    expect(signUpButtons.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      // Sign Up appears in both header and main content
+      const signUpButtons = getAllByText('Sign Up');
+      expect(signUpButtons.length).toBeGreaterThan(0);
+    });
   });
 
-  it('shows navigation header with sign in and sign up when not authenticated', () => {
+  it('shows navigation header with sign in and sign up when not authenticated', async () => {
     const { getAllByText } = renderWithAuth(
       <HomeScreen navigation={mockNavigation} />,
       false
     );
 
-    const signInLinks = getAllByText('Sign In');
-    const signUpLinks = getAllByText('Sign Up');
-    expect(signInLinks.length).toBeGreaterThan(0);
-    expect(signUpLinks.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      const signInLinks = getAllByText('Sign In');
+      const signUpLinks = getAllByText('Sign Up');
+      expect(signInLinks.length).toBeGreaterThan(0);
+      expect(signUpLinks.length).toBeGreaterThan(0);
+    });
   });
 
-  it('navigates to Login and Signup from signed-out buttons', () => {
+  it('navigates to Login and Signup from signed-out buttons', async () => {
     const { getAllByText } = renderWithAuth(
       <HomeScreen navigation={mockNavigation} />,
       false
     );
+
+    // Wait for auth to resolve before interacting with buttons
+    await waitFor(() => {
+      expect(getAllByText('Sign In').length).toBeGreaterThan(0);
+    });
 
     const signIns = getAllByText('Sign In');
     fireEvent.press(signIns[signIns.length - 1]);
