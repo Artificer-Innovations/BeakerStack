@@ -250,6 +250,13 @@ const PHASE_INTROS = {
       'If you choose Yes, a prerequisites checklist prints next — optional; press Enter to skip.',
     ],
   },
+  stripe: {
+    title: 'Stripe billing (CI keys)',
+    body: [
+      'Collects PREVIEW_*, STAGING_*, and PRODUCTION_* Stripe secret + webhook signing keys for GitHub Actions.',
+      'If you choose Yes, a prerequisites checklist prints next — Stripe Dashboard test/live mode, webhook URLs per Supabase project.',
+    ],
+  },
   write: {
     title: 'Write env files',
     body: [
@@ -465,6 +472,64 @@ export function printGooglePhaseReadinessBriefing(ctx) {
 }
 
 /**
+ * Prerequisites checklist shown after you confirm the Stripe phase.
+ * @param {LogCtx} ctx
+ */
+export function printStripePhaseReadinessBriefing(ctx) {
+  const { logInfo } = ctx;
+  const doc = 'docs/stripe-billing-setup.md#before-the-stripe-wizard-phase';
+  logInfo('');
+  logInfo('── Before Stripe billing keys ──');
+  logInfo('');
+  logInfo(
+    'BeakerStack billing needs Stripe API keys and webhook signing secrets for each Supabase tier you deploy to CI.'
+  );
+  logInfo('');
+  logInfo('1) Stripe account');
+  logInfo(
+    '   • https://dashboard.stripe.com — use Test mode until you intentionally go live.'
+  );
+  logInfo('');
+  logInfo(
+    '2) Three tiers (same Stripe account is fine; separate webhook endpoints)'
+  );
+  logInfo(
+    '   • Preview + Staging → sk_test_… and whsec_… per Supabase project'
+  );
+  logInfo(
+    '   • Production → sk_live_… and whsec_… (only after you are ready for live charges)'
+  );
+  logInfo('');
+  logInfo('3) Per tier you will paste');
+  logInfo('   • Secret key — Dashboard → Developers → API keys');
+  logInfo(
+    '   • Webhook signing secret — Dashboard → Developers → Webhooks → your endpoint → Reveal'
+  );
+  logInfo(
+    '   • One webhook URL per Supabase project: https://<PROJECT_REF>.supabase.co/functions/v1/stripe-webhook'
+  );
+  logInfo('');
+  logInfo('4) Complete supabase phase first');
+  logInfo(
+    '   • The wizard prints each webhook URL when STAGING_/PREVIEW_/PRODUCTION_SUPABASE_URL is already in acc.'
+  );
+  logInfo('');
+  logInfo('5) Not run in this phase (do later)');
+  logInfo(
+    '   • npm run billing:sync-stripe — creates Products/Prices in Stripe + billing_plans rows'
+  );
+  logInfo('   • supabase secrets set STRIPE_* on each hosted project');
+  logInfo('   • Local dev: Stripe CLI forward (see docs §8)');
+  logInfo('');
+  logInfo(
+    'Skip billing entirely: answer N at Run stripe now, or use --skip-stripe (github will not require Stripe keys).'
+  );
+  logInfo('');
+  logInfo(`Full guide: ${doc}`);
+  logInfo('');
+}
+
+/**
  * Prerequisites checklist shown after you confirm the GitHub sync phase.
  * @param {LogCtx} ctx
  */
@@ -527,6 +592,9 @@ export function printGithubPhaseReadinessBriefing(ctx) {
   logInfo('     or re-run setup with `--skip-mobile`.');
   logInfo(
     '   • Skipped **AWS** or **Supabase**? Add secrets manually later or re-run `--from=aws` / `--from=supabase`.'
+  );
+  logInfo(
+    '   • Skipped **stripe**? Re-run `--from=stripe` or enter keys here; use `--skip-stripe` to omit Stripe from CI sync.'
   );
   logInfo('');
   logInfo('5) During this phase');
@@ -665,6 +733,16 @@ export function printManualInstructions(ctx, phaseId) {
       logInfo(
         '4. See docs/MOBILE_BUILD_TESTING.md#before-the-google-wizard-phase'
       );
+      break;
+    case 'stripe':
+      logInfo(
+        '1. Stripe Dashboard → Developers → API keys (test vs live per tier)'
+      );
+      logInfo(
+        '2. Webhooks → one endpoint per Supabase project URL (whsec_… each)'
+      );
+      logInfo('3. Or re-run: npm run setup:full -- --from=stripe');
+      logInfo('4. See docs/stripe-billing-setup.md');
       break;
     case 'github':
       logInfo('1. gh auth login with admin on the repository');

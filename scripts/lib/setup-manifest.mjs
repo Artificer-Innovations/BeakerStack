@@ -1,3 +1,8 @@
+import {
+  isStripeGithubSecretDef,
+  setupStripeKeysDeferred,
+} from './setup-stripe.mjs';
+
 /**
  * Maps local .env keys to GitHub Actions secrets/variables used by workflows.
  * Values are never logged by the setup orchestrator.
@@ -134,7 +139,10 @@ export const GITHUB_SECRETS = [
   {
     type: 'secret',
     name: 'SUPABASE_PREVIEW_PROJECT_REF',
-    envKeys: ['SUPABASE_PREVIEW_PROJECT_REF', 'PR_TESTING_SUPABASE_PROJECT_REF'],
+    envKeys: [
+      'SUPABASE_PREVIEW_PROJECT_REF',
+      'PR_TESTING_SUPABASE_PROJECT_REF',
+    ],
     group: 'preview',
   },
   {
@@ -438,17 +446,28 @@ export function listMissingRequiredGithubForCi(env) {
   /** @type {{ kind: 'secret' | 'variable'; name: string; group: string }[]} */
   const missing = [];
   const mobileDisabled = env.MOBILE_ENABLED === 'false';
+  const stripeDeferred = setupStripeKeysDeferred(env);
   for (const def of GITHUB_SECRETS) {
     if (def.optional) continue;
     if (mobileDisabled && MOBILE_GROUPS.has(def.group)) continue;
+    if (stripeDeferred && isStripeGithubSecretDef(def)) continue;
     if (resolveValueForGithub(env, def)) continue;
-    missing.push({ kind: 'secret', name: def.name, group: def.group || 'unknown' });
+    missing.push({
+      kind: 'secret',
+      name: def.name,
+      group: def.group || 'unknown',
+    });
   }
   for (const def of GITHUB_VARIABLES) {
     if (def.optional) continue;
     if (mobileDisabled && MOBILE_GROUPS.has(def.group)) continue;
+    if (stripeDeferred && isStripeGithubSecretDef(def)) continue;
     if (resolveValueForGithub(env, def)) continue;
-    missing.push({ kind: 'variable', name: def.name, group: def.group || 'unknown' });
+    missing.push({
+      kind: 'variable',
+      name: def.name,
+      group: def.group || 'unknown',
+    });
   }
   return missing;
 }
@@ -476,7 +495,9 @@ export function listMissingRequiredGithubCiDetails(env) {
   for (const m of missing) {
     /** @type {GhSecretDef | GhVariableDef | undefined} */
     const def =
-      m.kind === 'secret' ? GITHUB_SECRETS.find((d) => d.name === m.name) : GITHUB_VARIABLES.find((d) => d.name === m.name);
+      m.kind === 'secret'
+        ? GITHUB_SECRETS.find(d => d.name === m.name)
+        : GITHUB_VARIABLES.find(d => d.name === m.name);
     if (!def || !def.envKeys.length) continue;
     out.push({
       kind: m.kind,

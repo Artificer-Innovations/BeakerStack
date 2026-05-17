@@ -52,6 +52,7 @@ import {
   printAwsPhaseReadinessBriefing,
   printExpoPhaseReadinessBriefing,
   printGooglePhaseReadinessBriefing,
+  printStripePhaseReadinessBriefing,
   printGithubPhaseReadinessBriefing,
   confirmRunPhase,
   printManualInstructions,
@@ -67,6 +68,11 @@ import {
   logGithubSyncTargetSummary,
   resolveGhRepoContext,
 } from './lib/setup-github-repo.mjs';
+import {
+  SETUP_STRIPE_SKIPPED_ENV,
+  collectStripeEnvKeys,
+  isStripeGithubSecretDef,
+} from './lib/setup-stripe.mjs';
 import {
   formatSupabaseProjectChoiceLine,
   parseApiKeysJson,
@@ -104,6 +110,7 @@ const PHASE_ORDER = [
   'aws',
   'expo',
   'google',
+  'stripe',
   'write',
   'github',
 ];
@@ -111,7 +118,7 @@ const PHASE_ORDER = [
 /** Merged from dotenv-style secret files / pastes (allowlisted keys only). */
 const MERGEABLE_SETUP_ENV_KEYS = mergeableSetupEnvKeys();
 
-/** @typedef {{ dryRun: boolean; fromPhase: string; skipRename: boolean; awsProfile: string; skipGithub: boolean; githubRepo: string; mobileEnabled: boolean; plainSecretPrompts: boolean; guide: 'full' | 'brief'; guideFromCli: boolean }} CliFlags */
+/** @typedef {{ dryRun: boolean; fromPhase: string; skipRename: boolean; awsProfile: string; skipGithub: boolean; skipStripe: boolean; githubRepo: string; mobileEnabled: boolean; plainSecretPrompts: boolean; guide: 'full' | 'brief'; guideFromCli: boolean }} CliFlags */
 
 function printHelp() {
   console.log(`Usage: node scripts/setup-full.mjs [options]
@@ -120,10 +127,11 @@ Options:
   --dry-run              No env/state file writes; no PAT/EXPO env merge; no Supabase api-keys fetch;
                          no AWS bootstrap run; no google-services import; GitHub sync skips gh but still
                          reads .env*.local to log what would be synced
-  --from=PHASE           Resume at prereqs|identity|supabase|aws|expo|google|write|github (alias: gh=github;
+  --from=PHASE           Resume at prereqs|identity|supabase|aws|expo|google|stripe|write|github (alias: gh=github;
                          merges existing .env*.local first when resuming)
   --skip-rename          Skip the identity / rename phase entirely
   --skip-github          Skip GitHub Actions secret/variable sync
+  --skip-stripe          Skip Stripe key collection; Stripe secrets not required at github sync
   --github-repo=OWNER/NAME  Override repo for gh secret/variable sync (default: gh repo view in cwd)
   --skip-mobile          Skip Expo, EAS, and Google Services setup (web-only repos)
   --aws-profile=NAME     Pass through to bootstrap-aws-stack.sh
@@ -166,6 +174,7 @@ function parseArgv(argv) {
     skipRename: false,
     awsProfile: '',
     skipGithub: false,
+    skipStripe: false,
     githubRepo: '',
     mobileEnabled: true,
     plainSecretPrompts: false,
@@ -176,6 +185,7 @@ function parseArgv(argv) {
     if (a === '--dry-run') flags.dryRun = true;
     else if (a === '--skip-rename') flags.skipRename = true;
     else if (a === '--skip-github') flags.skipGithub = true;
+    else if (a === '--skip-stripe') flags.skipStripe = true;
     else if (a.startsWith('--github-repo='))
       flags.githubRepo = a.slice('--github-repo='.length).trim();
     else if (a === '--skip-mobile') flags.mobileEnabled = false;
@@ -2196,6 +2206,41 @@ async function phaseExpo(flags, rl, acc, promptInput) {
  * @param {import('node:readline/promises').ReadLine} rl
  * @param {Record<string, string>} acc
  */
+/**
+ * @param {CliFlags} flags
+ * @param {import('node:readline/promises').ReadLine} rl
+ * @param {import('stream').Readable & { isTTY?: boolean; setRawMode?: (flag: boolean) => void }} promptInput
+ * @param {Record<string, string>} acc
+ */
+async function phaseStripe(flags, rl, promptInput, acc) {
+  if (flags.skipStripe) {
+    acc[SETUP_STRIPE_SKIPPED_ENV] = 'true';
+    logInfo('Skipping Stripe key collection (--skip-stripe).');
+    return;
+  }
+  acc[SETUP_STRIPE_SKIPPED_ENV] = 'false';
+  await collectStripeEnvKeys({
+    acc,
+    flags,
+    logInfo,
+    logWarn,
+    question: q => rlQuestion(rl, q),
+    readSecret: prompt =>
+      readSecretLineMaskedOrVisible(rl, promptInput, flags, prompt),
+    applySecret: async (raw, primaryKey) => {
+      checkSecretInputQuit(raw);
+      if (!raw) return;
+      const resolved = await resolveSecretInputForSetup(raw, primaryKey);
+      applySecretResolutionToAcc(acc, resolved, primaryKey);
+    },
+  });
+}
+
+/**
+ * @param {CliFlags} flags
+ * @param {import('node:readline/promises').ReadLine} rl
+ * @param {Record<string, string>} acc
+ */
 async function phaseGoogle(flags, rl, acc) {
   logInfo('');
   logInfo(
@@ -2298,6 +2343,13 @@ async function collectMissingGithubCiEnvIntoAcc(flags, rl, promptInput, acc) {
 
   let details = listMissingRequiredGithubCiDetails(acc);
   if (!details.length) return 'none';
+
+  const stripeMissing = details.filter(d => isStripeGithubSecretDef(d.def));
+  if (stripeMissing.length) {
+    logInfo(
+      `${stripeMissing.length} Stripe key(s) still missing — run \`npm run setup:full -- --from=stripe\` for guided collection, or enter below.`
+    );
+  }
 
   if (!input.isTTY) {
     logWarn(
@@ -2580,6 +2632,11 @@ async function main() {
         logInfo('Skipping identity/rename (--skip-rename).');
         continue;
       }
+      if (phase === 'stripe' && flags.skipStripe) {
+        logInfo('Skipping Stripe phase (--skip-stripe).');
+        acc[SETUP_STRIPE_SKIPPED_ENV] = 'true';
+        continue;
+      }
       if (phase === 'github' && flags.skipGithub) {
         logInfo('Skipping GitHub sync (--skip-github).');
         continue;
@@ -2599,6 +2656,9 @@ async function main() {
         printManualInstructions(logCtx, phase);
         if (phase === 'expo') {
           clearExpoKeysFromAcc(acc);
+        }
+        if (phase === 'stripe') {
+          acc[SETUP_STRIPE_SKIPPED_ENV] = 'true';
         }
         continue;
       }
@@ -2633,6 +2693,16 @@ async function main() {
         }
       }
 
+      if (phase === 'stripe' && !flags.skipStripe) {
+        printStripePhaseReadinessBriefing(logCtx);
+        if (!flags.dryRun && input.isTTY) {
+          await rlQuestion(
+            rl,
+            'Press Enter when you have Stripe test keys (and live keys for production if needed)…'
+          );
+        }
+      }
+
       if (phase === 'github' && !flags.skipGithub) {
         printGithubPhaseReadinessBriefing(logCtx);
         if (!flags.dryRun && input.isTTY) {
@@ -2658,6 +2728,9 @@ async function main() {
           break;
         case 'google':
           await phaseGoogle(flags, rl, acc);
+          break;
+        case 'stripe':
+          await phaseStripe(flags, rl, promptInput, acc);
           break;
         case 'github':
           await phaseGithub(flags, rl, acc, promptInput);
