@@ -48,23 +48,49 @@ build_aws() {
   fi
 }
 
+# Prefix for `env VAR=val command` — never sets AWS_PROFILE to an empty string (breaks AWS CLI).
+run_with_aws_env() {
+  if [[ -n "${AWS_PROFILE:-}" ]]; then
+    env AWS_REGION="${AWS_REGION}" AWS_PROFILE="${AWS_PROFILE}" "$@"
+  else
+    env -u AWS_PROFILE AWS_REGION="${AWS_REGION}" "$@"
+  fi
+}
+
 cloudfront_conflicts_for_domain() {
-  DOMAIN_NAME="${DOMAIN_NAME}" python3 <<'PY'
-import json, os, subprocess, sys
+  run_with_aws_env \
+    DOMAIN_NAME="${DOMAIN_NAME}" \
+    python3 <<'PY'
+import json, os, subprocess, sys, shutil
 
 domain = os.environ.get("DOMAIN_NAME", "").strip().lower().rstrip(".")
 if not domain:
     print("0")
     sys.exit(0)
 want = {domain, f"www.{domain}", f"staging.{domain}", f"deploy.{domain}"}
+aws = shutil.which("aws") or "aws"
+region = os.environ.get("AWS_REGION", "us-east-1")
+profile = (os.environ.get("AWS_PROFILE") or "").strip()
+cmd_prefix = [aws, "--region", region]
+if profile:
+    cmd_prefix += ["--profile", profile]
+
+
+def aws_env():
+    env = os.environ.copy()
+    if not profile:
+        env.pop("AWS_PROFILE", None)
+    return env
+
+
 items = []
 marker = None
 for _ in range(500):
-    cli = ["aws", "cloudfront", "list-distributions", "--output", "json", "--max-items", "100"]
+    cli = cmd_prefix + ["cloudfront", "list-distributions", "--output", "json", "--max-items", "100"]
     if marker:
         cli.extend(["--starting-token", marker])
     try:
-        raw = subprocess.check_output(cli, stderr=subprocess.DEVNULL, text=True, timeout=120)
+        raw = subprocess.check_output(cli, stderr=subprocess.DEVNULL, text=True, timeout=120, env=aws_env())
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
         print("0")
         sys.exit(0)
@@ -93,7 +119,7 @@ purge_bucket() {
   "${AWS_CLI[@]}" s3api put-bucket-logging --bucket "${bucket}" --bucket-logging-status '{}' 2>/dev/null || true
   "${AWS_CLI[@]}" s3 rm "s3://${bucket}/" --recursive >/dev/null 2>&1 || true
 
-  AWS_REGION="${AWS_REGION}" AWS_PROFILE="${AWS_PROFILE:-}" BUCKET="${bucket}" python3 <<'PY'
+  run_with_aws_env BUCKET="${bucket}" python3 <<'PY'
 import json, os, subprocess, sys, shutil, tempfile
 
 bucket = os.environ["BUCKET"]
@@ -105,8 +131,15 @@ if profile:
     cmd_prefix += ["--profile", profile]
 
 
+def aws_env():
+    env = os.environ.copy()
+    if not profile:
+        env.pop("AWS_PROFILE", None)
+    return env
+
+
 def run(args):
-    return subprocess.run(cmd_prefix + args, capture_output=True, text=True)
+    return subprocess.run(cmd_prefix + args, capture_output=True, text=True, env=aws_env())
 
 
 def aws_json(args):
