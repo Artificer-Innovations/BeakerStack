@@ -37,11 +37,11 @@ The test pyramid (unit, integration, E2E, database) catches regressions across w
 | **Template**     | Fork or “Use this template”; CalVer tags + [GitHub Releases](https://github.com/Artificer-Innovations/BeakerStack/releases) |
 | **npm packages** | Optional `@beakerstack/*` for existing apps; semver via Changesets                                                          |
 
-| Package                   | Status                    | Install                            |
-| ------------------------- | ------------------------- | ---------------------------------- |
-| `@beakerstack/test-utils` | Published                 | `npm i -D @beakerstack/test-utils` |
-| `@beakerstack/billing`    | In template (npm planned) | Workspace in fork today            |
-| `@beakerstack/shared`     | In template (npm planned) | Workspace in fork today            |
+| Package                   | Status                                                                         | Install                            |
+| ------------------------- | ------------------------------------------------------------------------------ | ---------------------------------- |
+| `@beakerstack/test-utils` | Published on npm (`0.0.1`; workspace may show `0.0.0` until release PR merges) | `npm i -D @beakerstack/test-utils` |
+| `@beakerstack/billing`    | In template (npm planned)                                                      | Workspace in fork today            |
+| `@beakerstack/shared`     | In template (npm planned)                                                      | Workspace in fork today            |
 
 ## What's in the repo
 

@@ -310,7 +310,7 @@ project-root/
 │   ├── check-db-status.sh              # Check migrations across environments
 │   └── run-e2e.sh                      # Run Maestro E2E tests
 ├── docs/
-│   ├── docs/ARCHITECTURE.md            # This file
+│   ├── ARCHITECTURE.md                 # This file
 │   ├── DEVELOPMENT.md                  # Development guide
 │   ├── DEPLOYMENT.md                   # Deployment guide
 │   └── API.md                          # API documentation

@@ -39,7 +39,7 @@ jobs:
 
             Using "Squash and merge" on PRs targeting \`main\` can cause merge conflicts when merging \`develop\` → \`main\` later.
 
-            See [ARCHITECTURE.md](../../blob/develop/docs/ARCHITECTURE.md#pull-request-process) for details.
+            See https://github.com/Artificer-Innovations/BeakerStack/blob/develop/docs/ARCHITECTURE.md#pull-request-process for details.
 
             ---
 

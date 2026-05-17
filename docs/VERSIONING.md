@@ -70,12 +70,12 @@ npm consumers expect semver. Patch/minor/major communicate API and behavior expe
 
 ### Published vs. in-template today
 
-| Package                     | npm status                             | Notes                                                                          |
-| --------------------------- | -------------------------------------- | ------------------------------------------------------------------------------ |
-| `@beakerstack/test-utils`   | **Published** (e.g. `0.0.1`)           | Dev helpers; Changesets + [release workflow](../.github/workflows/release.yml) |
-| `@beakerstack/billing`      | **In template only** (`private: true`) | Use via workspace; npm publish planned                                         |
-| `@beakerstack/shared`       | **In template only** (`private: true`) | Ignored in Changesets until publish is intentional                             |
-| `@beakerstack/shared-tests` | Internal                               | Not published                                                                  |
+| Package                     | npm status                             | Notes                                                                                                                    |
+| --------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `@beakerstack/test-utils`   | **Published on npm** (`0.0.1` today)   | Workspace `package.json` may stay `0.0.0` until the Changesets release PR merges; pending `.changeset/` files are normal |
+| `@beakerstack/billing`      | **In template only** (`private: true`) | Use via workspace; npm publish planned                                                                                   |
+| `@beakerstack/shared`       | **In template only** (`private: true`) | Ignored in Changesets until publish is intentional                                                                       |
+| `@beakerstack/shared-tests` | Internal                               | Not published                                                                                                            |
 
 Infrastructure for npm publish (Changesets, `NPM_TOKEN`, build on `main`) is in place. Only packages removed from `.changeset/config.json` `ignore` and marked non-private with `publishConfig` will ship to npm.
 
