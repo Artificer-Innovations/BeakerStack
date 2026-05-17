@@ -749,7 +749,7 @@ async function promptExpoTokenForGithub(rl, promptInput, acc, flags) {
   logInfo('');
   logInfo('Create this token type (on the page that opens next):');
   logInfo(
-    '  • **Access token** — expo.dev → Account settings → Access tokens → Create token'
+    '  • Access token — expo.dev → Account settings → Access tokens → Create token'
   );
   logInfo(
     '  • Use for automation / CI (EAS Update, EAS Build in GitHub Actions)'
@@ -2441,7 +2441,11 @@ async function phaseGithub(flags, rl, acc, promptInput) {
     rl,
     { logInfo, logWarn },
     ghCtx,
-    { dryRun: flags.dryRun, interactive: input.isTTY }
+    {
+      dryRun: flags.dryRun,
+      interactive: input.isTTY,
+      githubRepoOverride: Boolean(flags.githubRepo),
+    }
   );
   if (!proceed) return;
 

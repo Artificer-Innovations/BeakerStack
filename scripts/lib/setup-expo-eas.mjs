@@ -82,7 +82,7 @@ export async function clearTemplateEasLinkageFromMobileApp(ctx) {
 /**
  * @param {string} text
  * @param {string} [templateId]
- * @returns {string} first plausible EAS project UUID not equal to template, else ''
+ * @returns {string} last plausible EAS project UUID not equal to template, else ''
  */
 export function extractEasProjectIdFromCliOutput(
   text,
@@ -101,6 +101,9 @@ export function extractEasProjectIdFromCliOutput(
 
 /**
  * EAS init often exits 1 for app.config.js repos after printing the project id to add manually.
+ * Dynamic config (app.config.js) cannot be patched by eas init automatically — it prints the
+ * project id and exits non-zero; we detect that so integrateEasProjectIdForDynamicConfig can apply
+ * the patch.
  * @param {string} combined stdout + stderr from eas init
  */
 export function easInitFailedDueToDynamicAppConfig(combined) {

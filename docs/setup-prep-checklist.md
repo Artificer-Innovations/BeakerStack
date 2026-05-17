@@ -181,7 +181,7 @@ Do not commit filled-in values or `.env*` files with secrets.
 
 **Have ready (before Yes — wizard shows checklist + Enter):**
 
-1. **Your fork, not upstream** — clone the repo you own (`git remote -v` → your `owner/name`). The wizard runs `gh secret set` / `gh variable set` on **`gh repo view`** for this directory. If you cloned `Artificer-Innovations/BeakerStack` directly, you would be asked to type the repo name to confirm before touching the public template. Prefer **N** / `--skip-github` on upstream clones; sync on your fork instead.
+1. **Your fork, not upstream** — clone the repo you own (`git remote -v` → your `owner/name`). The wizard runs `gh secret set` / `gh variable set` on **`gh repo view`** for this directory. If you cloned `Artificer-Innovations/BeakerStack` directly, you will be asked to type the repo name to confirm before touching the public template. Prefer **N** / `--skip-github` on upstream clones; sync on your fork instead.
 2. **[GitHub CLI](https://cli.github.com)** installed; `gh auth login`; **admin** on **your** fork (manage Actions secrets).
 3. **Values from earlier phases** in `.env.local` / `.env.cloud.generated.local` / `.env.aws.generated.local` (wizard merges them). Anything you skipped (AWS, Supabase, expo, google, Stripe) may be prompted now.
 4. **Web-only after skipping mobile?** Plan to set **`MOBILE_ENABLED=false`** when asked, or re-run with `--skip-mobile`.
@@ -237,6 +237,8 @@ If you skip the script but add those secrets manually, the `github` phase may st
 ---
 
 ## My values (copy locally — do not commit)
+
+> Copy this block to a file **outside** this repo (e.g. `~/beakerstack-setup.txt`) before filling in values.
 
 ```text
 # Identity

@@ -49,7 +49,7 @@ export function getGitOriginRemoteUrl(repoRoot) {
 /**
  * @param {string} repoRoot
  * @param {string} [override] owner/name
- * @returns {{ repo: string; isFork: boolean; parentRepo: string; url: string; originRepo: string; originUrl: string }}
+ * @returns {{ repo: string; isFork: boolean; parentRepo: string; url: string; originRepo: string; originUrl: string; repoFromOverride: boolean }}
  */
 export function resolveGhRepoContext(repoRoot, override = '') {
   const originUrl = getGitOriginRemoteUrl(repoRoot);
@@ -63,6 +63,7 @@ export function resolveGhRepoContext(repoRoot, override = '') {
       url: `https://github.com/${forced}`,
       originRepo,
       originUrl,
+      repoFromOverride: true,
     };
   }
   const r = spawnSync(
@@ -89,6 +90,7 @@ export function resolveGhRepoContext(repoRoot, override = '') {
       url: originRepo ? `https://github.com/${originRepo}` : '',
       originRepo,
       originUrl,
+      repoFromOverride: false,
     };
   }
   try {
@@ -100,6 +102,7 @@ export function resolveGhRepoContext(repoRoot, override = '') {
       url: String(data.url || '').trim(),
       originRepo,
       originUrl,
+      repoFromOverride: false,
     };
   } catch {
     return {
@@ -109,6 +112,7 @@ export function resolveGhRepoContext(repoRoot, override = '') {
       url: originRepo ? `https://github.com/${originRepo}` : '',
       originRepo,
       originUrl,
+      repoFromOverride: false,
     };
   }
 }
@@ -131,12 +135,20 @@ export function isBeakerstackTemplateRepo(repo) {
  */
 export function logGithubSyncTargetSummary(ctx, ghCtx, counts) {
   const { logInfo, logWarn } = ctx;
-  const { repo, isFork, parentRepo, originRepo, originUrl } = ghCtx;
+  const { repo, isFork, parentRepo, originRepo, originUrl, repoFromOverride } =
+    ghCtx;
   logInfo('');
   logInfo('── GitHub sync target ──');
   logInfo(`  Repository: ${repo || '(unknown)'}`);
   if (originUrl) logInfo(`  git remote origin: ${originUrl}`);
-  if (originRepo && originRepo !== repo) {
+  if (repoFromOverride) {
+    logInfo(`  Target from --github-repo override (not gh repo view).`);
+    if (originRepo && originRepo !== repo) {
+      logWarn(
+        `  origin parses as ${originRepo}; secrets will still go to ${repo}.`
+      );
+    }
+  } else if (originRepo && originRepo !== repo) {
     logWarn(
       `  origin parses as ${originRepo} but gh repo view resolved ${repo}.`
     );
@@ -157,26 +169,33 @@ export function logGithubSyncTargetSummary(ctx, ghCtx, counts) {
  * @param {import('node:readline/promises').ReadLine} rl
  * @param {{ logInfo: (s: string) => void; logWarn: (s: string) => void }} ctx
  * @param {ReturnType<typeof resolveGhRepoContext>} ghCtx
- * @param {{ dryRun: boolean; interactive: boolean }} opts
+ * @param {{ dryRun: boolean; interactive: boolean; githubRepoOverride?: boolean }} opts
  * @returns {Promise<boolean>}
  */
 export async function confirmGithubRepoSyncTarget(rl, ctx, ghCtx, opts) {
   const { logInfo, logWarn } = ctx;
   const { repo, isFork, parentRepo } = ghCtx;
+  // Belt-and-suspenders: setup-full returns early when repo is missing; keep for direct callers/tests.
   if (!repo) {
     logWarn('No GitHub repository resolved; skipping secret sync.');
     return false;
   }
 
   if (!opts.interactive) {
+    if (opts.githubRepoOverride && !isBeakerstackTemplateRepo(repo)) {
+      logInfo(
+        `Non-interactive: proceeding with --github-repo=${repo} (explicit target; no Y/n prompt).`
+      );
+      return true;
+    }
     logWarn(
-      'Non-interactive terminal: skipping GitHub secret sync (cannot confirm target repo). Use a TTY, or set secrets manually on your fork.'
+      'Non-interactive terminal: skipping GitHub secret sync (cannot confirm target repo). Use a TTY, pass --github-repo=OWNER/NAME to target a fork without prompts, or set secrets manually.'
     );
     return false;
   }
 
   if (isBeakerstackTemplateRepo(repo)) {
-    logWarn('');
+    logInfo('');
     logWarn(
       '⚠  You are about to write CI secrets to the public BeakerStack template repository.'
     );
@@ -186,7 +205,7 @@ export async function confirmGithubRepoSyncTarget(rl, ctx, ghCtx, opts) {
     logWarn(
       '   Only continue here if you are intentionally configuring CI for the template repo itself.'
     );
-    logWarn('');
+    logInfo('');
     const typed = (
       await rl.question(`Type ${repo} to confirm (anything else cancels): `)
     ).trim();
