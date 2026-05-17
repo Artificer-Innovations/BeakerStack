@@ -305,14 +305,11 @@ export default function BillingPlansPage() {
                 : cadence === 'annual'
                   ? annualListCentsFromSync(p.id, p.price_cents)
                   : p.price_cents;
-            const head =
-              p.price_cents === 0
-                ? 'US$0'
-                : new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: 'USD',
-                    maximumFractionDigits: 0,
-                  }).format(displayCents / 100);
+            const head = new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: 'USD',
+              maximumFractionDigits: 0,
+            }).format(displayCents / 100);
             const sub =
               p.price_cents === 0
                 ? 'Free forever'
