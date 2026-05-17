@@ -35,7 +35,8 @@ after_heading = body[idx + len(heading) :]
 line_end = after_heading.find("\n")
 content = after_heading[line_end + 1 :] if line_end != -1 else ""
 
-# Stop at maintainer separator (--- on its own line)
+# Stop at maintainer separator (--- on its own line).
+# Do not put a bare "---" inside CalVer prose — extraction ends at the first match.
 lines = content.splitlines()
 published: list[str] = []
 for line in lines:

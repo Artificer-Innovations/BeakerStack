@@ -42,7 +42,8 @@ jobs:
             echo "tag=${{ inputs.override_tag }}" >> $GITHUB_OUTPUT
           else
             YEAR=$(date +%Y)
-            LAST_N=$(git tag -l "${YEAR}.*" | sed "s/${YEAR}\.//" | sort -n | tail -1)
+            # CalVer YYYY.NNN only (exclude semver-shaped tags like 2026.1.0)
+            LAST_N=$(git tag -l | grep -E "^${YEAR}\\.[0-9]{3}$" | sed "s/${YEAR}\.//" | sort -n | tail -1)
             NEXT_N=$(( ${LAST_N:-0} + 1 ))
             printf -v PADDED_N "%03d" $NEXT_N
             echo "tag=${YEAR}.${PADDED_N}" >> $GITHUB_OUTPUT
@@ -88,8 +89,7 @@ jobs:
           is_promotion_pr() {
             local num="$1"
             local base head
-            base="$(gh pr view "$num" --json baseRefName --jq .baseRefName)"
-            head="$(gh pr view "$num" --json headRefName --jq .headRefName)"
+            read -r base head < <(gh pr view "$num" --json baseRefName,headRefName --jq '[.baseRefName,.headRefName]|@tsv')
             [[ "$base" == "main" && "$head" == "develop" ]]
           }
 
@@ -100,18 +100,16 @@ jobs:
           fi
 
           if [[ -z "$PR" ]]; then
+            # workflow_dispatch: GITHUB_SHA is main HEAD at trigger time (may be after the promotion merge)
             PR="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
               --jq '[.[] | select(.base.ref == "main" and .head.ref == "develop") | .number][0] // empty' 2>/dev/null || true)"
-            if [[ -n "$PR" ]] && ! is_promotion_pr "$PR"; then
-              PR=""
-            fi
           fi
 
           if [[ -z "$PR" ]]; then
             PR="$(gh pr list --state merged --base main --head develop --limit 1 --json number --jq '.[0].number // empty')"
           fi
 
-          if [[ -z "$PR" ]] || ! is_promotion_pr "$PR"; then
+          if [[ -z "$PR" ]]; then
             echo "::error::Could not find a merged develop→main promotion PR. Pass promotion_pr or merge promotion first."
             exit 1
           fi
@@ -134,6 +132,7 @@ jobs:
           set -euo pipefail
           NEW_TAG="${{ steps.tag.outputs.tag }}"
           # Latest CalVer tag strictly before NEW_TAG (supports override_tag out of sequence)
+          # awk string compare is safe: grep above guarantees fixed-width YYYY.NNN tags
           PREV_TAG="$(git tag -l | grep -E '^[0-9]{4}\.[0-9]{3}$' | sort -V | awk -v t="$NEW_TAG" '$0 < t' | tail -1 || true)"
 
           if [[ -n "$PREV_TAG" ]]; then
@@ -154,7 +153,7 @@ jobs:
               --output cliff-changelog.md
           fi
 
-          if ! grep -q "## ${NEW_TAG}" cliff-changelog.md; then
+          if ! grep -qF "## ${NEW_TAG}" cliff-changelog.md; then
             echo "::error::cliff-changelog.md missing header for ${NEW_TAG} (git-cliff may have anchored on the wrong tag)"
             head -20 cliff-changelog.md || true
             exit 1

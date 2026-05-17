@@ -1,5 +1,7 @@
 ## CalVer release notes
 
+<!-- Do not use a bare `---` line inside this section — it ends published notes early. -->
+
 ### Summary
 
 <!-- 3–4 sentences: what this promotion represents, headline capabilities, breaking fork steps (if any). -->

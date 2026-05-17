@@ -80,7 +80,7 @@ Feature branches should always target `develop`, never `main` directly. The `dev
 
 ### Promoting `develop` → `main`
 
-1. Open a PR: `develop` → `main` using the [**Promote develop to main** template](.github/PULL_REQUEST_TEMPLATE/promote-develop-to-main.md) (GitHub UI: choose template when opening the PR, or `gh pr create --base main --head develop --template promote-develop-to-main.md`). **Agents:** follow [`.cursor/skills/promote-develop-to-main/SKILL.md`](.cursor/skills/promote-develop-to-main/SKILL.md) to draft CalVer release notes and open the PR with `gh`.
+1. Open a PR: `develop` → `main` using the [**Promote develop to main** template](.github/PULL_REQUEST_TEMPLATE/promote-develop-to-main.md) (GitHub UI: choose the template when opening the PR, or append `?template=promote-develop-to-main.md` to the compare URL). **CLI / agents:** follow [`.cursor/skills/promote-develop-to-main/SKILL.md`](.cursor/skills/promote-develop-to-main/SKILL.md) and use `gh pr create --base main --head develop --body-file <filled-promotion-body.md>` (`gh` has no `--template` flag).
 2. Fill in **`## CalVer release notes`** (Summary, Highlights, Adopter notes). Content **above** the `---` separator is published on the CalVer GitHub Release; content below is maintainer-only.
 3. Merge with **Create a merge commit** (not squash).
 4. After production deploy, run the [**Release Template** workflow](.github/workflows/release-template.yml) on `main`. It copies the CalVer section from the merged promotion PR and appends a git-cliff changelog.

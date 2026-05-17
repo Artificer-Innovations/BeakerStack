@@ -155,6 +155,7 @@ After create, return the PR URL and remind the user:
 - [ ] Adopter table matches `git diff` (no false "no migrations" if files added)
 - [ ] Title matches `release: promote develop to main (...)` pattern
 - [ ] No instruction to squash merge
+- [ ] No bare `---` line inside CalVer release notes (use `###` headings only)
 
 ## Out of scope
 
