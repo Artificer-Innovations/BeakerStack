@@ -2,6 +2,16 @@
 
 Thank you for helping improve Beaker Stack.
 
+## What belongs upstream
+
+**Welcome:** bug fixes, documentation, performance improvements to shared logic, opt-in integrations that fit the template’s architecture, and new publishable `@beakerstack/*` packages.
+
+**Usually not upstream:** swapping core stack choices (e.g. Firebase instead of Supabase, Paddle instead of Stripe, Next.js instead of Vite). Those belong in **downstream forks** where you own the tradeoffs.
+
+**Larger changes:** open a [Discussion](https://github.com/Artificer-Innovations/BeakerStack/discussions) first — especially features that affect every adopter’s fork or CI secrets. Link the Discussion in your PR.
+
+Issues: use [GitHub Issues](https://github.com/Artificer-Innovations/BeakerStack/issues) with the appropriate template (bug vs feature). Questions and usage help fit Discussions (Q&A).
+
 ## Workflow
 
 1. Create a branch from `develop` (or the branch your team uses for integration).
@@ -15,6 +25,25 @@ Thank you for helping improve Beaker Stack.
    ```
 
 4. Open a pull request with a clear description of **what** changed and **why**.
+
+## Commits and release notes
+
+**Conventional commits** are required on the integration branch. [git-cliff](https://github.com/orhun/git-cliff) uses them for **template** CalVer release notes.
+
+Examples:
+
+- `feat: add usage summary to billing dashboard`
+- `fix: correct PR preview redirect for trailing slash`
+- `docs: clarify OAuth redirect URLs in OAUTH guide`
+- `chore: bump Supabase CLI in CI`
+
+**Template-only changes** (anything outside publishable `packages/*`) need a conventional commit only — no Changeset.
+
+**Publishable package changes** (`@beakerstack/test-utils` today) require a Changeset — see below.
+
+**Mixed PRs** (template + package): use a conventional commit message and include a Changeset if any publishable package files changed.
+
+Versioning overview: [docs/VERSIONING.md](docs/VERSIONING.md).
 
 ## Pre-commit hook
 
@@ -117,6 +146,10 @@ See `packages/test-utils/` for a minimal working example.
 - **Topic index:** [docs/README.md](docs/README.md).
 - Before merging doc-only changes, run **`npm run docs:linkcheck`** (uses [markdown-link-check](https://github.com/tcort/markdown-link-check) with [.markdown-link-check.json](.markdown-link-check.json)).
 
+## Template releases (maintainers)
+
+CalVer template releases use [.github/workflows/release-template.yml](.github/workflows/release-template.yml). Before publishing, paste the prose block from [.github/RELEASE_TEMPLATE.md](.github/RELEASE_TEMPLATE.md) **above** the git-cliff-generated notes in the GitHub Release body.
+
 ## Questions
 
-Use GitHub Issues or your team's usual channel. For OAuth-specific setup, start with [docs/oauth/README.md](docs/oauth/README.md).
+Use [Discussions](https://github.com/Artificer-Innovations/BeakerStack/discussions) for usage questions and [Issues](https://github.com/Artificer-Innovations/BeakerStack/issues) for bugs. OAuth setup: [docs/OAUTH.md](docs/OAUTH.md).

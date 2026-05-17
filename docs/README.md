@@ -15,14 +15,11 @@ Start on the repo root **[README.md](../README.md)** and **[QUICKSTART.md](../QU
 | [project-label-bridge.md](project-label-bridge.md)                           | **Optional:** label-driven org GitHub Project updates (`npm run setup:project-label-bridge`) |
 | [branch-protection-setup.md](branch-protection-setup.md)                     | Branch rules                                                                                 |
 
-## OAuth (canonical order)
+## OAuth
 
-| Document                                                   | Purpose                       |
-| ---------------------------------------------------------- | ----------------------------- |
-| [oauth/README.md](oauth/README.md)                         | OAuth doc map                 |
-| [oauth/OAUTH_QUICK_SETUP.md](oauth/OAUTH_QUICK_SETUP.md)   | Quick local Google + Supabase |
-| [oauth/OAUTH_SETUP.md](oauth/OAUTH_SETUP.md)               | Production OAuth setup        |
-| [oauth/MOBILE_OAUTH_SETUP.md](oauth/MOBILE_OAUTH_SETUP.md) | Native mobile OAuth           |
+| Document             | Purpose                                                                            |
+| -------------------- | ---------------------------------------------------------------------------------- |
+| [OAUTH.md](OAUTH.md) | **Canonical guide** — local setup, production (Google + Apple), mobile native flow |
 
 ## Testing and quality
 
@@ -55,13 +52,17 @@ Start on the repo root **[README.md](../README.md)** and **[QUICKSTART.md](../QU
 | [stripe-billing-setup.md](stripe-billing-setup.md)               | Stripe account → webhooks → Edge secrets → price sync                      |
 | [guides/billing-plan-catalog.md](guides/billing-plan-catalog.md) | Plan `features` / `usage_limits`, `billing:apply-plans`, rollout checklist |
 | [guides/MOBILE.md](guides/MOBILE.md)                             | Native rebuilds, dev client                                                |
-| [guides/DEBUGGING_NAVIGATION.md](guides/DEBUGGING_NAVIGATION.md) | Navigation debugging notes                                                 |
 | [mobile-ios-patching.md](mobile-ios-patching.md)                 | iOS-specific patches                                                       |
 | [REALTIME_DEVELOPMENT.md](REALTIME_DEVELOPMENT.md)               | Realtime dev notes                                                         |
 
-## Architecture
+## Architecture, versioning, development
 
-See root **[ARCHITECTURE.md](../ARCHITECTURE.md)** for environments, data flow, and design decisions.
+| Document                           | Purpose                                   |
+| ---------------------------------- | ----------------------------------------- |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Environments, data flow, design decisions |
+| [VERSIONING.md](VERSIONING.md)     | Template CalVer vs npm semver             |
+| [UPGRADING.md](UPGRADING.md)       | Pull template updates into a fork         |
+| [DEVELOPMENT.md](DEVELOPMENT.md)   | Day-to-day commands, tests, CI/CD         |
 
 ## Contributing
 

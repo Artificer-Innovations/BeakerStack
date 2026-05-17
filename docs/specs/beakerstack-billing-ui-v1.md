@@ -1,6 +1,6 @@
 ---
-name: BeakerStack Billing UI v1
-overview: Production-quality billing pages for the BeakerStack template. /billing route family (Overview, Usage, Plans, Invoices), monthly/annual cadence, invoice history. Shipped; see apps/web and packages/billing.
+name: Beaker Stack Billing UI v1
+overview: Production-quality billing pages for the Beaker Stack template. /billing route family (Overview, Usage, Plans, Invoices), monthly/annual cadence, invoice history. Shipped; see apps/web and packages/billing.
 todos:
   - id: routes-and-tabs
     content: Add /billing route family with BillingTabs sub-navigation, BillingProvider wrapping the route group, and avatar menu integration
@@ -29,9 +29,9 @@ todos:
 isProject: false
 ---
 
-# BeakerStack Billing UI v1
+# Beaker Stack Billing UI v1
 
-> **Status:** Shipped in the BeakerStack template. Setup: [`docs/stripe-billing-setup.md`](../stripe-billing-setup.md). QA: [`apps/web/docs/billing-testing.md`](../../apps/web/docs/billing-testing.md). Core module: [`docs/specs/beakerstack-billing-v1.md`](./beakerstack-billing-v1.md).
+> **Status:** Shipped in the Beaker Stack template. Setup: [`docs/stripe-billing-setup.md`](../stripe-billing-setup.md). QA: [`apps/web/docs/billing-testing.md`](../../apps/web/docs/billing-testing.md). Core module: [`docs/specs/beakerstack-billing-v1.md`](./beakerstack-billing-v1.md).
 
 Production-quality billing pages matching the template's existing visual language. The `/billing` route family has four sub-pages; the data model supports monthly/annual cadence and invoice history. Billing is a sibling route to `/profile` (no global settings shell).
 
@@ -232,7 +232,7 @@ Billing icon: Lucide `CreditCard`. Profile keeps its existing icon. Dashboard ke
 
 When constraint warning is present, the action button is disabled with text "Resolve issues to downgrade" OR enabled with text "Downgrade anyway" depending on whether the constraint is hard (numeric cap exceeded) or soft (feature usage). For v1, all constraints are hard — button is disabled. Document this in code comments so it's easy to relax later.
 
-**Implementation note (BeakerStack):** boolean entitlement loss is treated as a **soft** constraint (warning shown, downgrade CTA remains enabled); **collections cap, items-per-collection cap, and metered usage** against the target plan remain **hard** (CTA disabled until resolved). This supersedes the “v1 all hard” behavior for booleans only.
+**Implementation note (Beaker Stack):** boolean entitlement loss is treated as a **soft** constraint (warning shown, downgrade CTA remains enabled); **collections cap, items-per-collection cap, and metered usage** against the target plan remain **hard** (CTA disabled until resolved). This supersedes the “v1 all hard” behavior for booleans only.
 
 **Confirmation modal for downgrades:** clicking a downgrade button opens a modal with:
 
@@ -303,7 +303,7 @@ These are extensions to the existing module. No domain vocabulary, no tier-speci
 
 ### Components in `apps/web/src/components/billing/` (template-level, opinionated)
 
-These live in the app, not the package. They're the styled, BeakerStack-flavored building blocks that forks edit directly to change look.
+These live in the app, not the package. They're the styled, Beaker Stack-flavored building blocks that forks edit directly to change look.
 
 | Component                       | Purpose                                                                                |
 | ------------------------------- | -------------------------------------------------------------------------------------- |
@@ -323,7 +323,7 @@ These live in the app, not the package. They're the styled, BeakerStack-flavored
 
 For each `.web.tsx`, ship a `.native.tsx` sibling for mobile parity. Shared logic and prop types go in a sibling `.ts` file.
 
-**Boundary rationale:** anything that needs to look generically "billing-y" with no design opinion stays in `packages/billing`. Anything that has BeakerStack-specific styling, copy patterns, or layout opinions lives in `apps/web`. The test: a fork that wants a totally different look should be able to rewrite all of `apps/web/src/components/billing/` without touching `packages/billing`.
+**Boundary rationale:** anything that needs to look generically "billing-y" with no design opinion stays in `packages/billing`. Anything that has Beaker Stack-specific styling, copy patterns, or layout opinions lives in `apps/web`. The test: a fork that wants a totally different look should be able to rewrite all of `apps/web/src/components/billing/` without touching `packages/billing`.
 
 ## 6. Data model additions
 
@@ -393,7 +393,7 @@ Each handler resolves `user_id` by looking up `stripe_customer_id` against `bill
 These are explicitly out of scope. Document them in code comments where the temptation to build them might arise, so future contributors know they were deliberately deferred.
 
 - **Native payment method editing.** Always link out to Stripe customer portal for card updates. The `hosted_invoice_url` and Stripe portal handle every payment-method-adjacent flow.
-- **PDF invoice generation.** We use Stripe's `invoice_pdf_url` directly. Don't generate PDFs in BeakerStack.
+- **PDF invoice generation.** We use Stripe's `invoice_pdf_url` directly. Don't generate PDFs in Beaker Stack.
 - **Native invoice itemization.** The invoice table shows summary; users click "View" to see Stripe-hosted line items.
 - **Team / seats / per-user pricing.** Not part of v1. The data model assumes one subscription per user.
 - **Proration preview.** Stripe handles proration server-side at upgrade/downgrade time. We don't compute or display previews; we trust Stripe.

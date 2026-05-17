@@ -1,6 +1,6 @@
 # Preview & Staging Access Control
 
-By default, PR preview and staging deployments are publicly accessible — anyone with the URL can view them. For teams that need to restrict access to internal stakeholders, BeakerStack supports **CloudFront signed cookies**.
+By default, PR preview and staging deployments are publicly accessible — anyone with the URL can view them. For teams that need to restrict access to internal stakeholders, Beaker Stack supports **CloudFront signed cookies**.
 
 ## How it works
 

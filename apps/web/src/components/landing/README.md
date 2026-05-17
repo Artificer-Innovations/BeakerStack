@@ -1,6 +1,6 @@
 # Landing page
 
-Config-driven B2C marketing landing page for BeakerStack.
+Config-driven B2C marketing landing page for Beaker Stack.
 
 ## Rebrand in one file
 
