@@ -9,6 +9,13 @@ import {
   resolveSetupFromPhase,
 } from '../lib/setup-manifest.mjs';
 
+test('listMissingRequiredGithubCiDetails includes def for github-phase filtering', () => {
+  const details = listMissingRequiredGithubCiDetails({});
+  const stripe = details.find(d => d.name === 'STAGING_STRIPE_SECRET_KEY');
+  assert.ok(stripe?.def);
+  assert.equal(stripe.primaryEnvKey, 'STAGING_STRIPE_SECRET_KEY');
+});
+
 test('listMissingRequiredGithubForCi omits Stripe when SETUP_STRIPE_SKIPPED', () => {
   const missing = listMissingRequiredGithubForCi({
     SETUP_STRIPE_SKIPPED: 'true',

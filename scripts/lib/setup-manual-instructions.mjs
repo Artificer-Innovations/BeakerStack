@@ -511,7 +511,7 @@ export function printStripePhaseReadinessBriefing(ctx) {
   logInfo('');
   logInfo('4) Complete supabase phase first');
   logInfo(
-    '   • The wizard prints each webhook URL when STAGING_/PREVIEW_/PRODUCTION_SUPABASE_URL is already in acc.'
+    '   • The wizard prints each webhook URL when STAGING_/PREVIEW_/PRODUCTION_SUPABASE_URL is already set from the supabase phase.'
   );
   logInfo('');
   logInfo('5) Not run in this phase (do later)');
@@ -594,7 +594,7 @@ export function printGithubPhaseReadinessBriefing(ctx) {
     '   • Skipped **AWS** or **Supabase**? Add secrets manually later or re-run `--from=aws` / `--from=supabase`.'
   );
   logInfo(
-    '   • Skipped **stripe**? Re-run `--from=stripe` or enter keys here; use `--skip-stripe` to omit Stripe from CI sync.'
+    '   • Skipped **stripe** (menu **N** or `--skip-stripe`)? Stripe keys are omitted from github prompts; re-run `--from=stripe` without `--skip-stripe` to collect them.'
   );
   logInfo('');
   logInfo('5) During this phase');

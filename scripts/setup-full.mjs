@@ -2213,20 +2213,10 @@ async function phaseExpo(flags, rl, acc, promptInput) {
 /**
  * @param {CliFlags} flags
  * @param {import('node:readline/promises').ReadLine} rl
- * @param {Record<string, string>} acc
- */
-/**
- * @param {CliFlags} flags
- * @param {import('node:readline/promises').ReadLine} rl
  * @param {import('stream').Readable & { isTTY?: boolean; setRawMode?: (flag: boolean) => void }} promptInput
  * @param {Record<string, string>} acc
  */
 async function phaseStripe(flags, rl, promptInput, acc) {
-  if (flags.skipStripe) {
-    acc[SETUP_STRIPE_SKIPPED_ENV] = 'true';
-    logInfo('Skipping Stripe key collection (--skip-stripe).');
-    return;
-  }
   acc[SETUP_STRIPE_SKIPPED_ENV] = 'false';
   await collectStripeEnvKeys({
     acc,
@@ -2587,6 +2577,10 @@ async function main() {
       acc = mergeRecords(acc, await readEnvFileIfExists(CLOUD_ENV_PATH));
       acc = mergeRecords(acc, await readEnvFileIfExists(AWS_ENV_PATH));
     }
+  }
+
+  if (flags.skipStripe) {
+    acc[SETUP_STRIPE_SKIPPED_ENV] = 'true';
   }
 
   if (!flags.mobileEnabled) {

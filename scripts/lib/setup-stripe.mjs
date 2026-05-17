@@ -131,7 +131,7 @@ export async function collectStripeEnvKeys(ctx) {
       );
     } else {
       logWarn(
-        `  No Supabase URL in acc yet (${tier.supabaseUrlKeys.join(' / ')}) — complete supabase phase first, or paste keys from docs/stripe-billing-setup.md.`
+        `  No Supabase URL set yet (${tier.supabaseUrlKeys.join(' / ')}) — complete supabase phase first, or paste keys from docs/stripe-billing-setup.md.`
       );
     }
     logInfo(
