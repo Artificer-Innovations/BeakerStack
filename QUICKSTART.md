@@ -65,7 +65,7 @@ You should see a banner and a prompt similar to:
 ========================================================================
 
 [setup] …
-Setup: (1) Local — … [default]  (2) Full cloud — … (read README + QUICKSTART first)  (q) Quit:
+Setup: (1) Local — … [default]  (2) Full cloud — … (read docs/setup-prep-checklist.md first)  (q) Quit:
 ```
 
 Choose **(1) Local** (press Enter for the default). That path wires dependencies, copies `env.example` toward `.env.local`, starts **Supabase in Docker**, and runs type generation when the script completes.
@@ -105,7 +105,11 @@ At minimum for deploy workflows you will need **`SUPABASE_ACCESS_TOKEN`** and **
 
 **Lighthouse CI** scores are posted as GitHub status checks on each PR preview if `LHCI_GITHUB_APP_TOKEN` is set (install the [Lighthouse CI GitHub App](https://github.com/apps/lighthouse-ci) to get the token). The step is skipped automatically when the preview is signed-cookie gated — Lighthouse cannot authenticate headlessly. See [docs/lighthouse-ci.md](docs/lighthouse-ci.md) for details.
 
-### 6.2 Full interactive bootstrap
+### 6.2 Before full cloud setup (read first)
+
+**[docs/setup-prep-checklist.md](docs/setup-prep-checklist.md)** lists every wizard prompt, what to gather in advance, which values are **one-time** (database passwords, some tokens), and what remains **manual after** the wizard (Stripe, OAuth, Lighthouse). Skim it before option **(2)** or `npm run setup:full`.
+
+### 6.3 Full interactive bootstrap
 
 ```bash
 npm run setup:full
@@ -113,14 +117,16 @@ npm run setup:full
 
 Options (see also `npm run setup:full -- --help`):
 
-| Flag                 | Meaning                                     |
-| -------------------- | ------------------------------------------- |
-| `--dry-run`          | No file writes; log-only GitHub sync        |
-| `--from=PHASE`       | Resume at a phase (see table below)         |
-| `--skip-rename`      | Skip template rename                        |
-| `--skip-github`      | Do not push secrets with `gh`               |
-| `--skip-mobile`      | Skip Expo/EAS/Google setup (web-only repos) |
-| `--aws-profile=NAME` | Pass through to AWS bootstrap script        |
+| Flag                  | Meaning                                                                                                                          |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `--dry-run`           | No file writes; log-only GitHub sync                                                                                             |
+| `--from=PHASE`        | Resume at a phase (see table below)                                                                                              |
+| `--skip-rename`       | Skip template rename                                                                                                             |
+| `--skip-github`       | Do not push secrets with `gh`                                                                                                    |
+| `--skip-mobile`       | Skip Expo/EAS/Google setup (web-only repos)                                                                                      |
+| `--aws-profile=NAME`  | Pass through to AWS bootstrap script                                                                                             |
+| `--guide=full\|brief` | Intro banner: **full** (default) prints GitHub/Supabase/AWS/Expo checklist in the terminal; **brief** links to the prep doc only |
+| `--brief-guide`       | Same as `--guide=brief`                                                                                                          |
 
 **Phase names** for `--from=` (order matters; later phases assume earlier work or merged `.env*` files):
 
@@ -135,9 +141,9 @@ Options (see also `npm run setup:full -- --help`):
 | `write`    | Merge collected values into `.env.cloud.generated.local` / `.env.local` |
 | `github`   | Optional `gh secret set` / `variable set` from manifest                 |
 
-### 6.3 Full-cloud checklist (accounts and DNS)
+### 6.4 Full-cloud checklist (accounts and DNS)
 
-Work through these when you are ready; they are intentionally dense.
+Work through these when you are ready; they are intentionally dense. For **prompt-by-prompt** detail, use [docs/setup-prep-checklist.md](docs/setup-prep-checklist.md).
 
 **GitHub**
 

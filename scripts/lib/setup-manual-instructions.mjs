@@ -17,7 +17,12 @@ export class SetupQuit extends Error {
  * @returns {boolean}
  */
 export function isSetupQuit(e) {
-  return Boolean(e && typeof e === 'object' && 'name' in e && /** @type {{ name: string }} */ (e).name === 'SetupQuit');
+  return Boolean(
+    e &&
+    typeof e === 'object' &&
+    'name' in e &&
+    /** @type {{ name: string }} */ (e).name === 'SetupQuit'
+  );
 }
 
 const BANNER_W = 72;
@@ -41,13 +46,123 @@ function bannerRow(text) {
   return `+${' '.repeat(l)}${t}${' '.repeat(r)}+`;
 }
 
+/** @typedef {'full' | 'brief'} SetupGuideLevel */
+
+/**
+ * @param {(s: string) => void} logInfo
+ */
+function printExternalPrerequisites(logInfo) {
+  logInfo(
+    'Before you run this wizard — required outside the repo for a complete setup:'
+  );
+  logInfo('');
+  logInfo('  GitHub');
+  logInfo(
+    '    • Repo you can administer; branches develop (staging) and main (production) for workflows.'
+  );
+  logInfo(
+    '    • For automated secret sync: gh CLI + gh auth login with permission to set Actions secrets/variables.'
+  );
+  logInfo('');
+  logInfo('  Supabase');
+  logInfo(
+    '    • Account + organization; PAT (dashboard) or supabase login (prefer Terminal.app if IDE login fails).'
+  );
+  logInfo(
+    '    • Plan to create or link preview, staging, and production projects + database passwords for CI link.'
+  );
+  logInfo('');
+  logInfo('  AWS');
+  logInfo('    • Route 53 hosted zone for your apex domain.');
+  logInfo(
+    '    • ACM certificate in us-east-1 covering apex + *.yourdomain (DNS validated).'
+  );
+  logInfo(
+    '    • IAM credentials allowed to run the CloudFormation bootstrap (S3, CloudFront, etc.).'
+  );
+  logInfo('');
+  logInfo('  Expo');
+  logInfo(
+    '    • Expo account; EAS project for apps/mobile; EXPO_TOKEN from expo.dev for CI.'
+  );
+  logInfo('');
+  logInfo(
+    '  Google OAuth / Firebase (for Google sign-in + mobile native config)'
+  );
+  logInfo(
+    '    • OAuth clients (web/iOS/Android) and Supabase Auth Google provider + redirect URLs per env.'
+  );
+  logInfo(
+    '    • google-services.json path ready if you import mobile keys in this wizard.'
+  );
+}
+
+/**
+ * @param {(s: string) => void} logInfo
+ * @param {{ brief: boolean }} opts
+ */
+function printGuidePointers(logInfo, opts) {
+  if (opts.brief) {
+    logInfo(
+      'Before you run this wizard — read docs/setup-prep-checklist.md (prompts, one-time secrets, post-wizard work).'
+    );
+    logInfo(
+      'For the in-terminal GitHub / Supabase / AWS / Expo checklist: npm run setup:full -- --guide=full'
+    );
+    logInfo(
+      'Short account checklist: QUICKSTART.md §6.4. Actions secret names: docs/reference/github-actions-secrets.md'
+    );
+  } else {
+    printExternalPrerequisites(logInfo);
+    logInfo('');
+    logInfo(
+      'Also see docs/setup-prep-checklist.md for every wizard prompt and one-time secrets.'
+    );
+    logInfo(
+      'Short account checklist: QUICKSTART.md §6.4. Actions secret names: docs/reference/github-actions-secrets.md'
+    );
+  }
+}
+
+/**
+ * @param {(s: string) => void} logInfo
+ */
+function printWizardCapabilities(logInfo) {
+  logInfo('-'.repeat(72));
+  logInfo('This wizard can:');
+  logInfo(
+    '  • Optionally rebrand the template (display name + legal organization).'
+  );
+  logInfo(
+    '  • Create or link Supabase projects and write keys to gitignored .env files.'
+  );
+  logInfo('  • Optionally deploy the AWS PR-preview CloudFormation stack.');
+  logInfo(
+    '  • Link or create an Expo (EAS) project and collect EXPO_TOKEN for CI.'
+  );
+  logInfo('  • Optionally import google-services.json keys for mobile CI.');
+  logInfo('  • Merge results into .env.local / .env.cloud.generated.local.');
+  logInfo('  • Optionally push secrets and variables to GitHub Actions (gh).');
+  logInfo('');
+  logInfo(
+    'Also read: README.md, docs/pr-preview-setup.md, docs/supabase-staging-production-setup.md, docs/renaming.md'
+  );
+  logInfo('');
+  logInfo(
+    'If you skip every automated step, env files may stay empty until you complete manual steps.'
+  );
+  logInfo('-'.repeat(72));
+}
+
 /**
  * @param {LogCtx} ctx
- * @param {{ resumeFrom?: string; variant?: 'menu' }} [opts]
+ * @param {{ resumeFrom?: string; variant?: 'menu'; guide?: SetupGuideLevel }} [opts]
  */
 export function printIntroBanner(ctx, opts = {}) {
   const resume = opts.resumeFrom;
   const isMenu = opts.variant === 'menu';
+  const guide = opts.guide ?? (resume ? 'brief' : 'full');
+  const brief = guide === 'brief';
   const { logInfo } = ctx;
 
   console.log('');
@@ -80,47 +195,12 @@ export function printIntroBanner(ctx, opts = {}) {
   console.log('');
 
   logInfo(
-    'CI note: GitHub Actions only reads repository secrets (e.g. SUPABASE_ACCESS_TOKEN, EXPO_TOKEN, AWS keys)—not your local supabase/aws/eas CLI logins.',
+    'CI note: GitHub Actions only reads repository secrets (e.g. SUPABASE_ACCESS_TOKEN, EXPO_TOKEN, AWS keys)—not your local supabase/aws/eas CLI logins.'
   );
   logInfo('');
-  logInfo('Before you run this wizard — required outside the repo for a complete setup:');
+  printGuidePointers(logInfo, { brief });
   logInfo('');
-  logInfo('  GitHub');
-  logInfo('    • Repo you can administer; branches develop (staging) and main (production) for workflows.');
-  logInfo('    • For automated secret sync: gh CLI + gh auth login with permission to set Actions secrets/variables.');
-  logInfo('');
-  logInfo('  Supabase');
-  logInfo('    • Account + organization; PAT (dashboard) or supabase login (prefer Terminal.app if IDE login fails).');
-  logInfo('    • Plan to create or link preview, staging, and production projects + database passwords for CI link.');
-  logInfo('');
-  logInfo('  AWS');
-  logInfo('    • Route 53 hosted zone for your apex domain.');
-  logInfo('    • ACM certificate in us-east-1 covering apex + *.yourdomain (DNS validated).');
-  logInfo('    • IAM credentials allowed to run the CloudFormation bootstrap (S3, CloudFront, etc.).');
-  logInfo('');
-  logInfo('  Expo');
-  logInfo('    • Expo account; EAS project for apps/mobile; EXPO_TOKEN from expo.dev for CI.');
-  logInfo('');
-  logInfo('  Google OAuth / Firebase (for Google sign-in + mobile native config)');
-  logInfo('    • OAuth clients (web/iOS/Android) and Supabase Auth Google provider + redirect URLs per env.');
-  logInfo('    • google-services.json path ready if you import mobile keys in this wizard.');
-  logInfo('');
-  logInfo('Skim QUICKSTART.md; Actions names table: docs/reference/github-actions-secrets.md (npm run docs:actions-secrets).');
-  logInfo('');
-  logInfo('-'.repeat(72));
-  logInfo('This wizard can:');
-  logInfo('  • Optionally rebrand the template (display name + legal organization).');
-  logInfo('  • Create or link Supabase projects and write keys to gitignored .env files.');
-  logInfo('  • Optionally deploy the AWS PR-preview CloudFormation stack.');
-  logInfo('  • Link or create an Expo (EAS) project and collect EXPO_TOKEN for CI.');
-  logInfo('  • Optionally import google-services.json keys for mobile CI.');
-  logInfo('  • Merge results into .env.local / .env.cloud.generated.local.');
-  logInfo('  • Optionally push secrets and variables to GitHub Actions (gh).');
-  logInfo('');
-  logInfo('Also read: README.md, docs/pr-preview-setup.md, docs/supabase-staging-production-setup.md, docs/renaming.md');
-  logInfo('');
-  logInfo('If you skip every automated step, env files may stay empty until you complete manual steps.');
-  logInfo('-'.repeat(72));
+  printWizardCapabilities(logInfo);
   logInfo('');
 }
 
@@ -169,11 +249,17 @@ const PHASE_INTROS = {
   },
   google: {
     title: 'Google Services (optional)',
-    body: ['Imports GOOGLE_SERVICES_* from a google-services.json path for EAS/CI.', 'Prepare: path to the JSON file from Firebase / Google Cloud.'],
+    body: [
+      'Imports GOOGLE_SERVICES_* from a google-services.json path for EAS/CI.',
+      'Prepare: path to the JSON file from Firebase / Google Cloud.',
+    ],
   },
   write: {
     title: 'Write env files',
-    body: ['Merges collected keys into .env.cloud.generated.local and .env.local (gitignored).', 'No preparation.'],
+    body: [
+      'Merges collected keys into .env.cloud.generated.local and .env.local (gitignored).',
+      'No preparation.',
+    ],
   },
   github: {
     title: 'GitHub Actions sync',
@@ -209,7 +295,9 @@ export function printPhaseIntro(ctx, phaseId) {
  */
 export async function confirmRunPhase(rl, phaseLabel) {
   const a = (
-    await rl.question(`Run "${phaseLabel}" now? (Y)es / (N)o skip / (Q)uit [Y]: `)
+    await rl.question(
+      `Run "${phaseLabel}" now? (Y)es / (N)o skip / (Q)uit [Y]: `
+    )
   )
     .trim()
     .toLowerCase();
@@ -233,46 +321,74 @@ export function printManualInstructions(ctx, phaseId) {
   logInfo(`══ Manual steps (you skipped: ${phaseId}) ══`);
   switch (phaseId) {
     case 'identity':
-      logInfo('1. Run: npm run rename -- --from "<display-from>" --to "<display-to>" \\');
+      logInfo(
+        '1. Run: npm run rename -- --from "<display-from>" --to "<display-to>" \\'
+      );
       logInfo('     --from-legal "<legal-from>" --to-legal "<legal-to>"');
       logInfo('2. Add --dry-run first to preview, then rerun without it.');
       logInfo('3. See docs/renaming.md');
       break;
     case 'supabase':
-      logInfo('1. supabase login (use Terminal.app or: supabase login --token <PAT>)');
-      logInfo('2. Create/link staging, production, and preview projects in the Supabase dashboard.');
-      logInfo('3. Set STAGING_*, PRODUCTION_*, PREVIEW_*, PR_TESTING_*, SUPABASE_PREVIEW_* in .env.local / .env.cloud.generated.local');
-      logInfo('4. Set GitHub secret SUPABASE_ACCESS_TOKEN and project refs/passwords per .github/workflows/*.yml');
-      logInfo('5. supabase link + supabase db push per environment; see docs/supabase-staging-production-setup.md');
+      logInfo(
+        '1. supabase login (use Terminal.app or: supabase login --token <PAT>)'
+      );
+      logInfo(
+        '2. Create/link staging, production, and preview projects in the Supabase dashboard.'
+      );
+      logInfo(
+        '3. Set STAGING_*, PRODUCTION_*, PREVIEW_*, PR_TESTING_*, SUPABASE_PREVIEW_* in .env.local / .env.cloud.generated.local'
+      );
+      logInfo(
+        '4. Set GitHub secret SUPABASE_ACCESS_TOKEN and project refs/passwords per .github/workflows/*.yml'
+      );
+      logInfo(
+        '5. supabase link + supabase db push per environment; see docs/supabase-staging-production-setup.md'
+      );
       break;
     case 'aws':
-      logInfo('1. Issue ACM cert in us-east-1 (apex + wildcard); validate in Route53.');
+      logInfo(
+        '1. Issue ACM cert in us-east-1 (apex + wildcard); validate in Route53.'
+      );
       logInfo('2. Run from repo root:');
       logInfo(
-        `   bash scripts/pr-preview/bootstrap-aws-stack.sh --domain YOUR_DOMAIN --hosted-zone-id ZONE \\`,
+        `   bash scripts/pr-preview/bootstrap-aws-stack.sh --domain YOUR_DOMAIN --hosted-zone-id ZONE \\`
       );
       logInfo(
-        `     --certificate-arn arn:aws:acm:us-east-1:…:certificate/… --stack-name beakerstack-pr-preview --region us-east-1 \\`,
+        `     --certificate-arn arn:aws:acm:us-east-1:…:certificate/… --stack-name beakerstack-pr-preview --region us-east-1 \\`
       );
-      logInfo(`     --preview-prefix pr- --env-file ${R}/.env.aws.generated.local`);
-      logInfo('3. Map stack outputs to PR_PREVIEW_* / bucket env vars; set GitHub vars per workflows.');
+      logInfo(
+        `     --preview-prefix pr- --env-file ${R}/.env.aws.generated.local`
+      );
+      logInfo(
+        '3. Map stack outputs to PR_PREVIEW_* / bucket env vars; set GitHub vars per workflows.'
+      );
       logInfo('4. See docs/pr-preview-setup.md');
       break;
     case 'expo':
       logInfo('1. cd apps/mobile && npx eas-cli login');
       logInfo('2. npx eas-cli init (or link an existing project UUID)');
-      logInfo('3. If dynamic app.config.js: set extra.eas.projectId, updates.url, and .eas/project.json');
-      logInfo('4. Set EXPO_TOKEN, EXPO_PROJECT_ID, EXPO_ACCOUNT for GitHub (see workflows)');
+      logInfo(
+        '3. If dynamic app.config.js: set extra.eas.projectId, updates.url, and .eas/project.json'
+      );
+      logInfo(
+        '4. Set EXPO_TOKEN, EXPO_PROJECT_ID, EXPO_ACCOUNT for GitHub (see workflows)'
+      );
       logInfo('5. https://docs.expo.dev/eas/');
       break;
     case 'google':
       logInfo('1. Obtain google-services.json from Firebase Console.');
-      logInfo('2. Set each GOOGLE_SERVICES_* secret in GitHub or merge into .env.cloud.generated.local');
+      logInfo(
+        '2. Set each GOOGLE_SERVICES_* secret in GitHub or merge into .env.cloud.generated.local'
+      );
       break;
     case 'github':
       logInfo('1. gh auth login');
-      logInfo('2. For each name in scripts/lib/setup-manifest.mjs: printf \'…\' | gh secret set NAME --repo OWNER/REPO');
-      logInfo('3. gh variable set for PR_PREVIEW_* and EXPO_ACCOUNT per workflows');
+      logInfo(
+        "2. For each name in scripts/lib/setup-manifest.mjs: printf '…' | gh secret set NAME --repo OWNER/REPO"
+      );
+      logInfo(
+        '3. gh variable set for PR_PREVIEW_* and EXPO_ACCOUNT per workflows'
+      );
       break;
     default:
       logInfo('(No extra manual text for this phase.)');

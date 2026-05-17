@@ -34,9 +34,18 @@ import {
   resolveValueForGithub,
   SETUP_FROM_PHASE_ALIASES,
 } from './lib/setup-manifest.mjs';
-import { escapeDotEnvDoubleQuotedValue, parseDotEnv } from './lib/setup-dotenv.mjs';
-import { readMaskedLineIfTty, resolveSecretInputLine } from './lib/setup-secret-input.mjs';
-import { clearGoogleKeysFromAcc, envVarsFromGoogleServicesJson } from './lib/setup-google-services.mjs';
+import {
+  escapeDotEnvDoubleQuotedValue,
+  parseDotEnv,
+} from './lib/setup-dotenv.mjs';
+import {
+  readMaskedLineIfTty,
+  resolveSecretInputLine,
+} from './lib/setup-secret-input.mjs';
+import {
+  clearGoogleKeysFromAcc,
+  envVarsFromGoogleServicesJson,
+} from './lib/setup-google-services.mjs';
 import {
   printIntroBanner,
   printPhaseIntro,
@@ -45,7 +54,10 @@ import {
   SetupQuit,
   isSetupQuit,
 } from './lib/setup-manual-instructions.mjs';
-import { clearExpoKeysFromAcc, ensureNonTemplateEasProject } from './lib/setup-expo-eas.mjs';
+import {
+  clearExpoKeysFromAcc,
+  ensureNonTemplateEasProject,
+} from './lib/setup-expo-eas.mjs';
 import {
   formatSupabaseProjectChoiceLine,
   parseApiKeysJson,
@@ -75,12 +87,22 @@ const STATE_PATH = path.join(REPO_ROOT, '.setup-state.json');
 const MOBILE_DIR = path.join(REPO_ROOT, 'apps', 'mobile');
 const MOBILE_APP_CONFIG = path.join(MOBILE_DIR, 'app.config.js');
 
-const PHASE_ORDER = ['prereqs', 'identity', 'supabase', 'aws', 'expo', 'google', 'write', 'github'];
+// If you add or change interactive prompts, update docs/setup-prep-checklist.md in the same PR.
+const PHASE_ORDER = [
+  'prereqs',
+  'identity',
+  'supabase',
+  'aws',
+  'expo',
+  'google',
+  'write',
+  'github',
+];
 
 /** Merged from dotenv-style secret files / pastes (allowlisted keys only). */
 const MERGEABLE_SETUP_ENV_KEYS = mergeableSetupEnvKeys();
 
-/** @typedef {{ dryRun: boolean; fromPhase: string; skipRename: boolean; awsProfile: string; skipGithub: boolean; mobileEnabled: boolean; plainSecretPrompts: boolean }} CliFlags */
+/** @typedef {{ dryRun: boolean; fromPhase: string; skipRename: boolean; awsProfile: string; skipGithub: boolean; mobileEnabled: boolean; plainSecretPrompts: boolean; guide: 'full' | 'brief'; guideFromCli: boolean }} CliFlags */
 
 function printHelp() {
   console.log(`Usage: node scripts/setup-full.mjs [options]
@@ -96,6 +118,9 @@ Options:
   --skip-mobile          Skip Expo, EAS, and Google Services setup (web-only repos)
   --aws-profile=NAME     Pass through to bootstrap-aws-stack.sh
   --plain-secret-prompts Echo secret prompts in plain text (default: mask typed secrets on a TTY)
+  --guide=full|brief     Intro banner: full = in-terminal GitHub/Supabase/AWS/Expo checklist (default);
+                         brief = pointers to docs/setup-prep-checklist.md only
+  --brief-guide          Same as --guide=brief
 
 Secrets are written only to gitignored files; values are never printed.
 
@@ -133,6 +158,8 @@ function parseArgv(argv) {
     skipGithub: false,
     mobileEnabled: true,
     plainSecretPrompts: false,
+    guide: 'full',
+    guideFromCli: false,
   };
   for (const a of argv) {
     if (a === '--dry-run') flags.dryRun = true;
@@ -140,15 +167,29 @@ function parseArgv(argv) {
     else if (a === '--skip-github') flags.skipGithub = true;
     else if (a === '--skip-mobile') flags.mobileEnabled = false;
     else if (a === '--plain-secret-prompts') flags.plainSecretPrompts = true;
-    else if (a.startsWith('--from=')) flags.fromPhase = resolveSetupFromPhase(a.slice('--from='.length));
-    else if (a.startsWith('--aws-profile=')) flags.awsProfile = a.slice('--aws-profile='.length);
+    else if (a === '--brief-guide') {
+      flags.guide = 'brief';
+      flags.guideFromCli = true;
+    } else if (a.startsWith('--guide=')) {
+      const v = a.slice('--guide='.length).toLowerCase();
+      if (v === 'full' || v === 'brief') {
+        flags.guide = v;
+        flags.guideFromCli = true;
+      } else {
+        console.error(`Unknown --guide=${v}. Use full or brief.`);
+        process.exit(1);
+      }
+    } else if (a.startsWith('--from='))
+      flags.fromPhase = resolveSetupFromPhase(a.slice('--from='.length));
+    else if (a.startsWith('--aws-profile='))
+      flags.awsProfile = a.slice('--aws-profile='.length);
   }
   if (!PHASE_ORDER.includes(flags.fromPhase)) {
     const aliasHint = Object.entries(SETUP_FROM_PHASE_ALIASES)
       .map(([k, v]) => `${k}→${v}`)
       .join(', ');
     console.error(
-      `Unknown --from=${flags.fromPhase}. Use one of: ${PHASE_ORDER.join(', ')}${aliasHint ? `; aliases: ${aliasHint}` : ''}`,
+      `Unknown --from=${flags.fromPhase}. Use one of: ${PHASE_ORDER.join(', ')}${aliasHint ? `; aliases: ${aliasHint}` : ''}`
     );
     process.exit(1);
   }
@@ -158,8 +199,14 @@ function parseArgv(argv) {
 export function redactForLog(message) {
   return String(message)
     .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[jwt]')
-    .replace(/postgresql:\/\/[^:]+:[^@]+@/g, 'postgresql://postgres:[redacted]@')
-    .replace(/(api_key|apikey|secret|password|token)=([^\s&]+)/gi, '$1=[redacted]');
+    .replace(
+      /postgresql:\/\/[^:]+:[^@]+@/g,
+      'postgresql://postgres:[redacted]@'
+    )
+    .replace(
+      /(api_key|apikey|secret|password|token)=([^\s&]+)/gi,
+      '$1=[redacted]'
+    );
 }
 
 export function formatSetupLogMessage(msg) {
@@ -181,10 +228,10 @@ function logMissingRequiredGithubForCi(acc) {
   const missing = listMissingRequiredGithubForCi(acc);
   if (!missing.length) return;
   logWarn(
-    `Required GitHub secrets/variables still missing (${missing.length}): deploy/preview CI may fail until these are set in env files or on GitHub.`,
+    `Required GitHub secrets/variables still missing (${missing.length}): deploy/preview CI may fail until these are set in env files or on GitHub.`
   );
   logWarn(
-    'Use the exact variable names from docs/reference/github-actions-secrets.md (npm run docs:actions-secrets). Lines like export KEY=value in .env files are supported.',
+    'Use the exact variable names from docs/reference/github-actions-secrets.md (npm run docs:actions-secrets). Lines like export KEY=value in .env files are supported.'
   );
   /** @type {Map<string, { secrets: string[]; variables: string[] }>} */
   const byGroup = new Map();
@@ -200,9 +247,14 @@ function logMissingRequiredGithubForCi(acc) {
   for (const g of groups) {
     const { secrets, variables } = byGroup.get(g);
     const parts = [];
-    if (secrets.length) parts.push(`secrets: ${[...secrets].sort((a, b) => a.localeCompare(b)).join(', ')}`);
+    if (secrets.length)
+      parts.push(
+        `secrets: ${[...secrets].sort((a, b) => a.localeCompare(b)).join(', ')}`
+      );
     if (variables.length) {
-      parts.push(`variables: ${[...variables].sort((a, b) => a.localeCompare(b)).join(', ')}`);
+      parts.push(
+        `variables: ${[...variables].sort((a, b) => a.localeCompare(b)).join(', ')}`
+      );
     }
     logWarn(`  [${g}] ${parts.join(' | ')}`);
   }
@@ -214,7 +266,11 @@ function logMissingRequiredGithubForCi(acc) {
  * @param {unknown} e
  */
 function isReadlineQuestionAbortError(e) {
-  return typeof e === 'object' && e !== null && /** @type {{ name?: string }} */ (e).name === 'AbortError';
+  return (
+    typeof e === 'object' &&
+    e !== null &&
+    /** @type {{ name?: string }} */ (e).name === 'AbortError'
+  );
 }
 
 /**
@@ -280,7 +336,9 @@ function applySecretResolutionToAcc(acc, resolved, primaryKey) {
   }
   if (Object.keys(resolved.merged).length) {
     Object.assign(acc, resolved.merged);
-    logInfo(`Merged from secret input: ${Object.keys(resolved.merged).sort().join(', ')}`);
+    logInfo(
+      `Merged from secret input: ${Object.keys(resolved.merged).sort().join(', ')}`
+    );
   }
   if (!(primaryKey in resolved.merged) && resolved.primary) {
     acc[primaryKey] = resolved.primary;
@@ -305,7 +363,7 @@ async function resolveSecretInputForSetup(line, primaryKey) {
     allowKeys: MERGEABLE_SETUP_ENV_KEYS,
     homedir,
     repoRoot: REPO_ROOT,
-    readFileUtf8: (p) => fs.readFile(p, 'utf8'),
+    readFileUtf8: p => fs.readFile(p, 'utf8'),
   });
 }
 
@@ -343,7 +401,7 @@ function stringifyDotEnv(record) {
     if (v === undefined || v === null) continue;
     const needsQuote = /[\s#]/.test(v) || v === '';
     lines.push(
-      needsQuote ? `${k}="${escapeDotEnvDoubleQuotedValue(v)}"` : `${k}=${v}`,
+      needsQuote ? `${k}="${escapeDotEnvDoubleQuotedValue(v)}"` : `${k}=${v}`
     );
   }
   lines.push('');
@@ -397,24 +455,35 @@ function runInteractive(cmd, args, opts = {}) {
 function runInteractiveOnControllingTty(cmd, args, opts = {}) {
   const cwd = opts.cwd || REPO_ROOT;
   if (platform() === 'win32') {
-    return spawnSync(cmd, args, { cwd, stdio: 'inherit', encoding: 'utf8' }).status ?? 1;
+    return (
+      spawnSync(cmd, args, { cwd, stdio: 'inherit', encoding: 'utf8' })
+        .status ?? 1
+    );
   }
   const ttyPath = '/dev/tty';
   if (!existsSync(ttyPath)) {
-    return spawnSync(cmd, args, { cwd, stdio: 'inherit', encoding: 'utf8' }).status ?? 1;
+    return (
+      spawnSync(cmd, args, { cwd, stdio: 'inherit', encoding: 'utf8' })
+        .status ?? 1
+    );
   }
   let fd;
   try {
     fd = openSync(ttyPath, fsConstants.O_RDWR);
   } catch {
-    return spawnSync(cmd, args, { cwd, stdio: 'inherit', encoding: 'utf8' }).status ?? 1;
+    return (
+      spawnSync(cmd, args, { cwd, stdio: 'inherit', encoding: 'utf8' })
+        .status ?? 1
+    );
   }
   try {
-    return spawnSync(cmd, args, {
-      cwd,
-      stdio: [fd, fd, fd],
-      encoding: 'utf8',
-    }).status ?? 1;
+    return (
+      spawnSync(cmd, args, {
+        cwd,
+        stdio: [fd, fd, fd],
+        encoding: 'utf8',
+      }).status ?? 1
+    );
   } finally {
     closeSync(fd);
   }
@@ -477,11 +546,13 @@ async function promptSupabaseAuthResolution(rl, promptInput, acc, flags) {
   logInfo('');
   logInfo('Supabase CLI needs authentication. Recommended:');
   logInfo('  • Open Terminal.app (outside the IDE) and run: supabase login');
-  logInfo('  • Or paste a personal access token from https://supabase.com/dashboard/account/tokens');
+  logInfo(
+    '  • Or paste a personal access token from https://supabase.com/dashboard/account/tokens'
+  );
   const choice = (
     await rlQuestion(
       rl,
-      '(p)aste token for `supabase login --token`, (r)etry after manual login, (s)kip, (q)uit: ',
+      '(p)aste token for `supabase login --token`, (r)etry after manual login, (s)kip, (q)uit: '
     )
   )
     .trim()
@@ -494,21 +565,26 @@ async function promptSupabaseAuthResolution(rl, promptInput, acc, flags) {
       rl,
       promptInput,
       flags,
-      'Token (paste, path to bare secret or .env file, or masked type; q=quit setup): ',
+      'Token (paste, path to bare secret or .env file, or masked type; q=quit setup): '
     );
     checkSecretInputQuit(line);
     if (!line.trim()) {
       logWarn('No token provided; choose (r)etry or (s)kip.');
       return 'retry';
     }
-    const resolved = await resolveSecretInputForSetup(line, 'SUPABASE_ACCESS_TOKEN');
+    const resolved = await resolveSecretInputForSetup(
+      line,
+      'SUPABASE_ACCESS_TOKEN'
+    );
     applySecretResolutionToAcc(acc, resolved, 'SUPABASE_ACCESS_TOKEN');
     const token = (acc.SUPABASE_ACCESS_TOKEN || '').trim();
     if (token && trySupabaseLoginFromEnvToken(token)) {
       logInfo('supabase login --token succeeded.');
       return 'retry';
     }
-    logWarn('Token login failed; fix token or use Terminal.app, then choose (r)etry.');
+    logWarn(
+      'Token login failed; fix token or use Terminal.app, then choose (r)etry.'
+    );
     return 'retry';
   }
   return 'retry';
@@ -522,13 +598,17 @@ async function promptSupabaseAuthResolution(rl, promptInput, acc, flags) {
  */
 async function promptSupabaseAccessTokenForGithub(rl, promptInput, acc, flags) {
   if (flags.dryRun) {
-    logInfo('[dry-run] would prompt for SUPABASE_ACCESS_TOKEN (skipped; not reading env or paste).');
+    logInfo(
+      '[dry-run] would prompt for SUPABASE_ACCESS_TOKEN (skipped; not reading env or paste).'
+    );
     return;
   }
   const env = process.env.SUPABASE_ACCESS_TOKEN?.trim();
   if (env) {
     acc.SUPABASE_ACCESS_TOKEN = env;
-    logInfo('Using SUPABASE_ACCESS_TOKEN from environment (value not printed).');
+    logInfo(
+      'Using SUPABASE_ACCESS_TOKEN from environment (value not printed).'
+    );
     return;
   }
   const dash = 'https://supabase.com/dashboard/account/tokens';
@@ -540,11 +620,14 @@ async function promptSupabaseAccessTokenForGithub(rl, promptInput, acc, flags) {
     rl,
     promptInput,
     flags,
-    'Paste token, path to file (bare secret or .env), blank to skip, q=quit entire setup: ',
+    'Paste token, path to file (bare secret or .env), blank to skip, q=quit entire setup: '
   );
   checkSecretInputQuit(line);
   if (!line.trim()) return;
-  const resolved = await resolveSecretInputForSetup(line, 'SUPABASE_ACCESS_TOKEN');
+  const resolved = await resolveSecretInputForSetup(
+    line,
+    'SUPABASE_ACCESS_TOKEN'
+  );
   applySecretResolutionToAcc(acc, resolved, 'SUPABASE_ACCESS_TOKEN');
 }
 
@@ -556,7 +639,9 @@ async function promptSupabaseAccessTokenForGithub(rl, promptInput, acc, flags) {
  */
 async function promptExpoTokenForGithub(rl, promptInput, acc, flags) {
   if (flags.dryRun) {
-    logInfo('[dry-run] would prompt for EXPO_TOKEN (skipped; not reading env or paste).');
+    logInfo(
+      '[dry-run] would prompt for EXPO_TOKEN (skipped; not reading env or paste).'
+    );
     return;
   }
   const env = process.env.EXPO_TOKEN?.trim();
@@ -566,16 +651,20 @@ async function promptExpoTokenForGithub(rl, promptInput, acc, flags) {
     return;
   }
   const dash = 'https://expo.dev/accounts/[account]/settings/access-tokens';
-  logInfo(`Expo access token (EXPO_TOKEN) for CI: create at expo.dev → Account → Access tokens`);
+  logInfo(
+    `Expo access token (EXPO_TOKEN) for CI: create at expo.dev → Account → Access tokens`
+  );
   logInfo(`Docs: ${dash}`);
   if (process.platform === 'darwin') {
-    spawnSync('open', ['https://expo.dev/settings/access-tokens'], { stdio: 'ignore' });
+    spawnSync('open', ['https://expo.dev/settings/access-tokens'], {
+      stdio: 'ignore',
+    });
   }
   const line = await readSecretLineMaskedOrVisible(
     rl,
     promptInput,
     flags,
-    'Paste EXPO_TOKEN, path to file (bare secret or .env), blank to skip, q=quit entire setup: ',
+    'Paste EXPO_TOKEN, path to file (bare secret or .env), blank to skip, q=quit entire setup: '
   );
   checkSecretInputQuit(line);
   if (!line.trim()) return;
@@ -590,7 +679,9 @@ async function promptExpoTokenForGithub(rl, promptInput, acc, flags) {
  */
 async function offerInteractiveLogin(rl, flags, spec) {
   if (flags.dryRun) {
-    logInfo(`[dry-run] would offer ${spec.label}: ${spec.command} ${spec.args.join(' ')}`);
+    logInfo(
+      `[dry-run] would offer ${spec.label}: ${spec.command} ${spec.args.join(' ')}`
+    );
     return false;
   }
   const a = (await rlQuestion(rl, spec.question)).trim().toLowerCase();
@@ -598,7 +689,9 @@ async function offerInteractiveLogin(rl, flags, spec) {
     return false;
   }
   logInfo(`Running ${spec.label}: ${spec.command} ${spec.args.join(' ')}`);
-  const code = runInteractiveWithRl(rl, spec.command, spec.args, { cwd: spec.cwd || REPO_ROOT });
+  const code = runInteractiveWithRl(rl, spec.command, spec.args, {
+    cwd: spec.cwd || REPO_ROOT,
+  });
   if (code !== 0) {
     logWarn(`${spec.label} exited with code ${code}`);
     return false;
@@ -630,12 +723,16 @@ function childProcessEnvForSpawn() {
  * @param {CliFlags} flags
  */
 function awsCallerIdentityOk(flags) {
-  const r = spawnSync('aws', ['sts', 'get-caller-identity', ...awsProfileArgs(flags)], {
-    cwd: REPO_ROOT,
-    stdio: 'pipe',
-    encoding: 'utf8',
-    env: childProcessEnvForSpawn(),
-  });
+  const r = spawnSync(
+    'aws',
+    ['sts', 'get-caller-identity', ...awsProfileArgs(flags)],
+    {
+      cwd: REPO_ROOT,
+      stdio: 'pipe',
+      encoding: 'utf8',
+      env: childProcessEnvForSpawn(),
+    }
+  );
   return r.status === 0;
 }
 
@@ -645,7 +742,11 @@ function awsCallerIdentityOk(flags) {
  * @param {string[]} profileArgs from awsProfileArgs(flags)
  * @returns {Promise<string | null>} StackStatus or null if missing / error
  */
-async function describeCloudFormationStackStatus(stackName, region, profileArgs) {
+async function describeCloudFormationStackStatus(
+  stackName,
+  region,
+  profileArgs
+) {
   const res = await runCmd(
     'aws',
     [
@@ -661,7 +762,7 @@ async function describeCloudFormationStackStatus(stackName, region, profileArgs)
       '--output',
       'text',
     ],
-    { cwd: REPO_ROOT },
+    { cwd: REPO_ROOT }
   );
   if (res.code !== 0) {
     return null;
@@ -699,16 +800,20 @@ function runBootstrapPreflightJson(bootstrapArgs) {
   });
   const errOut = `${r.stderr || ''}${r.stdout || ''}`.trim();
   if (r.status !== 0) {
-    logWarn(`AWS preflight (--print-preflight-json) failed (exit ${r.status ?? 1}). ${errOut.slice(0, 500)}`);
+    logWarn(
+      `AWS preflight (--print-preflight-json) failed (exit ${r.status ?? 1}). ${errOut.slice(0, 500)}`
+    );
     return null;
   }
   const raw = (r.stdout || '').trim();
-  const lines = raw.split(/\r?\n/).filter((l) => l.trim());
+  const lines = raw.split(/\r?\n/).filter(l => l.trim());
   const last = lines[lines.length - 1] || raw;
   try {
     return /** @type {AwsPreflightJson} */ (JSON.parse(last));
   } catch {
-    logWarn('Could not parse AWS preflight JSON; continuing without conflict menu.');
+    logWarn(
+      'Could not parse AWS preflight JSON; continuing without conflict menu.'
+    );
     return null;
   }
 }
@@ -718,12 +823,16 @@ function runBootstrapPreflightJson(bootstrapArgs) {
  * @returns {boolean}
  */
 function runBootstrapDeleteFailedChangeSets(bootstrapArgs) {
-  const r = spawnSync('bash', [...bootstrapArgs, '--delete-failed-change-sets'], {
-    cwd: REPO_ROOT,
-    encoding: 'utf8',
-    stdio: ['ignore', 'inherit', 'inherit'],
-    env: childProcessEnvForSpawn(),
-  });
+  const r = spawnSync(
+    'bash',
+    [...bootstrapArgs, '--delete-failed-change-sets'],
+    {
+      cwd: REPO_ROOT,
+      encoding: 'utf8',
+      stdio: ['ignore', 'inherit', 'inherit'],
+      env: childProcessEnvForSpawn(),
+    }
+  );
   if (r.status !== 0) {
     logWarn(`delete-failed-change-sets exited ${r.status ?? 1}.`);
     return false;
@@ -738,7 +847,11 @@ function runBootstrapDeleteFailedChangeSets(bootstrapArgs) {
  * @param {string[]} bootstrapArgs
  * @returns {Promise<{ skipAwsPhase: boolean; allowConflictingBuckets: boolean }>}
  */
-async function resolveAwsPreflightConflictsInteractive(rl, flags, bootstrapArgs) {
+async function resolveAwsPreflightConflictsInteractive(
+  rl,
+  flags,
+  bootstrapArgs
+) {
   if (!input.isTTY) {
     return { skipAwsPhase: false, allowConflictingBuckets: false };
   }
@@ -748,9 +861,16 @@ async function resolveAwsPreflightConflictsInteractive(rl, flags, bootstrapArgs)
 
   while (pf && pf.stuckReviewSuggestedFix) {
     logWarn(
-      'CloudFormation may be stuck (REVIEW_IN_PROGRESS and/or FAILED change sets). Deleting FAILED change sets is usually safe.',
+      'CloudFormation may be stuck (REVIEW_IN_PROGRESS and/or FAILED change sets). Deleting FAILED change sets is usually safe.'
     );
-    const del = (await rlQuestion(rl, 'Delete FAILED change sets for this stack now? (y/N): ')).trim().toLowerCase();
+    const del = (
+      await rlQuestion(
+        rl,
+        'Delete FAILED change sets for this stack now? (y/N): '
+      )
+    )
+      .trim()
+      .toLowerCase();
     if (del !== 'y' && del !== 'yes') {
       break;
     }
@@ -764,21 +884,27 @@ async function resolveAwsPreflightConflictsInteractive(rl, flags, bootstrapArgs)
     return { skipAwsPhase: false, allowConflictingBuckets: false };
   }
 
-  const reasons = Array.isArray(pf.deployLikelyFailReasons) ? pf.deployLikelyFailReasons.join(', ') : '';
-  logWarn(`AWS preflight: deploy will likely fail until this is addressed (${reasons}).`);
+  const reasons = Array.isArray(pf.deployLikelyFailReasons)
+    ? pf.deployLikelyFailReasons.join(', ')
+    : '';
+  logWarn(
+    `AWS preflight: deploy will likely fail until this is addressed (${reasons}).`
+  );
   if ((pf.cloudFrontAliasConflicts || []).length > 0) {
     for (const c of pf.cloudFrontAliasConflicts) {
-      logWarn(`  CloudFront distribution ${c.distributionId} uses aliases: ${(c.matchedAliases || []).join(', ')}`);
+      logWarn(
+        `  CloudFront distribution ${c.distributionId} uses aliases: ${(c.matchedAliases || []).join(', ')}`
+      );
     }
   }
   if (pf.orphanBuckets) {
     logWarn(
-      `  Orphan named buckets may block create: ${pf.buckets?.prodName || ''}, ${pf.buckets?.stagingName || ''}, ${pf.buckets?.deployName || ''}`,
+      `  Orphan named buckets may block create: ${pf.buckets?.prodName || ''}, ${pf.buckets?.stagingName || ''}, ${pf.buckets?.deployName || ''}`
     );
   }
   if (pf.stackStatusBlocksDeploy && pf.stackStatus) {
     logWarn(
-      `  Stack "${pf.stackName}" is ${pf.stackStatus}: delete this CloudFormation stack before re-using the same stack name (aws cloudformation delete-stack --stack-name "${pf.stackName}"; then wait for delete-complete).`,
+      `  Stack "${pf.stackName}" is ${pf.stackStatus}: delete this CloudFormation stack before re-using the same stack name (aws cloudformation delete-stack --stack-name "${pf.stackName}"; then wait for delete-complete).`
     );
   }
 
@@ -786,12 +912,18 @@ async function resolveAwsPreflightConflictsInteractive(rl, flags, bootstrapArgs)
     const choice = (
       await rlQuestion(
         rl,
-        '(S)kip AWS bootstrap  /  (C)ontinue deploy anyway  /  (D)estructive: empty+delete apex prod/staging/deploy buckets [S]: ',
+        '(S)kip AWS bootstrap  /  (C)ontinue deploy anyway  /  (D)estructive: empty+delete apex prod/staging/deploy buckets [S]: '
       )
     )
       .trim()
       .toLowerCase();
-    if (choice === '' || choice === 's' || choice === 'skip' || choice === 'q' || choice === 'quit') {
+    if (
+      choice === '' ||
+      choice === 's' ||
+      choice === 'skip' ||
+      choice === 'q' ||
+      choice === 'quit'
+    ) {
       return { skipAwsPhase: true, allowConflictingBuckets: false };
     }
     if (choice === 'c' || choice === 'continue') {
@@ -800,12 +932,12 @@ async function resolveAwsPreflightConflictsInteractive(rl, flags, bootstrapArgs)
     if (choice === 'd' || choice === 'destructive') {
       if ((pf.cloudFrontAliasConflicts || []).length > 0) {
         logWarn(
-          'WARNING: CloudFront distributions still use this apex on alternate domains. Deleting buckets can break live sites that use those origins.',
+          'WARNING: CloudFront distributions still use this apex on alternate domains. Deleting buckets can break live sites that use those origins.'
         );
         const ack = (
           await rlQuestion(
             rl,
-            "Type exactly 'ACKNOWLEDGE CLOUDFRONT RISK' to run bucket teardown anyway (or Enter to cancel): ",
+            "Type exactly 'ACKNOWLEDGE CLOUDFRONT RISK' to run bucket teardown anyway (or Enter to cancel): "
           )
         ).trim();
         if (ack !== 'ACKNOWLEDGE CLOUDFRONT RISK') {
@@ -813,18 +945,31 @@ async function resolveAwsPreflightConflictsInteractive(rl, flags, bootstrapArgs)
           continue;
         }
       }
-      const td = [path.join(REPO_ROOT, 'scripts', 'pr-preview', 'teardown-preview-domain-buckets.sh'), '--domain', pf.domain, '--region', pf.region];
+      const td = [
+        path.join(
+          REPO_ROOT,
+          'scripts',
+          'pr-preview',
+          'teardown-preview-domain-buckets.sh'
+        ),
+        '--domain',
+        pf.domain,
+        '--region',
+        pf.region,
+      ];
       if (flags.awsProfile) {
         td.push('--aws-profile', flags.awsProfile);
       }
       if ((pf.cloudFrontAliasConflicts || []).length > 0) {
         td.push('--i-acknowledge-cloudfront-may-break');
       }
-      logWarn('WARNING: This permanently deletes data in the three named S3 buckets.');
+      logWarn(
+        'WARNING: This permanently deletes data in the three named S3 buckets.'
+      );
       const phrase = (
         await rlQuestion(
           rl,
-          "Type exactly 'PERMANENTLY DELETE BUCKETS' to confirm (or Enter to cancel): ",
+          "Type exactly 'PERMANENTLY DELETE BUCKETS' to confirm (or Enter to cancel): "
         )
       ).trim();
       if (phrase !== 'PERMANENTLY DELETE BUCKETS') {
@@ -832,7 +977,10 @@ async function resolveAwsPreflightConflictsInteractive(rl, flags, bootstrapArgs)
         continue;
       }
       // Pass confirmation via env so teardown never calls `read` (freezes under IDE readline + TTY).
-      const tdEnv = { ...childProcessEnvForSpawn(), BEAKER_DELETE_BUCKETS_CONFIRM: 'PERMANENTLY DELETE BUCKETS' };
+      const tdEnv = {
+        ...childProcessEnvForSpawn(),
+        BEAKER_DELETE_BUCKETS_CONFIRM: 'PERMANENTLY DELETE BUCKETS',
+      };
       const tdCode =
         spawnSync('bash', td, {
           cwd: REPO_ROOT,
@@ -841,15 +989,21 @@ async function resolveAwsPreflightConflictsInteractive(rl, flags, bootstrapArgs)
           encoding: 'utf8',
         }).status ?? 1;
       if (tdCode !== 0) {
-        logWarn('Bucket teardown did not complete successfully; choose another option.');
+        logWarn(
+          'Bucket teardown did not complete successfully; choose another option.'
+        );
         continue;
       }
       pf = runBootstrapPreflightJson(bootstrapArgs);
       if (!pf || !pf.deployLikelyFails) {
-        logInfo('Preflight: deploy-blocking issues appear cleared; proceeding to bootstrap.');
+        logInfo(
+          'Preflight: deploy-blocking issues appear cleared; proceeding to bootstrap.'
+        );
         return { skipAwsPhase: false, allowConflictingBuckets: false };
       }
-      logWarn('Conflicts still reported after teardown; choose Skip, Continue anyway, or retry destructive after fixing CloudFormation/CloudFront in the console.');
+      logWarn(
+        'Conflicts still reported after teardown; choose Skip, Continue anyway, or retry destructive after fixing CloudFormation/CloudFront in the console.'
+      );
       continue;
     }
     logWarn('Unrecognized choice; enter S, C, or D.');
@@ -888,7 +1042,8 @@ function easWhoamiOk() {
  * @param {import('stream').Readable & { isTTY?: boolean; setRawMode?: (flag: boolean) => void }} promptInput
  */
 async function ensureSupabaseCliAuth(rl, flags, acc, promptInput) {
-  const tryList = async () => runCmd('supabase', ['projects', 'list', '-o', 'json'], { cwd: REPO_ROOT });
+  const tryList = async () =>
+    runCmd('supabase', ['projects', 'list', '-o', 'json'], { cwd: REPO_ROOT });
 
   let listRes = await tryList();
   if (listRes.code === 0) {
@@ -904,7 +1059,9 @@ async function ensureSupabaseCliAuth(rl, flags, acc, promptInput) {
   }
 
   for (let attempt = 0; attempt < 8; attempt += 1) {
-    logWarn('Supabase CLI is not authenticated (or the projects list request failed).');
+    logWarn(
+      'Supabase CLI is not authenticated (or the projects list request failed).'
+    );
     logWarn(redactForLog(listRes.stderr || listRes.stdout));
     const res = await promptSupabaseAuthResolution(rl, promptInput, acc, flags);
     if (res === 'skip') {
@@ -929,12 +1086,14 @@ async function ensureAwsCredentials(rl, flags) {
   if (awsCallerIdentityOk(flags)) {
     return;
   }
-  logWarn('AWS CLI: `aws sts get-caller-identity` failed (missing or expired credentials).');
+  logWarn(
+    'AWS CLI: `aws sts get-caller-identity` failed (missing or expired credentials).'
+  );
   for (let i = 0; i < 8; i += 1) {
     const c = (
       await rlQuestion(
         rl,
-        'Fix AWS — (l) aws sso login, (c) aws configure, (r) re-check caller identity, (s)kip, (q)uit: ',
+        'Fix AWS — (l) aws sso login, (c) aws configure, (r) re-check caller identity, (s)kip, (q)uit: '
       )
     )
       .trim()
@@ -958,12 +1117,15 @@ async function ensureAwsCredentials(rl, flags) {
       logInfo(`Running: aws ${args.join(' ')}`);
       if (input.isTTY) {
         logInfo(
-          'If this hangs, use Terminal.app and run the same command there (IDE readline + AWS prompts often conflict).',
+          'If this hangs, use Terminal.app and run the same command there (IDE readline + AWS prompts often conflict).'
         );
       }
       pauseRl(rl);
       try {
-        runInteractive('aws', args, { cwd: REPO_ROOT, env: childProcessEnvForSpawn() });
+        runInteractive('aws', args, {
+          cwd: REPO_ROOT,
+          env: childProcessEnvForSpawn(),
+        });
       } finally {
         resumeRl(rl);
       }
@@ -973,12 +1135,15 @@ async function ensureAwsCredentials(rl, flags) {
       logInfo('Running: aws configure');
       if (input.isTTY) {
         logInfo(
-          'If prompts freeze here, use Terminal.app: aws configure (IDE readline + AWS configure often conflict).',
+          'If prompts freeze here, use Terminal.app: aws configure (IDE readline + AWS configure often conflict).'
         );
       }
       pauseRl(rl);
       try {
-        runInteractive('aws', ['configure'], { cwd: REPO_ROOT, env: childProcessEnvForSpawn() });
+        runInteractive('aws', ['configure'], {
+          cwd: REPO_ROOT,
+          env: childProcessEnvForSpawn(),
+        });
       } finally {
         resumeRl(rl);
       }
@@ -999,7 +1164,9 @@ function ghSecretSetSync(repo, name, value, dryRun) {
     stdio: ['pipe', 'pipe', 'pipe'],
   });
   if (r.status !== 0) {
-    logWarn(`gh secret set ${name} failed: ${redactForLog(r.stderr || r.stdout || '')}`);
+    logWarn(
+      `gh secret set ${name} failed: ${redactForLog(r.stderr || r.stdout || '')}`
+    );
   }
   return r.status ?? 1;
 }
@@ -1009,10 +1176,14 @@ function ghVariableSetSync(repo, name, value, dryRun) {
     logInfo(`[dry-run] gh variable set ${name} --repo ${repo}`);
     return 0;
   }
-  const r = spawnSync('gh', ['variable', 'set', name, '--repo', repo, '--body', value], {
-    encoding: 'utf8',
-    stdio: ['pipe', 'pipe', 'pipe'],
-  });
+  const r = spawnSync(
+    'gh',
+    ['variable', 'set', name, '--repo', repo, '--body', value],
+    {
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }
+  );
   if (r.status !== 0) {
     logWarn(`gh variable set ${name} failed: ${redactForLog(r.stderr || '')}`);
   }
@@ -1020,18 +1191,24 @@ function ghVariableSetSync(repo, name, value, dryRun) {
 }
 
 function resolveGhRepo() {
-  const r = spawnSync('gh', ['repo', 'view', '--json', 'nameWithOwner', '-q', '.nameWithOwner'], {
-    cwd: REPO_ROOT,
-    encoding: 'utf8',
-    stdio: ['pipe', 'pipe', 'pipe'],
-  });
+  const r = spawnSync(
+    'gh',
+    ['repo', 'view', '--json', 'nameWithOwner', '-q', '.nameWithOwner'],
+    {
+      cwd: REPO_ROOT,
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }
+  );
   if (r.status !== 0) return '';
   return (r.stdout || '').trim();
 }
 
 function which(cmd) {
   if (!/^[a-zA-Z0-9_.-]+$/.test(cmd)) return '';
-  const r = spawnSync('sh', ['-c', `command -v "${cmd}" 2>/dev/null`], { encoding: 'utf8' });
+  const r = spawnSync('sh', ['-c', `command -v "${cmd}" 2>/dev/null`], {
+    encoding: 'utf8',
+  });
   return r.status === 0 ? (r.stdout || '').trim().split('\n')[0] : '';
 }
 
@@ -1049,7 +1226,10 @@ function createPromptInterface() {
       /* interactive prompts may not work without a TTY */
     }
   }
-  return { rl: createInterface({ input: inStream, output }), promptInput: inStream };
+  return {
+    rl: createInterface({ input: inStream, output }),
+    promptInput: inStream,
+  };
 }
 
 /**
@@ -1089,7 +1269,9 @@ async function phaseIdentity(flags, rl) {
     logWarn(w);
   }
   logInfo(`Detected product display name: "${identity.displayName}"`);
-  logInfo(`Detected legal entity (package.json author): "${identity.legalAuthor}"`);
+  logInfo(
+    `Detected legal entity (package.json author): "${identity.legalAuthor}"`
+  );
 
   const fromName = identity.displayName;
   const fromLegal = identity.legalAuthor;
@@ -1100,27 +1282,48 @@ async function phaseIdentity(flags, rl) {
     return;
   }
 
-  const doLegal = await rlQuestion(rl, 'Also replace legal organization string across the repo? (y/N): ');
+  const doLegal = await rlQuestion(
+    rl,
+    'Also replace legal organization string across the repo? (y/N): '
+  );
   let toLegal = '';
   if (/^y(es)?$/i.test(doLegal.trim())) {
     toLegal = (await rlQuestion(rl, 'New legal organization name: ')).trim();
     if (!toLegal) {
-      logWarn('Legal rename requested but no new value; run rename without --from-legal/--to-legal.');
+      logWarn(
+        'Legal rename requested but no new value; run rename without --from-legal/--to-legal.'
+      );
     }
   }
 
   const dry = flags.dryRun ? ['--dry-run'] : [];
   const legalArgs =
-    toLegal && fromLegal && fromLegal !== toLegal ? ['--from-legal', fromLegal, '--to-legal', toLegal] : [];
-  logInfo(`Running rename: display "${fromName}" -> "${toName}"${legalArgs.length ? ' + legal entity' : ''}`);
+    toLegal && fromLegal && fromLegal !== toLegal
+      ? ['--from-legal', fromLegal, '--to-legal', toLegal]
+      : [];
+  logInfo(
+    `Running rename: display "${fromName}" -> "${toName}"${legalArgs.length ? ' + legal entity' : ''}`
+  );
   const code = runInteractiveWithRl(
     rl,
     'npm',
-    ['run', 'rename', '--', '--from', fromName, '--to', toName, ...legalArgs, ...dry],
-    { cwd: REPO_ROOT },
+    [
+      'run',
+      'rename',
+      '--',
+      '--from',
+      fromName,
+      '--to',
+      toName,
+      ...legalArgs,
+      ...dry,
+    ],
+    { cwd: REPO_ROOT }
   );
   if (code !== 0) {
-    logWarn('rename exited non-zero; fix issues and re-run with --skip-rename or repeat this phase.');
+    logWarn(
+      'rename exited non-zero; fix issues and re-run with --skip-rename or repeat this phase.'
+    );
   }
 }
 
@@ -1137,18 +1340,29 @@ async function phaseSupabase(flags, rl, acc, promptInput) {
   }
   const listRes = await ensureSupabaseCliAuth(rl, flags, acc, promptInput);
   if (listRes.code !== 0) {
-    logWarn('Supabase phase skipped: not authenticated (run `supabase login` and try again).');
+    logWarn(
+      'Supabase phase skipped: not authenticated (run `supabase login` and try again).'
+    );
     return;
   }
 
-  let orgsRes = await runCmd('supabase', ['orgs', 'list', '-o', 'json'], { cwd: REPO_ROOT });
+  let orgsRes = await runCmd('supabase', ['orgs', 'list', '-o', 'json'], {
+    cwd: REPO_ROOT,
+  });
   if (orgsRes.code !== 0) {
     logWarn('Could not list Supabase organizations.');
     logWarn(redactForLog(orgsRes.stderr || orgsRes.stdout));
     for (let oi = 0; oi < 8 && orgsRes.code !== 0; oi += 1) {
-      const res = await promptSupabaseAuthResolution(rl, promptInput, acc, flags);
+      const res = await promptSupabaseAuthResolution(
+        rl,
+        promptInput,
+        acc,
+        flags
+      );
       if (res === 'skip') break;
-      orgsRes = await runCmd('supabase', ['orgs', 'list', '-o', 'json'], { cwd: REPO_ROOT });
+      orgsRes = await runCmd('supabase', ['orgs', 'list', '-o', 'json'], {
+        cwd: REPO_ROOT,
+      });
     }
   }
   if (orgsRes.code !== 0) {
@@ -1170,7 +1384,7 @@ async function phaseSupabase(flags, rl, acc, promptInput) {
   orgs.forEach((o, i) => logInfo(`  [${i}] ${o.id}  ${o.name}`));
   const orgIdx = parseInt(
     (await rlQuestion(rl, `Choose org index [0]: `)).trim() || '0',
-    10,
+    10
   );
   const org = orgs[Number.isFinite(orgIdx) ? orgIdx : 0];
   if (!org) {
@@ -1187,11 +1401,13 @@ async function phaseSupabase(flags, rl, acc, promptInput) {
   }
 
   const region =
-    (await rlQuestion(rl, 'Default region for new projects [us-east-1]: ')).trim() || 'us-east-1';
+    (
+      await rlQuestion(rl, 'Default region for new projects [us-east-1]: ')
+    ).trim() || 'us-east-1';
 
   const supabaseSlugBase = await readSupabaseProjectSlugBase();
   logInfo(
-    `Default new Supabase project slug per tier: ${supabaseSlugBase}-<staging|production|preview> (from apps/mobile/app.config.js; same word rules as rename).`,
+    `Default new Supabase project slug per tier: ${supabaseSlugBase}-<staging|production|preview> (from apps/mobile/app.config.js; same word rules as rename).`
   );
 
   /**
@@ -1199,9 +1415,16 @@ async function phaseSupabase(flags, rl, acc, promptInput) {
    */
   async function configureTier(tier) {
     const prefix =
-      tier === 'staging' ? 'STAGING' : tier === 'production' ? 'PRODUCTION' : 'PREVIEW';
+      tier === 'staging'
+        ? 'STAGING'
+        : tier === 'production'
+          ? 'PRODUCTION'
+          : 'PREVIEW';
     const mode = (
-      await rlQuestion(rl, `[${tier}] (c)reate new project or (s)elect existing? [s]: `)
+      await rlQuestion(
+        rl,
+        `[${tier}] (c)reate new project or (s)elect existing? [s]: `
+      )
     )
       .trim()
       .toLowerCase();
@@ -1212,18 +1435,20 @@ async function phaseSupabase(flags, rl, acc, promptInput) {
 
     if (create) {
       const suggestedSlug = `${supabaseSlugBase}-${tier}`;
-      const slugAnswer = (await rlQuestion(rl, `[${tier}] project name slug [${suggestedSlug}]: `)).trim();
+      const slugAnswer = (
+        await rlQuestion(rl, `[${tier}] project name slug [${suggestedSlug}]: `)
+      ).trim();
       const defaultName = slugAnswer || suggestedSlug;
       const genPw = crypto.randomBytes(16).toString('base64url');
       const dbPk = supabaseDbPasswordEnvKey(tier);
       logInfo(
-        `[${tier}] Next: database password for the new project (Enter = random). Typed input is masked on a real TTY.`,
+        `[${tier}] Next: database password for the new project (Enter = random). Typed input is masked on a real TTY.`
       );
       const rawPw = await readSecretLineMaskedOrVisible(
         rl,
         promptInput,
         flags,
-        `[${tier}] Database password — blank for random; paste, path, or masked type (q=quit): `,
+        `[${tier}] Database password — blank for random; paste, path, or masked type (q=quit): `
       );
       checkSecretInputQuit(rawPw);
       if (!rawPw.trim()) {
@@ -1231,7 +1456,10 @@ async function phaseSupabase(flags, rl, acc, promptInput) {
       } else {
         const resolved = await resolveSecretInputForSetup(rawPw, dbPk);
         applySecretResolutionToAcc(acc, resolved, dbPk);
-        dbPassword = (acc[dbPk] && String(acc[dbPk]).trim()) || resolved.primary.trim() || genPw;
+        dbPassword =
+          (acc[dbPk] && String(acc[dbPk]).trim()) ||
+          resolved.primary.trim() ||
+          genPw;
       }
       const args = [
         'projects',
@@ -1248,7 +1476,9 @@ async function phaseSupabase(flags, rl, acc, promptInput) {
         '--yes',
       ];
       if (flags.dryRun) {
-        logInfo(`[dry-run] supabase ${args.map((a) => (a === dbPassword ? '[db-password]' : a)).join(' ')}`);
+        logInfo(
+          `[dry-run] supabase ${args.map(a => (a === dbPassword ? '[db-password]' : a)).join(' ')}`
+        );
         const dbPlaceholder = 'dry-run-db-password';
         acc[`${prefix}_SUPABASE_URL`] = 'https://dry-run.supabase.co';
         acc[`${prefix}_SUPABASE_ANON_KEY`] = 'dry-run-anon';
@@ -1257,7 +1487,8 @@ async function phaseSupabase(flags, rl, acc, promptInput) {
         if (tier === 'preview') {
           acc.SUPABASE_PREVIEW_PROJECT_REF = 'dry-run-ref';
           acc.SUPABASE_PREVIEW_DB_PASSWORD = dbPlaceholder;
-          acc.SUPABASE_PREVIEW_DB_URL = 'postgresql://postgres:[redacted]@db.dry-run-ref.supabase.co:5432/postgres';
+          acc.SUPABASE_PREVIEW_DB_URL =
+            'postgresql://postgres:[redacted]@db.dry-run-ref.supabase.co:5432/postgres';
           acc.PR_TESTING_SUPABASE_URL = 'https://dry-run.supabase.co';
           acc.PR_TESTING_SUPABASE_ANON_KEY = 'dry-run-anon';
           acc.PR_TESTING_SUPABASE_PROJECT_REF = 'dry-run-ref';
@@ -1275,10 +1506,16 @@ async function phaseSupabase(flags, rl, acc, promptInput) {
         try {
           ref = parseProjectCreateJson(cr.stdout).id;
         } catch {
-          logWarn('Could not parse create output; check Supabase dashboard for project ref.');
+          logWarn(
+            'Could not parse create output; check Supabase dashboard for project ref.'
+          );
           return;
         }
-        const refreshed = await runCmd('supabase', ['projects', 'list', '-o', 'json'], { cwd: REPO_ROOT });
+        const refreshed = await runCmd(
+          'supabase',
+          ['projects', 'list', '-o', 'json'],
+          { cwd: REPO_ROOT }
+        );
         if (refreshed.code === 0) {
           try {
             projects = parseProjectsListJson(refreshed.stdout);
@@ -1288,7 +1525,9 @@ async function phaseSupabase(flags, rl, acc, promptInput) {
         }
       }
     } else {
-      const filtered = projects.filter((p) => p.organization_id === org.id || !p.organization_id);
+      const filtered = projects.filter(
+        p => p.organization_id === org.id || !p.organization_id
+      );
       const choices = filtered.length ? filtered : projects;
       const suggestedSlug = `${supabaseSlugBase}-${tier}`;
       const envHint =
@@ -1298,19 +1537,25 @@ async function phaseSupabase(flags, rl, acc, promptInput) {
       logInfo(`This step configures the ${tier} tier (${envHint}).`);
       logInfo(`Expected create slug for this tier: ${suggestedSlug}.`);
       logInfo('Projects (org-filtered if possible):');
-      choices.forEach((p, i) => logInfo(`  ${formatSupabaseProjectChoiceLine(i, p)}`));
-      const recommended = pickRecommendedSupabaseProject(choices, tier, supabaseSlugBase);
+      choices.forEach((p, i) =>
+        logInfo(`  ${formatSupabaseProjectChoiceLine(i, p)}`)
+      );
+      const recommended = pickRecommendedSupabaseProject(
+        choices,
+        tier,
+        supabaseSlugBase
+      );
       const last = choices.length - 1;
       const indexQuestion = recommended
         ? `[${tier}] Project index (0-${last}) recommending "${formatSupabaseProjectChoiceLine(
             recommended.index,
-            recommended.project,
+            recommended.project
           )}" [${recommended.index}]: `
         : `[${tier}] Project index (0-${last}) — enter index (no automatic recommendation): `;
       const indexAnswer = (await rlQuestion(rl, indexQuestion)).trim();
       const pick = parseInt(
         indexAnswer || (recommended ? String(recommended.index) : ''),
-        10,
+        10
       );
       const proj = choices[Number.isFinite(pick) ? pick : -1];
       if (!proj) {
@@ -1323,7 +1568,7 @@ async function phaseSupabase(flags, rl, acc, promptInput) {
         rl,
         promptInput,
         flags,
-        `[${tier}] Database password — paste, path to file, or masked type (q=quit): `,
+        `[${tier}] Database password — paste, path to file, or masked type (q=quit): `
       );
       checkSecretInputQuit(rawPw);
       if (!rawPw.trim() && !flags.dryRun) {
@@ -1333,7 +1578,8 @@ async function phaseSupabase(flags, rl, acc, promptInput) {
       if (rawPw.trim()) {
         const resolved = await resolveSecretInputForSetup(rawPw, dbPk);
         applySecretResolutionToAcc(acc, resolved, dbPk);
-        dbPassword = (acc[dbPk] && String(acc[dbPk]).trim()) || resolved.primary.trim();
+        dbPassword =
+          (acc[dbPk] && String(acc[dbPk]).trim()) || resolved.primary.trim();
       } else {
         dbPassword = '';
       }
@@ -1344,7 +1590,9 @@ async function phaseSupabase(flags, rl, acc, promptInput) {
     }
 
     if (flags.dryRun) {
-      logInfo(`[dry-run] would run: supabase projects api-keys --project-ref ${ref} (${tier})`);
+      logInfo(
+        `[dry-run] would run: supabase projects api-keys --project-ref ${ref} (${tier})`
+      );
       const apiUrl = projectApiUrl(ref);
       const anon = 'dry-run-anon';
       const service = 'dry-run-service';
@@ -1366,13 +1614,19 @@ async function phaseSupabase(flags, rl, acc, promptInput) {
         acc[`${prefix}_SUPABASE_DB_PASSWORD`] = dbPw;
         acc[`${prefix}_SUPABASE_SERVICE_ROLE_KEY`] = service;
       }
-      logInfo(`[dry-run] ${tier} tier: placeholder keys only (no api-keys CLI call).`);
+      logInfo(
+        `[dry-run] ${tier} tier: placeholder keys only (no api-keys CLI call).`
+      );
       return;
     }
 
-    const keysRes = await runCmd('supabase', ['projects', 'api-keys', '--project-ref', ref, '-o', 'json'], {
-      cwd: REPO_ROOT,
-    });
+    const keysRes = await runCmd(
+      'supabase',
+      ['projects', 'api-keys', '--project-ref', ref, '-o', 'json'],
+      {
+        cwd: REPO_ROOT,
+      }
+    );
     if (keysRes.code !== 0) {
       logWarn(`api-keys failed for ${ref}`);
       return;
@@ -1406,7 +1660,9 @@ async function phaseSupabase(flags, rl, acc, promptInput) {
       acc[`${prefix}_SUPABASE_DB_PASSWORD`] = dbPassword;
       acc[`${prefix}_SUPABASE_SERVICE_ROLE_KEY`] = service;
     }
-    logInfo(`[${tier}] Configured project ref ${ref} (keys stored locally, not printed).`);
+    logInfo(
+      `[${tier}] Configured project ref ${ref} (keys stored locally, not printed).`
+    );
   }
 
   await configureTier('staging');
@@ -1427,13 +1683,22 @@ async function promptHostedZoneAfterDiscovery(rl, zonesRes) {
     return (await rlQuestion(rl, 'Route53 hosted zone ID: ')).trim();
   }
   if (zonesRes.zones.length === 0) {
-    logWarn('No public Route53 hosted zone for this apex domain in the current AWS account.');
+    logWarn(
+      'No public Route53 hosted zone for this apex domain in the current AWS account.'
+    );
     return (await rlQuestion(rl, 'Route53 hosted zone ID: ')).trim();
   }
   if (zonesRes.zones.length === 1) {
     const only = zonesRes.zones[0];
     logInfo(`Discovered public hosted zone ${only.id} (${only.name}).`);
-    const a = (await rlQuestion(rl, 'Use this hosted zone? [Y/e to enter a different ID]: ')).trim().toLowerCase();
+    const a = (
+      await rlQuestion(
+        rl,
+        'Use this hosted zone? [Y/e to enter a different ID]: '
+      )
+    )
+      .trim()
+      .toLowerCase();
     if (a === 'e' || a === 'edit') {
       return (await rlQuestion(rl, 'Route53 hosted zone ID: ')).trim();
     }
@@ -1445,7 +1710,12 @@ async function promptHostedZoneAfterDiscovery(rl, zonesRes) {
     logInfo(`  ${i + 1}. ${z.id}  ${z.name}`);
   }
   for (;;) {
-    const raw = (await rlQuestion(rl, 'Choose number (1–n), or 0 to type hosted zone ID manually: ')).trim();
+    const raw = (
+      await rlQuestion(
+        rl,
+        'Choose number (1–n), or 0 to type hosted zone ID manually: '
+      )
+    ).trim();
     const n = parseInt(raw, 10);
     if (raw === '0') {
       return (await rlQuestion(rl, 'Route53 hosted zone ID: ')).trim();
@@ -1453,7 +1723,9 @@ async function promptHostedZoneAfterDiscovery(rl, zonesRes) {
     if (!Number.isNaN(n) && n >= 1 && n <= zonesRes.zones.length) {
       return zonesRes.zones[n - 1].id;
     }
-    logWarn('Invalid choice; enter a number shown above, or 0 for manual input.');
+    logWarn(
+      'Invalid choice; enter a number shown above, or 0 for manual input.'
+    );
   }
 }
 
@@ -1465,20 +1737,44 @@ async function promptHostedZoneAfterDiscovery(rl, zonesRes) {
 async function promptAcmCertAfterDiscovery(rl, certsRes) {
   if (!certsRes.ok) {
     logWarn(`ACM discovery failed: ${certsRes.error || 'unknown error'}`);
-    return (await rlQuestion(rl, 'ACM certificate ARN (us-east-1, covers apex + wildcard): ')).trim();
+    return (
+      await rlQuestion(
+        rl,
+        'ACM certificate ARN (us-east-1, covers apex + wildcard): '
+      )
+    ).trim();
   }
   if (certsRes.matches.length === 0) {
     logWarn(
-      `No issued ACM certificate in ${ACM_CLOUDFRONT_REGION} covers both the apex and *.apex for this domain.`,
+      `No issued ACM certificate in ${ACM_CLOUDFRONT_REGION} covers both the apex and *.apex for this domain.`
     );
-    return (await rlQuestion(rl, 'ACM certificate ARN (us-east-1, covers apex + wildcard): ')).trim();
+    return (
+      await rlQuestion(
+        rl,
+        'ACM certificate ARN (us-east-1, covers apex + wildcard): '
+      )
+    ).trim();
   }
   if (certsRes.matches.length === 1) {
     const only = certsRes.matches[0];
-    logInfo(`Discovered ACM certificate in ${ACM_CLOUDFRONT_REGION} (primary name: ${only.domainName}).`);
-    const a = (await rlQuestion(rl, 'Use this certificate? [Y/e to enter a different ARN]: ')).trim().toLowerCase();
+    logInfo(
+      `Discovered ACM certificate in ${ACM_CLOUDFRONT_REGION} (primary name: ${only.domainName}).`
+    );
+    const a = (
+      await rlQuestion(
+        rl,
+        'Use this certificate? [Y/e to enter a different ARN]: '
+      )
+    )
+      .trim()
+      .toLowerCase();
     if (a === 'e' || a === 'edit') {
-      return (await rlQuestion(rl, 'ACM certificate ARN (us-east-1, covers apex + wildcard): ')).trim();
+      return (
+        await rlQuestion(
+          rl,
+          'ACM certificate ARN (us-east-1, covers apex + wildcard): '
+        )
+      ).trim();
     }
     return only.arn;
   }
@@ -1488,15 +1784,27 @@ async function promptAcmCertAfterDiscovery(rl, certsRes) {
     logInfo(`  ${i + 1}. ${c.domainName}  ${c.arn}`);
   }
   for (;;) {
-    const raw = (await rlQuestion(rl, 'Choose number (1–n), or 0 to type certificate ARN manually: ')).trim();
+    const raw = (
+      await rlQuestion(
+        rl,
+        'Choose number (1–n), or 0 to type certificate ARN manually: '
+      )
+    ).trim();
     const n = parseInt(raw, 10);
     if (raw === '0') {
-      return (await rlQuestion(rl, 'ACM certificate ARN (us-east-1, covers apex + wildcard): ')).trim();
+      return (
+        await rlQuestion(
+          rl,
+          'ACM certificate ARN (us-east-1, covers apex + wildcard): '
+        )
+      ).trim();
     }
     if (!Number.isNaN(n) && n >= 1 && n <= certsRes.matches.length) {
       return certsRes.matches[n - 1].arn;
     }
-    logWarn('Invalid choice; enter a number shown above, or 0 for manual input.');
+    logWarn(
+      'Invalid choice; enter a number shown above, or 0 for manual input.'
+    );
   }
 }
 
@@ -1513,15 +1821,27 @@ async function resolveAwsHostedZoneAndCertificate(rl, zonesRes, certsRes) {
     const z = zonesRes.zones[0];
     const c = certsRes.matches[0];
     logInfo(`Discovered hosted zone ${z.id} (${z.name}).`);
-    logInfo(`Discovered ACM certificate in ${ACM_CLOUDFRONT_REGION} (primary name: ${c.domainName}).`);
-    const a = (await rlQuestion(rl, 'Use these values? [Y/e to enter zone ID and ARN manually]: '))
+    logInfo(
+      `Discovered ACM certificate in ${ACM_CLOUDFRONT_REGION} (primary name: ${c.domainName}).`
+    );
+    const a = (
+      await rlQuestion(
+        rl,
+        'Use these values? [Y/e to enter zone ID and ARN manually]: '
+      )
+    )
       .trim()
       .toLowerCase();
     if (a !== 'e' && a !== 'edit') {
       return { zone: z.id, cert: c.arn };
     }
     const zone = (await rlQuestion(rl, 'Route53 hosted zone ID: ')).trim();
-    const cert = (await rlQuestion(rl, 'ACM certificate ARN (us-east-1, covers apex + wildcard): ')).trim();
+    const cert = (
+      await rlQuestion(
+        rl,
+        'ACM certificate ARN (us-east-1, covers apex + wildcard): '
+      )
+    ).trim();
     return { zone, cert };
   }
   const zone = await promptHostedZoneAfterDiscovery(rl, zonesRes);
@@ -1541,27 +1861,45 @@ async function phaseAws(flags, rl, acc) {
   }
   await ensureAwsCredentials(rl, flags);
 
-  const domain = (await rlQuestion(rl, 'APEX domain (e.g. example.com): ')).trim();
+  const domain = (
+    await rlQuestion(rl, 'APEX domain (e.g. example.com): ')
+  ).trim();
   if (!domain) {
-    logWarn('No domain provided; skipping AWS bootstrap (re-run this phase when ready).');
+    logWarn(
+      'No domain provided; skipping AWS bootstrap (re-run this phase when ready).'
+    );
     return;
   }
-  logInfo(`Querying AWS for Route53 hosted zone and ACM certificate (${ACM_CLOUDFRONT_REGION})…`);
+  logInfo(
+    `Querying AWS for Route53 hosted zone and ACM certificate (${ACM_CLOUDFRONT_REGION})…`
+  );
   const profileArgs = awsProfileArgs(flags);
   const zonesRes = await discoverRoute53PublicZonesForApex(domain, profileArgs);
-  const certsRes = await discoverIssuedCertsCoveringApexWildcard(domain, profileArgs);
-  const { zone, cert } = await resolveAwsHostedZoneAndCertificate(rl, zonesRes, certsRes);
+  const certsRes = await discoverIssuedCertsCoveringApexWildcard(
+    domain,
+    profileArgs
+  );
+  const { zone, cert } = await resolveAwsHostedZoneAndCertificate(
+    rl,
+    zonesRes,
+    certsRes
+  );
   if (!zone || !cert) {
-    logWarn('Missing hosted zone ID or ACM certificate ARN; skipping AWS bootstrap.');
+    logWarn(
+      'Missing hosted zone ID or ACM certificate ARN; skipping AWS bootstrap.'
+    );
     return;
   }
   const slugBase = await readSupabaseProjectSlugBase();
   const defaultCfStack = `${slugBase}-pr-preview`;
   const stack =
-    (await rlQuestion(rl, `CloudFormation stack name [${defaultCfStack}]: `)).trim() || defaultCfStack;
+    (
+      await rlQuestion(rl, `CloudFormation stack name [${defaultCfStack}]: `)
+    ).trim() || defaultCfStack;
   const region =
     (await rlQuestion(rl, 'AWS region [us-east-1]: ')).trim() || 'us-east-1';
-  const prefix = (await rlQuestion(rl, 'Preview URL prefix [pr-]: ')).trim() || 'pr-';
+  const prefix =
+    (await rlQuestion(rl, 'Preview URL prefix [pr-]: ')).trim() || 'pr-';
 
   acc.PR_PREVIEW_DOMAIN = domain;
   acc.PR_PREVIEW_HOSTED_ZONE_ID = zone;
@@ -1592,14 +1930,20 @@ async function phaseAws(flags, rl, acc) {
   }
   if (flags.dryRun) {
     logInfo(
-      `[dry-run] would run bootstrap-aws-stack.sh (domain=${domain}, hostedZone=${zone}, stack=${stack}, certificateArn=(set)); no script execution or .env.aws.generated.local read.`,
+      `[dry-run] would run bootstrap-aws-stack.sh (domain=${domain}, hostedZone=${zone}, stack=${stack}, certificateArn=(set)); no script execution or .env.aws.generated.local read.`
     );
     return;
   }
 
-  const conflictOutcome = await resolveAwsPreflightConflictsInteractive(rl, flags, args);
+  const conflictOutcome = await resolveAwsPreflightConflictsInteractive(
+    rl,
+    flags,
+    args
+  );
   if (conflictOutcome.skipAwsPhase) {
-    logWarn('Skipping AWS bootstrap by your choice; re-run with --from=aws when ready.');
+    logWarn(
+      'Skipping AWS bootstrap by your choice; re-run with --from=aws when ready.'
+    );
     return;
   }
   if (conflictOutcome.allowConflictingBuckets) {
@@ -1607,13 +1951,17 @@ async function phaseAws(flags, rl, acc) {
   }
 
   if (input.isTTY) {
-    const cfStatus = await describeCloudFormationStackStatus(stack, region, profileArgs);
+    const cfStatus = await describeCloudFormationStackStatus(
+      stack,
+      region,
+      profileArgs
+    );
     if (cfStatus === 'CREATE_COMPLETE' || cfStatus === 'UPDATE_COMPLETE') {
       logInfo(`CloudFormation stack "${stack}" is already ${cfStatus}.`);
       const mode = (
         await rlQuestion(
           rl,
-          '(D)eploy / update stack  or  (R)efresh outputs only (skip CloudFormation) [D]: ',
+          '(D)eploy / update stack  or  (R)efresh outputs only (skip CloudFormation) [D]: '
         )
       )
         .trim()
@@ -1624,22 +1972,35 @@ async function phaseAws(flags, rl, acc) {
     }
   }
 
-  logInfo('Running bootstrap-aws-stack.sh (outputs go to .env.aws.generated.local)');
+  logInfo(
+    'Running bootstrap-aws-stack.sh (outputs go to .env.aws.generated.local)'
+  );
   // Merge accumulated Supabase URLs into the child environment so bootstrap-aws-stack.sh
   // can inject them into the CloudFormation CSP parameters. These values live in acc (not
   // process.env) because they were discovered interactively during this setup session.
   const bootstrapEnv = {
     ...childProcessEnvForSpawn(),
-    ...(acc.PRODUCTION_SUPABASE_URL && { PRODUCTION_SUPABASE_URL: acc.PRODUCTION_SUPABASE_URL }),
-    ...(acc.STAGING_SUPABASE_URL && { STAGING_SUPABASE_URL: acc.STAGING_SUPABASE_URL }),
-    ...(acc.PREVIEW_SUPABASE_URL && { PREVIEW_SUPABASE_URL: acc.PREVIEW_SUPABASE_URL }),
+    ...(acc.PRODUCTION_SUPABASE_URL && {
+      PRODUCTION_SUPABASE_URL: acc.PRODUCTION_SUPABASE_URL,
+    }),
+    ...(acc.STAGING_SUPABASE_URL && {
+      STAGING_SUPABASE_URL: acc.STAGING_SUPABASE_URL,
+    }),
+    ...(acc.PREVIEW_SUPABASE_URL && {
+      PREVIEW_SUPABASE_URL: acc.PREVIEW_SUPABASE_URL,
+    }),
   };
-  const code = runInteractive('bash', args, { cwd: REPO_ROOT, env: bootstrapEnv });
+  const code = runInteractive('bash', args, {
+    cwd: REPO_ROOT,
+    env: bootstrapEnv,
+  });
   if (code !== 0) {
     logWarn(
-      'AWS bootstrap failed. Common causes: retained S3 buckets for this apex (see preflight), duplicate CloudFront aliases, IAM permissions, or ACM in us-east-1. Scroll up for [DIAG] lines from bootstrap-aws-stack.sh.',
+      'AWS bootstrap failed. Common causes: retained S3 buckets for this apex (see preflight), duplicate CloudFront aliases, IAM permissions, or ACM in us-east-1. Scroll up for [DIAG] lines from bootstrap-aws-stack.sh.'
     );
-    logWarn('Fix the issue, then re-run with: node scripts/setup-full.mjs --from=aws');
+    logWarn(
+      'Fix the issue, then re-run with: node scripts/setup-full.mjs --from=aws'
+    );
     return;
   }
   const awsFile = await readEnvFileIfExists(AWS_ENV_PATH);
@@ -1656,11 +2017,13 @@ async function phaseAws(flags, rl, acc) {
  */
 async function phaseExpo(flags, rl, acc, promptInput) {
   logInfo(
-    'If `eas login` misbehaves in this terminal, use Terminal.app — Expo often expects a real TTY (this script uses /dev/tty when available).',
+    'If `eas login` misbehaves in this terminal, use Terminal.app — Expo often expects a real TTY (this script uses /dev/tty when available).'
   );
 
   if (!flags.dryRun && !easWhoamiOk()) {
-    logWarn('EAS CLI: `eas whoami` failed (not logged in or invalid EXPO_TOKEN).');
+    logWarn(
+      'EAS CLI: `eas whoami` failed (not logged in or invalid EXPO_TOKEN).'
+    );
     await offerInteractiveLogin(rl, flags, {
       label: 'Expo / EAS login',
       question: 'Run `npx eas-cli login` in apps/mobile now? (Y/n/q quit): ',
@@ -1669,11 +2032,14 @@ async function phaseExpo(flags, rl, acc, promptInput) {
       cwd: MOBILE_DIR,
     });
     if (!easWhoamiOk()) {
-      logWarn('EAS still not authenticated; set EXPO_TOKEN or complete login, then re-run --from=expo.');
+      logWarn(
+        'EAS still not authenticated; set EXPO_TOKEN or complete login, then re-run --from=expo.'
+      );
     }
   }
 
-  const runEasOnTty = (/** @type {string[]} */ args) => runInteractiveWithRl(rl, 'npx', args, { cwd: MOBILE_DIR });
+  const runEasOnTty = (/** @type {string[]} */ args) =>
+    runInteractiveWithRl(rl, 'npx', args, { cwd: MOBILE_DIR });
   const runEasCapture = (/** @type {string[]} */ args) => {
     const r = spawnSync('npx', args, {
       cwd: MOBILE_DIR,
@@ -1682,7 +2048,11 @@ async function phaseExpo(flags, rl, acc, promptInput) {
       stdio: ['ignore', 'pipe', 'pipe'],
       env: childProcessEnvForSpawn(),
     });
-    return { status: r.status ?? 1, stdout: r.stdout || '', stderr: r.stderr || '' };
+    return {
+      status: r.status ?? 1,
+      stdout: r.stdout || '',
+      stderr: r.stderr || '',
+    };
   };
 
   const outcome = await ensureNonTemplateEasProject({
@@ -1692,7 +2062,7 @@ async function phaseExpo(flags, rl, acc, promptInput) {
     mobileDir: MOBILE_DIR,
     logInfo,
     logWarn,
-    question: (q) => rlQuestion(rl, q),
+    question: q => rlQuestion(rl, q),
     runEasOnTty,
     runEasCapture,
   });
@@ -1711,18 +2081,25 @@ async function phaseExpo(flags, rl, acc, promptInput) {
  * @param {Record<string, string>} acc
  */
 async function phaseGoogle(flags, rl, acc) {
-  const p = await rlQuestion(rl, 'Path to google-services.json for CI (optional, Enter to skip): ');
+  const p = await rlQuestion(
+    rl,
+    'Path to google-services.json for CI (optional, Enter to skip): '
+  );
   const fp = p.trim();
   if (!fp) return;
   if (flags.dryRun) {
-    logInfo(`[dry-run] would import GOOGLE_SERVICES_* from ${fp} (skipped; no file read).`);
+    logInfo(
+      `[dry-run] would import GOOGLE_SERVICES_* from ${fp} (skipped; no file read).`
+    );
     return;
   }
   try {
     const abs = path.isAbsolute(fp) ? fp : path.join(REPO_ROOT, fp);
     const vars = await envVarsFromGoogleServicesJson(abs);
     Object.assign(acc, vars);
-    logInfo(`Imported ${Object.keys(vars).length} GOOGLE_SERVICES_* keys from file (values not printed).`);
+    logInfo(
+      `Imported ${Object.keys(vars).length} GOOGLE_SERVICES_* keys from file (values not printed).`
+    );
   } catch (e) {
     logWarn(`Could not parse google-services.json: ${(e && e.message) || e}`);
   }
@@ -1736,7 +2113,7 @@ async function phaseWrite(acc, flags) {
   if (flags.dryRun) {
     const n = Object.keys(acc).length;
     logInfo(
-      `[dry-run] would merge ${n} accumulated keys into .env.cloud.generated.local and .env.local (no file writes).`,
+      `[dry-run] would merge ${n} accumulated keys into .env.cloud.generated.local and .env.local (no file writes).`
     );
     logInfo('[dry-run] would write .setup-state.json (no file write).');
     return;
@@ -1744,12 +2121,16 @@ async function phaseWrite(acc, flags) {
   const existing = await readEnvFileIfExists(CLOUD_ENV_PATH);
   const merged = mergeRecords(existing, acc);
   await fs.writeFile(CLOUD_ENV_PATH, stringifyDotEnv(merged), 'utf8');
-  logInfo(`Wrote ${Object.keys(merged).length} entries to .env.cloud.generated.local (contents not shown).`);
+  logInfo(
+    `Wrote ${Object.keys(merged).length} entries to .env.cloud.generated.local (contents not shown).`
+  );
 
   const local = await readEnvFileIfExists(LOCAL_ENV_PATH);
   const mergedLocal = mergeRecords(local, acc);
   await fs.writeFile(LOCAL_ENV_PATH, stringifyDotEnv(mergedLocal), 'utf8');
-  logInfo(`Merged cloud keys into .env.local (${Object.keys(mergedLocal).length} total keys).`);
+  logInfo(
+    `Merged cloud keys into .env.local (${Object.keys(mergedLocal).length} total keys).`
+  );
 
   await fs.writeFile(
     STATE_PATH,
@@ -1761,9 +2142,9 @@ async function phaseWrite(acc, flags) {
         note: 'No secrets stored in this file.',
       },
       null,
-      2,
+      2
     ),
-    'utf8',
+    'utf8'
   );
 }
 
@@ -1780,7 +2161,7 @@ async function collectMissingGithubCiEnvIntoAcc(flags, rl, promptInput, acc) {
     const n = listMissingRequiredGithubForCi(acc).length;
     if (n) {
       logInfo(
-        `[dry-run] ${n} required CI env value(s) missing; would offer masked prompts and re-write .env*.local before gh sync.`,
+        `[dry-run] ${n} required CI env value(s) missing; would offer masked prompts and re-write .env*.local before gh sync.`
       );
     }
     return 'none';
@@ -1791,7 +2172,7 @@ async function collectMissingGithubCiEnvIntoAcc(flags, rl, promptInput, acc) {
 
   if (!input.isTTY) {
     logWarn(
-      `${details.length} required GitHub CI value(s) missing locally; skipping prompts (stdin not a TTY). Add keys to .env.local / .env.cloud.generated.local or run this phase in a full terminal.`,
+      `${details.length} required GitHub CI value(s) missing locally; skipping prompts (stdin not a TTY). Add keys to .env.local / .env.cloud.generated.local or run this phase in a full terminal.`
     );
     return 'none';
   }
@@ -1799,7 +2180,7 @@ async function collectMissingGithubCiEnvIntoAcc(flags, rl, promptInput, acc) {
   const head = (
     await rlQuestion(
       rl,
-      `${details.length} value(s) required for GitHub Actions are missing from merged .env files. Enter them now (masked when sensitive)? (Y)es / (N)o [Y]: `,
+      `${details.length} value(s) required for GitHub Actions are missing from merged .env files. Enter them now (masked when sensitive)? (Y)es / (N)o [Y]: `
     )
   )
     .trim()
@@ -1809,7 +2190,12 @@ async function collectMissingGithubCiEnvIntoAcc(flags, rl, promptInput, acc) {
     return 'declined';
   }
 
-  const pathLine = (await rlQuestion(rl, 'Path to .env-style file with any of these keys (Enter to skip): ')).trim();
+  const pathLine = (
+    await rlQuestion(
+      rl,
+      'Path to .env-style file with any of these keys (Enter to skip): '
+    )
+  ).trim();
   if (pathLine) {
     checkSecretInputQuit(pathLine);
     const primary = details[0].primaryEnvKey;
@@ -1821,12 +2207,18 @@ async function collectMissingGithubCiEnvIntoAcc(flags, rl, promptInput, acc) {
   for (const d of details) {
     if (resolveValueForGithub(acc, d.def)) continue;
 
-    const hint = d.envKeys.length > 1 ? ` (aliases: ${d.envKeys.join(', ')})` : '';
+    const hint =
+      d.envKeys.length > 1 ? ` (aliases: ${d.envKeys.join(', ')})` : '';
     const label = `${d.primaryEnvKey} → GitHub ${d.kind} ${d.name}${hint}`;
 
     let raw;
     if (d.kind === 'secret') {
-      raw = await readSecretLineMaskedOrVisible(rl, promptInput, flags, `${label} (Enter to skip): `);
+      raw = await readSecretLineMaskedOrVisible(
+        rl,
+        promptInput,
+        flags,
+        `${label} (Enter to skip): `
+      );
     } else {
       raw = (await rlQuestion(rl, `${label} (Enter to skip): `)).trim();
     }
@@ -1863,7 +2255,9 @@ async function phaseGithub(flags, rl, acc, promptInput) {
       args: ['auth', 'login'],
     });
     if (!ghAuthOk()) {
-      logWarn('Still not authenticated to GitHub; secret sync will likely fail.');
+      logWarn(
+        'Still not authenticated to GitHub; secret sync will likely fail.'
+      );
     }
   }
 
@@ -1879,18 +2273,28 @@ async function phaseGithub(flags, rl, acc, promptInput) {
   const awsEnv = await readEnvFileIfExists(AWS_ENV_PATH);
   const mergedForGithub = mergeGithubSyncEnv(acc, localEnv, cloudEnv, awsEnv);
   Object.assign(acc, mergedForGithub);
-  logInfo('Merged .env.local, .env.cloud.generated.local, and .env.aws.generated.local for GitHub sync (wizard values override file values; contents not printed).');
   logInfo(
-    `Env file key counts (names/values not listed): .env.local=${Object.keys(localEnv).length}, .env.cloud.generated.local=${Object.keys(cloudEnv).length}, .env.aws.generated.local=${Object.keys(awsEnv).length}`,
+    'Merged .env.local, .env.cloud.generated.local, and .env.aws.generated.local for GitHub sync (wizard values override file values; contents not printed).'
+  );
+  logInfo(
+    `Env file key counts (names/values not listed): .env.local=${Object.keys(localEnv).length}, .env.cloud.generated.local=${Object.keys(cloudEnv).length}, .env.aws.generated.local=${Object.keys(awsEnv).length}`
   );
 
-  const collectOutcome = await collectMissingGithubCiEnvIntoAcc(flags, rl, promptInput, acc);
+  const collectOutcome = await collectMissingGithubCiEnvIntoAcc(
+    flags,
+    rl,
+    promptInput,
+    acc
+  );
   if (collectOutcome === 'completed' && !flags.dryRun) {
     await phaseWrite(acc, flags);
     const localAfter = await readEnvFileIfExists(LOCAL_ENV_PATH);
     const cloudAfter = await readEnvFileIfExists(CLOUD_ENV_PATH);
     const awsAfter = await readEnvFileIfExists(AWS_ENV_PATH);
-    Object.assign(acc, mergeGithubSyncEnv(acc, localAfter, cloudAfter, awsAfter));
+    Object.assign(
+      acc,
+      mergeGithubSyncEnv(acc, localAfter, cloudAfter, awsAfter)
+    );
     logInfo('Re-loaded env files after saving values for GitHub sync.');
   }
 
@@ -1905,7 +2309,11 @@ async function phaseGithub(flags, rl, acc, promptInput) {
     const c = ghSecretSetSync(repo, name, value, flags.dryRun);
     if (c === 0) {
       ok += 1;
-      logInfo(flags.dryRun ? `[dry-run] would set GitHub secret: ${name}` : `GitHub secret set: ${name}`);
+      logInfo(
+        flags.dryRun
+          ? `[dry-run] would set GitHub secret: ${name}`
+          : `GitHub secret set: ${name}`
+      );
     } else fail += 1;
   }
   for (const [name, value] of Object.entries(variables)) {
@@ -1913,10 +2321,16 @@ async function phaseGithub(flags, rl, acc, promptInput) {
     const c = ghVariableSetSync(repo, name, value, flags.dryRun);
     if (c === 0) {
       ok += 1;
-      logInfo(flags.dryRun ? `[dry-run] would set GitHub variable: ${name}` : `GitHub variable set: ${name}`);
+      logInfo(
+        flags.dryRun
+          ? `[dry-run] would set GitHub variable: ${name}`
+          : `GitHub variable set: ${name}`
+      );
     } else fail += 1;
   }
-  logInfo(`GitHub sync finished: ${ok} ok, ${fail} failed (missing permissions skips).`);
+  logInfo(
+    `GitHub sync finished: ${ok} ok, ${fail} failed (missing permissions skips).`
+  );
 }
 
 async function main() {
@@ -1929,18 +2343,35 @@ async function main() {
   const startIdx = PHASE_ORDER.indexOf(flags.fromPhase);
 
   const logCtx = { logInfo, logWarn, repoRoot: REPO_ROOT };
-  printIntroBanner(logCtx, { resumeFrom: startIdx > 0 ? flags.fromPhase : undefined });
+  if (startIdx === 0 && !flags.guideFromCli && input.isTTY) {
+    const g = (
+      await rlQuestion(
+        rl,
+        'Setup guide: (F)ull prerequisites in terminal / (B)rief [F]: '
+      )
+    )
+      .trim()
+      .toLowerCase();
+    if (g === 'b' || g === 'brief') flags.guide = 'brief';
+  }
+  const guideLevel = startIdx > 0 ? 'brief' : flags.guide;
+  printIntroBanner(logCtx, {
+    resumeFrom: startIdx > 0 ? flags.fromPhase : undefined,
+    guide: guideLevel,
+  });
 
   if (startIdx === 0 && !flags.dryRun) {
-    await rl.question(
-      '\nPress Enter after you have reviewed the checklist above (see QUICKSTART.md if needed)…\n',
-    );
+    const reviewHint =
+      guideLevel === 'brief'
+        ? 'docs/setup-prep-checklist.md (and the banner above)'
+        : 'the prerequisites above and docs/setup-prep-checklist.md';
+    await rl.question(`\nPress Enter after you have reviewed ${reviewHint}…\n`);
   }
 
   if (startIdx > 0) {
     if (flags.dryRun) {
       logInfo(
-        `[dry-run] would load merged keys from .env.local / .env.cloud.generated.local / .env.aws.generated.local (--from=${flags.fromPhase}); skipped (no disk read).`,
+        `[dry-run] would load merged keys from .env.local / .env.cloud.generated.local / .env.aws.generated.local (--from=${flags.fromPhase}); skipped (no disk read).`
       );
     } else {
       logInfo(`Loading existing env files (--from=${flags.fromPhase})`);
@@ -1952,20 +2383,32 @@ async function main() {
 
   if (!flags.mobileEnabled) {
     acc.MOBILE_ENABLED = 'false';
-    logInfo('Mobile disabled (--skip-mobile) — skipping Expo, EAS, and Google Services setup.');
+    logInfo(
+      'Mobile disabled (--skip-mobile) — skipping Expo, EAS, and Google Services setup.'
+    );
   } else if (startIdx <= PHASE_ORDER.indexOf('expo')) {
     if (acc.MOBILE_ENABLED) {
       // Resume: honour the stored choice instead of re-prompting with a true default.
       flags.mobileEnabled = acc.MOBILE_ENABLED !== 'false';
-      logInfo(`Resuming with mobile ${flags.mobileEnabled ? 'enabled' : 'disabled'} (stored MOBILE_ENABLED=${acc.MOBILE_ENABLED}).`);
+      logInfo(
+        `Resuming with mobile ${flags.mobileEnabled ? 'enabled' : 'disabled'} (stored MOBILE_ENABLED=${acc.MOBILE_ENABLED}).`
+      );
     } else if (!flags.dryRun) {
-      const mobileAns = (await rlQuestion(rl, 'Enable mobile (Expo / EAS) builds? [Y/n]: ')).trim().toLowerCase();
+      const mobileAns = (
+        await rlQuestion(rl, 'Enable mobile (Expo / EAS) builds? [Y/n]: ')
+      )
+        .trim()
+        .toLowerCase();
       if (mobileAns === 'n' || mobileAns === 'no') {
         flags.mobileEnabled = false;
-        logInfo('Mobile disabled — skipping Expo, EAS, and Google Services setup.');
+        logInfo(
+          'Mobile disabled — skipping Expo, EAS, and Google Services setup.'
+        );
       }
     } else {
-      logInfo('[dry-run] would prompt for mobile setup choice (defaulting to enabled).');
+      logInfo(
+        '[dry-run] would prompt for mobile setup choice (defaulting to enabled).'
+      );
     }
     acc.MOBILE_ENABLED = flags.mobileEnabled ? 'true' : 'false';
   } else {
@@ -1994,7 +2437,10 @@ async function main() {
         logInfo('Skipping GitHub sync (--skip-github).');
         continue;
       }
-      if ((phase === 'expo' || phase === 'google') && acc.MOBILE_ENABLED === 'false') {
+      if (
+        (phase === 'expo' || phase === 'google') &&
+        acc.MOBILE_ENABLED === 'false'
+      ) {
         logInfo(`Skipping ${phase} phase (mobile disabled).`);
         if (phase === 'expo') clearExpoKeysFromAcc(acc);
         if (phase === 'google') clearGoogleKeysFromAcc(acc);
@@ -2034,7 +2480,9 @@ async function main() {
       }
     }
     if (flags.dryRun) {
-      logInfo('[dry-run] finished: no env/state files written; no real API keys or tokens merged by this script.');
+      logInfo(
+        '[dry-run] finished: no env/state files written; no real API keys or tokens merged by this script.'
+      );
     } else {
       logInfo('Done. Verify with: gh secret list && gh variable list');
     }
@@ -2050,8 +2498,11 @@ async function main() {
 }
 
 if (import.meta.url === url.pathToFileURL(process.argv[1] || '').href) {
-  main().catch((err) => {
-    console.error('[setup] Fatal:', redactForLog(String(err && err.stack ? err.stack : err)));
+  main().catch(err => {
+    console.error(
+      '[setup] Fatal:',
+      redactForLog(String(err && err.stack ? err.stack : err))
+    );
     process.exit(1);
   });
 }

@@ -47,7 +47,7 @@ async function main() {
       choice =
         (
           await rl.question(
-            'Setup: (1) Local — dependencies, Supabase Docker, .env.local [default]  (2) Full cloud — remote resources, GitHub (read README + QUICKSTART first)  (q) Quit: ',
+            'Setup: (1) Local — dependencies, Supabase Docker, .env.local [default]  (2) Full cloud — remote resources, GitHub (read docs/setup-prep-checklist.md first)  (q) Quit: '
           )
         )
           .trim()
@@ -57,20 +57,29 @@ async function main() {
     }
   } else {
     console.log(
-      '[setup] No TTY; running local setup only. For cloud bootstrap run: npm run setup:full',
+      '[setup] No TTY; running local setup only. For cloud bootstrap run: npm run setup:full'
     );
   }
 
-  if (choice === 'q' || choice === 'quit' || choice === 'exit' || choice === 'x') {
+  if (
+    choice === 'q' ||
+    choice === 'quit' ||
+    choice === 'exit' ||
+    choice === 'x'
+  ) {
     logInfo('Goodbye.');
     process.exit(0);
   }
 
   if (choice === '2') {
-    const code = spawnSync(process.execPath, [path.join(__dirname, 'setup-full.mjs'), ...process.argv.slice(2)], {
-      cwd: REPO_ROOT,
-      stdio: 'inherit',
-    });
+    const code = spawnSync(
+      process.execPath,
+      [path.join(__dirname, 'setup-full.mjs'), ...process.argv.slice(2)],
+      {
+        cwd: REPO_ROOT,
+        stdio: 'inherit',
+      }
+    );
     process.exit(code.status ?? 1);
   }
 
@@ -81,7 +90,7 @@ async function main() {
   process.exit(code.status ?? 1);
 }
 
-main().catch((e) => {
+main().catch(e => {
   console.error(e);
   process.exit(1);
 });

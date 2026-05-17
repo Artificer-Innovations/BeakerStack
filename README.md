@@ -75,7 +75,7 @@ npm install
 npm run setup
 ```
 
-The setup wizard handles Docker Supabase, `.env.local`, and type generation. Full cloud + CI checklist: [QUICKSTART.md](QUICKSTART.md).
+The setup wizard handles Docker Supabase, `.env.local`, and type generation. Full cloud + CI: read [docs/setup-prep-checklist.md](docs/setup-prep-checklist.md) before `npm run setup:full`, then [QUICKSTART.md](QUICKSTART.md).
 
 **Node 18+** (`>=18` in `package.json`); **Node 20** matches CI. Docker Desktop + Supabase CLI for local work.
 
