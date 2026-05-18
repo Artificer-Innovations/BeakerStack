@@ -141,6 +141,42 @@ test('ensureStripeWebhook reuses existing secret', async () => {
   assert.equal(result.created, false);
 });
 
+test('ensureStripeWebhook updates events and returns eventsUpdated: true', async () => {
+  const url = 'https://proj.supabase.co/functions/v1/stripe-webhook';
+  const updateCalls = [];
+  const mockStripe = {
+    webhookEndpoints: {
+      list: async () => ({
+        data: [
+          {
+            id: 'we_existing',
+            url,
+            enabled_events: ['checkout.session.completed'],
+          },
+        ],
+      }),
+      update: async (id, params) => {
+        updateCalls.push([id, params]);
+        return { id };
+      },
+      create: async () => {
+        throw new Error('should not create');
+      },
+    },
+  };
+
+  const result = await ensureStripeWebhook({
+    secretKey: 'sk_test_x',
+    webhookUrl: url,
+    existingWebhookSecret: 'whsec_saved',
+    stripe: mockStripe,
+  });
+
+  assert.equal(result.eventsUpdated, true);
+  assert.equal(result.signingSecret, 'whsec_saved');
+  assert.equal(updateCalls.length, 1);
+});
+
 test('ensureStripeWebhook throws MissingWebhookSecretError when endpoint exists without secret', async () => {
   const url = 'https://proj.supabase.co/functions/v1/stripe-webhook';
   const mockStripe = {

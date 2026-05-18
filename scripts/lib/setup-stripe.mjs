@@ -131,11 +131,20 @@ export function stripeWebhookDescriptionForTier(tier, webhookUrl) {
  *   logInfo: (s: string) => void;
  *   logWarn: (s: string) => void;
  *   applySecret: (raw: string, primaryKey: string) => Promise<void>;
+ *   ensureStripeWebhook?: typeof import('./ensure-stripe-webhook.mjs').ensureStripeWebhook;
  * }} ctx
  * @returns {Promise<boolean>} true if webhook secret is set when done
  */
 export async function ensureTierStripeWebhookSecret(ctx) {
-  const { acc, tier, webhookUrl, logInfo, logWarn, applySecret } = ctx;
+  const {
+    acc,
+    tier,
+    webhookUrl,
+    logInfo,
+    logWarn,
+    applySecret,
+    ensureStripeWebhook: ensureFn = ensureStripeWebhook,
+  } = ctx;
 
   if ((acc[tier.webhookSecretKey] || '').trim()) {
     return true;
@@ -158,7 +167,7 @@ export async function ensureTierStripeWebhookSecret(ctx) {
   }
 
   try {
-    const result = await ensureStripeWebhook({
+    const result = await ensureFn({
       secretKey,
       webhookUrl,
       existingWebhookSecret: acc[tier.webhookSecretKey],
@@ -189,7 +198,11 @@ export async function ensureTierStripeWebhookSecret(ctx) {
       );
       return false;
     }
-    logWarn(`  Could not ensure Stripe webhook: ${e.message}`);
+    const msg = e instanceof Error ? e.message : String(e);
+    logWarn(`  Could not ensure Stripe webhook: ${msg}`);
+    if (e instanceof Error && e.stack) {
+      logWarn(`  ${e.stack}`);
+    }
     return false;
   }
 }
