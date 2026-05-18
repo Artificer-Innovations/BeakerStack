@@ -79,7 +79,7 @@ describe('AdminUserDetailDrawer', () => {
     render(
       <AdminUserDetailDrawer open userId='u1' title='User' onClose={onClose} />
     );
-    await user.click(screen.getByLabelText('Close panel'));
+    await user.click(screen.getByTestId('admin-drawer-backdrop'));
     expect(onClose).toHaveBeenCalled();
   });
 
