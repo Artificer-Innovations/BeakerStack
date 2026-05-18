@@ -16,16 +16,23 @@ describe('randomUuid', () => {
     const saved = globalThis.crypto?.randomUUID;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (globalThis.crypto as any).randomUUID;
-    expect(randomUuid()).toMatch(UUID_RE);
-    if (saved) (globalThis.crypto as unknown as Record<string, unknown>).randomUUID = saved;
+    try {
+      expect(randomUuid()).toMatch(UUID_RE);
+    } finally {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (saved) (globalThis.crypto as unknown as Record<string, unknown>).randomUUID = saved;
+    }
   });
 
   it('returns a valid v4 UUID via Math.random when crypto is absent (path 3)', () => {
     const savedCrypto = globalThis.crypto;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (globalThis as any).crypto = undefined;
-    expect(randomUuid()).toMatch(UUID_RE);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (globalThis as any).crypto = savedCrypto;
+    try {
+      expect(randomUuid()).toMatch(UUID_RE);
+    } finally {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (globalThis as any).crypto = savedCrypto;
+    }
   });
 });

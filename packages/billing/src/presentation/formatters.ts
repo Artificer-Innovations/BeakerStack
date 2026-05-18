@@ -15,6 +15,7 @@ export function formatDate(iso: string) {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
+      timeZone: 'UTC',
     });
   } catch {
     return iso;
@@ -26,6 +27,7 @@ export function formatMonthYear(iso: string) {
     return new Date(iso).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
+      timeZone: 'UTC',
     });
   } catch {
     return iso;
