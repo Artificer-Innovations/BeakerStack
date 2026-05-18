@@ -12,9 +12,11 @@ Production routes: **`/billing`**, `/billing/usage`, `/billing/plans`, `/billing
 
 `STRIPE_PUBLISHABLE_KEY` is read in Edge (`stripe-webhook`, `billing-stripe`) for configuration parity with the billing spec; checkout and Elements still consume the publishable key from **client** env (e.g. `VITE_*`). Edge calls use only the secret key.
 
-**Deploy target (`billing_deploy_target`):** Checkout stamps each session with a label derived from `SUPABASE_URL` / `BILLING_SUPABASE_URL` (Supabase project ref for hosted `*.supabase.co`, otherwise **`local`**). The webhook skips completed checkouts when metadata targets another deployment. You normally need no extra env; set optional **`BILLING_WEBHOOK_TARGET`** on both Edge functions only if you override the default (same value in `supabase/.env.local` for local serve).
+**Deploy target (`billing_deploy_target`):** Checkout stamps each session (and subscription metadata) with a label derived from `SUPABASE_URL` / `BILLING_SUPABASE_URL` (Supabase project ref for hosted `*.supabase.co`, otherwise **`local`**). The webhook ignores events for another deployment at ingress (redacted payload in `billing_webhook_events`) and on `checkout.session.completed` / `customer.subscription.*`. Set optional **`BILLING_WEBHOOK_TARGET`** on both Edge functions only if you override the default (same value in `supabase/.env.local` for local serve).
 
-**Invoice race:** if Stripe delivers an invoice event before `billing_subscriptions` links the Stripe customer (rare around checkout), the webhook logs and skips that upsert instead of failing the handler; a later subscription/checkout event reconciles.
+**Multiple BeakerStack apps / shared Stripe account:** use a separate webhook endpoint + `whsec` per Supabase project and app-scoped `productId` in `billing-sync.json`. See [stripe-billing-setup.md](../../../docs/stripe-billing-setup.md) (Multiple BeakerStack apps).
+
+**Invoice race:** if Stripe delivers an invoice before `checkout.session.completed` creates the local subscription row, the webhook ignores the invoice at ingress (or skips sync in the handler) without failing; a later `invoice.paid` or Stripe retry reconciles after the owned row exists.
 
 Server: `billing_system_flags` row `demo_billing_mode = true` enables `billing_demo_simulate_upgrade` and `billing_demo_reset_usage` (local `supabase/seed.sql` sets this in dev).
 
@@ -57,6 +59,14 @@ stripe listen --forward-to http://127.0.0.1:54321/functions/v1/stripe-webhook
 ```
 
 Use the **webhook signing secret** from the CLI as `STRIPE_WEBHOOK_SECRET` for that session (or the Dashboard for a fixed endpoint).
+
+### Shared Stripe account fan-out (two Supabase projects)
+
+Register **two** Stripe webhook endpoints (Dashboard or two `stripe listen` forwards to different local ports/projects). Trigger billing on **one** BeakerStack app only; in the **other** app’s Supabase Studio, open `billing_webhook_events`:
+
+- `error` should be `ignored: billing_deploy_target_mismatch`, `ignored: unknown_stripe_subscription`, or similar.
+- `payload` should be redacted (`redacted: true`, no `data.object` with customer PII).
+- `billing_invoices` and `billing_subscriptions` should not change for foreign events.
 
 ### Useful triggers
 

@@ -94,7 +94,7 @@
     "test:coverage:shared": "cd packages/shared-tests && npm run test:coverage",
     "test:coverage:billing": "cd packages/billing && npm run test:coverage",
     "test:coverage:merge": "node scripts/merge-coverage.js",
-    "test:unit:scripts": "node --test scripts/__tests__/rename-project.test.mjs scripts/__tests__/detect-repo-identity.test.mjs scripts/__tests__/setup-aws-discover.test.mjs scripts/__tests__/setup-dotenv.test.mjs scripts/__tests__/setup-manifest-github-sync.test.mjs scripts/__tests__/setup-secret-input.test.mjs scripts/__tests__/setup-supabase-pick-recommend.test.mjs && ./scripts/pr-preview/check-preview-deploy-needed.sh --self-test",
+    "test:unit:scripts": "node --test scripts/__tests__/rename-project.test.mjs scripts/__tests__/detect-repo-identity.test.mjs scripts/__tests__/setup-aws-discover.test.mjs scripts/__tests__/setup-dotenv.test.mjs scripts/__tests__/setup-manifest-github-sync.test.mjs scripts/__tests__/setup-secret-input.test.mjs scripts/__tests__/setup-supabase-pick-recommend.test.mjs scripts/__tests__/billing-webhook-guards.test.mjs && ./scripts/pr-preview/check-preview-deploy-needed.sh --self-test",
     "lint": "npm run lint:mobile; npm run lint:web; npm run lint:shared; npm run lint:billing; npm run lint:repo",
     "lint:mobile": "eslint apps/mobile/src --ext ts,tsx --report-unused-disable-directives",
     "lint:web": "eslint apps/web/src --ext ts,tsx --report-unused-disable-directives",

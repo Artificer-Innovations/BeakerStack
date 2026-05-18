@@ -81,6 +81,24 @@ Stripe **test mode** can deliver the same events to every registered webhook URL
 
 **Deploy order:** ship **`billing-stripe` before or with `stripe-webhook`** so new sessions include `billing_deploy_target` before the webhook enforces mismatches (missing metadata remains processed until clients use the updated checkout).
 
+### Multiple BeakerStack apps (shared Stripe account)
+
+When you run **more than one BeakerStack-based app** (each with its own Supabase project) against **one Stripe account**, Stripe test mode delivers the same events to **every** registered webhook URL. Use this checklist:
+
+1. **Separate Supabase project per app** — each deployment gets its own `auth.users` and `billing_*` tables.
+2. **Separate Stripe webhook endpoint per project** — unique URL and `STRIPE_WEBHOOK_SECRET` (`whsec_…`); never reuse secrets across projects.
+3. **App-scoped `productId`** in each app’s `billing-sync.json` / seeds (e.g. `myapp`, `myotherapp`), not a bare name like `pro`. Required if two apps ever share one Supabase database (`UNIQUE (user_id, product_id)`).
+4. Deploy **`billing-stripe` before `stripe-webhook`** on every project that shares the Stripe account so subscription metadata includes `billing_deploy_target`.
+
+**Webhook hardening (`stripe-webhook`):**
+
+- **Ingress classification** runs after signature verification and **before** inserting into `billing_webhook_events`. Events classified as foreign are logged with a **redacted** payload (`redacted: true`, no customer/invoice bodies) and return HTTP **200** `{ "received": true, "ignored": true }` without mutating subscriptions or invoices.
+- **`billing_deploy_target`** is enforced on `customer.subscription.*` (from subscription metadata, same semantics as checkout).
+- **Subscription and invoice handlers** only mutate rows when a local `billing_subscriptions` row exists for the event’s `stripe_subscription_id`. Invoice sync no longer resolves users by `stripe_customer_id` alone (avoids cross-app invoice mirroring when customers are shared).
+- Optional: rows whose `product_id` is not in `billing_products` are ignored (shared-DB safety).
+
+`BILLING_WEBHOOK_TARGET` is per **Supabase project** (deploy ref), not per app product name. Two BeakerStack apps on the **same** Supabase project need distinct `product_id` values, not deploy-target alone.
+
 ---
 
 ## 1. How the pieces connect

@@ -1,7 +1,14 @@
 import Stripe from 'npm:stripe@14.21.0';
 import { createClient } from 'npm:@supabase/supabase-js@2.45.0';
 import { corsHeadersForRequest, jsonResponse } from '../_shared/cors.ts';
-import { getBillingDeployTarget } from '../_shared/billing-deploy-target.ts';
+import {
+  classifyStripeEvent,
+  deployTargetMismatch,
+  findOwnedSubscription,
+  redactedWebhookPayload,
+  stripeSubscriptionIdFromRef,
+  type OwnedSubscriptionRow,
+} from '../_shared/billing-webhook-guards.ts';
 
 type ProcessResult =
   | { status: 'processed' }
@@ -131,7 +138,6 @@ Deno.serve(async req => {
 
   let event: Stripe.Event;
   try {
-    // Deno / Edge uses async SubtleCrypto; synchronous constructEvent throws.
     event = await stripe.webhooks.constructEventAsync(
       body,
       signature ?? '',
@@ -142,18 +148,23 @@ Deno.serve(async req => {
     return jsonResponse({ error: 'invalid_signature' }, 400, req);
   }
 
+  const decision = await classifyStripeEvent(supabase, event);
+  const ingressIgnored = decision.action === 'ignore';
+  const payloadForLog = ingressIgnored
+    ? redactedWebhookPayload(event)
+    : (event as unknown as Record<string, unknown>);
+
   const { error: logErr } = await supabase
     .from('billing_webhook_events')
     .insert({
       stripe_event_id: event.id,
       event_type: event.type,
-      payload: event as unknown as Record<string, unknown>,
+      payload: payloadForLog,
       processed: false,
     });
 
   if (logErr) {
     if (logErr.code === '23505') {
-      // If this event failed previously (processed=false), allow reprocessing on resend.
       const { data: existing } = await supabase
         .from('billing_webhook_events')
         .select('processed')
@@ -167,6 +178,18 @@ Deno.serve(async req => {
       console.error('Failed to log webhook', formatCaught(logErr));
       return jsonResponse({ error: 'log_failed' }, 500, req);
     }
+  }
+
+  if (ingressIgnored) {
+    await supabase
+      .from('billing_webhook_events')
+      .update({
+        processed: true,
+        processed_at: new Date().toISOString(),
+        error: `ignored: ${decision.reason}`,
+      })
+      .eq('stripe_event_id', event.id);
+    return jsonResponse({ received: true, ignored: true }, 200, req);
   }
 
   try {
@@ -203,6 +226,20 @@ Deno.serve(async req => {
   return jsonResponse({ received: true }, 200, req);
 });
 
+async function requireOwnedSubscription(
+  supabase: ReturnType<typeof createClient>,
+  stripeSubscriptionId: string
+): Promise<OwnedSubscriptionRow | ProcessResult> {
+  const row = await findOwnedSubscription(supabase, stripeSubscriptionId);
+  if (!row) {
+    return {
+      status: 'ignored',
+      reason: 'unknown_stripe_subscription',
+    };
+  }
+  return row;
+}
+
 async function processStripeEvent(
   supabase: ReturnType<typeof createClient>,
   event: Stripe.Event
@@ -210,16 +247,10 @@ async function processStripeEvent(
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;
-      const expectedTarget = getBillingDeployTarget();
-      const metaTarget = session.metadata?.billing_deploy_target?.trim();
-      if (
-        metaTarget !== undefined &&
-        metaTarget !== '' &&
-        metaTarget !== expectedTarget
-      ) {
+      if (deployTargetMismatch(session.metadata ?? undefined)) {
         console.warn(
           'checkout.session.completed ignored: billing_deploy_target mismatch',
-          { sessionId: session.id, expected: expectedTarget, got: metaTarget }
+          { sessionId: session.id }
         );
         return {
           status: 'ignored',
@@ -270,23 +301,17 @@ async function processStripeEvent(
     case 'customer.subscription.updated':
     case 'customer.subscription.deleted': {
       const stripeSub = event.data.object as Stripe.Subscription;
-      const priceId = stripeSub.items.data[0]?.price?.id;
-      const { data: row } = await supabase
-        .from('billing_subscriptions')
-        .select(
-          'user_id, product_id, plan_id, current_period_start, current_period_end, pending_target_plan_id'
-        )
-        .eq('stripe_subscription_id', stripeSub.id)
-        .maybeSingle();
-
-      if (!row) {
-        console.warn(
-          'No local subscription for stripe subscription',
-          stripeSub.id
-        );
-        return { status: 'processed' };
+      if (deployTargetMismatch(stripeSub.metadata ?? undefined)) {
+        return {
+          status: 'ignored',
+          reason: 'billing_deploy_target_mismatch',
+        };
       }
+      const owned = await requireOwnedSubscription(supabase, stripeSub.id);
+      if ('status' in owned) return owned;
+      const row = owned;
 
+      const priceId = stripeSub.items.data[0]?.price?.id;
       const resolvedPlanId = await resolvePlanId(
         supabase,
         row.plan_id,
@@ -307,8 +332,7 @@ async function processStripeEvent(
       const pendingTarget =
         isCanceled || !cancelAtEnd
           ? null
-          : ((row as { pending_target_plan_id?: string | null })
-              .pending_target_plan_id ?? null);
+          : (row.pending_target_plan_id ?? null);
 
       const { error } = await supabase
         .from('billing_subscriptions')
@@ -331,43 +355,57 @@ async function processStripeEvent(
       return { status: 'processed' };
     }
     case 'customer.subscription.trial_will_end': {
-      // Product apps handle email; optionally touch row for observability
       return { status: 'processed' };
     }
     case 'invoice.payment_failed': {
       const invoice = event.data.object as Stripe.Invoice;
-      const subRef = invoice.subscription;
-      const subId = typeof subRef === 'string' ? subRef : subRef?.id;
-      if (subId) {
-        const { error } = await supabase
-          .from('billing_subscriptions')
-          .update({ status: 'past_due', updated_at: new Date().toISOString() })
-          .eq('stripe_subscription_id', subId);
-        if (error) throw asErrorFromSupabase(error);
+      const subId = stripeSubscriptionIdFromRef(invoice.subscription);
+      if (!subId) {
+        return { status: 'ignored', reason: 'invoice_missing_subscription' };
       }
-      await syncInvoiceRow(supabase, invoice);
+      const owned = await requireOwnedSubscription(supabase, subId);
+      if ('status' in owned) return owned;
+
+      const { error } = await supabase
+        .from('billing_subscriptions')
+        .update({ status: 'past_due', updated_at: new Date().toISOString() })
+        .eq('stripe_subscription_id', subId);
+      if (error) throw asErrorFromSupabase(error);
+
+      await syncInvoiceRow(supabase, invoice, owned.user_id);
       return { status: 'processed' };
     }
     case 'invoice.paid':
     case 'invoice.payment_succeeded': {
       const invoice = event.data.object as Stripe.Invoice;
-      const subRef = invoice.subscription;
-      const subId = typeof subRef === 'string' ? subRef : subRef?.id;
-      if (subId) {
-        const { error } = await supabase
-          .from('billing_subscriptions')
-          .update({ status: 'active', updated_at: new Date().toISOString() })
-          .eq('stripe_subscription_id', subId);
-        if (error) throw asErrorFromSupabase(error);
+      const subId = stripeSubscriptionIdFromRef(invoice.subscription);
+      if (!subId) {
+        return { status: 'ignored', reason: 'invoice_missing_subscription' };
       }
-      await syncInvoiceRow(supabase, invoice);
+      const owned = await requireOwnedSubscription(supabase, subId);
+      if ('status' in owned) return owned;
+
+      const { error } = await supabase
+        .from('billing_subscriptions')
+        .update({ status: 'active', updated_at: new Date().toISOString() })
+        .eq('stripe_subscription_id', subId);
+      if (error) throw asErrorFromSupabase(error);
+
+      await syncInvoiceRow(supabase, invoice, owned.user_id);
       return { status: 'processed' };
     }
     case 'invoice.created':
     case 'invoice.finalized':
     case 'invoice.voided': {
       const inv = event.data.object as Stripe.Invoice;
-      await syncInvoiceRow(supabase, inv);
+      const subId = stripeSubscriptionIdFromRef(inv.subscription);
+      if (!subId) {
+        return { status: 'ignored', reason: 'invoice_missing_subscription' };
+      }
+      const owned = await requireOwnedSubscription(supabase, subId);
+      if ('status' in owned) return owned;
+
+      await syncInvoiceRow(supabase, inv, owned.user_id);
       return { status: 'processed' };
     }
     default:
@@ -406,19 +444,6 @@ function stripeCustomerIdString(
   return null;
 }
 
-async function resolveUserIdByStripeCustomer(
-  supabase: ReturnType<typeof createClient>,
-  customerId: string
-): Promise<string | null> {
-  const { data } = await supabase
-    .from('billing_subscriptions')
-    .select('user_id')
-    .eq('stripe_customer_id', customerId)
-    .limit(1)
-    .maybeSingle();
-  return data?.user_id ?? null;
-}
-
 function firstLineDescription(invoice: Stripe.Invoice): string | null {
   const first = invoice.lines?.data[0];
   if (!first) return invoice.description ?? null;
@@ -427,7 +452,8 @@ function firstLineDescription(invoice: Stripe.Invoice): string | null {
 
 async function syncInvoiceRow(
   supabase: ReturnType<typeof createClient>,
-  invoice: Stripe.Invoice
+  invoice: Stripe.Invoice,
+  userId: string
 ): Promise<void> {
   const customerId = stripeCustomerIdString(
     invoice.customer as Stripe.Invoice['customer']
@@ -436,19 +462,8 @@ async function syncInvoiceRow(
     console.warn('Invoice missing customer', invoice.id);
     return;
   }
-  const userId = await resolveUserIdByStripeCustomer(supabase, customerId);
-  if (!userId) {
-    // Rare race: invoice before checkout links stripe_customer_id on our row.
-    // Spec: log and reconcile on a later event — do not fail the webhook (REQ-046).
-    console.warn(
-      'syncInvoiceRow: no subscription row for customer yet; skipping invoice upsert',
-      { customerId, invoiceId: invoice.id }
-    );
-    return;
-  }
 
-  const subRef = invoice.subscription;
-  const subId = typeof subRef === 'string' ? subRef : (subRef?.id ?? null);
+  const subId = stripeSubscriptionIdFromRef(invoice.subscription);
   const inv = invoice as unknown as Record<string, unknown>;
   const st = (inv['status_transitions'] ?? {}) as Record<string, number | null>;
 
