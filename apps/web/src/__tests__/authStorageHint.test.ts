@@ -70,12 +70,18 @@ describe('authStorageHint', () => {
   });
 
   it('getLikelyAuthenticated is false when access_token is a number (not a string)', () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ access_token: 42, refresh_token: 'r' }));
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ access_token: 42, refresh_token: 'r' })
+    );
     expect(getLikelyAuthenticated()).toBe(false);
   });
 
   it('getLikelyAuthenticated is false when access_token is an empty string', () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ access_token: '', refresh_token: 'r' }));
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ access_token: '', refresh_token: 'r' })
+    );
     expect(getLikelyAuthenticated()).toBe(false);
   });
 });

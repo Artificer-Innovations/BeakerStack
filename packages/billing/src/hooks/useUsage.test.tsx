@@ -135,7 +135,10 @@ describe('useUsage (coverage)', () => {
     renderHook(() => useUsage('ai'));
     await waitFor(() => expect(rpc).toHaveBeenCalledTimes(1));
     rpc.mockClear();
-    usageRealtimeCb.current?.({ new: { product_id: 'other_product', event_type: 'ai' }, old: null });
+    usageRealtimeCb.current?.({
+      new: { product_id: 'other_product', event_type: 'ai' },
+      old: null,
+    });
     await Promise.resolve();
     await Promise.resolve();
     expect(rpc).not.toHaveBeenCalled();
@@ -149,7 +152,10 @@ describe('useUsage (coverage)', () => {
     renderHook(() => useUsage('ai'));
     await waitFor(() => expect(rpc).toHaveBeenCalledTimes(1));
     rpc.mockClear();
-    usageRealtimeCb.current?.({ new: { product_id: 'test_product', event_type: 'storage' }, old: null });
+    usageRealtimeCb.current?.({
+      new: { product_id: 'test_product', event_type: 'storage' },
+      old: null,
+    });
     await Promise.resolve();
     await Promise.resolve();
     expect(rpc).not.toHaveBeenCalled();

@@ -31,7 +31,11 @@ describe('ProfileAvatar (web) — onError handler coverage', () => {
   });
 
   it('shows "?" initials when profile has no names and image fails', () => {
-    const noName: UserProfile = { ...baseProfile, display_name: null, username: null };
+    const noName: UserProfile = {
+      ...baseProfile,
+      display_name: null,
+      username: null,
+    };
     const { getByRole } = render(<ProfileAvatar profile={noName} />);
     const img = getByRole('img');
     const parent = img.parentElement!;

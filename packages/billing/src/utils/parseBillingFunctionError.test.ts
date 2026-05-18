@@ -21,7 +21,10 @@ describe('parseBillingFunctionError', () => {
   });
 
   it('returns error string only when hint is absent', () => {
-    const err = parseBillingFunctionError({ error: 'card declined' }, undefined);
+    const err = parseBillingFunctionError(
+      { error: 'card declined' },
+      undefined
+    );
     expect(err.kind).toBe('stripe');
     expect(err.message).toBe('card declined');
   });

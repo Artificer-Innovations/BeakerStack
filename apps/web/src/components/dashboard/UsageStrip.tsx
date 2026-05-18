@@ -102,7 +102,15 @@ export function UsageStrip({ onActivity }: Props) {
     } finally {
       setPending(false);
     }
-  }, [exceeded, pending, pendingKey, config.productId, refresh, resolveSummaryText, onActivity]);
+  }, [
+    exceeded,
+    pending,
+    pendingKey,
+    config.productId,
+    refresh,
+    resolveSummaryText,
+    onActivity,
+  ]);
 
   const lim = limit === null ? '∞' : String(limit);
   const pct =

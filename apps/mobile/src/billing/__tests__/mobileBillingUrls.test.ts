@@ -16,8 +16,12 @@ describe('getMobileBillingProviderUrls', () => {
   it('uses deep-link scheme by default (beaker-stack://billing)', () => {
     delete process.env[ENV_KEY];
     const urls = getMobileBillingProviderUrls();
-    expect(urls.checkoutSuccessUrl).toBe('beaker-stack://billing?checkout=success');
-    expect(urls.checkoutCancelUrl).toBe('beaker-stack://billing?checkout=cancel');
+    expect(urls.checkoutSuccessUrl).toBe(
+      'beaker-stack://billing?checkout=success'
+    );
+    expect(urls.checkoutCancelUrl).toBe(
+      'beaker-stack://billing?checkout=cancel'
+    );
     expect(urls.portalReturnUrl).toBe('beaker-stack://billing');
   });
 
@@ -32,16 +36,24 @@ describe('getMobileBillingProviderUrls', () => {
   it('uses path segments for an http base URL', () => {
     process.env[ENV_KEY] = 'http://192.168.1.10:8081';
     const urls = getMobileBillingProviderUrls();
-    expect(urls.checkoutSuccessUrl).toBe('http://192.168.1.10:8081/billing?checkout=success');
-    expect(urls.checkoutCancelUrl).toBe('http://192.168.1.10:8081/billing/plans?checkout=cancel');
+    expect(urls.checkoutSuccessUrl).toBe(
+      'http://192.168.1.10:8081/billing?checkout=success'
+    );
+    expect(urls.checkoutCancelUrl).toBe(
+      'http://192.168.1.10:8081/billing/plans?checkout=cancel'
+    );
     expect(urls.portalReturnUrl).toBe('http://192.168.1.10:8081/billing');
   });
 
   it('uses path segments for an https base URL', () => {
     process.env[ENV_KEY] = 'https://staging.example.com';
     const urls = getMobileBillingProviderUrls();
-    expect(urls.checkoutSuccessUrl).toBe('https://staging.example.com/billing?checkout=success');
-    expect(urls.checkoutCancelUrl).toBe('https://staging.example.com/billing/plans?checkout=cancel');
+    expect(urls.checkoutSuccessUrl).toBe(
+      'https://staging.example.com/billing?checkout=success'
+    );
+    expect(urls.checkoutCancelUrl).toBe(
+      'https://staging.example.com/billing/plans?checkout=cancel'
+    );
     expect(urls.portalReturnUrl).toBe('https://staging.example.com/billing');
   });
 });

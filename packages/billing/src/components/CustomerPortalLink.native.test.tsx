@@ -45,7 +45,11 @@ describe('CustomerPortalLink (native)', () => {
   });
 
   it('renders React element children without an extra Text wrapper', () => {
-    vi.mocked(useCustomerPortal).mockReturnValue({ openPortal: vi.fn().mockResolvedValue(null), pending: false, error: null });
+    vi.mocked(useCustomerPortal).mockReturnValue({
+      openPortal: vi.fn().mockResolvedValue(null),
+      pending: false,
+      error: null,
+    });
     render(
       <CustomerPortalLink>
         <span data-testid='elem-child'>Manage</span>
@@ -62,7 +66,9 @@ describe('CustomerPortalLink (native)', () => {
     });
     render(<CustomerPortalLink>Portal</CustomerPortalLink>);
     fireEvent.click(screen.getByText('Portal'));
-    await waitFor(() => expect(screen.getByText('portal down')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('portal down')).toBeInTheDocument()
+    );
   });
 
   it('suppresses openError when portalError is also set (openError && !portalError is false)', async () => {
@@ -74,6 +80,8 @@ describe('CustomerPortalLink (native)', () => {
     });
     render(<CustomerPortalLink>Portal</CustomerPortalLink>);
     fireEvent.click(screen.getByText('Portal'));
-    await waitFor(() => expect(screen.queryByText('portal down')).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByText('portal down')).not.toBeInTheDocument()
+    );
   });
 });

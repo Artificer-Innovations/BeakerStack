@@ -196,7 +196,6 @@ describe('CollectionsGrid', () => {
     ).toHaveAttribute('aria-pressed', 'true');
   });
 
-
   it('pressing Enter on a collection card calls onSelect', async () => {
     // Focus the card and use userEvent.keyboard so the keydown event goes through
     // the full React event pipeline and executes the onKeyDown handler (lines 145-149).

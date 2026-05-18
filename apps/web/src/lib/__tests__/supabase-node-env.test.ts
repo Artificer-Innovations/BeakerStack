@@ -13,7 +13,9 @@ describe('supabase.ts — node env logs (coverage)', () => {
     vi.doMock('@beakerstack/shared/utils/logger', () => ({
       Logger: { warn, debug, error: vi.fn(), info: vi.fn() },
     }));
-    vi.doMock('@supabase/supabase-js', () => ({ createClient: vi.fn(() => ({})) }));
+    vi.doMock('@supabase/supabase-js', () => ({
+      createClient: vi.fn(() => ({})),
+    }));
     for (const [k, v] of Object.entries(env)) vi.stubEnv(k, v);
     vi.stubGlobal('window', undefined);
     vi.resetModules();
@@ -26,7 +28,9 @@ describe('supabase.ts — node env logs (coverage)', () => {
       VITE_SUPABASE_URL: '',
       VITE_SUPABASE_ANON_KEY: 'test-key',
     });
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('VITE_SUPABASE_URL'));
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('VITE_SUPABASE_URL')
+    );
   });
 
   it('warns when VITE_SUPABASE_ANON_KEY is not set in node env', async () => {
@@ -34,7 +38,9 @@ describe('supabase.ts — node env logs (coverage)', () => {
       VITE_SUPABASE_URL: 'https://test.supabase.co',
       VITE_SUPABASE_ANON_KEY: '',
     });
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('VITE_SUPABASE_ANON_KEY'));
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('VITE_SUPABASE_ANON_KEY')
+    );
   });
 
   it('logs ws:// realtime URL when supabase URL uses http in node env', async () => {
