@@ -76,6 +76,8 @@ describe('SignupInvitePage helpers', () => {
   const originalLocation = window.location;
 
   beforeEach(() => {
+    invokeMock.mockClear();
+    rpcMock.mockClear();
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: { ...originalLocation, hash: '#token=abc123' },
@@ -231,6 +233,22 @@ describe('SignupInvitePage', () => {
     );
     expect(
       await screen.findByText(/invalid or has expired/i)
+    ).toBeInTheDocument();
+  });
+
+  it('shows error when password is too short', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/signup/invite#token=tok']}>
+        <SignupInvitePage />
+      </MemoryRouter>
+    );
+    await screen.findByPlaceholderText('Password');
+    await user.type(screen.getByPlaceholderText('Password'), 'short');
+    await user.type(screen.getByPlaceholderText('Confirm password'), 'short');
+    await user.click(screen.getByRole('button', { name: /create account/i }));
+    expect(
+      await screen.findByText(/password must be at least 8 characters/i)
     ).toBeInTheDocument();
   });
 

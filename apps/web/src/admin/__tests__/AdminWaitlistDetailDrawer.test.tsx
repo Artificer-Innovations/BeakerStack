@@ -161,6 +161,123 @@ describe('AdminWaitlistDetailDrawer', () => {
     });
   });
 
+  it('surfaces email_not_configured from send_invite_email', async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: { error: 'email_not_configured' },
+      error: null,
+    });
+    const user = userEvent.setup();
+    render(
+      <AdminWaitlistDetailDrawer
+        entry={pendingEntry}
+        open
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: /approve/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        /email delivery is not configured/i
+      );
+    });
+  });
+
+  it('surfaces send_invite_email errors from the ops function', async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: { error: 'email_send_failed' },
+      error: null,
+    });
+    const user = userEvent.setup();
+    render(
+      <AdminWaitlistDetailDrawer
+        entry={pendingEntry}
+        open
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: /approve/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('email_send_failed');
+    });
+  });
+
+  it('approves without sending when approve returns no invite token', async () => {
+    mockApprove.mockResolvedValueOnce({ email: 'wait@example.com' });
+    const user = userEvent.setup();
+    render(
+      <AdminWaitlistDetailDrawer
+        entry={pendingEntry}
+        open
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: /approve/i }));
+
+    await waitFor(() => {
+      expect(mockApprove).toHaveBeenCalled();
+    });
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  it('omits metadata block when metadata is empty', () => {
+    render(
+      <AdminWaitlistDetailDrawer
+        entry={{ ...pendingEntry, metadata: {} }}
+        open
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+      />
+    );
+    expect(screen.queryByText(/"note"/)).not.toBeInTheDocument();
+  });
+
+  it('falls back when date formatting throws', () => {
+    const toLocaleString = Date.prototype.toLocaleString;
+    Date.prototype.toLocaleString = vi.fn(() => {
+      throw new Error('bad date');
+    });
+    try {
+      render(
+        <AdminWaitlistDetailDrawer
+          entry={{ ...pendingEntry, submitted_at: '2024-01-01T00:00:00Z' }}
+          open
+          onClose={vi.fn()}
+          onUpdated={vi.fn()}
+        />
+      );
+      expect(screen.getByText('2024-01-01T00:00:00Z')).toBeInTheDocument();
+    } finally {
+      Date.prototype.toLocaleString = toLocaleString;
+    }
+  });
+
+  it('surfaces resend failures', async () => {
+    mockResend.mockRejectedValueOnce(new Error('resend failed'));
+    const user = userEvent.setup();
+    render(
+      <AdminWaitlistDetailDrawer
+        entry={{ ...pendingEntry, status: 'approved' }}
+        open
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: /resend invite/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('resend failed');
+    });
+  });
+
   it('surfaces reject failures', async () => {
     mockReject.mockRejectedValueOnce(new Error('reject failed'));
     const user = userEvent.setup();

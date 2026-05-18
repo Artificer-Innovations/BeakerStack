@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { readAndClearPostAuthRedirect } from '../auth/postAuthRedirect';
@@ -16,6 +16,23 @@ export default function AuthCallbackPage() {
   authRef.current = auth;
   const delayedLoginTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
+  );
+
+  const completeInviteSignup = useCallback(
+    (inviteToken: string, userId: string, userEmail: string | undefined) => {
+      void finalizeInviteSignup(inviteToken, userId, userEmail)
+        .then(() => navigate('/dashboard', { replace: true }))
+        .catch(() => {
+          setError(
+            'Could not complete invite signup. Try the invite link again.'
+          );
+          setTimeout(() => {
+            navigatedRef.current = true;
+            navigate('/login', { replace: true });
+          }, 3000);
+        });
+    },
+    [navigate]
   );
 
   useEffect(() => {
@@ -43,21 +60,11 @@ export default function AuthCallbackPage() {
       navigatedRef.current = true;
       const inviteToken = sessionStorage.getItem(INVITE_TOKEN_STORAGE_KEY);
       if (inviteToken) {
-        void finalizeInviteSignup(
+        completeInviteSignup(
           inviteToken,
           auth.user.id,
           auth.user.email ?? undefined
-        )
-          .then(() => navigate('/dashboard', { replace: true }))
-          .catch(() => {
-            setError(
-              'Could not complete invite signup. Try the invite link again.'
-            );
-            setTimeout(() => {
-              navigatedRef.current = true;
-              navigate('/login', { replace: true });
-            }, 3000);
-          });
+        );
         return;
       }
       const stored = readAndClearPostAuthRedirect();
@@ -76,25 +83,6 @@ export default function AuthCallbackPage() {
       const a = authRef.current;
       if (a.user && !a.loading) {
         navigatedRef.current = true;
-        const inviteToken = sessionStorage.getItem(INVITE_TOKEN_STORAGE_KEY);
-        if (inviteToken) {
-          void finalizeInviteSignup(
-            inviteToken,
-            a.user.id,
-            a.user.email ?? undefined
-          )
-            .then(() => navigate('/dashboard', { replace: true }))
-            .catch(() => {
-              setError(
-                'Could not complete invite signup. Try the invite link again.'
-              );
-              setTimeout(() => {
-                navigatedRef.current = true;
-                navigate('/login', { replace: true });
-              }, 3000);
-            });
-          return;
-        }
         const stored = readAndClearPostAuthRedirect();
         navigate(stored ?? '/dashboard', { replace: true });
       } else if (!a.loading) {
@@ -115,7 +103,7 @@ export default function AuthCallbackPage() {
         delayedLoginTimerRef.current = null;
       }
     };
-  }, [auth.user, auth.loading, navigate]);
+  }, [auth.user, auth.loading, navigate, completeInviteSignup]);
 
   if (error) {
     return (

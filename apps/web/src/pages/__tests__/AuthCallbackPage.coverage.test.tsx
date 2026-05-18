@@ -320,6 +320,33 @@ describe('AuthCallbackPage (URL + auth branches)', () => {
     ).toBeInTheDocument();
   });
 
+  it('redirects to login after invite finalization fails', async () => {
+    vi.useFakeTimers();
+    finalizeInviteSignupMock.mockRejectedValueOnce(new Error('fail'));
+    memSession[INVITE_TOKEN_STORAGE_KEY] = 'invite-tok';
+    auth.loading = false;
+    auth.user = { id: 'u1', email: 'a@b.com' };
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <AuthCallbackPage />
+        </MemoryRouter>
+      );
+      await Promise.resolve();
+    });
+
+    expect(
+      screen.getByText(/could not complete invite signup/i)
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
+    expect(mockNavigate).toHaveBeenCalledWith('/login', { replace: true });
+    vi.useRealTimers();
+  });
+
   it('redirects on delayed timer when user appears after access token', async () => {
     vi.useFakeTimers();
     Object.defineProperty(window, 'location', {

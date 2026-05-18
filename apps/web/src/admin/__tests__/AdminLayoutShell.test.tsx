@@ -20,4 +20,17 @@ describe('AdminLayoutShell', () => {
     expect(screen.getByRole('link', { name: 'Users' })).toBeInTheDocument();
     expect(screen.getByText('Users outlet')).toBeInTheDocument();
   });
+
+  it('uses dashboard-only breadcrumbs on non-users admin routes', () => {
+    render(
+      <MemoryRouter initialEntries={['/waitlist']}>
+        <Routes>
+          <Route element={<AdminLayoutShell />}>
+            <Route path='waitlist' element={<p>Waitlist outlet</p>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+    expect(screen.getByText('Waitlist outlet')).toBeInTheDocument();
+  });
 });

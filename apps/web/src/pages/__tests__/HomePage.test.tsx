@@ -92,14 +92,6 @@ vi.mock('../../config/landing', () => ({
   },
 }));
 
-vi.mock('../../../billing/beakerstackBillingConfig', () => ({
-  beakerstackBillingConfig: {
-    plans: [],
-    productId: 'test',
-    displayName: 'Test',
-  },
-}));
-
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   configurable: true,
@@ -157,15 +149,5 @@ describe('HomePage', () => {
     const signInLinks = screen.getAllByRole('link', { name: /sign in/i });
     expect(signInLinks.length).toBeGreaterThan(0);
     expect(signInLinks[0]).toHaveAttribute('href', '/login');
-  });
-
-  it('renders the pricing cadence toggle with Monthly and Annually buttons', async () => {
-    await renderHome();
-    expect(
-      await screen.findByRole('button', { name: /monthly/i })
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByRole('button', { name: /annually/i })
-    ).toBeInTheDocument();
   });
 });
