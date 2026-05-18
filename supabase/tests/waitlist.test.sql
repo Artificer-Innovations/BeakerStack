@@ -1,6 +1,6 @@
 -- pgTAP: waitlist tables, RLS, and RPC access control
 BEGIN;
-SELECT plan(19);
+SELECT plan(20);
 
 SELECT has_table('public', 'waitlist_settings', 'waitlist_settings exists');
 SELECT has_table('public', 'waitlist_entries', 'waitlist_entries exists');
@@ -54,10 +54,13 @@ SELECT ok(
     'admin_invite_waitlist_email exists'
 );
 
--- Settings row (insert for test if missing)
+-- Reset singleton settings to a known baseline (seed row may differ in long-lived local DBs)
 INSERT INTO public.waitlist_settings (id, signup_mode, default_plan_id)
 VALUES (1, 'open', 'beakerstack_free')
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE
+SET
+    signup_mode = EXCLUDED.signup_mode,
+    default_plan_id = EXCLUDED.default_plan_id;
 
 SELECT is(
     (SELECT signup_mode FROM public.waitlist_settings WHERE id = 1),
@@ -154,6 +157,18 @@ SELECT set_config('request.jwt.claim.sub', 'b2000000-0000-0000-0000-000000000003
 SELECT ok(
     public.admin_is_admin(),
     'waitlist admin fixture is recognized as admin'
+);
+
+SELECT ok(
+    EXISTS (
+        SELECT 1
+        FROM pg_proc p
+        JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public'
+          AND p.proname = 'admin_update_waitlist_settings'
+          AND pg_get_functiondef(p.oid) LIKE '%invalid_signup_mode%'
+    ),
+    'admin_update_waitlist_settings validates signup_mode in RPC (apply migrations / db reset if missing)'
 );
 
 SELECT is(
