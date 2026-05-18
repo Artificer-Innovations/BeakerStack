@@ -1,6 +1,6 @@
 -- pgTAP: admin tables, RLS, and RPC access control
 BEGIN;
-SELECT plan(20);
+SELECT plan(23);
 
 -- ── Schema ───────────────────────────────────────────────────────────────────
 SELECT has_table('public', 'admin_users', 'admin_users table exists');
@@ -146,6 +146,44 @@ SELECT ok(
     (public.admin_get_user('a1000000-0000-0000-0000-000000000001'::uuid) -> 'auth' ->> 'email')
         = 'admin-test-user@example.com',
     'admin admin_get_user includes target auth email'
+);
+
+SELECT ok(
+    NOT (
+        public.admin_get_user('a1000000-0000-0000-0000-000000000001'::uuid)
+            -> 'profile'
+            ? 'user_id'
+    ),
+    'admin_get_user profile projection omits user_id'
+);
+
+SELECT ok(
+    NOT (
+        public.admin_get_user('a1000000-0000-0000-0000-000000000001'::uuid)
+            -> 'subscription'
+            ? 'stripe_customer_id'
+    ),
+    'admin_get_user subscription projection omits stripe_customer_id'
+);
+
+SELECT ok(
+    (
+        jsonb_array_length(
+            COALESCE(
+                public.admin_get_user('a1000000-0000-0000-0000-000000000001'::uuid)
+                    -> 'usage_events',
+                '[]'::jsonb
+            )
+        ) = 0
+    )
+    OR NOT (
+        (
+            public.admin_get_user('a1000000-0000-0000-0000-000000000001'::uuid)
+                -> 'usage_events'
+                -> 0
+        ) ? 'metadata'
+    ),
+    'admin_get_user usage_events projection omits metadata'
 );
 
 -- Revoked admin is denied (UPDATE as superuser — RLS blocks authenticated)
