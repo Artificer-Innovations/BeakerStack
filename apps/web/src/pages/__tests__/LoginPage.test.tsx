@@ -81,9 +81,13 @@ const createMockSupabaseClient = (): SupabaseClient => {
   } as unknown as SupabaseClient;
 };
 
+type MemoryRouterInitialEntries = NonNullable<
+  React.ComponentProps<typeof MemoryRouter>['initialEntries']
+>;
+
 const renderWithProviders = (
   component: React.ReactElement,
-  options?: { initialEntries?: string[] }
+  options?: { initialEntries?: MemoryRouterInitialEntries }
 ) => {
   const mockClient = createMockSupabaseClient();
   const router =

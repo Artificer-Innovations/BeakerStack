@@ -1,4 +1,3 @@
-/* eslint-disable no-console -- CLI helper */
 import { execSync } from 'node:child_process';
 
 /** Parse `supabase status -o env` lines like FOO="bar". */
@@ -8,7 +7,11 @@ export function parseSupabaseStatusEnv(stdout: string): Record<string, string> {
     const trimmed = line.trim();
     const match = trimmed.match(/^([A-Z0-9_]+)="(.*)"$/);
     if (match) {
-      out[match[1]!] = match[2]!;
+      const key = match[1];
+      const value = match[2];
+      if (key !== undefined && value !== undefined) {
+        out[key] = value;
+      }
     }
   }
   return out;

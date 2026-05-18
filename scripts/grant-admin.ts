@@ -13,8 +13,9 @@ function parseArgs(argv: string[]) {
   let dryRun = false;
   const positional: string[] = [];
   for (let i = 2; i < argv.length; i++) {
-    if (argv[i] === '--dry-run') dryRun = true;
-    else positional.push(argv[i]!);
+    const arg = argv[i];
+    if (arg === '--dry-run') dryRun = true;
+    else if (arg !== undefined) positional.push(arg);
   }
   return { dryRun, email: positional[0]?.trim() };
 }

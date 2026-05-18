@@ -62,7 +62,7 @@ describe('useIsAdmin', () => {
 
   it('stays loading when userId appears so guards do not false-negative', async () => {
     const sb = createSupabase(true);
-    let resolveRpc: (value: { data: boolean; error: null }) => void;
+    let resolveRpc = (_value: { data: boolean; error: null }) => {};
     vi.mocked(sb.rpc).mockImplementation(
       () =>
         new Promise(resolve => {
@@ -81,7 +81,7 @@ describe('useIsAdmin', () => {
     expect(result.current.loading).toBe(true);
     expect(result.current.isAdmin).toBe(false);
 
-    resolveRpc!({ data: true, error: null });
+    resolveRpc({ data: true, error: null });
     await waitFor(() => expect(result.current.isAdmin).toBe(true));
     expect(result.current.loading).toBe(false);
   });

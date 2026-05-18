@@ -33,7 +33,7 @@ const mockUseAdminUsers = vi.hoisted(() => ({
     offset: 0,
   },
   loading: false,
-  error: null,
+  error: null as Error | null,
   reload: vi.fn(),
 }));
 
