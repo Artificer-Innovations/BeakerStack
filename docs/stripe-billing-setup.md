@@ -12,16 +12,16 @@ This guide walks you from **zero** to a working **test-mode** Stripe integration
 
 ## Before the Stripe wizard phase
 
-If you use `npm run setup:full`, the **stripe** phase (after **supabase**, before **write** / **github**) collects GitHub Actions keys so you are not surprised by `STAGING_STRIPE_SECRET_KEY` at github sync.
+If you use `npm run setup:full`, the **stripe** phase (after **supabase**, before **write** / **github**) collects GitHub Actions keys so you are not surprised by `STAGING_STRIPE_SECRET_KEY` at github sync. For each **hosted** Supabase project (`https://<ref>.supabase.co`), the wizard uses the same logic as CI ([`scripts/lib/ensure-stripe-webhook.mjs`](../scripts/lib/ensure-stripe-webhook.mjs)) to create or update the Stripe webhook and store `*_STRIPE_WEBHOOK_SECRET` when Stripe returns a new signing secret.
 
 ### Checklist
 
-| #   | Requirement                      | Details                                                                                                                                                                  |
-| --- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1   | **Stripe account**               | [dashboard.stripe.com](https://dashboard.stripe.com) — **Test mode** for preview + staging.                                                                              |
-| 2   | **API secret keys**              | Developers → API keys → `sk_test_…` (preview/staging) and `sk_live_…` (production when ready).                                                                           |
-| 3   | **Webhook per Supabase project** | URL `https://<PROJECT_REF>.supabase.co/functions/v1/stripe-webhook` — one endpoint per preview/staging/production project; **Reveal** signing secret `whsec_…` for each. |
-| 4   | **Supabase URLs from setup**     | Complete the **supabase** phase first so the wizard can print each webhook URL.                                                                                          |
+| #   | Requirement                      | Details                                                                                                                                                                                                                                                                 |
+| --- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Stripe account**               | [dashboard.stripe.com](https://dashboard.stripe.com) — **Test mode** for preview + staging.                                                                                                                                                                             |
+| 2   | **API secret keys**              | Developers → API keys → `sk_test_…` (preview/staging) and `sk_live_…` (production when ready).                                                                                                                                                                          |
+| 3   | **Webhook per Supabase project** | One endpoint per preview/staging/production at `https://<PROJECT_REF>.supabase.co/functions/v1/stripe-webhook`. **Greenfield:** wizard/CI create it from `sk_*` only. **Existing endpoint:** paste `whsec_…` from Dashboard → **Reveal** if the secret was never saved. |
+| 4   | **Supabase URLs from setup**     | Complete the **supabase** phase first so the wizard can ensure webhooks against the correct URL.                                                                                                                                                                        |
 
 Skip billing in CI: answer **N** at the stripe phase or `npm run setup:full -- --skip-stripe`.
 
@@ -155,7 +155,7 @@ Seed data (when using repo `supabase/seed.sql`) includes the template product **
 
 ## 5. Stripe Dashboard — webhook endpoint (hosted Supabase)
 
-When **Stripe’s servers** must call your project (staging/production, or a stable tunnel), register the webhook in Stripe:
+When **Stripe’s servers** must call your project (staging/production, or a stable tunnel), register the webhook in Stripe. **`npm run setup:full`** (stripe phase) and deploy CI (`npm run stripe:ensure-webhook`) can create or update this endpoint for `https://<ref>.supabase.co` projects automatically; use the manual steps below if you prefer the Dashboard or need to **Reveal** an existing signing secret.
 
 1. **Developers → Webhooks → Add endpoint**.
 2. **Endpoint URL** (replace placeholders):
@@ -163,7 +163,7 @@ When **Stripe’s servers** must call your project (staging/production, or a sta
    `https://<PROJECT_REF>.supabase.co/functions/v1/stripe-webhook`
    - `PROJECT_REF` is in the Supabase project URL (Dashboard → Project Settings → API → Project URL).
 
-3. **Events to send** — at minimum select the types the template handler implements (you can also use “Receive all events” while testing):
+3. **Events to send** — select the same types as [`STRIPE_WEBHOOK_ENABLED_EVENTS`](../scripts/lib/ensure-stripe-webhook.mjs) (auto-ensure and CI use this list; you can also use “Receive all events” while testing):
    - `checkout.session.completed`
    - `customer.subscription.updated`
    - `customer.subscription.deleted`
@@ -171,6 +171,9 @@ When **Stripe’s servers** must call your project (staging/production, or a sta
    - `invoice.payment_failed`
    - `invoice.paid`
    - `invoice.payment_succeeded`
+   - `invoice.created`
+   - `invoice.finalized`
+   - `invoice.voided`
 
 4. After saving, open the webhook details and **Reveal** the **Signing secret** (`whsec_…`). That value is **`STRIPE_WEBHOOK_SECRET`** for the **same** Stripe mode (test vs live) as your API keys.
 

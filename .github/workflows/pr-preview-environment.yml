@@ -163,7 +163,6 @@ jobs:
       - name: Deploy preview billing edge functions
         id: billing-functions
         continue-on-error: true
-        shell: bash
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PREVIEW_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
@@ -174,24 +173,11 @@ jobs:
           PREVIEW_STRIPE_SECRET_KEY: ${{ secrets.PREVIEW_STRIPE_SECRET_KEY }}
           PREVIEW_STRIPE_WEBHOOK_SECRET: ${{ steps.stripe_webhook_preview.outputs.resolved_webhook_secret }}
           PREVIEW_BILLING_ALLOWED_ORIGINS: ${{ secrets.PREVIEW_BILLING_ALLOWED_ORIGINS }}
+          SUPABASE_MAX_RETRIES: 5
         run: |
           set -euo pipefail
-          cd supabase
-          # Path-based previews use this host; empty allowlist breaks checkout redirect validation.
-          BILLING_ORIGINS="${PREVIEW_BILLING_ALLOWED_ORIGINS:-https://deploy.beakerstack.com}"
-          supabase link \
-            --project-ref "${SUPABASE_PREVIEW_PROJECT_REF}" \
-            --password "${SUPABASE_PREVIEW_DB_PASSWORD}" \
-            --yes
-          supabase secrets set \
-            STRIPE_SECRET_KEY="${PREVIEW_STRIPE_SECRET_KEY}" \
-            STRIPE_WEBHOOK_SECRET="${PREVIEW_STRIPE_WEBHOOK_SECRET}" \
-            BILLING_SUPABASE_URL="${PREVIEW_SUPABASE_URL}" \
-            BILLING_SUPABASE_ANON_KEY="${PREVIEW_SUPABASE_ANON_KEY}" \
-            BILLING_SUPABASE_SERVICE_ROLE_KEY="${PR_TESTING_SUPABASE_SERVICE_ROLE_KEY}" \
-            BILLING_ALLOWED_ORIGINS="${BILLING_ORIGINS}"
-          supabase functions deploy stripe-webhook billing-stripe \
-            --project-ref "${SUPABASE_PREVIEW_PROJECT_REF}"
+          chmod +x ./scripts/pr-preview/deploy-preview-billing-functions.sh
+          ./scripts/pr-preview/deploy-preview-billing-functions.sh
 
       - name: Build and deploy web preview
         id: web

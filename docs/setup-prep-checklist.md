@@ -176,16 +176,18 @@ Do not commit filled-in values or `.env*` files with secrets.
 **Have ready (before Yes — wizard shows checklist + Enter):**
 
 1. **[Stripe account](https://dashboard.stripe.com)** — **Test mode** for preview + staging; **Live mode** only when production is ready.
-2. **Supabase phase done** — so the wizard can print each tier’s webhook URL (`https://<ref>.supabase.co/functions/v1/stripe-webhook`).
-3. Per tier, from Dashboard → **Developers → API keys** and **Webhooks**:
-   - **Preview:** `PREVIEW_STRIPE_SECRET_KEY` + `PREVIEW_STRIPE_WEBHOOK_SECRET`
-   - **Staging:** `STAGING_STRIPE_SECRET_KEY` + `STAGING_STRIPE_WEBHOOK_SECRET`
-   - **Production:** `PRODUCTION_STRIPE_SECRET_KEY` + `PRODUCTION_STRIPE_WEBHOOK_SECRET`
+2. **Supabase phase done** — so the wizard knows each tier’s hosted webhook URL (`https://<ref>.supabase.co/functions/v1/stripe-webhook`).
+3. Per tier, **API secret key** from Dashboard → **Developers → API keys**:
+   - **Preview:** `PREVIEW_STRIPE_SECRET_KEY` (`sk_test_…`)
+   - **Staging:** `STAGING_STRIPE_SECRET_KEY` (`sk_test_…`)
+   - **Production:** `PRODUCTION_STRIPE_SECRET_KEY` (`sk_live_…` when ready)
+
+For **hosted** Supabase URLs, the wizard **creates or updates** the matching Stripe webhook and fills `*_STRIPE_WEBHOOK_SECRET` automatically when Stripe returns a new signing secret. You only need to paste `whsec_…` manually if that endpoint **already existed** and the secret was never saved (Dashboard → Webhooks → **Reveal**).
 
 **You will be asked:**
 
 - **Press Enter** when ready (or **N** to skip / `--skip-stripe` for no billing in CI)
-- For each tier (preview → staging → production): collect now? → masked secret key → masked webhook signing secret
+- For each tier (preview → staging → production): collect now? → masked secret key → auto-ensure webhook when possible → optional `whsec` prompt if Stripe already had the endpoint without a stored secret
 - **Enter** on a tier skips that tier (github may prompt again later)
 
 **Saved as:** `*_STRIPE_*` in `.env.cloud.generated.local` → GitHub secrets in **github** phase.

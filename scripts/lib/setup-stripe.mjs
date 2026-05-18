@@ -2,6 +2,13 @@
  * Stripe billing keys for setup-full (GitHub Actions + .env.cloud.generated.local).
  */
 
+import {
+  ensureStripeWebhook,
+  isAutoEnsureStripeWebhookUrl,
+  MissingWebhookSecretError,
+  stripeSecretKeyMatchesMode,
+} from './ensure-stripe-webhook.mjs';
+
 /** @typedef {{ id: string; label: string; secretKey: string; webhookSecretKey: string; supabaseUrlKeys: string[]; stripeMode: 'test' | 'live' }} StripeSetupTier */
 
 /** @type {StripeSetupTier[]} */
@@ -101,6 +108,114 @@ export function tierStripeKeysPresent(acc, tier) {
 }
 
 /**
+ * @param {StripeSetupTier} tier
+ * @param {string} webhookUrl
+ * @returns {string}
+ */
+export function stripeWebhookDescriptionForTier(tier, webhookUrl) {
+  let ref = '';
+  try {
+    ref = new URL(webhookUrl).hostname.split('.')[0] || '';
+  } catch {
+    /* ignore */
+  }
+  const suffix = ref ? ` (${ref})` : '';
+  return `BeakerStack ${tier.id}${suffix}`;
+}
+
+/**
+ * @param {{
+ *   acc: Record<string, string>;
+ *   tier: StripeSetupTier;
+ *   webhookUrl: string;
+ *   logInfo: (s: string) => void;
+ *   logWarn: (s: string) => void;
+ *   applySecret: (raw: string, primaryKey: string) => Promise<void>;
+ *   ensureStripeWebhook?: typeof import('./ensure-stripe-webhook.mjs').ensureStripeWebhook;
+ * }} ctx
+ * @returns {Promise<boolean>} true if webhook secret is set when done
+ */
+export async function ensureTierStripeWebhookSecret(ctx) {
+  const {
+    acc,
+    tier,
+    webhookUrl,
+    logInfo,
+    logWarn,
+    applySecret,
+    ensureStripeWebhook: ensureFn = ensureStripeWebhook,
+  } = ctx;
+
+  if ((acc[tier.webhookSecretKey] || '').trim()) {
+    return true;
+  }
+
+  const secretKey = (acc[tier.secretKey] || '').trim();
+  if (!secretKey) {
+    return false;
+  }
+
+  if (!isAutoEnsureStripeWebhookUrl(webhookUrl)) {
+    return false;
+  }
+
+  if (!stripeSecretKeyMatchesMode(secretKey, tier.stripeMode)) {
+    logWarn(
+      `  ${tier.secretKey} does not look like sk_${tier.stripeMode === 'live' ? 'live' : 'test'}_ — fix the key or Stripe mode before ensuring webhooks.`
+    );
+    return false;
+  }
+
+  try {
+    const result = await ensureFn({
+      secretKey,
+      webhookUrl,
+      existingWebhookSecret: acc[tier.webhookSecretKey],
+      description: stripeWebhookDescriptionForTier(tier, webhookUrl),
+    });
+    await applySecret(result.signingSecret, tier.webhookSecretKey);
+    if (result.created) {
+      logInfo(
+        `  Created Stripe webhook endpoint ${result.endpointId} and saved ${tier.webhookSecretKey}.`
+      );
+    } else if (result.reenabled && result.eventsUpdated) {
+      logInfo(
+        `  Re-enabled webhook ${result.endpointId} and updated events; reused ${tier.webhookSecretKey}.`
+      );
+    } else if (result.reenabled) {
+      logInfo(
+        `  Re-enabled webhook ${result.endpointId}; reused ${tier.webhookSecretKey}.`
+      );
+    } else if (result.eventsUpdated) {
+      logInfo(
+        `  Updated webhook ${result.endpointId} events; reused ${tier.webhookSecretKey}.`
+      );
+    } else {
+      logInfo(
+        `  Reused existing Stripe webhook; saved ${tier.webhookSecretKey}.`
+      );
+    }
+    return true;
+  } catch (e) {
+    if (e instanceof MissingWebhookSecretError) {
+      logWarn(
+        '  Stripe already has a webhook for this URL but the signing secret is unknown.'
+      );
+      logInfo(
+        '  Dashboard → Developers → Webhooks → this endpoint → Reveal signing secret (whsec_…).'
+      );
+      return false;
+    }
+    const msg = e instanceof Error ? e.message : String(e);
+    logWarn(`  Could not ensure Stripe webhook: ${msg}`);
+    if (e instanceof Error && e.stack) {
+      logWarn(`  ${e.stack}`);
+    }
+    return false;
+  }
+}
+
+/**
  * @param {{
  *   acc: Record<string, string>;
  *   flags: { dryRun: boolean; plainSecretPrompts: boolean };
@@ -117,8 +232,17 @@ export async function collectStripeEnvKeys(ctx) {
 
   if (flags.dryRun) {
     logInfo(
-      '[dry-run] would walk preview / staging / production Stripe keys (sk_test + whsec per tier).'
+      '[dry-run] would walk preview / staging / production Stripe keys (sk_*; auto-ensure hosted webhooks when Supabase URL is set).'
     );
+    for (const tier of STRIPE_SETUP_TIERS) {
+      const supabaseUrl = resolveSupabaseUrlForStripeTier(acc, tier);
+      const webhookUrl = supabaseStripeWebhookUrl(supabaseUrl);
+      if (webhookUrl && isAutoEnsureStripeWebhookUrl(webhookUrl)) {
+        logInfo(
+          `[dry-run] would ensure Stripe webhook at ${webhookUrl} → ${tier.webhookSecretKey}`
+        );
+      }
+    }
     return;
   }
 
@@ -132,6 +256,8 @@ export async function collectStripeEnvKeys(ctx) {
 
     const supabaseUrl = resolveSupabaseUrlForStripeTier(acc, tier);
     const webhookUrl = supabaseStripeWebhookUrl(supabaseUrl);
+    const canAutoEnsure =
+      Boolean(webhookUrl) && isAutoEnsureStripeWebhookUrl(webhookUrl);
 
     logInfo('');
     logInfo(`── Stripe: ${tier.label} ──`);
@@ -141,9 +267,15 @@ export async function collectStripeEnvKeys(ctx) {
     if (webhookUrl) {
       logInfo(`  Webhook endpoint URL for this Supabase project:`);
       logInfo(`    ${webhookUrl}`);
-      logInfo(
-        '  Dashboard → Developers → Webhooks → Add endpoint → paste URL → select subscription events → Reveal signing secret (whsec_…).'
-      );
+      if (canAutoEnsure) {
+        logInfo(
+          `  With ${tier.secretKey} only, the wizard can create or update this webhook in Stripe and set ${tier.webhookSecretKey} automatically.`
+        );
+      } else {
+        logInfo(
+          '  Local/custom URLs: use Stripe CLI (stripe listen) for webhooks; see docs/stripe-billing-setup.md §8.'
+        );
+      }
     } else {
       logWarn(
         `  No Supabase URL set yet (${tier.supabaseUrlKeys.join(' / ')}) — complete supabase phase first, or paste keys from docs/stripe-billing-setup.md.`
@@ -174,7 +306,22 @@ export async function collectStripeEnvKeys(ctx) {
       if (sk) await applySecret(sk, tier.secretKey);
     }
 
-    if (!(acc[tier.webhookSecretKey] || '').trim()) {
+    if (webhookUrl && !(acc[tier.webhookSecretKey] || '').trim()) {
+      const ensured = await ensureTierStripeWebhookSecret({
+        acc,
+        tier,
+        webhookUrl,
+        logInfo,
+        logWarn,
+        applySecret,
+      });
+      if (!ensured && !(acc[tier.webhookSecretKey] || '').trim()) {
+        const wh = await readSecret(
+          `${tier.webhookSecretKey} (whsec_… — paste from Dashboard Reveal if webhook already exists, Enter to skip): `
+        );
+        if (wh) await applySecret(wh, tier.webhookSecretKey);
+      }
+    } else if (!(acc[tier.webhookSecretKey] || '').trim()) {
       const wh = await readSecret(
         `${tier.webhookSecretKey} (whsec_… for webhook above, Enter to skip): `
       );
