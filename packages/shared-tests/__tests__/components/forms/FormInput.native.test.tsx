@@ -1,5 +1,5 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { FormInput } from '@beakerstack/shared/components/forms/FormInput.native';
 
@@ -23,43 +23,6 @@ describe('FormInput (Native)', () => {
 
     const input = screen.getByDisplayValue('testuser');
     expect(input).toBeInTheDocument();
-  });
-
-  it.skip('calls onChange when input value changes', () => {
-    const mockOnChange = jest.fn();
-    render(
-      <FormInput
-        label='Username'
-        value=''
-        onChange={mockOnChange}
-        placeholder='Enter username'
-      />
-    );
-
-    const input = screen.getByPlaceholderText('Enter username');
-    // react-native-web renders TextInput - fire changeText directly
-    fireEvent(input, 'changeText', 'newvalue');
-
-    expect(mockOnChange).toHaveBeenCalledWith('newvalue');
-  });
-
-  it.skip('calls onBlur when input loses focus', () => {
-    const mockOnChange = jest.fn();
-    const mockOnBlur = jest.fn();
-    render(
-      <FormInput
-        label='Username'
-        value=''
-        onChange={mockOnChange}
-        onBlur={mockOnBlur}
-        placeholder='Enter username'
-      />
-    );
-
-    const input = screen.getByPlaceholderText('Enter username');
-    fireEvent(input, 'blur');
-
-    expect(mockOnBlur).toHaveBeenCalled();
   });
 
   it('displays error message when error prop is provided', () => {
@@ -195,26 +158,5 @@ describe('FormInput (Native)', () => {
 
     // Verify component renders
     expect(screen.getByText('Username')).toBeInTheDocument();
-  });
-
-  it.skip('calls onChange when value changes with error', () => {
-    const mockOnChange = jest.fn();
-    render(
-      <FormInput
-        label='Username'
-        value=''
-        onChange={mockOnChange}
-        error='Error message'
-        placeholder='Enter username'
-      />
-    );
-
-    expect(screen.getByText('Error message')).toBeInTheDocument();
-
-    // Simulate user typing
-    const input = screen.getByPlaceholderText('Enter username');
-    fireEvent(input, 'changeText', 'newvalue');
-
-    expect(mockOnChange).toHaveBeenCalledWith('newvalue');
   });
 });

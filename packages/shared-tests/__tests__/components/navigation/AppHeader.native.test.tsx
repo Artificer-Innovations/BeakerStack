@@ -170,25 +170,4 @@ describe('AppHeader (Native)', () => {
     fireEvent.click(signUpButton);
     expect(mockNavigate).toHaveBeenCalledWith('Signup');
   });
-
-  it.skip('renders UserMenu when user is authenticated', async () => {
-    const mockClient = createMockSupabaseClient(true);
-    mockClient.auth.getSession = jest.fn().mockResolvedValue({
-      data: {
-        session: {
-          user: { id: '1', email: 'test@example.com' },
-          access_token: 'token',
-        },
-      },
-      error: null,
-    });
-
-    renderWithProviders(<AppHeader supabaseClient={mockClient} />);
-
-    // Wait for UserMenu to appear (ProfileProvider needs to load profile first)
-    await screen.findByTestId('user-menu', {}, { timeout: 3000 });
-
-    expect(screen.getByTestId('user-menu')).toBeInTheDocument();
-    expect(screen.queryByText('Sign In')).not.toBeInTheDocument();
-  });
 });

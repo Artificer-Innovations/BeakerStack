@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
@@ -83,63 +83,6 @@ describe('AppHeader (Web)', () => {
     await screen.findByText('Sign In');
     expect(screen.getByText('Sign In')).toBeInTheDocument();
     expect(screen.getByText('Sign Up')).toBeInTheDocument();
-  });
-
-  it.skip('should show UserMenu when user is authenticated', async () => {
-    const mockClient = createMockSupabaseClient();
-    const mockUser = {
-      id: '1',
-      email: 'test@example.com',
-      app_metadata: {},
-      user_metadata: {},
-      aud: 'authenticated',
-      created_at: new Date().toISOString(),
-    };
-
-    mockClient.auth.getSession = jest.fn().mockResolvedValue({
-      data: {
-        session: {
-          user: mockUser,
-          access_token: 'token',
-        },
-      },
-      error: null,
-    });
-
-    // Mock ProfileProvider to return a profile
-    mockClient.from = jest.fn(() => ({
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnValue({
-          single: jest.fn().mockResolvedValue({
-            data: null,
-            error: { code: 'PGRST116', message: 'No rows returned' },
-          }),
-        }),
-      }),
-    })) as any;
-
-    render(
-      <BrowserRouter>
-        <AuthProvider supabaseClient={mockClient}>
-          <ProfileProvider supabaseClient={mockClient}>
-            <AppHeader supabaseClient={mockClient} />
-          </ProfileProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    );
-
-    // Wait for auth to initialize - UserMenu should appear
-    await waitFor(
-      () => {
-        // Either UserMenu appears or Sign In/Sign Up are hidden
-        const signInLinks = screen.queryAllByText('Sign In');
-        const signUpLinks = screen.queryAllByText('Sign Up');
-        // If user is authenticated, these should not be in the header
-        expect(signInLinks.length).toBeLessThanOrEqual(1); // May appear in main content
-        expect(signUpLinks.length).toBeLessThanOrEqual(1);
-      },
-      { timeout: 3000 }
-    );
   });
 
   it('should have correct link to home page', () => {

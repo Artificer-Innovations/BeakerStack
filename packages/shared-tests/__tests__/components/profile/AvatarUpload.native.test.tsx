@@ -640,59 +640,6 @@ describe('AvatarUpload (Native)', () => {
     global.__DEV__ = false;
   });
 
-  it.skip('handles image load error', () => {
-    const { Logger } = require('@beakerstack/shared/utils/logger');
-    const warnSpy = jest.spyOn(Logger, 'warn');
-
-    render(
-      <AvatarUpload
-        currentAvatarUrl='https://example.com/invalid.jpg'
-        onUploadComplete={mockOnUploadComplete}
-        onRemove={mockOnRemove}
-        userId='user-id-1'
-        supabaseClient={mockClient}
-      />
-    );
-
-    const images = screen.queryAllByRole('img');
-    if (images.length > 0) {
-      fireEvent(images[0], 'error', {
-        nativeEvent: { error: 'Load failed' },
-      });
-
-      // Error handler should be called (though may not trigger in test environment)
-      // Just verify the component renders
-      expect(images[0]).toBeInTheDocument();
-    }
-
-    warnSpy.mockRestore();
-  });
-
-  it.skip('handles image load success', () => {
-    const { Logger } = require('@beakerstack/shared/utils/logger');
-    const debugSpy = jest.spyOn(Logger, 'debug');
-
-    render(
-      <AvatarUpload
-        currentAvatarUrl='https://example.com/avatar.jpg'
-        onUploadComplete={mockOnUploadComplete}
-        onRemove={mockOnRemove}
-        userId='user-id-1'
-        supabaseClient={mockClient}
-      />
-    );
-
-    const images = screen.queryAllByRole('img');
-    if (images.length > 0) {
-      fireEvent(images[0], 'load');
-
-      // Load handler should be called
-      expect(images[0]).toBeInTheDocument();
-    }
-
-    debugSpy.mockRestore();
-  });
-
   it('handles remove avatar error', async () => {
     mockRemoveAvatar.mockRejectedValueOnce(new Error('Remove failed'));
 
