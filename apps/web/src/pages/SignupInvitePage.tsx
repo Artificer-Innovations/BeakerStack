@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
+import { MIN_PASSWORD_LENGTH } from '@beakerstack/shared/config/auth';
 import { emitLifecycleEvent } from '@beakerstack/waitlist';
 import { beakerstackWaitlistConfig } from '../waitlist/beakerstackWaitlistConfig';
 import { beakerstackBillingConfig } from '../billing/beakerstackBillingConfig';
@@ -100,8 +101,8 @@ export default function SignupInvitePage() {
       setError('Passwords do not match');
       return;
     }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters');
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
       return;
     }
     setSubmitting(true);

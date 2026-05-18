@@ -18,7 +18,6 @@ type Body = {
   userEmail?: string;
   inviteToken?: string;
   inviteUrl?: string;
-  entryId?: string;
   email?: string;
   subject?: string;
   html?: string;
