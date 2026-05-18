@@ -55,6 +55,14 @@ async function main() {
       console.log(
         'Save this signing secret as your GitHub STRIPE_WEBHOOK_* secret for future CI runs (Dashboard can also reveal it).'
       );
+    } else if (result.reenabled && result.eventsUpdated) {
+      console.log(
+        `Re-enabled Stripe webhook endpoint ${result.endpointId} and updated enabled_events (${url.replace(/\/+$/, '')})`
+      );
+    } else if (result.reenabled) {
+      console.log(
+        `Re-enabled Stripe webhook endpoint ${result.endpointId} (${url.replace(/\/+$/, '')})`
+      );
     } else if (result.eventsUpdated) {
       console.log(
         `Updated Stripe webhook endpoint ${result.endpointId} enabled_events (${url.replace(/\/+$/, '')})`

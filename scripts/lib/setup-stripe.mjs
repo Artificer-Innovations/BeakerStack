@@ -178,6 +178,14 @@ export async function ensureTierStripeWebhookSecret(ctx) {
       logInfo(
         `  Created Stripe webhook endpoint ${result.endpointId} and saved ${tier.webhookSecretKey}.`
       );
+    } else if (result.reenabled && result.eventsUpdated) {
+      logInfo(
+        `  Re-enabled webhook ${result.endpointId} and updated events; reused ${tier.webhookSecretKey}.`
+      );
+    } else if (result.reenabled) {
+      logInfo(
+        `  Re-enabled webhook ${result.endpointId}; reused ${tier.webhookSecretKey}.`
+      );
     } else if (result.eventsUpdated) {
       logInfo(
         `  Updated webhook ${result.endpointId} events; reused ${tier.webhookSecretKey}.`

@@ -166,6 +166,7 @@ test('ensureTierStripeWebhookSecret happy path calls applySecret', async () => {
       created: true,
       endpointId: 'we_123',
       eventsUpdated: false,
+      reenabled: false,
     }),
   });
   const result = await ensureTierStripeWebhookSecret(ctx);

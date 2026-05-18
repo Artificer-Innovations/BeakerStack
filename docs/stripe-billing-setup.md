@@ -163,7 +163,7 @@ When **Stripe’s servers** must call your project (staging/production, or a sta
    `https://<PROJECT_REF>.supabase.co/functions/v1/stripe-webhook`
    - `PROJECT_REF` is in the Supabase project URL (Dashboard → Project Settings → API → Project URL).
 
-3. **Events to send** — at minimum select the types the template handler implements (you can also use “Receive all events” while testing):
+3. **Events to send** — select the same types as [`STRIPE_WEBHOOK_ENABLED_EVENTS`](../scripts/lib/ensure-stripe-webhook.mjs) (auto-ensure and CI use this list; you can also use “Receive all events” while testing):
    - `checkout.session.completed`
    - `customer.subscription.updated`
    - `customer.subscription.deleted`
@@ -171,6 +171,9 @@ When **Stripe’s servers** must call your project (staging/production, or a sta
    - `invoice.payment_failed`
    - `invoice.paid`
    - `invoice.payment_succeeded`
+   - `invoice.created`
+   - `invoice.finalized`
+   - `invoice.voided`
 
 4. After saving, open the webhook details and **Reveal** the **Signing secret** (`whsec_…`). That value is **`STRIPE_WEBHOOK_SECRET`** for the **same** Stripe mode (test vs live) as your API keys.
 

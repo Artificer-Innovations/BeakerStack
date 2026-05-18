@@ -139,6 +139,45 @@ test('ensureStripeWebhook reuses existing secret', async () => {
 
   assert.equal(result.signingSecret, 'whsec_saved');
   assert.equal(result.created, false);
+  assert.equal(result.reenabled, false);
+});
+
+test('ensureStripeWebhook re-enables disabled endpoint', async () => {
+  const url = 'https://proj.supabase.co/functions/v1/stripe-webhook';
+  const updateCalls = [];
+  const mockStripe = {
+    webhookEndpoints: {
+      list: async () => ({
+        data: [
+          {
+            id: 'we_disabled',
+            url,
+            status: 'disabled',
+            enabled_events: [...STRIPE_WEBHOOK_ENABLED_EVENTS],
+          },
+        ],
+      }),
+      update: async (id, params) => {
+        updateCalls.push([id, params]);
+        return { id };
+      },
+      create: async () => {
+        throw new Error('should not create');
+      },
+    },
+  };
+
+  const result = await ensureStripeWebhook({
+    secretKey: 'sk_test_x',
+    webhookUrl: url,
+    existingWebhookSecret: 'whsec_saved',
+    stripe: mockStripe,
+  });
+
+  assert.equal(result.reenabled, true);
+  assert.equal(result.eventsUpdated, false);
+  assert.equal(updateCalls.length, 1);
+  assert.equal(updateCalls[0][1].disabled, false);
 });
 
 test('ensureStripeWebhook updates events and returns eventsUpdated: true', async () => {

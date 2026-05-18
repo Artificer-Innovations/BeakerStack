@@ -114,6 +114,7 @@ export async function findStripeWebhookEndpointByUrl(stripe, webhookUrl) {
  *   created: boolean;
  *   endpointId: string;
  *   eventsUpdated: boolean;
+ *   reenabled: boolean;
  * }>}
  */
 export async function ensureStripeWebhook(opts) {
@@ -135,17 +136,21 @@ export async function ensureStripeWebhook(opts) {
   if (found) {
     const sorted = [...STRIPE_WEBHOOK_ENABLED_EVENTS].sort();
     const current = [...(found.enabled_events || [])].sort();
-    const needsUpdate =
+    const needsEventUpdate =
       sorted.length !== current.length ||
       sorted.some((ev, i) => ev !== current[i]);
+    const needsReenable = found.status === 'disabled';
 
     let eventsUpdated = false;
-    if (needsUpdate) {
+    let reenabled = false;
+    if (needsEventUpdate || needsReenable) {
       await stripe.webhookEndpoints.update(found.id, {
         enabled_events: STRIPE_WEBHOOK_ENABLED_EVENTS,
         description,
+        ...(needsReenable ? { disabled: false } : {}),
       });
-      eventsUpdated = true;
+      eventsUpdated = needsEventUpdate;
+      reenabled = needsReenable;
     }
 
     if (!signingSecret) {
@@ -157,6 +162,7 @@ export async function ensureStripeWebhook(opts) {
       created: false,
       endpointId: found.id,
       eventsUpdated,
+      reenabled,
     };
   }
 
@@ -179,5 +185,6 @@ export async function ensureStripeWebhook(opts) {
     created: true,
     endpointId: created.id,
     eventsUpdated: false,
+    reenabled: false,
   };
 }
