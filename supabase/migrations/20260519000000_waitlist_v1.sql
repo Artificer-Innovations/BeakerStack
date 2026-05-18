@@ -367,18 +367,6 @@ DECLARE
     v_copy jsonb;
     v_confirm text;
 BEGIN
-    v_email := lower(trim(p_email));
-    IF NOT public.is_valid_email(v_email) THEN
-        -- Uniform success — do not leak validation details
-        SELECT * INTO v_settings FROM public._waitlist_settings_row();
-        v_copy := COALESCE(v_settings.copy, '{}'::jsonb);
-        v_confirm := COALESCE(
-            v_copy #>> '{waitlist,confirmation}',
-            'Thanks — you''re on the list.'
-        );
-        RETURN jsonb_build_object('ok', true, 'message', v_confirm);
-    END IF;
-
     SELECT * INTO v_settings FROM public._waitlist_settings_row();
     v_copy := COALESCE(v_settings.copy, '{}'::jsonb);
     v_confirm := COALESCE(
@@ -398,6 +386,12 @@ BEGIN
         IF v_ip_count > v_ip_limit THEN
             RETURN jsonb_build_object('ok', true, 'message', v_confirm);
         END IF;
+    END IF;
+
+    v_email := lower(trim(p_email));
+    IF NOT public.is_valid_email(v_email) THEN
+        -- Uniform success — do not leak validation details
+        RETURN jsonb_build_object('ok', true, 'message', v_confirm);
     END IF;
 
     INSERT INTO public.waitlist_rate_limits (bucket_key, window_start, count)
@@ -543,14 +537,6 @@ BEGIN
             200
         );
     END IF;
-
-    PERFORM public._admin_insert_audit(
-        v_uid,
-        'waitlist.entries.list',
-        'waitlist_entries',
-        NULL,
-        jsonb_build_object('limit', v_limit, 'offset', v_offset, 'status', p_status)
-    );
 
     SELECT count(*)::bigint INTO v_total
     FROM public.waitlist_entries e

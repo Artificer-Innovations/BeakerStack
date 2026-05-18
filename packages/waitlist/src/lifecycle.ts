@@ -28,9 +28,12 @@ export async function emitLifecycleEvent(
   event: LifecycleEventName,
   payload: LifecycleEventPayload
 ): Promise<void> {
-  await Promise.all(
-    [...listeners].map(async fn => {
-      await fn(event, payload);
-    })
+  const results = await Promise.allSettled(
+    [...listeners].map(fn => Promise.resolve().then(() => fn(event, payload)))
   );
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      console.error('[waitlist/lifecycle] listener failed:', result.reason);
+    }
+  }
 }

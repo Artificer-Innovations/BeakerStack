@@ -85,11 +85,15 @@ export function WaitlistForm({
             .filter(f => f.type !== 'hidden')
             .map(field => (
               <div key={field.id} className='mb-4'>
-                <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+                <label
+                  htmlFor={`waitlist-${field.id}`}
+                  className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'
+                >
                   {field.label}
                 </label>
                 {field.type === 'textarea' ? (
                   <textarea
+                    id={`waitlist-${field.id}`}
                     value={metadata[field.id] ?? ''}
                     onChange={e =>
                       onMetadataChange(
@@ -104,6 +108,7 @@ export function WaitlistForm({
                   />
                 ) : (
                   <input
+                    id={`waitlist-${field.id}`}
                     type='text'
                     value={metadata[field.id] ?? ''}
                     onChange={e =>
@@ -120,10 +125,14 @@ export function WaitlistForm({
               </div>
             ))
         : null}
-      <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+      <label
+        htmlFor='waitlist-email'
+        className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'
+      >
         Email
       </label>
       <input
+        id='waitlist-email'
         type='email'
         autoComplete='email'
         value={email}

@@ -14,4 +14,14 @@ describe('lifecycle', () => {
     });
     expect(fn).toHaveBeenCalledTimes(1);
   });
+
+  it('does not reject when a listener throws', async () => {
+    const off = onLifecycleEvent(() => {
+      throw new Error('listener boom');
+    });
+    await expect(
+      emitLifecycleEvent('waitlist.joined', { email: 'x@y.com' })
+    ).resolves.toBeUndefined();
+    off();
+  });
 });

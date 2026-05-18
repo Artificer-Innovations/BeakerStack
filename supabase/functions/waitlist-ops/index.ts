@@ -107,10 +107,30 @@ Deno.serve(async req => {
     if (!token || !userId) {
       return jsonResponse({ error: 'invalid_request' }, 400, req);
     }
-    const { data, error } = await admin.rpc('waitlist_consume_invite', {
+
+    const authHeader = req.headers.get('Authorization') ?? '';
+    if (!authHeader) {
+      return jsonResponse({ error: 'unauthenticated' }, 401, req);
+    }
+
+    const authClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const {
+      data: { user },
+      error: userErr,
+    } = await authClient.auth.getUser();
+    if (userErr || !user) {
+      return jsonResponse({ error: 'unauthenticated' }, 401, req);
+    }
+    if (user.id !== userId) {
+      return jsonResponse({ error: 'forbidden' }, 403, req);
+    }
+
+    const { data, error } = await authClient.rpc('waitlist_consume_invite', {
       p_token: token,
       p_user_id: userId,
-      p_user_email: body.userEmail ?? null,
+      p_user_email: body.userEmail ?? user.email ?? null,
     });
     if (error) {
       return jsonResponse({ error: error.message }, 400, req);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
@@ -6,7 +6,7 @@ import { ContentContainer } from '@beakerstack/shared/components/layout/ContentC
 import { emitLifecycleEvent } from '@beakerstack/waitlist';
 import { beakerstackWaitlistConfig } from '../waitlist/beakerstackWaitlistConfig';
 import { beakerstackBillingConfig } from '../billing/beakerstackBillingConfig';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseRpc } from '../lib/supabase';
 import { SocialLoginButton } from '../components/SocialLoginButton';
 
 export const INVITE_TOKEN_STORAGE_KEY = 'beakerstack_invite_token';
@@ -43,7 +43,7 @@ export async function finalizeInviteSignup(
     beakerstackBillingConfig.plans.find(p => p.priceCents === 0)?.id ??
     'beakerstack_free';
 
-  const { error: planErr } = await supabase.rpc(
+  const { error: planErr } = await supabaseRpc.rpc(
     'billing_ensure_subscription_plan',
     {
       p_product_id: beakerstackBillingConfig.productId,
@@ -71,7 +71,12 @@ export default function SignupInvitePage() {
   const [error, setError] = useState<string | null>(null);
   const [invalid, setInvalid] = useState(false);
 
+  const validateStarted = useRef(false);
+
   useEffect(() => {
+    if (validateStarted.current) return;
+    validateStarted.current = true;
+
     const t =
       getInviteTokenFromHash() ??
       sessionStorage.getItem(INVITE_TOKEN_STORAGE_KEY);

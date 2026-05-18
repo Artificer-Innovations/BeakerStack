@@ -52,6 +52,9 @@ vi.mock('../../lib/supabase', () => ({
     auth: { getSession: (...args: unknown[]) => getSessionMock(...args) },
     rpc: (...args: unknown[]) => rpcMock(...args),
   },
+  supabaseRpc: {
+    rpc: (...args: unknown[]) => rpcMock(...args),
+  },
 }));
 
 function storageMock(mem: Record<string, string>) {
