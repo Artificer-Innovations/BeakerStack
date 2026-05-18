@@ -1,6 +1,6 @@
 -- pgTAP: waitlist tables, RLS, and RPC access control
 BEGIN;
-SELECT plan(18);
+SELECT plan(19);
 
 SELECT has_table('public', 'waitlist_settings', 'waitlist_settings exists');
 SELECT has_table('public', 'waitlist_entries', 'waitlist_entries exists');
@@ -144,7 +144,17 @@ VALUES ('b2000000-0000-0000-0000-000000000003')
 ON CONFLICT (user_id) DO UPDATE SET revoked_at = NULL;
 
 SET LOCAL role TO authenticated;
-SELECT set_config('request.jwt.claims', '{"sub":"b2000000-0000-0000-0000-000000000003"}', true);
+SELECT set_config(
+    'request.jwt.claims',
+    '{"sub":"b2000000-0000-0000-0000-000000000003","role":"authenticated"}',
+    true
+);
+SELECT set_config('request.jwt.claim.sub', 'b2000000-0000-0000-0000-000000000003', true);
+
+SELECT ok(
+    public.admin_is_admin(),
+    'waitlist admin fixture is recognized as admin'
+);
 
 SELECT is(
     public.admin_update_waitlist_settings(p_signup_mode := 'bogus')->>'error',
