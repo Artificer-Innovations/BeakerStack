@@ -211,33 +211,6 @@ describe('UserMenu (Web)', () => {
     });
   });
 
-  it.skip('should close menu when clicking on menu item', async () => {
-    renderWithProviders(<UserMenu user={mockUser} profile={mockProfile} />);
-    await waitFor(() => {
-      expect(screen.getByLabelText('User menu')).toBeInTheDocument();
-    });
-
-    const menuButton = screen.getByLabelText('User menu');
-    fireEvent.click(menuButton);
-
-    await waitFor(() => {
-      expect(screen.getByText('Profile')).toBeInTheDocument();
-    });
-
-    const profileLink = screen.getByText('Profile');
-    fireEvent.click(profileLink);
-
-    // Menu should close after clicking link - check that aria-expanded is false
-    await waitFor(
-      () => {
-        const menuButtonAfter = screen.getByLabelText('User menu');
-        const ariaExpanded = menuButtonAfter.getAttribute('aria-expanded');
-        expect(ariaExpanded).toBe('false');
-      },
-      { timeout: 1000 }
-    );
-  });
-
   it('should have correct links to Profile and Dashboard', async () => {
     renderWithProviders(<UserMenu user={mockUser} profile={mockProfile} />);
     await waitFor(() => {

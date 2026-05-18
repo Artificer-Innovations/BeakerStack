@@ -358,50 +358,6 @@ describe('useAuth', () => {
     expect(result.current.loading).toBe(false);
   });
 
-  it.skip('should handle signInWithGoogle with PR preview path', async () => {
-    const { mockClient } = createMockSupabaseClient();
-
-    // Mock window.location using Object.defineProperty on window
-    const originalLocation = window.location;
-    const mockLocation = {
-      ...originalLocation,
-      origin: 'http://localhost',
-      pathname: '/pr-9/login',
-    };
-
-    // Use Object.defineProperty to replace window.location
-    Object.defineProperty(window, 'location', {
-      value: mockLocation,
-      writable: true,
-      configurable: true,
-    });
-
-    const { result } = renderHook(() => useAuth(mockClient));
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    await act(async () => {
-      await result.current.signInWithGoogle();
-    });
-
-    // Should call signInWithOAuth with redirectTo including base path
-    expect(mockClient.auth.signInWithOAuth).toHaveBeenCalledWith({
-      provider: 'google',
-      options: {
-        redirectTo: 'http://localhost/pr-9/auth/callback',
-      },
-    });
-
-    // Restore window.location
-    Object.defineProperty(window, 'location', {
-      value: originalLocation,
-      writable: true,
-      configurable: true,
-    });
-  });
-
   it('should throw error during Google sign in when OAuth fails', async () => {
     const { mockClient } = createMockSupabaseClient();
     const errorMessage = 'OAuth error';

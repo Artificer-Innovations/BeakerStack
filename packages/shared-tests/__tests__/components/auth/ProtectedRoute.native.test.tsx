@@ -53,32 +53,6 @@ describe('ProtectedRoute (Native)', () => {
     jest.useRealTimers();
   });
 
-  it.skip('should render children when user is authenticated', async () => {
-    const mockClient = createMockSupabaseClient();
-    mockClient.auth.getSession = jest.fn().mockResolvedValue({
-      data: {
-        session: {
-          user: { id: '1', email: 'test@example.com' },
-          access_token: 'token',
-        },
-      },
-      error: null,
-    });
-
-    renderWithProviders(
-      <ProtectedRoute>
-        <div>Protected Content</div>
-      </ProtectedRoute>
-    );
-
-    await waitFor(
-      () => {
-        expect(screen.getByText('Protected Content')).toBeInTheDocument();
-      },
-      { timeout: 3000 }
-    );
-  });
-
   it('should show loading state while checking authentication', () => {
     const mockClient = createMockSupabaseClient();
     mockClient.auth.getSession = jest.fn().mockImplementation(
@@ -182,10 +156,5 @@ describe('ProtectedRoute (Native)', () => {
     });
 
     consoleWarnSpy.mockRestore();
-  });
-
-  it.skip('should not redirect when navigation is not available', async () => {
-    // This test is complex to mock properly with React Navigation
-    // Skipping for now as the main functionality is covered
   });
 });

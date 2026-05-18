@@ -285,31 +285,6 @@ describe('SignupPage', () => {
     expect(confirmPasswordInput).toHaveValue('password123');
   });
 
-  it.skip('shows loading state when submitting', async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<SignupPage />);
-
-    const emailInput = screen.getByPlaceholderText('Email address');
-    const passwordInput = screen.getByPlaceholderText('Password');
-    const confirmPasswordInput =
-      screen.getByPlaceholderText('Confirm password');
-    const form = emailInput.closest('form');
-    const submitButton = form?.querySelector(
-      'button[type="submit"]'
-    ) as HTMLButtonElement;
-
-    await user.type(emailInput, 'test@example.com');
-    await user.type(passwordInput, 'password123');
-    await user.type(confirmPasswordInput, 'password123');
-    if (submitButton) {
-      await user.click(submitButton);
-    }
-
-    await waitFor(() => {
-      expect(screen.getByText('Creating account...')).toBeInTheDocument();
-    });
-  });
-
   it('displays error message on signup failure', async () => {
     const user = userEvent.setup();
     authClientMocks.signUp.mockResolvedValueOnce({
@@ -520,36 +495,5 @@ describe('SignupPage', () => {
   it('does not show plan aside copy on plain /signup', () => {
     renderWithProviders(<SignupPage />);
     expect(screen.queryByText('Your selection')).not.toBeInTheDocument();
-  });
-
-  it.skip('disables form inputs when loading', async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<SignupPage />);
-
-    const emailInput = screen.getByPlaceholderText('Email address');
-    const passwordInput = screen.getByPlaceholderText('Password');
-    const confirmPasswordInput =
-      screen.getByPlaceholderText('Confirm password');
-    const form = emailInput.closest('form');
-    const submitButton = form?.querySelector(
-      'button[type="submit"]'
-    ) as HTMLButtonElement;
-
-    await user.type(emailInput, 'test@example.com');
-    await user.type(passwordInput, 'password123');
-    await user.type(confirmPasswordInput, 'password123');
-    if (submitButton) {
-      await user.click(submitButton);
-    }
-
-    // Inputs should be disabled during loading
-    await waitFor(() => {
-      expect(emailInput).toBeDisabled();
-      expect(passwordInput).toBeDisabled();
-      expect(confirmPasswordInput).toBeDisabled();
-      if (submitButton) {
-        expect(submitButton).toBeDisabled();
-      }
-    });
   });
 });
