@@ -22,7 +22,15 @@ describe('UpgradePrompt (native)', () => {
       error: null,
     });
     vi.spyOn(RN.Linking, 'openURL').mockResolvedValue(undefined as never);
-    vi.mocked(launchStripeCheckout).mockResolvedValue(true);
+    // Default: pass through real behavior so existing tests still see Linking.openURL called
+    vi.mocked(launchStripeCheckout).mockImplementation(
+      async (start, planId, cadence, trialDays) => {
+        const result = await start(planId, cadence, trialDays);
+        if (!result?.checkoutUrl) return false;
+        await RN.Linking.openURL(result.checkoutUrl);
+        return true;
+      }
+    );
   });
 
   it('opens checkout URL via Linking', async () => {
