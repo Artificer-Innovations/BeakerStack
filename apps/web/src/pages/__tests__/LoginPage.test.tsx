@@ -264,6 +264,13 @@ describe('LoginPage', () => {
     expect(screen.queryByText('Plan from pricing')).not.toBeInTheDocument();
   });
 
+  it('accepts location.state.from for post-auth redirect path', () => {
+    renderWithProviders(<LoginPage />, {
+      initialEntries: [{ pathname: '/login', state: { from: '/admin' } }],
+    });
+    expect(screen.getByText('Sign in to your account')).toBeInTheDocument();
+  });
+
   it('disables form inputs when loading', async () => {
     const user = userEvent.setup();
     webAuthFns.signInWithPassword.mockImplementation(

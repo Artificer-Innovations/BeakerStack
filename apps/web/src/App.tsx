@@ -1,6 +1,9 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { Routes, Route, Outlet } from 'react-router-dom';
+import { AdminRoute } from '@beakerstack/admin/web';
 import { ProtectedRoute } from '@beakerstack/shared/components/auth/ProtectedRoute.web';
+import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
+import { supabase } from './lib/supabase';
 import { AppFooter } from './components/AppFooter';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { ScrollToTop } from './components/ScrollToTop';
@@ -38,6 +41,8 @@ const BillingProviderLayout = lazy(() =>
 );
 
 const AuthenticatedApp = lazy(() => import('./AuthenticatedApp'));
+const AdminApp = lazy(() => import('./admin/AdminApp'));
+const NotAuthorizedPage = lazy(() => import('./pages/NotAuthorizedPage'));
 
 function RootLayout() {
   return (
@@ -47,6 +52,19 @@ function RootLayout() {
       </div>
       <AppFooter />
     </div>
+  );
+}
+
+function AdminRouteGate({ children }: { children: ReactNode }) {
+  const auth = useAuthContext();
+  return (
+    <AdminRoute
+      supabase={supabase}
+      userId={auth.user?.id}
+      authLoading={auth.loading}
+    >
+      {children}
+    </AdminRoute>
   );
 }
 
@@ -68,17 +86,37 @@ function App() {
                 path='/refunds'
                 element={<PolicyPage policy='refunds' />}
               />
+            </Route>
 
+            <Route
+              element={
+                <Suspense fallback={<PageFallback />}>
+                  <AuthenticatedApp />
+                </Suspense>
+              }
+            >
               <Route
+                path='/admin/*'
                 element={
-                  <Suspense fallback={<PageFallback />}>
-                    <AuthenticatedApp />
-                  </Suspense>
+                  <AdminRouteGate>
+                    <Suspense fallback={<PageFallback />}>
+                      <AdminApp />
+                    </Suspense>
+                  </AdminRouteGate>
                 }
-              >
+              />
+              <Route element={<RootLayout />}>
                 <Route path='/login' element={<LoginPage />} />
                 <Route path='/signup' element={<SignupPage />} />
                 <Route path='/auth/callback' element={<AuthCallbackPage />} />
+                <Route
+                  path='/not-authorized'
+                  element={
+                    <ProtectedRoute redirectTo='/login'>
+                      <NotAuthorizedPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path='/profile'
                   element={

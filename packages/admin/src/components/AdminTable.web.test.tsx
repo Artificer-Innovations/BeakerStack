@@ -1,0 +1,55 @@
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { AdminTable } from './AdminTable.web.js';
+
+type Row = { id: string; name: string };
+
+const columns = [{ id: 'name', header: 'Name', cell: (r: Row) => r.name }];
+
+describe('AdminTable', () => {
+  it('shows loading state', () => {
+    render(
+      <AdminTable columns={columns} rows={[]} getRowKey={r => r.id} loading />
+    );
+    expect(screen.getByText('Loading…')).toBeInTheDocument();
+  });
+
+  it('shows empty message', () => {
+    render(
+      <AdminTable
+        columns={columns}
+        rows={[]}
+        getRowKey={r => r.id}
+        emptyMessage='Nothing here'
+      />
+    );
+    expect(screen.getByText('Nothing here')).toBeInTheDocument();
+  });
+
+  it('renders rows without click handler when onRowClick omitted', () => {
+    render(
+      <AdminTable
+        columns={columns}
+        rows={[{ id: '1', name: 'Ada' }]}
+        getRowKey={r => r.id}
+      />
+    );
+    expect(screen.getByText('Ada')).toBeInTheDocument();
+  });
+
+  it('renders rows and handles row click', async () => {
+    const onRowClick = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <AdminTable
+        columns={columns}
+        rows={[{ id: '1', name: 'Ada' }]}
+        getRowKey={r => r.id}
+        onRowClick={onRowClick}
+      />
+    );
+    await user.click(screen.getByText('Ada'));
+    expect(onRowClick).toHaveBeenCalledWith({ id: '1', name: 'Ada' });
+  });
+});
