@@ -32,6 +32,7 @@ export function startHashScroll(hash: string): () => void {
     if (scrollToHashElement(hash)) return;
     if (frame >= HASH_SCROLL_MAX_FRAMES) {
       if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
         console.warn(`ScrollToTop: hash anchor not found: ${hash}`);
       }
       return;

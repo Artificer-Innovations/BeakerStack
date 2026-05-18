@@ -128,7 +128,7 @@ describe('ScrollToTop', () => {
 
     vi.mocked(faq.scrollIntoView).mockClear();
     while (rafQueue.length > 0) {
-      rafQueue.shift()!(0);
+      rafQueue.shift()?.(0);
     }
     expect(faq.scrollIntoView).not.toHaveBeenCalled();
 
@@ -164,12 +164,12 @@ describe('startHashScroll', () => {
 
     const firstFrame = rafQueue.shift();
     expect(firstFrame).toBeTypeOf('function');
-    firstFrame!(0);
+    firstFrame?.(0);
     expect(target.scrollIntoView).not.toHaveBeenCalled();
 
     document.body.append(target);
     const secondFrame = rafQueue.shift();
-    secondFrame!(0);
+    secondFrame?.(0);
     expect(target.scrollIntoView).toHaveBeenCalled();
 
     cleanup();
