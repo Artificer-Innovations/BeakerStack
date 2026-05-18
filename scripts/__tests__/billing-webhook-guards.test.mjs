@@ -24,8 +24,8 @@ function makeFindOwned(stub) {
   };
 }
 
-function makeLoadAllowed(stub) {
-  return async () => new Set(stub.productIds);
+function allowedSet(stub) {
+  return new Set(stub.productIds);
 }
 
 test('deployTargetMismatch: missing metadata is not a mismatch', () => {
@@ -118,7 +118,7 @@ test('classify: foreign invoice ignores without customer fallback', async () => 
     {
       expectedTarget: EXPECTED,
       findOwnedSubscription: makeFindOwned(stub),
-      loadAllowedProductIds: makeLoadAllowed(stub),
+      allowedProductIds: allowedSet(stub),
     }
   );
   assert.deepEqual(decision, {
@@ -149,7 +149,7 @@ test('classify: owned invoice processes', async () => {
     {
       expectedTarget: EXPECTED,
       findOwnedSubscription: makeFindOwned(stub),
-      loadAllowedProductIds: makeLoadAllowed(stub),
+      allowedProductIds: allowedSet(stub),
     }
   );
   assert.deepEqual(decision, { action: 'process' });
@@ -172,7 +172,7 @@ test('classify: subscription deploy target mismatch ignores', async () => {
     {
       expectedTarget: EXPECTED,
       findOwnedSubscription: makeFindOwned(stub),
-      loadAllowedProductIds: makeLoadAllowed(stub),
+      allowedProductIds: allowedSet(stub),
     }
   );
   assert.deepEqual(decision, {
@@ -194,7 +194,7 @@ test('classify: unknown product_id on owned row ignores', async () => {
     {
       expectedTarget: EXPECTED,
       findOwnedSubscription: makeFindOwned(stub),
-      loadAllowedProductIds: makeLoadAllowed(stub),
+      allowedProductIds: allowedSet(stub),
     }
   );
   assert.deepEqual(decision, {
@@ -217,6 +217,65 @@ test('classify: invoice without subscription ignores', async () => {
   assert.deepEqual(decision, {
     action: 'ignore',
     reason: 'invoice_missing_subscription',
+  });
+});
+
+test('classify: owned subscription update without mismatch processes', async () => {
+  const stub = stubSupabase(
+    new Map([['sub_1', { user_id: 'u', product_id: 'app_a' }]])
+  );
+  const decision = await classifyStripeEventCore(
+    {
+      type: 'customer.subscription.updated',
+      data: {
+        object: {
+          id: 'sub_1',
+          metadata: { billing_deploy_target: EXPECTED },
+        },
+      },
+    },
+    {
+      expectedTarget: EXPECTED,
+      findOwnedSubscription: makeFindOwned(stub),
+      allowedProductIds: allowedSet(stub),
+    }
+  );
+  assert.deepEqual(decision, { action: 'process' });
+});
+
+test('classify: trial_will_end for foreign subscription ignores', async () => {
+  const stub = stubSupabase(new Map());
+  const decision = await classifyStripeEventCore(
+    {
+      type: 'customer.subscription.trial_will_end',
+      data: { object: { id: 'sub_foreign' } },
+    },
+    {
+      expectedTarget: EXPECTED,
+      findOwnedSubscription: makeFindOwned(stub),
+      allowedProductIds: allowedSet(stub),
+    }
+  );
+  assert.deepEqual(decision, {
+    action: 'ignore',
+    reason: 'unknown_stripe_subscription',
+  });
+});
+
+test('classify: subscription without id ignores', async () => {
+  const decision = await classifyStripeEventCore(
+    {
+      type: 'customer.subscription.updated',
+      data: { object: { metadata: {} } },
+    },
+    {
+      expectedTarget: EXPECTED,
+      findOwnedSubscription: makeFindOwned(stubSupabase()),
+    }
+  );
+  assert.deepEqual(decision, {
+    action: 'ignore',
+    reason: 'unknown_stripe_subscription',
   });
 });
 

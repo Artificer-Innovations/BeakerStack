@@ -92,7 +92,7 @@ When you run **more than one BeakerStack-based app** (each with its own Supabase
 
 **Webhook hardening (`stripe-webhook`):**
 
-- **Ingress classification** runs after signature verification and **before** inserting into `billing_webhook_events`. Events classified as foreign are logged with a **redacted** payload (`redacted: true`, no customer/invoice bodies) and return HTTP **200** `{ "received": true, "ignored": true }` without mutating subscriptions or invoices.
+- **Ingress classification** runs after signature verification, **before** processing billing tables, and when choosing the stored `payload` (full event vs **redacted**). Foreign events are still inserted into `billing_webhook_events` for idempotency, but without customer/invoice bodies (`redacted: true`), and return HTTP **200** `{ "received": true, "ignored": true }` without mutating subscriptions or invoices.
 - **`billing_deploy_target`** is enforced on `customer.subscription.*` (from subscription metadata, same semantics as checkout).
 - **Subscription and invoice handlers** only mutate rows when a local `billing_subscriptions` row exists for the event’s `stripe_subscription_id`. Invoice sync no longer resolves users by `stripe_customer_id` alone (avoids cross-app invoice mirroring when customers are shared).
 - Optional: rows whose `product_id` is not in `billing_products` are ignored (shared-DB safety).

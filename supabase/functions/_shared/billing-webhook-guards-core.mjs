@@ -43,34 +43,86 @@ export function stripeSubscriptionIdFromRef(subRef) {
 }
 
 /**
+ * @param {string | null | undefined} subId
+ * @param {(stripeSubscriptionId: string) => Promise<unknown | null>} findOwnedSubscription
+ * @param {Set<string> | null | undefined} allowedProductIds
+ * @returns {Promise<{ type: 'ignore', decision: IgnoreDecision } | { type: 'owned', row: unknown }>}
+ */
+async function resolveOwnedSubscription(
+  subId,
+  findOwnedSubscription,
+  allowedProductIds
+) {
+  if (!subId) {
+    return {
+      type: 'ignore',
+      decision: {
+        action: 'ignore',
+        reason: 'unknown_stripe_subscription',
+      },
+    };
+  }
+  const row = await findOwnedSubscription(subId);
+  if (!row) {
+    return {
+      type: 'ignore',
+      decision: {
+        action: 'ignore',
+        reason: 'unknown_stripe_subscription',
+      },
+    };
+  }
+  if (
+    allowedProductIds &&
+    /** @type {{ product_id?: string }} */ (row).product_id &&
+    !allowedProductIds.has(
+      /** @type {{ product_id: string }} */ (row).product_id
+    )
+  ) {
+    return {
+      type: 'ignore',
+      decision: { action: 'ignore', reason: 'unknown_product_id' },
+    };
+  }
+  return { type: 'owned', row };
+}
+
+/**
+ * BeakerStack only syncs subscription-backed invoices; one-time invoices are ignored.
+ * @param {{ subscription?: unknown }} invoice
+ * @param {(stripeSubscriptionId: string) => Promise<unknown | null>} findOwnedSubscription
+ * @param {Set<string> | null | undefined} allowedProductIds
+ * @returns {Promise<ClassifyDecision>}
+ */
+async function classifyInvoiceEvent(
+  invoice,
+  findOwnedSubscription,
+  allowedProductIds
+) {
+  const subId = stripeSubscriptionIdFromRef(invoice.subscription);
+  if (!subId) {
+    return { action: 'ignore', reason: 'invoice_missing_subscription' };
+  }
+  const result = await resolveOwnedSubscription(
+    subId,
+    findOwnedSubscription,
+    allowedProductIds
+  );
+  if (result.type === 'ignore') return result.decision;
+  return { action: 'process' };
+}
+
+/**
  * @param {import('npm:stripe@14.21.0').Stripe.Event | { type: string, data?: { object?: unknown } }} event
  * @param {{
  *   expectedTarget: string,
  *   findOwnedSubscription: (stripeSubscriptionId: string) => Promise<unknown | null>,
- *   loadAllowedProductIds?: () => Promise<Set<string> | null>,
+ *   allowedProductIds?: Set<string> | null,
  * }} deps
  * @returns {Promise<ClassifyDecision>}
  */
 export async function classifyStripeEventCore(event, deps) {
-  const { expectedTarget, findOwnedSubscription, loadAllowedProductIds } = deps;
-
-  const ownedOk = async subId => {
-    if (!subId) return null;
-    const row = await findOwnedSubscription(subId);
-    if (!row)
-      return { action: 'ignore', reason: 'unknown_stripe_subscription' };
-    if (loadAllowedProductIds) {
-      const allowed = await loadAllowedProductIds();
-      if (
-        allowed &&
-        row.product_id &&
-        !allowed.has(/** @type {{ product_id: string }} */ (row).product_id)
-      ) {
-        return { action: 'ignore', reason: 'unknown_product_id' };
-      }
-    }
-    return row;
-  };
+  const { expectedTarget, findOwnedSubscription, allowedProductIds } = deps;
 
   switch (event.type) {
     case 'checkout.session.completed': {
@@ -89,7 +141,7 @@ export async function classifyStripeEventCore(event, deps) {
     case 'customer.subscription.deleted':
     case 'customer.subscription.trial_will_end': {
       const stripeSub =
-        /** @type {{ id: string, metadata?: Record<string, string> }} */ (
+        /** @type {{ id?: string, metadata?: Record<string, string> }} */ (
           event.data?.object ?? {}
         );
       if (deployTargetMismatch(stripeSub.metadata, expectedTarget)) {
@@ -98,48 +150,28 @@ export async function classifyStripeEventCore(event, deps) {
           reason: 'billing_deploy_target_mismatch',
         };
       }
-      const decision = await ownedOk(stripeSub.id);
-      if (decision && 'action' in decision) return decision;
-      return { action: 'process' };
-    }
-    case 'invoice.payment_failed': {
-      const invoice = /** @type {{ subscription?: unknown }} */ (
-        event.data?.object ?? {}
+      const result = await resolveOwnedSubscription(
+        stripeSub.id,
+        findOwnedSubscription,
+        allowedProductIds
       );
-      const subId = stripeSubscriptionIdFromRef(invoice.subscription);
-      if (!subId) {
-        return { action: 'ignore', reason: 'invoice_missing_subscription' };
-      }
-      const decision = await ownedOk(subId);
-      if (decision && 'action' in decision) return decision;
+      if (result.type === 'ignore') return result.decision;
       return { action: 'process' };
     }
+    case 'invoice.payment_failed':
     case 'invoice.paid':
-    case 'invoice.payment_succeeded': {
-      const invoice = /** @type {{ subscription?: unknown }} */ (
-        event.data?.object ?? {}
-      );
-      const subId = stripeSubscriptionIdFromRef(invoice.subscription);
-      if (!subId) {
-        return { action: 'ignore', reason: 'invoice_missing_subscription' };
-      }
-      const decision = await ownedOk(subId);
-      if (decision && 'action' in decision) return decision;
-      return { action: 'process' };
-    }
+    case 'invoice.payment_succeeded':
     case 'invoice.created':
     case 'invoice.finalized':
     case 'invoice.voided': {
       const invoice = /** @type {{ subscription?: unknown }} */ (
         event.data?.object ?? {}
       );
-      const subId = stripeSubscriptionIdFromRef(invoice.subscription);
-      if (!subId) {
-        return { action: 'ignore', reason: 'invoice_missing_subscription' };
-      }
-      const decision = await ownedOk(subId);
-      if (decision && 'action' in decision) return decision;
-      return { action: 'process' };
+      return classifyInvoiceEvent(
+        invoice,
+        findOwnedSubscription,
+        allowedProductIds
+      );
     }
     default:
       return { action: 'process' };

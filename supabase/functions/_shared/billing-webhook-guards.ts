@@ -1,5 +1,5 @@
 import type Stripe from 'npm:stripe@14.21.0';
-import type { createClient } from 'npm:@supabase/supabase-js@2.45.0';
+import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.45.0';
 import { getBillingDeployTarget } from './billing-deploy-target.ts';
 import {
   classifyStripeEventCore,
@@ -20,8 +20,6 @@ export type OwnedSubscriptionRow = {
   current_period_end: string | null;
   pending_target_plan_id: string | null;
 };
-
-type SupabaseClient = ReturnType<typeof createClient>;
 
 const OWNED_SUBSCRIPTION_SELECT =
   'user_id, product_id, plan_id, current_period_start, current_period_end, pending_target_plan_id';
@@ -44,34 +42,42 @@ export async function findOwnedSubscription(
   supabase: SupabaseClient,
   stripeSubscriptionId: string
 ): Promise<OwnedSubscriptionRow | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('billing_subscriptions')
     .select(OWNED_SUBSCRIPTION_SELECT)
     .eq('stripe_subscription_id', stripeSubscriptionId)
     .maybeSingle();
+  if (error) {
+    throw new Error(
+      `findOwnedSubscription failed: ${error.code ?? ''} ${error.message}`.trim()
+    );
+  }
   return (data as OwnedSubscriptionRow | null) ?? null;
 }
 
-let allowedProductIdsCache: Set<string> | null = null;
-
+/** Loads product ids once per webhook request; returns null if the query fails (skips optional product guard). */
 async function loadAllowedProductIds(
   supabase: SupabaseClient
-): Promise<Set<string>> {
-  if (allowedProductIdsCache) return allowedProductIdsCache;
-  const { data } = await supabase.from('billing_products').select('id');
-  allowedProductIdsCache = new Set(
-    (data ?? []).map((p: { id: string }) => p.id)
-  );
-  return allowedProductIdsCache;
+): Promise<Set<string> | null> {
+  const { data, error } = await supabase.from('billing_products').select('id');
+  if (error) {
+    console.error(
+      'loadAllowedProductIds failed; skipping product_id guard',
+      error.message
+    );
+    return null;
+  }
+  return new Set((data ?? []).map((p: { id: string }) => p.id));
 }
 
 export async function classifyStripeEvent(
   supabase: SupabaseClient,
   event: Stripe.Event
 ): Promise<ClassifyDecision> {
+  const allowedProductIds = await loadAllowedProductIds(supabase);
   return classifyStripeEventCore(event, {
     expectedTarget: getBillingDeployTarget(),
     findOwnedSubscription: id => findOwnedSubscription(supabase, id),
-    loadAllowedProductIds: () => loadAllowedProductIds(supabase),
+    allowedProductIds,
   }) as Promise<ClassifyDecision>;
 }

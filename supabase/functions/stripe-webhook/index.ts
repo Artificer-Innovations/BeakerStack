@@ -181,7 +181,7 @@ Deno.serve(async req => {
   }
 
   if (ingressIgnored) {
-    await supabase
+    const { error: ignoreUpdateErr } = await supabase
       .from('billing_webhook_events')
       .update({
         processed: true,
@@ -189,6 +189,14 @@ Deno.serve(async req => {
         error: `ignored: ${decision.reason}`,
       })
       .eq('stripe_event_id', event.id);
+    if (ignoreUpdateErr) {
+      console.error(
+        'Failed to mark ignored webhook event processed',
+        formatCaught(ignoreUpdateErr),
+        event.id
+      );
+      return jsonResponse({ error: 'log_failed' }, 500, req);
+    }
     return jsonResponse({ received: true, ignored: true }, 200, req);
   }
 
@@ -246,17 +254,8 @@ async function processStripeEvent(
 ): Promise<ProcessResult> {
   switch (event.type) {
     case 'checkout.session.completed': {
+      // Deploy-target filtering runs at ingress via classifyStripeEvent.
       const session = event.data.object as Stripe.Checkout.Session;
-      if (deployTargetMismatch(session.metadata ?? undefined)) {
-        console.warn(
-          'checkout.session.completed ignored: billing_deploy_target mismatch',
-          { sessionId: session.id }
-        );
-        return {
-          status: 'ignored',
-          reason: 'billing_deploy_target_mismatch',
-        };
-      }
       const userId = session.metadata?.supabase_user_id;
       const productId = session.metadata?.product_id;
       const planId = session.metadata?.plan_id;
@@ -360,6 +359,7 @@ async function processStripeEvent(
     case 'invoice.payment_failed': {
       const invoice = event.data.object as Stripe.Invoice;
       const subId = stripeSubscriptionIdFromRef(invoice.subscription);
+      // BeakerStack only syncs subscription-backed invoices; one-time invoices are ignored.
       if (!subId) {
         return { status: 'ignored', reason: 'invoice_missing_subscription' };
       }
@@ -379,6 +379,7 @@ async function processStripeEvent(
     case 'invoice.payment_succeeded': {
       const invoice = event.data.object as Stripe.Invoice;
       const subId = stripeSubscriptionIdFromRef(invoice.subscription);
+      // BeakerStack only syncs subscription-backed invoices; one-time invoices are ignored.
       if (!subId) {
         return { status: 'ignored', reason: 'invoice_missing_subscription' };
       }
@@ -399,6 +400,7 @@ async function processStripeEvent(
     case 'invoice.voided': {
       const inv = event.data.object as Stripe.Invoice;
       const subId = stripeSubscriptionIdFromRef(inv.subscription);
+      // BeakerStack only syncs subscription-backed invoices; one-time invoices are ignored.
       if (!subId) {
         return { status: 'ignored', reason: 'invoice_missing_subscription' };
       }
