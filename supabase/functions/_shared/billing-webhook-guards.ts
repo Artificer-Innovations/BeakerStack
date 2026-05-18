@@ -66,7 +66,11 @@ export async function findOwnedSubscription(
   return (data as OwnedSubscriptionRow | null) ?? null;
 }
 
-/** Loads product ids once per webhook request; returns null if the query fails (skips optional product guard). */
+/**
+ * Loads product ids once per ownership check (subscription/invoice paths only).
+ * Returns `null` on query failure so the optional product_id allowlist is skipped (fail-open).
+ * `findOwnedSubscription` still throws on error so missing rows are not mistaken for foreign events.
+ */
 async function loadAllowedProductIds(
   supabase: SupabaseClient
 ): Promise<Set<string> | null> {

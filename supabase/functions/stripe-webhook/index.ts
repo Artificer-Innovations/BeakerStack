@@ -3,7 +3,6 @@ import { createClient } from 'npm:@supabase/supabase-js@2.45.0';
 import { corsHeadersForRequest, jsonResponse } from '../_shared/cors.ts';
 import {
   classifyStripeEvent,
-  deployTargetMismatch,
   findOwnedSubscription,
   ownedSubscriptionFromDecision,
   stripeSubscriptionIdFromRef,
@@ -13,7 +12,11 @@ import {
 } from '../_shared/billing-webhook-guards.ts';
 
 type ProcessResult =
-  | { status: 'processed' }
+  | {
+      status: 'processed';
+      /** Cleared after webhook row is marked processed (retry-safe cancellation). */
+      clearStripeIdsFor?: { userId: string; productId: string };
+    }
   | { status: 'ignored'; reason: string };
 
 /** Postgrest errors are plain objects; throwing them logs as `[object Object]`. */
@@ -210,6 +213,19 @@ Deno.serve(async req => {
       return jsonResponse({ received: true, ignored: true }, 200, req);
     }
     await markWebhookEventProcessed(supabase, event.id, null);
+    if (result.clearStripeIdsFor) {
+      const { userId, productId } = result.clearStripeIdsFor;
+      const { error: clearErr } = await supabase
+        .from('billing_subscriptions')
+        .update({
+          stripe_subscription_id: null,
+          stripe_price_id: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .eq('product_id', productId);
+      if (clearErr) throw asErrorFromSupabase(clearErr);
+    }
   } catch (e) {
     const msg = formatCaught(e);
     console.error('Webhook processing error', msg);
@@ -312,13 +328,8 @@ async function processStripeEvent(
     }
     case 'customer.subscription.updated':
     case 'customer.subscription.deleted': {
+      // Deploy-target and ownership gates run at ingress via classifyStripeEvent.
       const stripeSub = event.data.object as Stripe.Subscription;
-      if (deployTargetMismatch(stripeSub.metadata ?? undefined)) {
-        return {
-          status: 'ignored',
-          reason: 'billing_deploy_target_mismatch',
-        };
-      }
       const owned = await requireOwnedSubscription(
         supabase,
         stripeSub.id,
@@ -355,8 +366,8 @@ async function processStripeEvent(
         .update({
           plan_id: finalPlanId,
           status: finalStatus,
-          stripe_subscription_id: isCanceled ? null : stripeSub.id,
-          stripe_price_id: isCanceled ? null : (priceId ?? null),
+          stripe_subscription_id: stripeSub.id,
+          stripe_price_id: priceId ?? null,
           current_period_start: periodStart ?? row.current_period_start,
           current_period_end: periodEnd ?? row.current_period_end,
           cancel_at_period_end: cancelAtEnd,
@@ -368,7 +379,12 @@ async function processStripeEvent(
         })
         .eq('stripe_subscription_id', stripeSub.id);
       if (error) throw asErrorFromSupabase(error);
-      return { status: 'processed' };
+      return {
+        status: 'processed',
+        clearStripeIdsFor: isCanceled
+          ? { userId: row.user_id, productId: row.product_id }
+          : undefined,
+      };
     }
     case 'customer.subscription.trial_will_end': {
       return { status: 'processed' };

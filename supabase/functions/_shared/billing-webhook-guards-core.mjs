@@ -72,7 +72,7 @@ export function stripeSubscriptionIdFromRef(subRef) {
 /**
  * @param {string | null | undefined} subId
  * @param {(stripeSubscriptionId: string) => Promise<unknown | null>} findOwnedSubscription
- * @param {(() => Promise<Set<string> | null>) | undefined} loadAllowedProductIds
+ * @param {(() => Promise<Set<string> | null>) | undefined} loadAllowedProductIds When provided, `null` from the loader skips the product_id allowlist (fail-open on `billing_products` outage); a `Set` enforces `unknown_product_id`.
  * @returns {Promise<{ type: 'ignore', decision: IgnoreDecision } | { type: 'owned', row: unknown }>}
  */
 async function resolveOwnedSubscription(
@@ -150,7 +150,7 @@ async function classifyInvoiceEvent(
  * @param {{
  *   expectedTarget: string,
  *   findOwnedSubscription: (stripeSubscriptionId: string) => Promise<unknown | null>,
- *   loadAllowedProductIds?: () => Promise<Set<string> | null>,
+ *   loadAllowedProductIds?: () => Promise<Set<string> | null> Lazy; only invoked for subscription/invoice ownership checks. `null` skips product guard.
  * }} deps
  * @returns {Promise<ClassifyDecision>}
  */
