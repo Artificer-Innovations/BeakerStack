@@ -5,10 +5,12 @@ import {
   isStripeGithubSecretDef,
   resolveSupabaseUrlForStripeTier,
   setupStripeKeysDeferred,
+  stripeWebhookDescriptionForTier,
   supabaseStripeWebhookUrl,
   tierStripeKeysPresent,
   STRIPE_SETUP_TIERS,
 } from '../lib/setup-stripe.mjs';
+import { isAutoEnsureStripeWebhookUrl } from '../lib/ensure-stripe-webhook.mjs';
 
 test('supabaseStripeWebhookUrl', () => {
   assert.equal(
@@ -66,6 +68,27 @@ test('setupStripeKeysDeferred', () => {
   assert.ok(setupStripeKeysDeferred({ SETUP_STRIPE_SKIPPED: 'true' }));
   assert.ok(!setupStripeKeysDeferred({ SETUP_STRIPE_SKIPPED: 'false' }));
   assert.ok(!setupStripeKeysDeferred({}));
+});
+
+test('hosted supabase webhook URL is eligible for auto-ensure', () => {
+  const url = supabaseStripeWebhookUrl('https://abcd1234.supabase.co');
+  assert.ok(isAutoEnsureStripeWebhookUrl(url));
+});
+
+test('local supabase webhook URL is not auto-ensured', () => {
+  const url = supabaseStripeWebhookUrl('http://127.0.0.1:54321');
+  assert.ok(!isAutoEnsureStripeWebhookUrl(url));
+});
+
+test('stripeWebhookDescriptionForTier includes tier id', () => {
+  const tier = STRIPE_SETUP_TIERS.find(t => t.id === 'staging');
+  assert.ok(tier);
+  const desc = stripeWebhookDescriptionForTier(
+    tier,
+    'https://myproj.supabase.co/functions/v1/stripe-webhook'
+  );
+  assert.match(desc, /staging/);
+  assert.match(desc, /myproj/);
 });
 
 test('resolveSupabaseUrlForStripeTier uses first non-empty key', () => {
