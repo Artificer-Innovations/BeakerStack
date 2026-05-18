@@ -6,6 +6,20 @@
 /** @typedef {{ action: 'ignore', reason: string }} IgnoreDecision */
 /** @typedef {ProcessDecision | IgnoreDecision} ClassifyDecision */
 
+/** Event types `processStripeEvent` mutates billing tables for (full payload logging). */
+export const BILLING_WEBHOOK_HANDLED_EVENT_TYPES = new Set([
+  'checkout.session.completed',
+  'customer.subscription.updated',
+  'customer.subscription.deleted',
+  'customer.subscription.trial_will_end',
+  'invoice.payment_failed',
+  'invoice.paid',
+  'invoice.payment_succeeded',
+  'invoice.created',
+  'invoice.finalized',
+  'invoice.voided',
+]);
+
 /**
  * @param {Record<string, string> | null | undefined} metadata
  * @param {string} expectedTarget
@@ -30,6 +44,19 @@ export function redactedWebhookPayload(event) {
 }
 
 /**
+ * @param {string} eventType
+ * @param {ClassifyDecision} decision
+ * @param {{ id?: string, type?: string, created?: number, livemode?: boolean, api_version?: string | null, data?: unknown }} event
+ */
+export function webhookPayloadForLog(eventType, decision, event) {
+  if (decision.action === 'ignore') return redactedWebhookPayload(event);
+  if (!BILLING_WEBHOOK_HANDLED_EVENT_TYPES.has(eventType)) {
+    return redactedWebhookPayload(event);
+  }
+  return event;
+}
+
+/**
  * @param {unknown} subRef
  * @returns {string | null}
  */
@@ -45,13 +72,13 @@ export function stripeSubscriptionIdFromRef(subRef) {
 /**
  * @param {string | null | undefined} subId
  * @param {(stripeSubscriptionId: string) => Promise<unknown | null>} findOwnedSubscription
- * @param {Set<string> | null | undefined} allowedProductIds
+ * @param {(() => Promise<Set<string> | null>) | undefined} loadAllowedProductIds
  * @returns {Promise<{ type: 'ignore', decision: IgnoreDecision } | { type: 'owned', row: unknown }>}
  */
 async function resolveOwnedSubscription(
   subId,
   findOwnedSubscription,
-  allowedProductIds
+  loadAllowedProductIds
 ) {
   if (!subId) {
     return {
@@ -72,17 +99,18 @@ async function resolveOwnedSubscription(
       },
     };
   }
-  if (
-    allowedProductIds &&
-    /** @type {{ product_id?: string }} */ (row).product_id &&
-    !allowedProductIds.has(
-      /** @type {{ product_id: string }} */ (row).product_id
-    )
-  ) {
-    return {
-      type: 'ignore',
-      decision: { action: 'ignore', reason: 'unknown_product_id' },
-    };
+  if (loadAllowedProductIds) {
+    const allowed = await loadAllowedProductIds();
+    if (
+      allowed &&
+      /** @type {{ product_id?: string }} */ (row).product_id &&
+      !allowed.has(/** @type {{ product_id: string }} */ (row).product_id)
+    ) {
+      return {
+        type: 'ignore',
+        decision: { action: 'ignore', reason: 'unknown_product_id' },
+      };
+    }
   }
   return { type: 'owned', row };
 }
@@ -96,13 +124,13 @@ function processWithOwnedRow(result) {
  * BeakerStack only syncs subscription-backed invoices; one-time invoices are ignored.
  * @param {{ subscription?: unknown }} invoice
  * @param {(stripeSubscriptionId: string) => Promise<unknown | null>} findOwnedSubscription
- * @param {Set<string> | null | undefined} allowedProductIds
+ * @param {(() => Promise<Set<string> | null>) | undefined} loadAllowedProductIds
  * @returns {Promise<ClassifyDecision>}
  */
 async function classifyInvoiceEvent(
   invoice,
   findOwnedSubscription,
-  allowedProductIds
+  loadAllowedProductIds
 ) {
   const subId = stripeSubscriptionIdFromRef(invoice.subscription);
   if (!subId) {
@@ -111,7 +139,7 @@ async function classifyInvoiceEvent(
   const result = await resolveOwnedSubscription(
     subId,
     findOwnedSubscription,
-    allowedProductIds
+    loadAllowedProductIds
   );
   if (result.type === 'ignore') return result.decision;
   return processWithOwnedRow(result);
@@ -122,12 +150,12 @@ async function classifyInvoiceEvent(
  * @param {{
  *   expectedTarget: string,
  *   findOwnedSubscription: (stripeSubscriptionId: string) => Promise<unknown | null>,
- *   allowedProductIds?: Set<string> | null,
+ *   loadAllowedProductIds?: () => Promise<Set<string> | null>,
  * }} deps
  * @returns {Promise<ClassifyDecision>}
  */
 export async function classifyStripeEventCore(event, deps) {
-  const { expectedTarget, findOwnedSubscription, allowedProductIds } = deps;
+  const { expectedTarget, findOwnedSubscription, loadAllowedProductIds } = deps;
 
   switch (event.type) {
     case 'checkout.session.completed': {
@@ -158,7 +186,7 @@ export async function classifyStripeEventCore(event, deps) {
       const result = await resolveOwnedSubscription(
         stripeSub.id,
         findOwnedSubscription,
-        allowedProductIds
+        loadAllowedProductIds
       );
       if (result.type === 'ignore') return result.decision;
       return processWithOwnedRow(result);
@@ -175,7 +203,7 @@ export async function classifyStripeEventCore(event, deps) {
       return classifyInvoiceEvent(
         invoice,
         findOwnedSubscription,
-        allowedProductIds
+        loadAllowedProductIds
       );
     }
     default:

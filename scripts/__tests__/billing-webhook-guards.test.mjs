@@ -6,6 +6,7 @@ import {
   deployTargetMismatch,
   redactedWebhookPayload,
   stripeSubscriptionIdFromRef,
+  webhookPayloadForLog,
 } from '../../supabase/functions/_shared/billing-webhook-guards-core.mjs';
 
 const EXPECTED = 'app_a_ref';
@@ -25,8 +26,8 @@ function makeFindOwned(stub, { onCall } = {}) {
   };
 }
 
-function allowedSet(stub) {
-  return new Set(stub.productIds);
+function loadAllowed(stub) {
+  return async () => new Set(stub.productIds);
 }
 
 test('deployTargetMismatch: missing metadata is not a mismatch', () => {
@@ -119,7 +120,7 @@ test('classify: foreign invoice ignores without customer fallback', async () => 
     {
       expectedTarget: EXPECTED,
       findOwnedSubscription: makeFindOwned(stub),
-      allowedProductIds: allowedSet(stub),
+      loadAllowedProductIds: loadAllowed(stub),
     }
   );
   assert.deepEqual(decision, {
@@ -150,7 +151,7 @@ test('classify: owned invoice processes', async () => {
     {
       expectedTarget: EXPECTED,
       findOwnedSubscription: makeFindOwned(stub),
-      allowedProductIds: allowedSet(stub),
+      loadAllowedProductIds: loadAllowed(stub),
     }
   );
   assert.deepEqual(decision, {
@@ -169,7 +170,7 @@ test('classify: subscription deploy target mismatch ignores', async () => {
   const deps = {
     expectedTarget: EXPECTED,
     findOwnedSubscription: makeFindOwned(stub),
-    allowedProductIds: allowedSet(stub),
+    loadAllowedProductIds: loadAllowed(stub),
   };
   const mismatchObject = {
     id: 'sub_1',
@@ -205,7 +206,7 @@ test('classify: unknown product_id on owned row ignores', async () => {
     {
       expectedTarget: EXPECTED,
       findOwnedSubscription: makeFindOwned(stub),
-      allowedProductIds: allowedSet(stub),
+      loadAllowedProductIds: loadAllowed(stub),
     }
   );
   assert.deepEqual(decision, {
@@ -248,7 +249,7 @@ test('classify: owned subscription update without mismatch processes', async () 
     {
       expectedTarget: EXPECTED,
       findOwnedSubscription: makeFindOwned(stub),
-      allowedProductIds: allowedSet(stub),
+      loadAllowedProductIds: loadAllowed(stub),
     }
   );
   assert.deepEqual(decision, {
@@ -274,7 +275,7 @@ test('classify: owned subscription lookup runs once per classify', async () => {
           lookups += 1;
         },
       }),
-      allowedProductIds: allowedSet(stub),
+      loadAllowedProductIds: loadAllowed(stub),
     }
   );
   assert.equal(lookups, 1);
@@ -292,7 +293,7 @@ test('classify: trial_will_end for foreign subscription ignores', async () => {
     {
       expectedTarget: EXPECTED,
       findOwnedSubscription: makeFindOwned(stub),
-      allowedProductIds: allowedSet(stub),
+      loadAllowedProductIds: loadAllowed(stub),
     }
   );
   assert.deepEqual(decision, {
@@ -316,6 +317,44 @@ test('classify: subscription without id ignores', async () => {
     action: 'ignore',
     reason: 'unknown_stripe_subscription',
   });
+});
+
+test('webhookPayloadForLog redacts unhandled event types', () => {
+  const event = {
+    id: 'evt_pi',
+    type: 'payment_intent.succeeded',
+    created: 1,
+    livemode: false,
+    data: { object: { customer: 'cus_secret' } },
+  };
+  const payload = webhookPayloadForLog(
+    event.type,
+    { action: 'process' },
+    event
+  );
+  assert.equal(payload.redacted, true);
+  assert.equal(payload.data, undefined);
+});
+
+test('classify: checkout does not load billing_products', async () => {
+  let productLoads = 0;
+  await classifyStripeEventCore(
+    {
+      type: 'checkout.session.completed',
+      data: { object: { metadata: { billing_deploy_target: EXPECTED } } },
+    },
+    {
+      expectedTarget: EXPECTED,
+      findOwnedSubscription: async () => {
+        throw new Error('should not lookup subscription');
+      },
+      loadAllowedProductIds: async () => {
+        productLoads += 1;
+        return new Set(['app_a']);
+      },
+    }
+  );
+  assert.equal(productLoads, 0);
 });
 
 test('classify: unhandled event type processes', async () => {

@@ -6,8 +6,9 @@ import {
   deployTargetMismatch,
   findOwnedSubscription,
   ownedSubscriptionFromDecision,
-  redactedWebhookPayload,
   stripeSubscriptionIdFromRef,
+  webhookPayloadForLog,
+  type ClassifyDecision,
   type OwnedSubscriptionRow,
 } from '../_shared/billing-webhook-guards.ts';
 
@@ -149,11 +150,17 @@ Deno.serve(async req => {
     return jsonResponse({ error: 'invalid_signature' }, 400, req);
   }
 
-  const decision = await classifyStripeEvent(supabase, event);
+  let decision: ClassifyDecision;
+  try {
+    decision = await classifyStripeEvent(supabase, event);
+  } catch (e) {
+    const msg = formatCaught(e);
+    console.error('Webhook classification error', msg);
+    return jsonResponse({ error: 'processing_failed' }, 500, req);
+  }
+
   const ingressIgnored = decision.action === 'ignore';
-  const payloadForLog = ingressIgnored
-    ? redactedWebhookPayload(event)
-    : (event as unknown as Record<string, unknown>);
+  const payloadForLog = webhookPayloadForLog(event, decision);
 
   const { error: logErr } = await supabase
     .from('billing_webhook_events')

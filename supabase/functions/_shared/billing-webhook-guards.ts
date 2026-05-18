@@ -6,6 +6,7 @@ import {
   deployTargetMismatch as deployTargetMismatchCore,
   redactedWebhookPayload as redactedWebhookPayloadCore,
   stripeSubscriptionIdFromRef,
+  webhookPayloadForLog as webhookPayloadForLogCore,
 } from './billing-webhook-guards-core.mjs';
 
 export type ClassifyDecision =
@@ -34,6 +35,16 @@ export function redactedWebhookPayload(
   event: Stripe.Event
 ): Record<string, unknown> {
   return redactedWebhookPayloadCore(event);
+}
+
+export function webhookPayloadForLog(
+  event: Stripe.Event,
+  decision: ClassifyDecision
+): Record<string, unknown> {
+  return webhookPayloadForLogCore(event.type, decision, event) as Record<
+    string,
+    unknown
+  >;
 }
 
 export { stripeSubscriptionIdFromRef };
@@ -74,11 +85,10 @@ export async function classifyStripeEvent(
   supabase: SupabaseClient,
   event: Stripe.Event
 ): Promise<ClassifyDecision> {
-  const allowedProductIds = await loadAllowedProductIds(supabase);
   return classifyStripeEventCore(event, {
     expectedTarget: getBillingDeployTarget(),
     findOwnedSubscription: id => findOwnedSubscription(supabase, id),
-    allowedProductIds,
+    loadAllowedProductIds: () => loadAllowedProductIds(supabase),
   }) as Promise<ClassifyDecision>;
 }
 
