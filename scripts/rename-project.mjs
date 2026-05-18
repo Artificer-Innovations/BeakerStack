@@ -137,8 +137,17 @@ function uniquePairs(pairs) {
       continue;
     }
 
-    if (!map.has(key)) {
+    const existing = map.get(key);
+    if (!existing) {
       map.set(key, pair);
+      continue;
+    }
+    // camelCase and flatlower often share the same `from` (e.g. single-token names);
+    // keep flatlower so preserve-upstream mode can mark preserveScope.
+    if (pair.description === 'flatlower') {
+      map.set(key, pair);
+    } else if (existing.description !== 'flatlower') {
+      map.set(key, existing);
     }
   }
 

@@ -120,6 +120,16 @@ test('replaceFlatLowerPreservingScope keeps @beakerstack and compound identifier
   assert.equal(replacementsMade, 2);
 });
 
+test('uniquePairs keeps flatlower when camelCase shares the same from token', () => {
+  const { replacements } = buildReplacementPairs('Beaker', 'Acme');
+  const annotated = annotateReplacementsForPreserveMode(replacements, true);
+  const beakerPair = annotated.find(pair => pair.from === 'beaker');
+
+  assert.ok(beakerPair);
+  assert.equal(beakerPair.description, 'flatlower');
+  assert.equal(beakerPair.preserveScope, true);
+});
+
 test('annotateReplacementsForPreserveMode marks flatlower only', () => {
   const { replacements } = buildReplacementPairs(BASE_NAME, 'Acme App');
   const annotated = annotateReplacementsForPreserveMode(replacements, true);

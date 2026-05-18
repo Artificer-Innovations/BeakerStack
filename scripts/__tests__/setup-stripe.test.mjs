@@ -15,13 +15,24 @@ test('supabaseStripeWebhookUrl', () => {
     supabaseStripeWebhookUrl('https://abcd1234.supabase.co'),
     'https://abcd1234.supabase.co/functions/v1/stripe-webhook'
   );
-  assert.equal(supabaseStripeWebhookUrl('http://localhost:54321'), '');
+  assert.equal(supabaseStripeWebhookUrl('not-a-url'), '');
 });
 
 test('supabaseStripeWebhookUrl strips trailing slash', () => {
   assert.equal(
     supabaseStripeWebhookUrl('https://abcd1234.supabase.co/'),
     'https://abcd1234.supabase.co/functions/v1/stripe-webhook'
+  );
+});
+
+test('supabaseStripeWebhookUrl supports local and custom base URLs', () => {
+  assert.equal(
+    supabaseStripeWebhookUrl('http://127.0.0.1:54321'),
+    'http://127.0.0.1:54321/functions/v1/stripe-webhook'
+  );
+  assert.equal(
+    supabaseStripeWebhookUrl('https://api.example.com/custom/path/'),
+    'https://api.example.com/custom/path/functions/v1/stripe-webhook'
   );
 });
 

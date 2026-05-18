@@ -66,12 +66,27 @@ export function resolveSupabaseUrlForStripeTier(acc, tier) {
  * @returns {string}
  */
 export function supabaseStripeWebhookUrl(supabaseUrl) {
-  const raw = String(supabaseUrl || '')
-    .trim()
-    .replace(/\/+$/, '');
-  const m = raw.match(/^https:\/\/([a-z0-9-]+)\.supabase\.co/i);
-  if (!m) return '';
-  return `https://${m[1]}.supabase.co/functions/v1/stripe-webhook`;
+  const raw = String(supabaseUrl || '').trim();
+  if (!raw) return '';
+  const webhookPath = '/functions/v1/stripe-webhook';
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return '';
+    const hostMatch = u.hostname.match(/^([a-z0-9-]+)\.supabase\.co$/i);
+    if (hostMatch) {
+      return `https://${hostMatch[1]}.supabase.co${webhookPath}`;
+    }
+    const path = u.pathname.replace(/\/+$/, '') || '';
+    if (path.endsWith(webhookPath)) {
+      return `${u.origin}${path}`;
+    }
+    if (path && path !== '/') {
+      return `${u.origin}${path}${webhookPath}`;
+    }
+    return `${u.origin}${webhookPath}`;
+  } catch {
+    return '';
+  }
 }
 
 /**
@@ -138,7 +153,7 @@ export async function collectStripeEnvKeys(ctx) {
       `  Secret key → ${tier.secretKey}  |  Signing secret → ${tier.webhookSecretKey}`
     );
     logInfo(
-      '  (Enter to skip this tier — github phase will ask again if still empty.)'
+      '  (Next prompt: Enter or y = collect this tier; n = skip — github may prompt again if still empty.)'
     );
     logInfo('');
 
