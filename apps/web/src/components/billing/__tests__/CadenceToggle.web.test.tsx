@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import type { Plan } from '@beakerstack/billing';
 import { CadenceToggle, getCadenceFromSearch } from '../CadenceToggle.web';
 
@@ -99,5 +99,27 @@ describe('CadenceToggle', () => {
     expect(screen.getByRole('button', { name: /Annually/i }).className).toMatch(
       /indigo-600/
     );
+  });
+
+  it('preserves URL hash when toggling cadence (regression: #275)', async () => {
+    const user = userEvent.setup();
+    let capturedHash = '';
+    function HashSpy() {
+      capturedHash = useLocation().hash;
+      return null;
+    }
+    render(
+      <MemoryRouter initialEntries={['/#pricing']}>
+        <CadenceToggle plans={[proPlan]} />
+        <HashSpy />
+      </MemoryRouter>
+    );
+    expect(capturedHash).toBe('#pricing');
+
+    await user.click(screen.getByRole('button', { name: /Annually/i }));
+    expect(capturedHash).toBe('#pricing');
+
+    await user.click(screen.getByRole('button', { name: 'Monthly' }));
+    expect(capturedHash).toBe('#pricing');
   });
 });

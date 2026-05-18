@@ -1,19 +1,21 @@
 import { usePlanCatalog } from '@beakerstack/billing';
 import type { Plan } from '@beakerstack/billing';
-import { useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { beakerstackBillingConfig } from '../../billing/beakerstackBillingConfig';
 import {
   cadenceAnnualSavingsFromPlans,
   formatCadenceToggleSavingsBadge,
 } from '@beakerstack/billing/presentation';
+import { useCallback, useMemo } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { beakerstackBillingConfig } from '../../billing/beakerstackBillingConfig';
 
 export function getCadenceFromSearch(search: URLSearchParams) {
   return search.get('cadence') === 'annual' ? 'annual' : 'monthly';
 }
 
 function CadenceToggleView({ plans }: { plans: Plan[] }) {
-  const [search, setSearch] = useSearchParams();
+  const [search] = useSearchParams();
+  const navigate = useNavigate();
+  const { hash } = useLocation();
   const savings = useMemo(() => cadenceAnnualSavingsFromPlans(plans), [plans]);
   const annualBadgeText = useMemo(
     () => formatCadenceToggleSavingsBadge(savings),
@@ -26,9 +28,9 @@ function CadenceToggleView({ plans }: { plans: Plan[] }) {
       const n = new URLSearchParams(search);
       if (c === 'monthly') n.delete('cadence');
       else n.set('cadence', 'annual');
-      setSearch(n, { replace: true });
+      navigate({ search: n.toString(), hash }, { replace: true });
     },
-    [search, setSearch]
+    [search, navigate, hash]
   );
 
   return (
