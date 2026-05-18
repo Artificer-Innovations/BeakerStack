@@ -24,6 +24,10 @@ describe('ProfileAvatar (web) — onError handler coverage', () => {
     fireEvent.error(img);
     expect(img.style.display).toBe('none');
     expect(parent.textContent).toContain('TU');
+    // onError replaces img via parent.innerHTML, detaching img from React's tree.
+    // Re-attach so React can removeChild(img) during cleanup without throwing.
+    parent.innerHTML = '';
+    parent.appendChild(img);
   });
 
   it('shows "?" initials when profile has no names and image fails', () => {
@@ -34,5 +38,7 @@ describe('ProfileAvatar (web) — onError handler coverage', () => {
     fireEvent.error(img);
     expect(img.style.display).toBe('none');
     expect(parent.textContent).toContain('?');
+    parent.innerHTML = '';
+    parent.appendChild(img);
   });
 });
