@@ -30,6 +30,12 @@ const mockCatalogPlans = vi.hoisted(() => {
   return { pro };
 });
 
+vi.mock('@beakerstack/waitlist/web', () => ({
+  SignupModeGate: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+}));
+
 vi.mock('@beakerstack/billing', async importOriginal => {
   const actual = await importOriginal<typeof import('@beakerstack/billing')>();
   return {

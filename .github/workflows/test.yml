@@ -211,6 +211,9 @@ jobs:
             apps/mobile/coverage
             packages/shared-tests/coverage
             packages/billing/coverage
+            packages/admin/coverage
+            packages/waitlist/coverage
+            packages/email/coverage
           if-no-files-found: warn
 
       - name: Upload test results

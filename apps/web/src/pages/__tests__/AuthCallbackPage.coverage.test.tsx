@@ -1,11 +1,23 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import {
   POST_AUTH_REDIRECT_KEY,
   serializePostAuthRedirectPayload,
 } from '../../auth/postAuthRedirect';
 import AuthCallbackPage from '../AuthCallbackPage';
+import { INVITE_TOKEN_STORAGE_KEY } from '../SignupInvitePage';
+
+const finalizeInviteSignupMock = vi.hoisted(() => vi.fn());
+
+vi.mock('../SignupInvitePage', async importOriginal => {
+  const actual = await importOriginal<typeof import('../SignupInvitePage')>();
+  return {
+    ...actual,
+    finalizeInviteSignup: (...args: unknown[]) =>
+      finalizeInviteSignupMock(...args),
+  };
+});
 
 const mockNavigate = vi.fn();
 
@@ -61,6 +73,8 @@ describe('AuthCallbackPage (URL + auth branches)', () => {
   beforeEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
+    finalizeInviteSignupMock.mockReset();
+    finalizeInviteSignupMock.mockResolvedValue(undefined);
     Object.keys(memSession).forEach(k => delete memSession[k]);
     Object.keys(memLocal).forEach(k => delete memLocal[k]);
     vi.stubGlobal('sessionStorage', storageMock(memSession));
@@ -264,6 +278,80 @@ describe('AuthCallbackPage (URL + auth branches)', () => {
       </MemoryRouter>
     );
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('finalizes invite signup when invite token is stored', async () => {
+    memSession[INVITE_TOKEN_STORAGE_KEY] = 'invite-tok';
+    auth.loading = false;
+    auth.user = { id: 'u1', email: 'a@b.com' };
+
+    render(
+      <MemoryRouter>
+        <AuthCallbackPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(finalizeInviteSignupMock).toHaveBeenCalledWith(
+        'invite-tok',
+        'u1',
+        'a@b.com'
+      );
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', {
+        replace: true,
+      });
+    });
+  });
+
+  it('shows error when invite finalization fails', async () => {
+    finalizeInviteSignupMock.mockRejectedValueOnce(new Error('fail'));
+    memSession[INVITE_TOKEN_STORAGE_KEY] = 'invite-tok';
+    auth.loading = false;
+    auth.user = { id: 'u1', email: 'a@b.com' };
+
+    render(
+      <MemoryRouter>
+        <AuthCallbackPage />
+      </MemoryRouter>
+    );
+
+    expect(
+      await screen.findByText(/could not complete invite signup/i)
+    ).toBeInTheDocument();
+  });
+
+  it('redirects on delayed timer when user appears after access token', async () => {
+    vi.useFakeTimers();
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        ...original,
+        search: '',
+        hash: '#access_token=tok',
+      },
+    });
+    auth.loading = false;
+    auth.user = null;
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <AuthCallbackPage />
+      </MemoryRouter>
+    );
+
+    auth.user = { id: 'u1', email: 'a@b.com' };
+    rerender(
+      <MemoryRouter>
+        <AuthCallbackPage />
+      </MemoryRouter>
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(1200);
+    });
+
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
+    vi.useRealTimers();
   });
 
   it('reads localStorage when sessionStorage is empty', () => {

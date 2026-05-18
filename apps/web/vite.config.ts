@@ -111,7 +111,10 @@ export default defineConfig(({ mode }) => {
       setupFiles: ['./src/test/setup.ts'],
       coverage: {
         provider: 'v8',
-        reporter: ['text', 'json', 'html', 'lcov'],
+        reporter:
+          process.env.COVERAGE_MERGE === '1'
+            ? ['text', 'json']
+            : ['text', 'json', 'html', 'lcov'],
         // Line/statement ~99.1% with integration-heavy pages (billing matrix, OAuth stash).
         thresholds: {
           statements: 99,
