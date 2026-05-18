@@ -25,8 +25,9 @@ describe('BillingTabBar', () => {
     const { getAllByRole } = render(<BillingTabBar />);
     const tabs = getAllByRole('tab');
     expect(tabs).toHaveLength(2);
-    expect(tabs[0]).toHaveAccessibilityState({ selected: true });
-    expect(tabs[1]).toHaveAccessibilityState({ selected: false });
+    // Check accessibilityState directly on the element props (no custom matchers needed)
+    expect(tabs[0].props.accessibilityState).toEqual({ selected: true });
+    expect(tabs[1].props.accessibilityState).toEqual({ selected: false });
   });
 
   it('calls navigate with BillingUsage when Usage tab is pressed', () => {
