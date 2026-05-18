@@ -19,6 +19,22 @@ The script derives the following variants from the `--from` and `--to` names and
 
 These cover display copy, route slugs, Supabase identifiers, Expo slugs, bundle identifiers, and other string-based references.
 
+## What rename changes vs preserves
+
+By default the script runs in **preserve upstream** mode so forks can keep merging from [Artificer-Innovations/BeakerStack](https://github.com/Artificer-Innovations/BeakerStack) and installing `@beakerstack/*` packages from npm.
+
+| Target                                                          | Default (`--preserve-upstream`)     | Full rebrand (`--full-rebrand`)  |
+| --------------------------------------------------------------- | ----------------------------------- | -------------------------------- |
+| Display name, UI copy, branding                                 | Renamed                             | Renamed                          |
+| Bundle IDs, slugs (`com.anonymous.beakerstack`, `beaker-stack`) | Renamed                             | Renamed                          |
+| `@beakerstack/*` workspace imports                              | **Preserved**                       | Renamed to your flat-lower scope |
+| `docs/UPGRADING.md`, `docs/VERSIONING.md`, `CONTRIBUTING.md`    | **Skipped**                         | Renamed                          |
+| Template-internal identifiers (`beakerstackBillingConfig`)      | **Preserved** (word-boundary rules) | Renamed in file contents         |
+
+Use **full rebrand** only when you want a fully independent monorepo name with no upstream merge or npm scope story.
+
+`npm run setup` asks whether to fully rebrand; answering **no** (default) passes `--preserve-upstream`.
+
 ## Usage
 
 Run the script from the repository root via the npm helper:
@@ -39,8 +55,10 @@ Use `--no-supabase-check` when stdin is not a TTY and you are certain skipping t
 
 Recommended flags:
 
+- `--preserve-upstream` &mdash; Default. Keeps `@beakerstack` scope and skips upstream upgrade docs.
+- `--full-rebrand` &mdash; Legacy behavior: rename npm scope and all docs (same as `--no-preserve-upstream`).
 - `--dry-run` &mdash; Preview changes without writing to disk.
-- `--strict` &mdash; Exit with a non-zero status if any legacy identifiers remain.
+- `--strict` &mdash; Exit with a non-zero status if any legacy identifiers remain (upstream-skipped paths are not scanned).
 - `--verbose` &mdash; Print each file touched during the rename.
 - `--no-supabase-check` &mdash; Skip the Supabase status guard.
 
@@ -48,6 +66,12 @@ Example dry-run with strict validation:
 
 ```bash
 npm run rename -- --from "Beaker Stack" --to "Acme App" --dry-run --strict --verbose
+```
+
+Full rebrand (previous default behavior):
+
+```bash
+npm run rename -- --from "Beaker Stack" --to "Acme App" --full-rebrand
 ```
 
 > The script skips binary assets and the `ios/` and `android/` directories because those assets are typically regenerated after Expo prebuild. All other text files within `apps/`, `packages/`, `supabase/`, `.github/`, and `docs/` are processed.
@@ -64,7 +88,9 @@ After running the rename (without `--dry-run`):
    - Mobile (Expo managed): `npm run type-check:mobile`, `npm run lint:mobile`, `npm run test:unit:mobile`, then `npm run mobile`
 3. Update store metadata or developer console configuration (Apple/Google) if bundle identifiers changed.
 4. Review Supabase project settings (`project_id`, redirect URLs) and update environment variables or secrets in CI/CD systems.
-5. Commit the rename and document the new project name for your team.
+5. Update `package.json` `repository` / `homepage` to your fork’s GitHub URL if they still point at the template repo.
+6. In preserve mode, optionally rename `beakerstackBillingConfig.ts` / its export manually if you want those identifiers to match your product slug.
+7. Commit the rename and document the new project name for your team.
 
 ## Custom Identifiers
 
@@ -78,4 +104,4 @@ For advanced scenarios (multiple bundle IDs, white-label variants), consider run
 - **CI/CD secrets**: GitHub Actions and EAS may store project names or bundle IDs in repository secrets. Update those values manually after running the script.
 - **Supabase deep links**: Ensure the redirect URLs in Supabase `config.toml` or dashboard match the new scheme (e.g., `acme-app://auth/callback`).
 
-For questions or additional automation requirements, open an issue in your derived repository and tailor the script to your workflow.\*\*\*
+For questions or additional automation requirements, open an issue in your derived repository and tailor the script to your workflow.

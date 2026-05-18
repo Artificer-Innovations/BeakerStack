@@ -31,30 +31,32 @@ Do not commit filled-in values or `.env*` files with secrets.
 
 ## Track B — Full cloud
 
-**Phases:** `prereqs` → `identity` → `supabase` → `aws` → `expo` → `google` → `write` → `github`  
+**Phases:** `prereqs` → `identity` → `supabase` → `aws` → `expo` → `google` → `stripe` → `write` → `github`  
 **Skip a phase:** answer **N** at `Run "<phase>" now?`  
 **Resume:** `npm run setup:full -- --from=supabase` (etc.)
 
 ### Decide first
 
-| Question                | If **no** / skip                          |
-| ----------------------- | ----------------------------------------- |
-| Mobile (Expo / EAS)?    | `--skip-mobile` → skips `expo` + `google` |
-| Rebrand template?       | `--skip-rename` → skips `identity`        |
-| Push secrets with `gh`? | `--skip-github` → skips `github` sync     |
+| Question                | If **no** / skip                                         |
+| ----------------------- | -------------------------------------------------------- |
+| Mobile (Expo / EAS)?    | `--skip-mobile` → skips `expo` + `google`                |
+| Rebrand template?       | `--skip-rename` → skips `identity`                       |
+| Push secrets with `gh`? | `--skip-github` → skips `github` sync                    |
+| Stripe billing in CI?   | `--skip-stripe` → skips `stripe` + Stripe keys at github |
 
 ### At a glance
 
-| Phase    | One-time secrets?                | Notes                                                  |
-| -------- | -------------------------------- | ------------------------------------------------------ |
-| prereqs  | —                                | CLI checks only                                        |
-| identity | —                                | Optional rename                                        |
-| supabase | **DB passwords**                 | 3 tiers: preview, staging, production                  |
-| aws      | —                                | May ask destructive bucket teardown                    |
-| expo     | **EXPO_TOKEN**                   | Skipped if no mobile                                   |
-| google   | —                                | `google-services.json` path                            |
-| write    | —                                | Merges `.env*` files                                   |
-| github   | Stripe webhooks, etc. if missing | May prompt `CLOUDFRONT_*` if you set up signed cookies |
+| Phase    | One-time secrets?            | Notes                                                  |
+| -------- | ---------------------------- | ------------------------------------------------------ |
+| prereqs  | —                            | CLI checks only                                        |
+| identity | —                            | Optional rename                                        |
+| supabase | **DB passwords**             | 3 tiers: preview, staging, production                  |
+| aws      | —                            | May ask destructive bucket teardown                    |
+| expo     | **EXPO_TOKEN**               | Skipped if no mobile                                   |
+| google   | —                            | `google-services.json` path                            |
+| stripe   | Stripe `sk_*` + `whsec_*` ×3 | Preview/staging test; production live when ready       |
+| write    | —                            | Merges `.env*` files                                   |
+| github   | Anything still missing       | May prompt `CLOUDFRONT_*` if you set up signed cookies |
 
 ---
 
@@ -169,6 +171,29 @@ Do not commit filled-in values or `.env*` files with secrets.
 
 ---
 
+### stripe
+
+**Have ready (before Yes — wizard shows checklist + Enter):**
+
+1. **[Stripe account](https://dashboard.stripe.com)** — **Test mode** for preview + staging; **Live mode** only when production is ready.
+2. **Supabase phase done** — so the wizard can print each tier’s webhook URL (`https://<ref>.supabase.co/functions/v1/stripe-webhook`).
+3. Per tier, from Dashboard → **Developers → API keys** and **Webhooks**:
+   - **Preview:** `PREVIEW_STRIPE_SECRET_KEY` + `PREVIEW_STRIPE_WEBHOOK_SECRET`
+   - **Staging:** `STAGING_STRIPE_SECRET_KEY` + `STAGING_STRIPE_WEBHOOK_SECRET`
+   - **Production:** `PRODUCTION_STRIPE_SECRET_KEY` + `PRODUCTION_STRIPE_WEBHOOK_SECRET`
+
+**You will be asked:**
+
+- **Press Enter** when ready (or **N** to skip / `--skip-stripe` for no billing in CI)
+- For each tier (preview → staging → production): collect now? → masked secret key → masked webhook signing secret
+- **Enter** on a tier skips that tier (github may prompt again later)
+
+**Saved as:** `*_STRIPE_*` in `.env.cloud.generated.local` → GitHub secrets in **github** phase.
+
+**Not in this phase:** `npm run billing:sync-stripe`, `supabase secrets set`, Stripe CLI local forwarding — [stripe-billing-setup.md](stripe-billing-setup.md).
+
+---
+
 ### write
 
 **Have ready:** nothing.
@@ -207,7 +232,7 @@ Not run by `setup-full`. Do these when you need them.
 
 | Task                             | In wizard?                               | What to do                                                     |
 | -------------------------------- | ---------------------------------------- | -------------------------------------------------------------- |
-| **Stripe billing**               | Only if keys missing at `github` sync    | [stripe-billing-setup.md](stripe-billing-setup.md)             |
+| **Stripe billing**               | `stripe` phase + sync/webhooks in doc    | [stripe-billing-setup.md](stripe-billing-setup.md)             |
 | **Google / Apple OAuth**         | No                                       | [OAUTH.md](OAUTH.md)                                           |
 | **Signed-cookie preview access** | **No** — separate script after AWS stack | See below                                                      |
 | **Lighthouse CI**                | No                                       | [lighthouse-ci.md](lighthouse-ci.md) — `LHCI_GITHUB_APP_TOKEN` |

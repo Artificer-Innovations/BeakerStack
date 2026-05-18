@@ -10,6 +10,25 @@ This guide walks you from **zero** to a working **test-mode** Stripe integration
 
 ---
 
+## Before the Stripe wizard phase
+
+If you use `npm run setup:full`, the **stripe** phase (after **supabase**, before **write** / **github**) collects GitHub Actions keys so you are not surprised by `STAGING_STRIPE_SECRET_KEY` at github sync.
+
+### Checklist
+
+| #   | Requirement                      | Details                                                                                                                                                                  |
+| --- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | **Stripe account**               | [dashboard.stripe.com](https://dashboard.stripe.com) — **Test mode** for preview + staging.                                                                              |
+| 2   | **API secret keys**              | Developers → API keys → `sk_test_…` (preview/staging) and `sk_live_…` (production when ready).                                                                           |
+| 3   | **Webhook per Supabase project** | URL `https://<PROJECT_REF>.supabase.co/functions/v1/stripe-webhook` — one endpoint per preview/staging/production project; **Reveal** signing secret `whsec_…` for each. |
+| 4   | **Supabase URLs from setup**     | Complete the **supabase** phase first so the wizard can print each webhook URL.                                                                                          |
+
+Skip billing in CI: answer **N** at the stripe phase or `npm run setup:full -- --skip-stripe`.
+
+**More:** [setup-prep-checklist.md § stripe](setup-prep-checklist.md#stripe)
+
+---
+
 ## 0. Billing model overview (what you are actually setting up)
 
 Beaker Stack uses Stripe for **commercial billing primitives** and Supabase for **application-side entitlement state**.
