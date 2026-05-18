@@ -94,4 +94,55 @@ describe('AdminRoute', () => {
     renderGuard('admin-1');
     expect(screen.getByText('Admin content')).toBeInTheDocument();
   });
+
+  it('re-runs admin check on window focus when tab is visible', () => {
+    const refresh = vi.fn();
+    mockUseIsAdmin.mockReturnValue({
+      isAdmin: true,
+      loading: false,
+      error: null,
+      refresh,
+    });
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'visible',
+    });
+    renderGuard('user-1');
+    window.dispatchEvent(new Event('focus'));
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips admin recheck on focus when tab is hidden', () => {
+    const refresh = vi.fn();
+    mockUseIsAdmin.mockReturnValue({
+      isAdmin: true,
+      loading: false,
+      error: null,
+      refresh,
+    });
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'hidden',
+    });
+    renderGuard('user-1');
+    window.dispatchEvent(new Event('focus'));
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it('re-runs admin check on visibilitychange when tab becomes visible', () => {
+    const refresh = vi.fn();
+    mockUseIsAdmin.mockReturnValue({
+      isAdmin: true,
+      loading: false,
+      error: null,
+      refresh,
+    });
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'visible',
+    });
+    renderGuard('user-1');
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
 });

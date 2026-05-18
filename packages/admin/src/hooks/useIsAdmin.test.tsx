@@ -86,6 +86,40 @@ describe('useIsAdmin', () => {
     expect(result.current.loading).toBe(false);
   });
 
+  it('ignores stale RPC result when userId changes before first resolve', async () => {
+    const sb = createSupabase(false);
+    let resolveFirst: (value: {
+      data: boolean;
+      error: null;
+    }) => void = () => {};
+    let rpcCalls = 0;
+    vi.mocked(sb.rpc).mockImplementation((name: string) => {
+      if (name !== 'admin_is_admin')
+        return Promise.resolve({ data: null, error: null });
+      rpcCalls += 1;
+      if (rpcCalls === 1) {
+        return new Promise(resolve => {
+          resolveFirst = resolve;
+        });
+      }
+      return Promise.resolve({ data: false, error: null });
+    });
+
+    const { result, rerender } = renderHook(
+      ({ uid }: { uid: string | undefined }) => useIsAdmin(sb, uid),
+      { initialProps: { uid: 'user-a' as string | undefined } }
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(true));
+    rerender({ uid: 'user-b' });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.isAdmin).toBe(false);
+
+    resolveFirst({ data: true, error: null });
+    await waitFor(() => expect(rpcCalls).toBe(2));
+    expect(result.current.isAdmin).toBe(false);
+  });
+
   it('refresh re-runs admin check', async () => {
     const sb = createSupabase(false);
     const { result } = renderHook(() => useIsAdmin(sb, 'user-1'));
