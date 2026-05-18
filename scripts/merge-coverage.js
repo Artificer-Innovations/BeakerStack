@@ -7,6 +7,8 @@
  * - packages/shared-tests/coverage (Jest)
  * - packages/billing/coverage (Vitest)
  * - packages/admin/coverage (Vitest)
+ * - packages/waitlist/coverage (Vitest)
+ * - packages/email/coverage (Vitest)
  */
 
 const fs = require('fs');
@@ -18,6 +20,8 @@ const coverageDirs = [
   { name: 'shared', path: 'packages/shared-tests/coverage' },
   { name: 'billing', path: 'packages/billing/coverage' },
   { name: 'admin', path: 'packages/admin/coverage' },
+  { name: 'waitlist', path: 'packages/waitlist/coverage' },
+  { name: 'email', path: 'packages/email/coverage' },
 ];
 
 const outputDir = path.join(__dirname, '..', 'coverage');

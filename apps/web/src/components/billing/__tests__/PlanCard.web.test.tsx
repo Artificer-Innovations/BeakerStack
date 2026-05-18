@@ -44,6 +44,14 @@ describe('listPriceForPlan', () => {
 });
 
 describe('PlanCard', () => {
+  it('renders without a primary CTA when invite-only', () => {
+    render(
+      <PlanCard plan={proPlan} priceHeadline='US$19' priceSubline='per month' />
+    );
+    expect(screen.getByRole('heading', { name: 'Pro' })).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
   it('renders plan title and primary CTA', () => {
     const onClick = vi.fn();
     render(

@@ -20,6 +20,7 @@ function PageFallback() {
 const HomePage = lazy(() => import('./pages/HomePage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SignupPage = lazy(() => import('./pages/SignupPage'));
+const SignupInvitePage = lazy(() => import('./pages/SignupInvitePage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage'));
@@ -108,6 +109,7 @@ function App() {
               <Route element={<RootLayout />}>
                 <Route path='/login' element={<LoginPage />} />
                 <Route path='/signup' element={<SignupPage />} />
+                <Route path='/signup/invite' element={<SignupInvitePage />} />
                 <Route path='/auth/callback' element={<AuthCallbackPage />} />
                 <Route
                   path='/not-authorized'

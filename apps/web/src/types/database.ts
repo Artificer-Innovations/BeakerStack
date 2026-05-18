@@ -511,6 +511,148 @@ export type Database = {
         }
         Relationships: []
       }
+      waitlist_entries: {
+        Row: {
+          active_invite_id: string | null
+          approved_at: string | null
+          converted_at: string | null
+          converted_user_id: string | null
+          email: string
+          id: string
+          metadata: Json
+          rejected_at: string | null
+          status: string
+          submitted_at: string
+        }
+        Insert: {
+          active_invite_id?: string | null
+          approved_at?: string | null
+          converted_at?: string | null
+          converted_user_id?: string | null
+          email: string
+          id?: string
+          metadata?: Json
+          rejected_at?: string | null
+          status?: string
+          submitted_at?: string
+        }
+        Update: {
+          active_invite_id?: string | null
+          approved_at?: string | null
+          converted_at?: string | null
+          converted_user_id?: string | null
+          email?: string
+          id?: string
+          metadata?: Json
+          rejected_at?: string | null
+          status?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waitlist_entries_active_invite_fkey"
+            columns: ["active_invite_id"]
+            isOneToOne: false
+            referencedRelation: "waitlist_invites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      waitlist_invites: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          entry_id: string
+          expires_at: string
+          id: string
+          revoked_at: string | null
+          token_hash: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          entry_id: string
+          expires_at: string
+          id?: string
+          revoked_at?: string | null
+          token_hash: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          entry_id?: string
+          expires_at?: string
+          id?: string
+          revoked_at?: string | null
+          token_hash?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waitlist_invites_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "waitlist_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      waitlist_rate_limits: {
+        Row: {
+          bucket_key: string
+          count: number
+          window_start: string
+        }
+        Insert: {
+          bucket_key: string
+          count?: number
+          window_start: string
+        }
+        Update: {
+          bucket_key?: string
+          count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
+      waitlist_settings: {
+        Row: {
+          copy: Json
+          default_plan_id: string
+          id: number
+          identity_match_mode: string
+          invite_ttl_days: number
+          metadata_schema: Json
+          signup_mode: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          copy?: Json
+          default_plan_id?: string
+          id?: number
+          identity_match_mode?: string
+          invite_ttl_days?: number
+          metadata_schema?: Json
+          signup_mode?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          copy?: Json
+          default_plan_id?: string
+          id?: number
+          identity_match_mode?: string
+          invite_ttl_days?: number
+          metadata_schema?: Json
+          signup_mode?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -526,8 +668,43 @@ export type Database = {
         }
         Returns: undefined
       }
+      _waitlist_create_invite: {
+        Args: { p_actor: string; p_entry_id: string }
+        Returns: {
+          invite_id: string
+          raw_token: string
+        }[]
+      }
+      _waitlist_hash_token: { Args: { p_token: string }; Returns: string }
+      _waitlist_settings_row: {
+        Args: never
+        Returns: {
+          copy: Json
+          default_plan_id: string
+          id: number
+          identity_match_mode: string
+          invite_ttl_days: number
+          metadata_schema: Json
+          signup_mode: string
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "waitlist_settings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_approve_waitlist_entry: { Args: { p_id: string }; Returns: Json }
       admin_get_user: {
         Args: { p_product_id?: string; p_user_id: string }
+        Returns: Json
+      }
+      admin_get_waitlist_entry: { Args: { p_id: string }; Returns: Json }
+      admin_get_waitlist_settings: { Args: never; Returns: Json }
+      admin_invite_waitlist_email: {
+        Args: { p_email: string; p_metadata?: Json }
         Returns: Json
       }
       admin_is_admin: { Args: never; Returns: boolean }
@@ -542,6 +719,15 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_list_waitlist_entries: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
       admin_record_audit_event: {
         Args: {
           p_action: string
@@ -550,6 +736,19 @@ export type Database = {
           p_target_type?: string
         }
         Returns: undefined
+      }
+      admin_reject_waitlist_entry: { Args: { p_id: string }; Returns: Json }
+      admin_resend_waitlist_invite: { Args: { p_id: string }; Returns: Json }
+      admin_update_waitlist_settings: {
+        Args: {
+          p_copy?: Json
+          p_default_plan_id?: string
+          p_identity_match_mode?: string
+          p_invite_ttl_days?: number
+          p_metadata_schema?: Json
+          p_signup_mode?: string
+        }
+        Returns: Json
       }
       billing_demo_add_collection: {
         Args: { p_product_id: string }
@@ -577,6 +776,38 @@ export type Database = {
       }
       billing_demo_simulate_upgrade: {
         Args: { p_plan_id: string; p_product_id: string }
+        Returns: {
+          cancel_at_period_end: boolean
+          canceled_at: string | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          pending_target_plan_id: string | null
+          plan_id: string
+          product_id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_price_id: string | null
+          stripe_subscription_id: string | null
+          trial_end: string | null
+          trial_start: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "billing_subscriptions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      billing_ensure_subscription_plan: {
+        Args: {
+          p_plan_id: string
+          p_product_id: string
+          p_user_id: string
+        }
         Returns: {
           cancel_at_period_end: boolean
           canceled_at: string | null
@@ -660,6 +891,16 @@ export type Database = {
       }
       generate_username: { Args: never; Returns: string }
       is_valid_email: { Args: { email: string }; Returns: boolean }
+      waitlist_capture: {
+        Args: { p_client_ip?: string; p_email: string; p_metadata?: Json }
+        Returns: Json
+      }
+      waitlist_consume_invite: {
+        Args: { p_token: string; p_user_email?: string; p_user_id: string }
+        Returns: Json
+      }
+      waitlist_get_public_settings: { Args: never; Returns: Json }
+      waitlist_validate_invite: { Args: { p_token: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never

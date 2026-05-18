@@ -4,6 +4,7 @@ import { defineConfig } from 'vitest/config';
 
 const pkgRoot = path.dirname(fileURLToPath(new URL(import.meta.url)));
 const repoRoot = path.resolve(pkgRoot, '../..');
+const mergeCoverage = process.env.COVERAGE_MERGE === '1';
 
 export default defineConfig({
   resolve: {
@@ -18,7 +19,15 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html', 'lcov'],
+      reporter: mergeCoverage
+        ? ['text', 'json']
+        : ['text', 'json', 'html', 'lcov'],
+      thresholds: {
+        statements: 95,
+        branches: 85,
+        functions: 95,
+        lines: 95,
+      },
       exclude: [
         'node_modules/',
         '**/*.d.ts',

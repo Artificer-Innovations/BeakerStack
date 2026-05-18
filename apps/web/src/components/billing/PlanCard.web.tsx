@@ -33,7 +33,7 @@ export function PlanCard({
   billingCadence?: 'monthly' | 'annual';
   /** Hard blockers disable the CTA; soft blockers are shown as warnings only (boolean entitlement loss). */
   blockers?: DowngradeBlockersResult;
-  primary: {
+  primary?: {
     label: string;
     onClick: () => void;
     disabled?: boolean;
@@ -109,17 +109,19 @@ export function PlanCard({
       <div className={hasWarnings ? 'mt-2' : 'mt-6 grow'}>
         <PlanFeatureList plan={plan} />
       </div>
-      <div className='mt-6'>
-        <Button
-          type='button'
-          variant={primary.variant ?? 'primary'}
-          onPress={primary.onClick}
-          disabled={primary.disabled || hardBlocked}
-          loading={primary.loading}
-        >
-          {hardBlocked ? 'Resolve issues to downgrade' : primary.label}
-        </Button>
-      </div>
+      {primary ? (
+        <div className='mt-6'>
+          <Button
+            type='button'
+            variant={primary.variant ?? 'primary'}
+            onPress={primary.onClick}
+            disabled={primary.disabled || hardBlocked}
+            loading={primary.loading}
+          >
+            {hardBlocked ? 'Resolve issues to downgrade' : primary.label}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

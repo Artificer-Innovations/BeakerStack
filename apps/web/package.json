@@ -18,6 +18,8 @@
   "dependencies": {
     "@beakerstack/admin": "^1.0.0",
     "@beakerstack/billing": "^1.0.0",
+    "@beakerstack/email": "^1.0.0",
+    "@beakerstack/waitlist": "^1.0.0",
     "@beakerstack/shared": "^1.0.0",
     "@supabase/supabase-js": "^2.38.0",
     "lucide-react": "^0.460.0",

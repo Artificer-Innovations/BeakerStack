@@ -28,6 +28,22 @@ vi.mock('@/lib/supabase', () => ({
   },
 }));
 
+vi.mock('@beakerstack/waitlist', async importOriginal => {
+  const actual = await importOriginal<typeof import('@beakerstack/waitlist')>();
+  return {
+    ...actual,
+    useSignupMode: () => ({
+      mode: 'open' as const,
+      settings: null,
+      loading: false,
+      isOpen: true,
+      isWaitlist: false,
+      isInviteOnly: false,
+      isClosed: false,
+    }),
+  };
+});
+
 vi.mock('@beakerstack/billing', async importOriginal => {
   const actual = await importOriginal<typeof import('@beakerstack/billing')>();
   return {
@@ -73,14 +89,6 @@ vi.mock('../../config/landing', () => ({
       ctaLabel: 'Start',
       ctaHref: '/signup',
     },
-  },
-}));
-
-vi.mock('../../../billing/beakerstackBillingConfig', () => ({
-  beakerstackBillingConfig: {
-    plans: [],
-    productId: 'test',
-    displayName: 'Test',
   },
 }));
 
@@ -141,15 +149,5 @@ describe('HomePage', () => {
     const signInLinks = screen.getAllByRole('link', { name: /sign in/i });
     expect(signInLinks.length).toBeGreaterThan(0);
     expect(signInLinks[0]).toHaveAttribute('href', '/login');
-  });
-
-  it('renders the pricing cadence toggle with Monthly and Annually buttons', async () => {
-    await renderHome();
-    expect(
-      await screen.findByRole('button', { name: /monthly/i })
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByRole('button', { name: /annually/i })
-    ).toBeInTheDocument();
   });
 });

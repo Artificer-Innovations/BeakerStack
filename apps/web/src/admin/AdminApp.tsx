@@ -4,6 +4,10 @@ import { AdminLayoutShell } from './AdminLayoutShell';
 
 const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'));
 const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage'));
+const AdminWaitlistPage = lazy(() => import('./pages/AdminWaitlistPage'));
+const AdminWaitlistSettingsPage = lazy(
+  () => import('./pages/AdminWaitlistSettingsPage')
+);
 
 function PageFallback() {
   return (
@@ -20,6 +24,11 @@ export default function AdminApp() {
         <Route element={<AdminLayoutShell />}>
           <Route index element={<AdminDashboardPage />} />
           <Route path='users' element={<AdminUsersPage />} />
+          <Route path='waitlist' element={<AdminWaitlistPage />} />
+          <Route
+            path='waitlist/settings'
+            element={<AdminWaitlistSettingsPage />}
+          />
         </Route>
       </Routes>
     </Suspense>

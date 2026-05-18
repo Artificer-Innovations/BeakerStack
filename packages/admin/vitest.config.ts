@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 const pkgRoot = path.dirname(fileURLToPath(new URL(import.meta.url)));
+const mergeCoverage = process.env.COVERAGE_MERGE === '1';
 
 export default defineConfig({
   test: {
@@ -12,7 +13,9 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html', 'lcov'],
+      reporter: mergeCoverage
+        ? ['text', 'json']
+        : ['text', 'json', 'html', 'lcov'],
       exclude: [
         'node_modules/',
         '**/*.d.ts',
