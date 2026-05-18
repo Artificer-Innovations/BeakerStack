@@ -170,51 +170,108 @@ export default function SignupInvitePage() {
 
   return (
     <InvitePageShell>
-      <ContentContainer className='py-12 max-w-md mx-auto'>
-        <h2 className='text-2xl font-bold text-gray-900 dark:text-white text-center'>
-          Complete your signup
-        </h2>
-        <p className='mt-2 text-sm text-gray-600 text-center'>
-          Invited as <strong>{inviteEmail}</strong>
-        </p>
+      <ContentContainer className='py-12'>
+        <div className='mx-auto w-full max-w-md space-y-8'>
+          <div>
+            <h2 className='text-center text-3xl font-extrabold text-gray-900 dark:text-white'>
+              Complete your signup
+            </h2>
+            <p className='mt-2 text-center text-sm text-gray-600 dark:text-gray-400'>
+              Use Google or set a password for your invited email.
+            </p>
+          </div>
 
-        <div className='mt-6 space-y-3'>
-          <SocialLoginButton onPress={handleGoogle} mode='signup' />
+          <div className='space-y-3'>
+            <SocialLoginButton onPress={handleGoogle} mode='signup' />
+          </div>
+
+          <div className='relative'>
+            <div className='absolute inset-0 flex items-center'>
+              <div className='w-full border-t border-gray-300 dark:border-gray-600' />
+            </div>
+            <div className='relative flex justify-center text-sm'>
+              <span className='bg-gray-50 px-2 text-gray-500 dark:bg-gray-900 dark:text-gray-400'>
+                Or continue with email
+              </span>
+            </div>
+          </div>
+
+          {error ? (
+            <div className='rounded-md bg-red-50 p-4 dark:bg-red-900/30'>
+              <p
+                className='text-sm font-medium text-red-800 dark:text-red-300'
+                role='alert'
+              >
+                {error}
+              </p>
+            </div>
+          ) : null}
+
+          <form className='space-y-6' onSubmit={e => void handleSignup(e)}>
+            <div className='-space-y-px rounded-md shadow-sm'>
+              <div>
+                <label htmlFor='invite-email' className='sr-only'>
+                  Email address
+                </label>
+                <input
+                  id='invite-email'
+                  name='email'
+                  type='email'
+                  autoComplete='email'
+                  readOnly
+                  disabled
+                  value={inviteEmail ?? ''}
+                  className='relative block w-full cursor-not-allowed appearance-none rounded-none rounded-t-md border border-gray-300 bg-gray-100 px-3 py-2 text-gray-700 placeholder-gray-500 focus:z-10 focus:border-primary-500 focus:outline-none focus:ring-primary-500 disabled:opacity-100 dark:border-gray-600 dark:bg-gray-800/80 dark:text-gray-200 dark:placeholder-gray-400 sm:text-sm'
+                  placeholder='Email address'
+                />
+              </div>
+              <div>
+                <label htmlFor='invite-password' className='sr-only'>
+                  Password
+                </label>
+                <input
+                  id='invite-password'
+                  name='password'
+                  type='password'
+                  autoComplete='new-password'
+                  required
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  disabled={submitting}
+                  className='relative block w-full appearance-none rounded-none border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-primary-500 focus:outline-none focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 sm:text-sm'
+                  placeholder='Password'
+                />
+              </div>
+              <div>
+                <label htmlFor='invite-confirm-password' className='sr-only'>
+                  Confirm password
+                </label>
+                <input
+                  id='invite-confirm-password'
+                  name='confirm-password'
+                  type='password'
+                  autoComplete='new-password'
+                  required
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  disabled={submitting}
+                  className='relative block w-full appearance-none rounded-none rounded-b-md border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-primary-500 focus:outline-none focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 sm:text-sm'
+                  placeholder='Confirm password'
+                />
+              </div>
+            </div>
+
+            <div>
+              <button
+                type='submit'
+                disabled={submitting}
+                className='group relative flex w-full justify-center rounded-md border border-transparent bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
+              >
+                {submitting ? 'Creating account…' : 'Create account'}
+              </button>
+            </div>
+          </form>
         </div>
-
-        {error ? (
-          <p className='mt-4 text-sm text-red-600' role='alert'>
-            {error}
-          </p>
-        ) : null}
-
-        <form className='mt-6 space-y-4' onSubmit={e => void handleSignup(e)}>
-          <input
-            type='password'
-            autoComplete='new-password'
-            placeholder='Password'
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            className='w-full px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-600'
-            required
-          />
-          <input
-            type='password'
-            autoComplete='new-password'
-            placeholder='Confirm password'
-            value={confirmPassword}
-            onChange={e => setConfirmPassword(e.target.value)}
-            className='w-full px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-600'
-            required
-          />
-          <button
-            type='submit'
-            disabled={submitting}
-            className='w-full py-2 bg-indigo-600 text-white rounded-md disabled:opacity-50'
-          >
-            {submitting ? 'Creating account…' : 'Create account'}
-          </button>
-        </form>
       </ContentContainer>
     </InvitePageShell>
   );

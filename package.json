@@ -72,6 +72,7 @@
     "dev:start": "./scripts/dev-helper.sh start",
     "web": "cd apps/web && npm run dev",
     "dev:supabase": "supabase start",
+    "dev:waitlist-functions": "supabase functions serve waitlist-capture waitlist-ops --no-verify-jwt",
     "dev:all": "concurrently \"npm run dev:supabase\" \"npm run mobile\" \"npm run web\"",
     "gen:types": "./scripts/generate-types.sh",
     "gen:types:staging": "supabase gen types typescript --project-id $STAGING_PROJECT_REF > apps/mobile/src/types/database.ts && cp apps/mobile/src/types/database.ts apps/web/src/types/database.ts",

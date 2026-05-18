@@ -76,7 +76,8 @@ INSERT INTO public.waitlist_settings (
     id,
     signup_mode,
     default_plan_id,
-    copy
+    copy,
+    metadata_schema
 )
 VALUES (
     1,
@@ -84,7 +85,12 @@ VALUES (
     'beakerstack_free',
     '{
       "waitlist": {
-        "confirmation": "Thanks — you''re on the list. We''ll be in touch."
+        "headline": "Join the waitlist",
+        "subhead": "We''re rolling out access in batches. Drop your email and we''ll let you know when your spot opens up.",
+        "submit_button_label": "Join waitlist",
+        "footer_note": "No spam. We''ll only email you about your spot.",
+        "success_message": "Thanks — you''re on the list. We''ll email you when your spot opens up.",
+        "confirmation": "Thanks — you''re on the list. We''ll email you when your spot opens up."
       },
       "invite_only": {
         "message": "Sign up is invite-only. Check your email for an invitation link."
@@ -92,7 +98,8 @@ VALUES (
       "closed": {
         "message": "Sign ups are closed right now. Please check back later."
       }
-    }'::jsonb
+    }'::jsonb,
+    '[{"id":"use_case","label":"What are you hoping to use this for? (optional)","type":"textarea","required":false}]'::jsonb
 )
 ON CONFLICT (id) DO NOTHING;
 

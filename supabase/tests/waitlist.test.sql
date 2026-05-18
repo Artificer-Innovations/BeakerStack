@@ -1,6 +1,6 @@
 -- pgTAP: waitlist tables, RLS, and RPC access control
 BEGIN;
-SELECT plan(15);
+SELECT plan(16);
 
 SELECT has_table('public', 'waitlist_settings', 'waitlist_settings exists');
 SELECT has_table('public', 'waitlist_entries', 'waitlist_entries exists');
@@ -44,6 +44,14 @@ SELECT ok(
         WHERE routine_schema = 'public' AND routine_name = 'admin_list_waitlist_entries'
     ),
     'admin_list_waitlist_entries exists'
+);
+
+SELECT ok(
+    EXISTS (
+        SELECT 1 FROM information_schema.routines
+        WHERE routine_schema = 'public' AND routine_name = 'admin_invite_waitlist_email'
+    ),
+    'admin_invite_waitlist_email exists'
 );
 
 -- Settings row (insert for test if missing)

@@ -7,6 +7,8 @@ export interface SignupModeGateProps {
   supabase: SupabaseClient;
   config: WaitlistConfig;
   children: React.ReactNode;
+  /** Merged into waitlist capture metadata when mode is waitlist. */
+  captureMetadata?: Record<string, string>;
   className?: string;
 }
 
@@ -14,6 +16,7 @@ export function SignupModeGate({
   supabase,
   config,
   children,
+  captureMetadata,
   className = '',
 }: SignupModeGateProps) {
   const { settings, loading, isOpen, isWaitlist, isInviteOnly, isClosed } =
@@ -36,7 +39,12 @@ export function SignupModeGate({
   if (isWaitlist) {
     return (
       <div className={className}>
-        <WaitlistForm supabase={supabase} config={config} settings={settings} />
+        <WaitlistForm
+          supabase={supabase}
+          config={config}
+          settings={settings}
+          {...(captureMetadata !== undefined ? { captureMetadata } : {})}
+        />
       </div>
     );
   }

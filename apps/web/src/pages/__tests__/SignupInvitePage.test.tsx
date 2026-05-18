@@ -207,7 +207,8 @@ describe('SignupInvitePage', () => {
     expect(
       await screen.findByText(/complete your signup/i)
     ).toBeInTheDocument();
-    expect(screen.getByText(/invited@example.com/i)).toBeInTheDocument();
+    expect(screen.getByText(/or continue with email/i)).toBeInTheDocument();
+    expect(screen.getByDisplayValue('invited@example.com')).toBeDisabled();
     expect(screen.getByPlaceholderText('Password')).toBeInTheDocument();
   });
 

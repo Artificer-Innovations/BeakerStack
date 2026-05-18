@@ -40,6 +40,16 @@ vi.mock('../hooks/useAdminWaitlist', () => ({
   useAdminWaitlist: () => mockHook,
 }));
 
+vi.mock('../components/AdminInviteByEmailPanel.web', () => ({
+  AdminInviteByEmailPanel: ({ onInvited }: { onInvited?: () => void }) => (
+    <div data-testid='invite-by-email'>
+      <button type='button' onClick={onInvited}>
+        Trigger invite reload
+      </button>
+    </div>
+  ),
+}));
+
 vi.mock('../components/AdminWaitlistDetailDrawer.web', () => ({
   AdminWaitlistDetailDrawer: ({
     open,
@@ -84,6 +94,28 @@ describe('AdminWaitlistPage', () => {
       limit: 25,
       offset: 0,
     };
+  });
+
+  it('renders invite-by-email panel', () => {
+    render(
+      <MemoryRouter>
+        <AdminWaitlistPage />
+      </MemoryRouter>
+    );
+    expect(screen.getByTestId('invite-by-email')).toBeInTheDocument();
+  });
+
+  it('reloads list when invite panel reports success', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <AdminWaitlistPage />
+      </MemoryRouter>
+    );
+    await user.click(
+      screen.getByRole('button', { name: /trigger invite reload/i })
+    );
+    expect(mockHook.reload).toHaveBeenCalled();
   });
 
   it('renders waitlist table row', async () => {

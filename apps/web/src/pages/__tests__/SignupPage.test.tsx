@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import type { Plan } from '@beakerstack/billing';
+import type { UseSignupModeResult } from '@beakerstack/waitlist';
 import SignupPage from '../SignupPage';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
@@ -30,11 +31,41 @@ const mockCatalogPlans = vi.hoisted(() => {
   return { pro };
 });
 
-vi.mock('@beakerstack/waitlist/web', () => ({
-  SignupModeGate: ({ children }: { children: React.ReactNode }) => (
-    <>{children}</>
-  ),
-}));
+const { defaultSignupMode, useSignupModeMock } = vi.hoisted(() => {
+  const defaultSignupMode: UseSignupModeResult = {
+    mode: 'open',
+    settings: null,
+    loading: false,
+    isOpen: true,
+    isWaitlist: false,
+    isInviteOnly: false,
+    isClosed: false,
+  };
+  return {
+    defaultSignupMode,
+    useSignupModeMock: vi.fn((): UseSignupModeResult => defaultSignupMode),
+  };
+});
+
+vi.mock('@beakerstack/waitlist', async importOriginal => {
+  const actual = await importOriginal<typeof import('@beakerstack/waitlist')>();
+  return {
+    ...actual,
+    useSignupMode: useSignupModeMock,
+  };
+});
+
+vi.mock('@beakerstack/waitlist/web', async importOriginal => {
+  const actual =
+    await importOriginal<typeof import('@beakerstack/waitlist/web')>();
+  return {
+    ...actual,
+    SignupModeGate: ({ children }: { children: React.ReactNode }) => (
+      <>{children}</>
+    ),
+    useSignupMode: useSignupModeMock,
+  };
+});
 
 vi.mock('@beakerstack/billing', async importOriginal => {
   const actual = await importOriginal<typeof import('@beakerstack/billing')>();
@@ -203,6 +234,7 @@ describe('SignupPage', () => {
   beforeEach(() => {
     installMemoryWebStorage();
     vi.clearAllMocks();
+    useSignupModeMock.mockReturnValue(defaultSignupMode);
     mockNavigate.mockClear();
     webSupabaseAuth.getSession.mockImplementation(async () => ({
       data: { session: null },
@@ -501,5 +533,22 @@ describe('SignupPage', () => {
   it('does not show plan aside copy on plain /signup', () => {
     renderWithProviders(<SignupPage />);
     expect(screen.queryByText('Your selection')).not.toBeInTheDocument();
+  });
+
+  it('shows waitlist tier panel without open-signup heading in waitlist mode', () => {
+    useSignupModeMock.mockReturnValue({
+      mode: 'waitlist',
+      settings: null,
+      loading: false,
+      isOpen: false,
+      isWaitlist: true,
+      isInviteOnly: false,
+      isClosed: false,
+    });
+    renderWithProviders(<SignupPage />, {
+      initialEntries: ['/signup?plan=beakerstack_pro'],
+    });
+    expect(screen.queryByText('Create your account')).not.toBeInTheDocument();
+    expect(screen.getByText('JOIN THE WAITLIST FOR')).toBeInTheDocument();
   });
 });

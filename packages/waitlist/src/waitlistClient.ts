@@ -1,10 +1,69 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
+  IdentityMatchMode,
+  SignupMode,
   ValidateInviteResult,
   WaitlistAdminSettings,
   WaitlistListResult,
+  WaitlistMetadataField,
   WaitlistPublicSettings,
 } from './types.js';
+
+export const DEFAULT_WAITLIST_ADMIN_SETTINGS: WaitlistAdminSettings = {
+  signup_mode: 'open',
+  default_plan_id: 'beakerstack_free',
+  invite_ttl_days: 7,
+  identity_match_mode: 'lenient',
+  copy: {},
+  metadata_schema: [],
+  updated_at: '',
+};
+
+const SIGNUP_MODES: SignupMode[] = [
+  'open',
+  'waitlist',
+  'invite_only',
+  'closed',
+];
+
+const IDENTITY_MATCH_MODES: IdentityMatchMode[] = ['lenient', 'strict'];
+
+/** Coerce RPC JSON so controlled form fields never receive null. */
+export function normalizeWaitlistAdminSettings(
+  raw: Record<string, unknown> | WaitlistAdminSettings
+): WaitlistAdminSettings {
+  const signupMode = raw.signup_mode;
+  const identityMode = raw.identity_match_mode;
+  return {
+    signup_mode: SIGNUP_MODES.includes(signupMode as SignupMode)
+      ? (signupMode as SignupMode)
+      : DEFAULT_WAITLIST_ADMIN_SETTINGS.signup_mode,
+    default_plan_id:
+      typeof raw.default_plan_id === 'string' && raw.default_plan_id.length > 0
+        ? raw.default_plan_id
+        : DEFAULT_WAITLIST_ADMIN_SETTINGS.default_plan_id,
+    invite_ttl_days:
+      typeof raw.invite_ttl_days === 'number' && raw.invite_ttl_days >= 1
+        ? raw.invite_ttl_days
+        : DEFAULT_WAITLIST_ADMIN_SETTINGS.invite_ttl_days,
+    identity_match_mode: IDENTITY_MATCH_MODES.includes(
+      identityMode as IdentityMatchMode
+    )
+      ? (identityMode as IdentityMatchMode)
+      : DEFAULT_WAITLIST_ADMIN_SETTINGS.identity_match_mode,
+    copy:
+      raw.copy && typeof raw.copy === 'object' && !Array.isArray(raw.copy)
+        ? (raw.copy as Record<string, Record<string, string>>)
+        : DEFAULT_WAITLIST_ADMIN_SETTINGS.copy,
+    metadata_schema: Array.isArray(raw.metadata_schema)
+      ? (raw.metadata_schema as WaitlistMetadataField[])
+      : DEFAULT_WAITLIST_ADMIN_SETTINGS.metadata_schema,
+    updated_at:
+      typeof raw.updated_at === 'string'
+        ? raw.updated_at
+        : DEFAULT_WAITLIST_ADMIN_SETTINGS.updated_at,
+  };
+}
 
 export async function getPublicWaitlistSettings(
   supabase: SupabaseClient
@@ -86,7 +145,7 @@ export async function getAdminWaitlistSettings(
 ): Promise<WaitlistAdminSettings | null> {
   const { data, error } = await supabase.rpc('admin_get_waitlist_settings');
   if (error || !data || (data as { error?: string }).error) return null;
-  return data as WaitlistAdminSettings;
+  return normalizeWaitlistAdminSettings(data as Record<string, unknown>);
 }
 
 export async function updateAdminWaitlistSettings(
@@ -109,7 +168,7 @@ export async function updateAdminWaitlistSettings(
     p_metadata_schema: patch.metadata_schema ?? null,
   });
   if (error || !data || (data as { error?: string }).error) return null;
-  return data as WaitlistAdminSettings;
+  return normalizeWaitlistAdminSettings(data as Record<string, unknown>);
 }
 
 export async function approveWaitlistEntry(
@@ -158,6 +217,33 @@ export async function resendWaitlistInvite(
     invite_token?: string;
     email?: string;
     error?: string;
+  };
+}
+
+export async function inviteWaitlistEmail(
+  supabase: SupabaseClient,
+  email: string,
+  metadata?: Record<string, unknown>
+): Promise<{
+  ok?: boolean;
+  entry_id?: string;
+  invite_token?: string;
+  email?: string;
+  created?: boolean;
+  error?: string;
+} | null> {
+  const { data, error } = await supabase.rpc('admin_invite_waitlist_email', {
+    p_email: email,
+    p_metadata: metadata ?? {},
+  });
+  if (error) return { error: error.message };
+  if ((data as { error?: string })?.error) return data as { error: string };
+  return data as {
+    ok?: boolean;
+    entry_id?: string;
+    invite_token?: string;
+    email?: string;
+    created?: boolean;
   };
 }
 

@@ -8,7 +8,6 @@ import LoginPage from '../LoginPage';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
-
 const webAuthFns = vi.hoisted(() => ({
   signInWithPassword: vi.fn(),
   signInWithOAuth: vi.fn(),
@@ -32,6 +31,22 @@ const mockCatalogPlans = vi.hoisted(() => {
     display_order: 2,
   };
   return { pro };
+});
+
+vi.mock('@beakerstack/waitlist', async importOriginal => {
+  const actual = await importOriginal<typeof import('@beakerstack/waitlist')>();
+  return {
+    ...actual,
+    useSignupMode: () => ({
+      mode: 'open' as const,
+      settings: null,
+      loading: false,
+      isOpen: true,
+      isWaitlist: false,
+      isInviteOnly: false,
+      isClosed: false,
+    }),
+  };
 });
 
 vi.mock('@beakerstack/billing', async importOriginal => {
@@ -78,6 +93,21 @@ const createMockSupabaseClient = (): SupabaseClient => {
       signOut: vi.fn(),
       signInWithOAuth: webAuthFns.signInWithOAuth,
     },
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: null, error: null }),
+        }),
+      }),
+    }),
+    channel: vi.fn().mockReturnValue({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn((cb?: (status: string) => void) => {
+        cb?.('SUBSCRIBED');
+        return { unsubscribe: vi.fn() };
+      }),
+    }),
+    removeChannel: vi.fn(),
   } as unknown as SupabaseClient;
 };
 

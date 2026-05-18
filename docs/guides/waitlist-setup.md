@@ -15,11 +15,29 @@
 
 ## Test the flow (local)
 
-1. Serve Edge Functions:
+1. Ensure Edge Functions are reachable. After `supabase start`, check status — if
+   `supabase_edge_runtime` is stopped or capture returns **503**, run:
+
+   ```bash
+   npm run dev:waitlist-functions
+   ```
+
+   Or serve all functions:
 
    ```bash
    supabase functions serve --no-verify-jwt --env-file supabase/.env.local
    ```
+
+   Quick check (should return `{"ok":true,...}`, not 503):
+
+   ```bash
+   curl -s -X POST http://127.0.0.1:54321/functions/v1/waitlist-capture \
+     -H "Content-Type: application/json" \
+     -d '{"email":"probe@example.com"}'
+   ```
+
+   If you still get **503** / `name resolution failed`, restart Kong:
+   `docker restart supabase_kong_$(basename "$PWD")` (container suffix matches your project folder name).
 
 2. Set mode to **waitlist** in admin.
 3. Submit email at http://localhost:5173/signup

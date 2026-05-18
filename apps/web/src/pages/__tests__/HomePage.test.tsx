@@ -28,6 +28,22 @@ vi.mock('@/lib/supabase', () => ({
   },
 }));
 
+vi.mock('@beakerstack/waitlist', async importOriginal => {
+  const actual = await importOriginal<typeof import('@beakerstack/waitlist')>();
+  return {
+    ...actual,
+    useSignupMode: () => ({
+      mode: 'open' as const,
+      settings: null,
+      loading: false,
+      isOpen: true,
+      isWaitlist: false,
+      isInviteOnly: false,
+      isClosed: false,
+    }),
+  };
+});
+
 vi.mock('@beakerstack/billing', async importOriginal => {
   const actual = await importOriginal<typeof import('@beakerstack/billing')>();
   return {

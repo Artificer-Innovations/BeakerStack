@@ -703,6 +703,10 @@ export type Database = {
       }
       admin_get_waitlist_entry: { Args: { p_id: string }; Returns: Json }
       admin_get_waitlist_settings: { Args: never; Returns: Json }
+      admin_invite_waitlist_email: {
+        Args: { p_email: string; p_metadata?: Json }
+        Returns: Json
+      }
       admin_is_admin: { Args: never; Returns: boolean }
       admin_list_users: {
         Args: {

@@ -1,6 +1,11 @@
 import { useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { BillingConfigProvider } from '@beakerstack/billing';
+import {
+  formatWaitlistPricingCta,
+  resolveWaitlistModeCopy,
+  useSignupMode,
+} from '@beakerstack/waitlist';
 import { beakerstackBillingConfig } from '../../../billing/beakerstackBillingConfig';
 import { getStaticPlans } from '../../../billing/staticPlanAdapter';
 import { PlanCard } from '../../billing/PlanCard.web';
@@ -15,16 +20,37 @@ import {
 } from '@beakerstack/billing/presentation';
 import type { LandingConfig } from '../../../config/landing';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
+import { supabase } from '../../../lib/supabase';
+import { beakerstackWaitlistConfig } from '../../../waitlist/beakerstackWaitlistConfig';
+import type { SignupMode } from '@beakerstack/waitlist';
 
 interface PricingSectionProps {
   config: LandingConfig['pricing'];
 }
 
-function StaticPricingTable() {
+function signupUrl(planId: string, cadence: 'monthly' | 'annual') {
+  const q = new URLSearchParams({ plan: planId });
+  if (cadence === 'annual') q.set('cadence', 'annual');
+  return `/signup?${q.toString()}`;
+}
+
+function openModeCtaLabel(plan: { display_name: string; price_cents: number }) {
+  if (plan.price_cents === 0) return 'Get started free';
+  return `Get started with ${plan.display_name}`;
+}
+
+function StaticPricingTable({
+  mode,
+  modeCopy,
+}: {
+  mode: SignupMode;
+  modeCopy: ReturnType<typeof resolveWaitlistModeCopy>;
+}) {
   const navigate = useNavigate();
   const [search] = useSearchParams();
   const cadence = getCadenceFromSearch(search);
   const plans = useMemo(() => getStaticPlans(), []);
+  const showCtas = mode === 'open' || mode === 'waitlist';
 
   return (
     <div>
@@ -64,6 +90,19 @@ function StaticPricingTable() {
             ? formatSavingsCalloutFromCopy(savingsCopy)
             : null;
 
+          const primary = showCtas
+            ? {
+                label:
+                  mode === 'waitlist'
+                    ? formatWaitlistPricingCta(
+                        modeCopy.pricing_cta_label,
+                        plan.display_name
+                      )
+                    : openModeCtaLabel(plan),
+                onClick: () => navigate(signupUrl(plan.id, cadence)),
+              }
+            : undefined;
+
           return (
             <PlanCard
               key={plan.id}
@@ -72,16 +111,7 @@ function StaticPricingTable() {
               priceSubline={priceSubline}
               savingsCallout={savingsCallout}
               billingCadence={isAnnual ? 'annual' : 'monthly'}
-              primary={{
-                label:
-                  plan.price_cents === 0
-                    ? 'Get started free'
-                    : `Get started with ${plan.display_name}`,
-                onClick: () =>
-                  navigate(
-                    `/signup?plan=${encodeURIComponent(plan.id)}${cadence === 'annual' ? '&cadence=annual' : ''}`
-                  ),
-              }}
+              primary={primary}
               mode='public'
             />
           );
@@ -92,6 +122,16 @@ function StaticPricingTable() {
 }
 
 export function PricingSection({ config }: PricingSectionProps) {
+  const { mode, settings, loading } = useSignupMode(supabase);
+  const modeCopy = resolveWaitlistModeCopy(
+    settings?.copy,
+    beakerstackWaitlistConfig.copy
+  );
+
+  if (!loading && mode === 'closed') {
+    return null;
+  }
+
   return (
     <section
       id='pricing'
@@ -106,14 +146,20 @@ export function PricingSection({ config }: PricingSectionProps) {
             {config.subhead}
           </p>
         </div>
-        <BillingConfigProvider config={beakerstackBillingConfig}>
-          <StaticPricingTable />
-        </BillingConfigProvider>
-        {config.disclaimer && (
+        {loading ? (
+          <div className='flex justify-center py-12' aria-busy='true'>
+            <div className='inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-indigo-600' />
+          </div>
+        ) : (
+          <BillingConfigProvider config={beakerstackBillingConfig}>
+            <StaticPricingTable mode={mode} modeCopy={modeCopy} />
+          </BillingConfigProvider>
+        )}
+        {config.disclaimer && !loading ? (
           <p className='mt-8 text-center text-sm text-gray-500 dark:text-gray-400 max-w-2xl mx-auto'>
             {config.disclaimer}
           </p>
-        )}
+        ) : null}
       </ContentContainer>
     </section>
   );

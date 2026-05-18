@@ -1,5 +1,5 @@
 import { BillingProvider } from '@beakerstack/billing';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
@@ -16,7 +16,11 @@ import {
   serializePostAuthRedirectPayload,
 } from '../auth/postAuthRedirect';
 import { appBasePath } from '../lib/appBasePath';
-import { SignupModeGate } from '@beakerstack/waitlist/web';
+import {
+  PLAN_INTEREST_METADATA_KEY,
+  SignupModeGate,
+  useSignupMode,
+} from '@beakerstack/waitlist/web';
 import { beakerstackWaitlistConfig } from '../waitlist/beakerstackWaitlistConfig';
 
 function SignupPageContent() {
@@ -29,6 +33,11 @@ function SignupPageContent() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const auth = useAuthContext();
+  const {
+    loading: signupModeLoading,
+    isOpen,
+    isWaitlist,
+  } = useSignupMode(supabase);
 
   const paidIntent = hasPaidPlanIntent(searchParams);
   const postAuthPath = resolvePostAuthDestination(searchParams);
@@ -107,7 +116,20 @@ function SignupPageContent() {
       ? `Continue with ${displayName}`
       : 'Create account';
 
-  const showPlanAside = paidIntent && postAuthPath !== '/dashboard';
+  const showPlanAside =
+    paidIntent &&
+    postAuthPath !== '/dashboard' &&
+    !signupModeLoading &&
+    (isOpen || isWaitlist);
+
+  const waitlistCaptureMetadata = useMemo(() => {
+    if (!isWaitlist || !paidIntent) return undefined;
+    const planId = searchParams.get('plan');
+    if (!planId) return undefined;
+    const cfg = beakerstackBillingConfig.plans.find(p => p.id === planId);
+    if (!cfg || cfg.priceCents === 0) return undefined;
+    return { [PLAN_INTEREST_METADATA_KEY]: cfg.displayName };
+  }, [isWaitlist, paidIntent, searchParams]);
 
   if (awaitingEmail) {
     return (
@@ -151,22 +173,25 @@ function SignupPageContent() {
               showPlanAside ? 'order-2 md:order-1 space-y-8' : 'space-y-8'
             }
           >
-            <div>
-              <h2 className='mt-0 text-center text-3xl font-extrabold text-gray-900 dark:text-white md:text-left'>
-                {paidIntent && postAuthPath !== '/dashboard'
-                  ? `Create your account to continue with ${displayName}`
-                  : 'Create your account'}
-              </h2>
-              {paidIntent && postAuthPath !== '/dashboard' ? (
-                <p className='mt-2 text-center text-sm text-gray-600 dark:text-gray-400 md:text-left'>
-                  No charge until you finish checkout on the next step.
-                </p>
-              ) : null}
-            </div>
+            {!signupModeLoading && isOpen ? (
+              <div>
+                <h2 className='mt-0 text-center text-3xl font-extrabold text-gray-900 dark:text-white md:text-left'>
+                  {paidIntent && postAuthPath !== '/dashboard'
+                    ? `Create your account to continue with ${displayName}`
+                    : 'Create your account'}
+                </h2>
+                {paidIntent && postAuthPath !== '/dashboard' ? (
+                  <p className='mt-2 text-center text-sm text-gray-600 dark:text-gray-400 md:text-left'>
+                    No charge until you finish checkout on the next step.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             <SignupModeGate
               supabase={supabase}
               config={beakerstackWaitlistConfig}
+              captureMetadata={waitlistCaptureMetadata}
             >
               <div className='space-y-3'>
                 <SocialLoginButton onPress={handleGoogleSignup} mode='signup' />

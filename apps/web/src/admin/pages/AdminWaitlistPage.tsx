@@ -6,6 +6,7 @@ import {
   AdminTable,
   type AdminTableColumn,
 } from '@beakerstack/admin/web';
+import { AdminInviteByEmailPanel } from '../components/AdminInviteByEmailPanel.web';
 import { AdminWaitlistDetailDrawer } from '../components/AdminWaitlistDetailDrawer.web';
 import { useAdminWaitlist } from '../hooks/useAdminWaitlist';
 
@@ -76,6 +77,8 @@ export default function AdminWaitlistPage() {
           Review signups, approve invites, and copy invite links.
         </p>
       </div>
+
+      <AdminInviteByEmailPanel onInvited={() => void reload()} />
 
       <div className='flex flex-col gap-3 sm:flex-row sm:items-center'>
         <AdminSearchInput
