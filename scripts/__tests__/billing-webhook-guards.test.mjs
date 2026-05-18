@@ -17,8 +17,9 @@ function stubSupabase(ownedBySubId = new Map(), productIds = ['app_a']) {
   };
 }
 
-function makeFindOwned(stub) {
+function makeFindOwned(stub, { onCall } = {}) {
   return async subId => {
+    onCall?.(subId);
     const row = stub.ownedBySubId.get(subId);
     return row ?? null;
   };
@@ -152,7 +153,13 @@ test('classify: owned invoice processes', async () => {
       allowedProductIds: allowedSet(stub),
     }
   );
-  assert.deepEqual(decision, { action: 'process' });
+  assert.deepEqual(decision, {
+    action: 'process',
+    ownedSubscription: {
+      user_id: 'user-1',
+      product_id: 'app_a',
+    },
+  });
 });
 
 test('classify: subscription deploy target mismatch ignores', async () => {
@@ -244,7 +251,35 @@ test('classify: owned subscription update without mismatch processes', async () 
       allowedProductIds: allowedSet(stub),
     }
   );
-  assert.deepEqual(decision, { action: 'process' });
+  assert.deepEqual(decision, {
+    action: 'process',
+    ownedSubscription: { user_id: 'u', product_id: 'app_a' },
+  });
+});
+
+test('classify: owned subscription lookup runs once per classify', async () => {
+  const stub = stubSupabase(
+    new Map([['sub_1', { user_id: 'u', product_id: 'app_a' }]])
+  );
+  let lookups = 0;
+  const decision = await classifyStripeEventCore(
+    {
+      type: 'invoice.paid',
+      data: { object: { subscription: 'sub_1' } },
+    },
+    {
+      expectedTarget: EXPECTED,
+      findOwnedSubscription: makeFindOwned(stub, {
+        onCall: () => {
+          lookups += 1;
+        },
+      }),
+      allowedProductIds: allowedSet(stub),
+    }
+  );
+  assert.equal(lookups, 1);
+  assert.equal(decision.action, 'process');
+  assert.equal(decision.ownedSubscription?.user_id, 'u');
 });
 
 test('classify: trial_will_end for foreign subscription ignores', async () => {

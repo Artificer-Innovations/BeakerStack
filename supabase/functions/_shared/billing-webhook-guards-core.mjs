@@ -2,7 +2,7 @@
  * Pure webhook guard logic (Node-testable). Deno wrapper: billing-webhook-guards.ts
  */
 
-/** @typedef {{ action: 'process' }} ProcessDecision */
+/** @typedef {{ action: 'process', ownedSubscription?: unknown }} ProcessDecision */
 /** @typedef {{ action: 'ignore', reason: string }} IgnoreDecision */
 /** @typedef {ProcessDecision | IgnoreDecision} ClassifyDecision */
 
@@ -87,6 +87,11 @@ async function resolveOwnedSubscription(
   return { type: 'owned', row };
 }
 
+/** @param {{ type: 'owned', row: unknown }} result */
+function processWithOwnedRow(result) {
+  return { action: 'process', ownedSubscription: result.row };
+}
+
 /**
  * BeakerStack only syncs subscription-backed invoices; one-time invoices are ignored.
  * @param {{ subscription?: unknown }} invoice
@@ -109,7 +114,7 @@ async function classifyInvoiceEvent(
     allowedProductIds
   );
   if (result.type === 'ignore') return result.decision;
-  return { action: 'process' };
+  return processWithOwnedRow(result);
 }
 
 /**
@@ -156,7 +161,7 @@ export async function classifyStripeEventCore(event, deps) {
         allowedProductIds
       );
       if (result.type === 'ignore') return result.decision;
-      return { action: 'process' };
+      return processWithOwnedRow(result);
     }
     case 'invoice.payment_failed':
     case 'invoice.paid':

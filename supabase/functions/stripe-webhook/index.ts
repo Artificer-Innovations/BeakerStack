@@ -5,6 +5,7 @@ import {
   classifyStripeEvent,
   deployTargetMismatch,
   findOwnedSubscription,
+  ownedSubscriptionFromDecision,
   redactedWebhookPayload,
   stripeSubscriptionIdFromRef,
   type OwnedSubscriptionRow,
@@ -190,7 +191,9 @@ Deno.serve(async req => {
       return jsonResponse({ received: true, ignored: true }, 200, req);
     }
 
-    const result = await processStripeEvent(supabase, event);
+    const result = await processStripeEvent(supabase, event, {
+      ownedSubscription: ownedSubscriptionFromDecision(decision),
+    });
     if (result.status === 'ignored') {
       await markWebhookEventProcessed(
         supabase,
@@ -231,8 +234,10 @@ async function markWebhookEventProcessed(
 
 async function requireOwnedSubscription(
   supabase: ReturnType<typeof createClient>,
-  stripeSubscriptionId: string
+  stripeSubscriptionId: string,
+  preloaded?: OwnedSubscriptionRow
 ): Promise<OwnedSubscriptionRow | ProcessResult> {
+  if (preloaded) return preloaded;
   const row = await findOwnedSubscription(supabase, stripeSubscriptionId);
   if (!row) {
     return {
@@ -243,10 +248,16 @@ async function requireOwnedSubscription(
   return row;
 }
 
+type ProcessStripeEventContext = {
+  ownedSubscription?: OwnedSubscriptionRow;
+};
+
 async function processStripeEvent(
   supabase: ReturnType<typeof createClient>,
-  event: Stripe.Event
+  event: Stripe.Event,
+  ctx?: ProcessStripeEventContext
 ): Promise<ProcessResult> {
+  const preloadedOwned = ctx?.ownedSubscription;
   switch (event.type) {
     case 'checkout.session.completed': {
       // Deploy-target filtering runs at ingress via classifyStripeEvent.
@@ -301,7 +312,11 @@ async function processStripeEvent(
           reason: 'billing_deploy_target_mismatch',
         };
       }
-      const owned = await requireOwnedSubscription(supabase, stripeSub.id);
+      const owned = await requireOwnedSubscription(
+        supabase,
+        stripeSub.id,
+        preloadedOwned
+      );
       if ('status' in owned) return owned;
       const row = owned;
 
@@ -358,7 +373,11 @@ async function processStripeEvent(
       if (!subId) {
         return { status: 'ignored', reason: 'invoice_missing_subscription' };
       }
-      const owned = await requireOwnedSubscription(supabase, subId);
+      const owned = await requireOwnedSubscription(
+        supabase,
+        subId,
+        preloadedOwned
+      );
       if ('status' in owned) return owned;
 
       const { error } = await supabase
@@ -378,7 +397,11 @@ async function processStripeEvent(
       if (!subId) {
         return { status: 'ignored', reason: 'invoice_missing_subscription' };
       }
-      const owned = await requireOwnedSubscription(supabase, subId);
+      const owned = await requireOwnedSubscription(
+        supabase,
+        subId,
+        preloadedOwned
+      );
       if ('status' in owned) return owned;
 
       const { error } = await supabase
@@ -399,7 +422,11 @@ async function processStripeEvent(
       if (!subId) {
         return { status: 'ignored', reason: 'invoice_missing_subscription' };
       }
-      const owned = await requireOwnedSubscription(supabase, subId);
+      const owned = await requireOwnedSubscription(
+        supabase,
+        subId,
+        preloadedOwned
+      );
       if ('status' in owned) return owned;
 
       await syncInvoiceRow(supabase, inv, owned.user_id);

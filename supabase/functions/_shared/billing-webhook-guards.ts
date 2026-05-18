@@ -9,7 +9,7 @@ import {
 } from './billing-webhook-guards-core.mjs';
 
 export type ClassifyDecision =
-  | { action: 'process' }
+  | { action: 'process'; ownedSubscription?: OwnedSubscriptionRow }
   | { action: 'ignore'; reason: string };
 
 export type OwnedSubscriptionRow = {
@@ -80,4 +80,10 @@ export async function classifyStripeEvent(
     findOwnedSubscription: id => findOwnedSubscription(supabase, id),
     allowedProductIds,
   }) as Promise<ClassifyDecision>;
+}
+
+export function ownedSubscriptionFromDecision(
+  decision: ClassifyDecision
+): OwnedSubscriptionRow | undefined {
+  return decision.action === 'process' ? decision.ownedSubscription : undefined;
 }
