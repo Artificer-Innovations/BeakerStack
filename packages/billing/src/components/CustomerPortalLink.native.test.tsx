@@ -43,4 +43,37 @@ describe('CustomerPortalLink (native)', () => {
     });
     expect(RN.Linking.openURL).not.toHaveBeenCalled();
   });
+
+  it('renders React element children without an extra Text wrapper', () => {
+    vi.mocked(useCustomerPortal).mockReturnValue({ openPortal: vi.fn().mockResolvedValue(null), pending: false, error: null });
+    render(
+      <CustomerPortalLink>
+        <span data-testid='elem-child'>Manage</span>
+      </CustomerPortalLink>
+    );
+    expect(screen.getByTestId('elem-child')).toBeInTheDocument();
+  });
+
+  it('shows openError when openPortal throws and portalError is null', async () => {
+    vi.mocked(useCustomerPortal).mockReturnValue({
+      openPortal: vi.fn().mockRejectedValue(new Error('portal down')),
+      pending: false,
+      error: null,
+    });
+    render(<CustomerPortalLink>Portal</CustomerPortalLink>);
+    fireEvent.click(screen.getByText('Portal'));
+    await waitFor(() => expect(screen.getByText('portal down')).toBeInTheDocument());
+  });
+
+  it('suppresses openError when portalError is also set (openError && !portalError is false)', async () => {
+    vi.mocked(useCustomerPortal).mockReturnValue({
+      openPortal: vi.fn().mockRejectedValue(new Error('portal down')),
+      pending: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      error: { kind: 'stripe', message: 'hook error' } as any,
+    });
+    render(<CustomerPortalLink>Portal</CustomerPortalLink>);
+    fireEvent.click(screen.getByText('Portal'));
+    await waitFor(() => expect(screen.queryByText('portal down')).not.toBeInTheDocument());
+  });
 });

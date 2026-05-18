@@ -72,4 +72,28 @@ describe('FeatureGate (web)', () => {
     expect(useFeature).toHaveBeenCalled();
     expect(screen.getByText('inside')).toBeInTheDocument();
   });
+
+  it('renders fallback without calling useFeature when no feature key is provided', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const props = { fallback: <span>fallback-no-key</span> } as any;
+    render(
+      <FeatureGate {...props}>
+        <span>guarded</span>
+      </FeatureGate>
+    );
+    expect(screen.getByText('fallback-no-key')).toBeInTheDocument();
+    expect(screen.queryByText('guarded')).not.toBeInTheDocument();
+    expect(useFeature).not.toHaveBeenCalled();
+  });
+
+  it('renders fallback without calling useFeature when feature is empty string', () => {
+    render(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      <FeatureGate feature={'' as any} fallback={<span>empty-fallback</span>}>
+        <span>guarded</span>
+      </FeatureGate>
+    );
+    expect(screen.getByText('empty-fallback')).toBeInTheDocument();
+    expect(useFeature).not.toHaveBeenCalled();
+  });
 });
