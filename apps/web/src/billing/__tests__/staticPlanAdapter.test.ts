@@ -61,7 +61,10 @@ describe('configPlanToStaticPlan', () => {
 
   it('defaults trial_period_days to 0 when absent', () => {
     const plan = configPlanToStaticPlan(
-      { ...fullPlan, trialPeriodDays: undefined } as unknown as BillingPlanConfig,
+      {
+        ...fullPlan,
+        trialPeriodDays: undefined,
+      } as unknown as BillingPlanConfig,
       0
     );
     expect(plan.trial_period_days).toBe(0);
@@ -85,7 +88,12 @@ describe('configPlanToStaticPlan', () => {
 
   it('maps null Stripe fields to null', () => {
     const plan = configPlanToStaticPlan(
-      { ...fullPlan, stripePriceIdMonthly: null, stripePriceIdAnnual: null, stripeProductId: null },
+      {
+        ...fullPlan,
+        stripePriceIdMonthly: null,
+        stripePriceIdAnnual: null,
+        stripeProductId: null,
+      },
       0
     );
     expect(plan.stripe_price_id_monthly).toBeNull();

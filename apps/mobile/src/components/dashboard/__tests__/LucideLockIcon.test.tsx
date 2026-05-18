@@ -9,6 +9,8 @@ describe('LucideLockIcon', () => {
   });
 
   it('renders without crashing with custom size and color', () => {
-    expect(() => render(<LucideLockIcon size={24} color='#000000' />)).not.toThrow();
+    expect(() =>
+      render(<LucideLockIcon size={24} color='#000000' />)
+    ).not.toThrow();
   });
 });

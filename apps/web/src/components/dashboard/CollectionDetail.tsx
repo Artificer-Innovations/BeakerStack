@@ -44,8 +44,7 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
     typeof BEAKERSTACK_METER_AI_SUMMARIZE
   >(BEAKERSTACK_METER_AI_SUMMARIZE);
 
-  const maxItems =
-    typeof maxItemsRaw === 'number' ? maxItemsRaw : null;
+  const maxItems = typeof maxItemsRaw === 'number' ? maxItemsRaw : null;
   const itemCount = collection?.item_count ?? 0;
   const atItemCap =
     maxItems !== null && maxItems !== -1 && itemCount >= maxItems;
@@ -57,7 +56,9 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
     Map<number, BillingError>
   >(new Map());
   // Retained per-item idempotency keys: reused on retry, cleared on success.
-  const [summarizeKeys, setSummarizeKeys] = useState<Map<number, string>>(new Map());
+  const [summarizeKeys, setSummarizeKeys] = useState<Map<number, string>>(
+    new Map()
+  );
   const [addBusy, setAddBusy] = useState(false);
   const [addErr, setAddErr] = useState<string | null>(null);
   const [featureToast, setFeatureToast] = useState<string | null>(null);
@@ -75,7 +76,12 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
   }, [collection?.id]);
 
   // Clear any pending toast timer on unmount.
-  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
+  useEffect(
+    () => () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    },
+    []
+  );
 
   const showToast = useCallback((msg: string) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -133,7 +139,14 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
         });
       }
     },
-    [collection, usageExceeded, config.productId, refreshUsage, onActivity, summarizeKeys]
+    [
+      collection,
+      usageExceeded,
+      config.productId,
+      refreshUsage,
+      onActivity,
+      summarizeKeys,
+    ]
   );
 
   const onAddItem = useCallback(async () => {
@@ -204,9 +217,7 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
               if (featureB.enabled) {
                 showToast('Feature B action triggered');
               } else {
-                showToast(
-                  'Feature B requires Max plan. Upgrade at /billing.'
-                );
+                showToast('Feature B requires Max plan. Upgrade at /billing.');
               }
             }}
             className={`rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors ${
@@ -268,8 +279,14 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
                   >
                     <button
                       type='button'
-                      disabled={anySummarizeBusy || usageExceeded || usageLoading}
-                      aria-describedby={anySummarizeBusy && !isBusy ? `summarize-wait-${i}` : undefined}
+                      disabled={
+                        anySummarizeBusy || usageExceeded || usageLoading
+                      }
+                      aria-describedby={
+                        anySummarizeBusy && !isBusy
+                          ? `summarize-wait-${i}`
+                          : undefined
+                      }
                       onClick={() => void onSummarize(i)}
                       className='inline-flex items-center gap-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50'
                     >
@@ -288,7 +305,9 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
                   </span>
                 </div>
                 {err && (
-                  <p className='mt-1 text-xs text-red-600' role='alert'>{err.message}</p>
+                  <p className='mt-1 text-xs text-red-600' role='alert'>
+                    {err.message}
+                  </p>
                 )}
                 {summary && (
                   <p className='mt-2 text-xs text-gray-600 dark:text-gray-400 leading-relaxed'>
@@ -305,20 +324,12 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
       <button
         type='button'
         disabled={atItemCap || featLoading || addBusy}
-        title={
-          atItemCap
-            ? 'Item limit reached for this collection'
-            : undefined
-        }
+        title={atItemCap ? 'Item limit reached for this collection' : undefined}
         onClick={() => void onAddItem()}
         className='flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 px-4 py-2.5 text-sm text-gray-500 dark:text-gray-400 hover:border-indigo-400 hover:text-indigo-600 dark:hover:border-indigo-600 dark:hover:text-indigo-400 disabled:opacity-50 transition-colors'
       >
         <Plus className='h-4 w-4' aria-hidden />
-        {addBusy
-          ? '…'
-          : atItemCap
-            ? 'Item limit reached'
-            : 'Add item'}
+        {addBusy ? '…' : atItemCap ? 'Item limit reached' : 'Add item'}
       </button>
     </div>
   );

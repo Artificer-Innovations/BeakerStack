@@ -24,7 +24,10 @@ describe('useDemoCollectionCount', () => {
 
   it('sets count and maxItemsInAnyCollection from data rows', async () => {
     mockRpc.mockResolvedValue({
-      data: [{ id: 'a', item_count: 5 }, { id: 'b', item_count: 3 }],
+      data: [
+        { id: 'a', item_count: 5 },
+        { id: 'b', item_count: 3 },
+      ],
       error: null,
     });
     const { result } = renderHook(() => useDemoCollectionCount());
@@ -60,7 +63,10 @@ describe('useDemoCollectionCount', () => {
 
   it('sets maxItemsInAnyCollection=0 when all item_counts are null', async () => {
     mockRpc.mockResolvedValue({
-      data: [{ id: 'a', item_count: null }, { id: 'b', item_count: null }],
+      data: [
+        { id: 'a', item_count: null },
+        { id: 'b', item_count: null },
+      ],
       error: null,
     });
     const { result } = renderHook(() => useDemoCollectionCount());
@@ -70,15 +76,23 @@ describe('useDemoCollectionCount', () => {
 
   it('refresh re-fetches and updates count', async () => {
     mockRpc
-      .mockResolvedValueOnce({ data: [{ id: 'a', item_count: 1 }], error: null })
       .mockResolvedValueOnce({
-        data: [{ id: 'a', item_count: 1 }, { id: 'b', item_count: 2 }],
+        data: [{ id: 'a', item_count: 1 }],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [
+          { id: 'a', item_count: 1 },
+          { id: 'b', item_count: 2 },
+        ],
         error: null,
       });
     const { result } = renderHook(() => useDemoCollectionCount());
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.count).toBe(1);
-    await act(async () => { await result.current.refresh(); });
+    await act(async () => {
+      await result.current.refresh();
+    });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.count).toBe(2);
   });

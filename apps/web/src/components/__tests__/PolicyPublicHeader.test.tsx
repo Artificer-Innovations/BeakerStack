@@ -25,9 +25,10 @@ describe('PolicyPublicHeader', () => {
       'href',
       '/login'
     );
-    expect(
-      screen.getByRole('link', { name: 'Get started' })
-    ).toHaveAttribute('href', '/signup');
+    expect(screen.getByRole('link', { name: 'Get started' })).toHaveAttribute(
+      'href',
+      '/signup'
+    );
   });
 
   it('shows Go to dashboard when session hint is present', () => {

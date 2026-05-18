@@ -356,7 +356,11 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  demonstratesMono: { fontFamily: 'monospace', fontSize: 12, color: colors.textBody },
+  demonstratesMono: {
+    fontFamily: 'monospace',
+    fontSize: 12,
+    color: colors.textBody,
+  },
   demoDesc: { marginTop: 6, fontSize: 14, color: colors.textSubtle },
   demoBody: { marginTop: 12 },
   bodyText: { fontSize: 14, color: colors.textBody },

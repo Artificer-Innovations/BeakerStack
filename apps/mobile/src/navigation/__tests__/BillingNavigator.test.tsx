@@ -22,9 +22,8 @@ jest.mock('../../screens/billing/BillingUsageScreen', () => ({
 
 describe('BillingNavigator', () => {
   it('renders without crashing', () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { default: BillingNavigator } = require('../BillingNavigator') as
-      typeof import('../BillingNavigator');
+    const { default: BillingNavigator } =
+      require('../BillingNavigator') as typeof import('../BillingNavigator');
     expect(() => render(<BillingNavigator />)).not.toThrow();
   });
 });

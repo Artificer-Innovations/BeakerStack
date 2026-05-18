@@ -1,6 +1,11 @@
 import { BillingProvider } from '@beakerstack/billing';
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
@@ -13,6 +18,7 @@ import {
   POST_AUTH_REDIRECT_KEY,
   resolvePostAuthDestination,
   serializePostAuthRedirectPayload,
+  validateInternalPostAuthPath,
 } from '../auth/postAuthRedirect';
 import { appBasePath } from '../lib/appBasePath';
 
@@ -22,10 +28,19 @@ function LoginPageContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const auth = useAuthContext();
 
-  const postAuthPath = resolvePostAuthDestination(searchParams);
+  const fromState = (location.state as { from?: string } | null)?.from;
+  const fromRedirect =
+    fromState &&
+    validateInternalPostAuthPath(fromState) &&
+    fromState !== '/dashboard'
+      ? fromState
+      : null;
+
+  const postAuthPath = fromRedirect ?? resolvePostAuthDestination(searchParams);
   const signupSearch = searchParams.toString();
   const signupTo = signupSearch ? `/signup?${signupSearch}` : '/signup';
 

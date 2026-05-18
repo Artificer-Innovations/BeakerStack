@@ -39,14 +39,34 @@ function variantColors(variant: ButtonVariant): {
 } {
   switch (variant) {
     case 'primary':
-      return { bg: colors.brand, text: colors.white, border: 'transparent', borderWidth: 0 };
+      return {
+        bg: colors.brand,
+        text: colors.white,
+        border: 'transparent',
+        borderWidth: 0,
+      };
     case 'secondary':
-      return { bg: colors.cardBg, text: colors.textPrimary, border: colors.border, borderWidth: 1 };
+      return {
+        bg: colors.cardBg,
+        text: colors.textPrimary,
+        border: colors.border,
+        borderWidth: 1,
+      };
     case 'destructive':
-      return { bg: colors.errorIcon, text: colors.white, border: 'transparent', borderWidth: 0 };
+      return {
+        bg: colors.errorIcon,
+        text: colors.white,
+        border: 'transparent',
+        borderWidth: 0,
+      };
     case 'ghost':
     default:
-      return { bg: 'transparent', text: colors.textBody, border: 'transparent', borderWidth: 0 };
+      return {
+        bg: 'transparent',
+        text: colors.textBody,
+        border: 'transparent',
+        borderWidth: 0,
+      };
   }
 }
 

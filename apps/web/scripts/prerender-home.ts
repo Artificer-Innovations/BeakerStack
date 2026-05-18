@@ -27,7 +27,8 @@ const { ThemeProvider } = await import('../src/contexts/ThemeContext');
 const { AppFooter } = await import('../src/components/AppFooter');
 // LandingPageSSR eagerly imports all sections. LandingPage uses React.lazy() for
 // below-fold sections, which resolve as empty Suspense fallbacks under renderToStaticMarkup.
-const { LandingPageSSR } = await import('../src/components/landing/LandingPageSSR');
+const { LandingPageSSR } =
+  await import('../src/components/landing/LandingPageSSR');
 const { LAYOUT } = await import('../src/lib/layoutConstants');
 
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -62,7 +63,11 @@ const html = renderToStaticMarkup(
         createElement(
           'div',
           { className: LAYOUT.shell },
-          createElement('div', { className: LAYOUT.content }, createElement(LandingPageSSR)),
+          createElement(
+            'div',
+            { className: LAYOUT.content },
+            createElement(LandingPageSSR)
+          ),
           createElement(AppFooter)
         )
       )

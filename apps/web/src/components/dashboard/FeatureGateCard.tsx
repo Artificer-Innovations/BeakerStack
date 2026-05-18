@@ -66,7 +66,9 @@ export function FeatureGateCard() {
                 Feature A is active
               </p>
               <p className='text-xs text-green-700 dark:text-green-400 mt-0.5'>
-                <code className='font-mono'>useFeature("feature_a").enabled</code>{' '}
+                <code className='font-mono'>
+                  useFeature("feature_a").enabled
+                </code>{' '}
                 → <span className='font-mono'>true</span> ·{' '}
                 <code className='font-mono'>FeatureGate</code> renders children
               </p>

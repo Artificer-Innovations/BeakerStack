@@ -53,13 +53,7 @@ function FeatureTile({ label, plan, enabled, loading, hookExpr }: TileProps) {
       <div className='mt-3 rounded bg-slate-900 px-2.5 py-1.5'>
         <code className='font-mono text-xs text-slate-300 break-all'>
           {hookExpr} →{' '}
-          <span
-            className={
-              enabled
-                ? 'text-green-400'
-                : 'text-slate-500'
-            }
-          >
+          <span className={enabled ? 'text-green-400' : 'text-slate-500'}>
             {loading ? '…' : String(enabled)}
           </span>
         </code>

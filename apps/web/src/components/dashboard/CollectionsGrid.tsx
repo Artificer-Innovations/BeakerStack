@@ -42,20 +42,17 @@ export function CollectionsGrid({
   const [busy, setBusy] = useState<string | null>(null);
   const [actionErr, setActionErr] = useState<string | null>(null);
 
-  const wrap = useCallback(
-    async (key: string, fn: () => Promise<void>) => {
-      setActionErr(null);
-      setBusy(key);
-      try {
-        await fn();
-      } catch (e) {
-        setActionErr(e instanceof Error ? e.message : 'Action failed.');
-      } finally {
-        setBusy(null);
-      }
-    },
-    []
-  );
+  const wrap = useCallback(async (key: string, fn: () => Promise<void>) => {
+    setActionErr(null);
+    setBusy(key);
+    try {
+      await fn();
+    } catch (e) {
+      setActionErr(e instanceof Error ? e.message : 'Action failed.');
+    } finally {
+      setBusy(null);
+    }
+  }, []);
 
   const handleAdd = () =>
     void wrap('add', async () => {
@@ -96,16 +93,15 @@ export function CollectionsGrid({
           className='inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-50'
         >
           <Plus className='h-3.5 w-3.5' aria-hidden />
-          {busy === 'add'
-            ? '…'
-            : atCap
-              ? 'Limit reached'
-              : 'New collection'}
+          {busy === 'add' ? '…' : atCap ? 'Limit reached' : 'New collection'}
         </button>
       </div>
 
       {error && (
-        <p className='mb-3 text-sm text-amber-800 dark:text-amber-300' role='alert'>
+        <p
+          className='mb-3 text-sm text-amber-800 dark:text-amber-300'
+          role='alert'
+        >
           {error}{' '}
           <span className='text-gray-600 dark:text-gray-400'>
             (Requires demo billing RPCs and{' '}

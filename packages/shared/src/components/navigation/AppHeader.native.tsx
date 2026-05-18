@@ -67,7 +67,13 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
               />
 
               {/* Flask neck (darker for depth) */}
-              <Rect x='75' y='40' width='50' height='8' fill={colors.iconNeck} />
+              <Rect
+                x='75'
+                y='40'
+                width='50'
+                height='8'
+                fill={colors.iconNeck}
+              />
 
               {/* Liquid inside */}
               <Path
@@ -77,11 +83,41 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
               />
 
               {/* Bubbles rising */}
-              <Circle cx='85' cy='130' r='4' fill={colors.iconFill} opacity='0.8' />
-              <Circle cx='95' cy='115' r='3' fill={colors.iconFill} opacity='0.9' />
-              <Circle cx='105' cy='125' r='3.5' fill={colors.iconFill} opacity='0.85' />
-              <Circle cx='90' cy='100' r='2.5' fill={colors.iconFill} opacity='0.95' />
-              <Circle cx='110' cy='110' r='3' fill={colors.iconFill} opacity='0.9' />
+              <Circle
+                cx='85'
+                cy='130'
+                r='4'
+                fill={colors.iconFill}
+                opacity='0.8'
+              />
+              <Circle
+                cx='95'
+                cy='115'
+                r='3'
+                fill={colors.iconFill}
+                opacity='0.9'
+              />
+              <Circle
+                cx='105'
+                cy='125'
+                r='3.5'
+                fill={colors.iconFill}
+                opacity='0.85'
+              />
+              <Circle
+                cx='90'
+                cy='100'
+                r='2.5'
+                fill={colors.iconFill}
+                opacity='0.95'
+              />
+              <Circle
+                cx='110'
+                cy='110'
+                r='3'
+                fill={colors.iconFill}
+                opacity='0.9'
+              />
 
               {/* Measurement lines on flask */}
               <Line

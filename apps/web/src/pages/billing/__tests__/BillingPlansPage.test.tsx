@@ -253,7 +253,9 @@ describe('BillingPlansPage', () => {
     const freeCard = document.getElementById('plan-card-beakerstack_free');
     expect(freeCard).not.toBeNull();
     expect(within(freeCard as HTMLElement).getByText('$0')).toBeInTheDocument();
-    expect(within(freeCard as HTMLElement).queryByText('US$0')).not.toBeInTheDocument();
+    expect(
+      within(freeCard as HTMLElement).queryByText('US$0')
+    ).not.toBeInTheDocument();
   });
 
   it('shows Free as current plan when subscription is null', () => {
