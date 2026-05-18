@@ -1,6 +1,6 @@
 -- pgTAP: waitlist tables, RLS, and RPC access control
 BEGIN;
-SELECT plan(16);
+SELECT plan(18);
 
 SELECT has_table('public', 'waitlist_settings', 'waitlist_settings exists');
 SELECT has_table('public', 'waitlist_entries', 'waitlist_entries exists');
@@ -119,6 +119,50 @@ SELECT is(
 );
 
 RESET role;
+
+-- Admin user for settings validation test
+DO $$
+BEGIN
+  INSERT INTO auth.users (
+      id, instance_id, email, encrypted_password, email_confirmed_at,
+      raw_app_meta_data, raw_user_meta_data, created_at, updated_at, aud, role
+  ) VALUES (
+      'b2000000-0000-0000-0000-000000000003',
+      '00000000-0000-0000-0000-000000000000',
+      'waitlist-admin@example.com',
+      crypt('pw', gen_salt('bf')),
+      now(),
+      '{"provider":"email","providers":["email"]}'::jsonb,
+      '{}'::jsonb,
+      now(), now(), 'authenticated', 'authenticated'
+  ) ON CONFLICT (id) DO NOTHING;
+END;
+$$;
+
+INSERT INTO public.admin_users (user_id)
+VALUES ('b2000000-0000-0000-0000-000000000003')
+ON CONFLICT (user_id) DO UPDATE SET revoked_at = NULL;
+
+SET LOCAL role TO authenticated;
+SELECT set_config('request.jwt.claims', '{"sub":"b2000000-0000-0000-0000-000000000003"}', true);
+
+SELECT is(
+    public.admin_update_waitlist_settings(p_signup_mode := 'bogus')->>'error',
+    'invalid_signup_mode',
+    'invalid signup_mode returns structured error'
+);
+
+RESET role;
+
+-- billing_ensure_subscription_plan not callable by authenticated (revoked)
+SELECT ok(
+    NOT has_function_privilege(
+        'authenticated',
+        'public.billing_ensure_subscription_plan(text, text, uuid)',
+        'EXECUTE'
+    ),
+    'authenticated cannot execute billing_ensure_subscription_plan'
+);
 
 SELECT * FROM finish();
 ROLLBACK;

@@ -44,21 +44,37 @@ export function AdminWaitlistDetailDrawer({
   const [error, setError] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
 
-  const sendInviteEmail = async (token: string, email: string) => {
+  const sendInviteEmail = async (
+    token: string,
+    email: string,
+    entryId: string
+  ) => {
     const inviteUrl = buildInviteUrl(
       beakerstackWaitlistConfig.appOrigin,
       token
     );
     setInviteLink(inviteUrl);
-    await supabase.functions.invoke(beakerstackWaitlistConfig.opsFunctionName, {
-      body: {
-        action: 'send_invite_email',
-        email,
-        inviteUrl,
-        subject: beakerstackWaitlistConfig.emailTemplates.inviteSubject,
-        html: beakerstackWaitlistConfig.emailTemplates.inviteHtml,
-      },
-    });
+    const { data, error: fnErr } = await supabase.functions.invoke(
+      beakerstackWaitlistConfig.opsFunctionName,
+      {
+        body: {
+          action: 'send_invite_email',
+          entryId,
+          email,
+          inviteUrl,
+          subject: beakerstackWaitlistConfig.emailTemplates.inviteSubject,
+          html: beakerstackWaitlistConfig.emailTemplates.inviteHtml,
+        },
+      }
+    );
+    if (fnErr) throw new Error(fnErr.message);
+    const body = data as { error?: string };
+    if (body?.error === 'email_not_configured') {
+      throw new Error(
+        'Email delivery is not configured. Copy the invite link below.'
+      );
+    }
+    if (body?.error) throw new Error(body.error);
   };
 
   const handleApprove = async () => {
@@ -69,7 +85,7 @@ export function AdminWaitlistDetailDrawer({
       const result = await approveWaitlistEntry(supabase, entry.id);
       if (result?.error) throw new Error(result.error);
       if (result?.invite_token && result.email) {
-        await sendInviteEmail(result.invite_token, result.email);
+        await sendInviteEmail(result.invite_token, result.email, entry.id);
         await emitLifecycleEvent('waitlist.approved', {
           email: result.email,
           entryId: entry.id,
@@ -110,7 +126,7 @@ export function AdminWaitlistDetailDrawer({
       const result = await resendWaitlistInvite(supabase, entry.id);
       if (result?.error) throw new Error(result.error);
       if (result?.invite_token && result.email) {
-        await sendInviteEmail(result.invite_token, result.email);
+        await sendInviteEmail(result.invite_token, result.email, entry.id);
       }
       onUpdated();
     } catch (e) {

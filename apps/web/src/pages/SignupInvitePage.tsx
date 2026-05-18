@@ -6,7 +6,7 @@ import { ContentContainer } from '@beakerstack/shared/components/layout/ContentC
 import { emitLifecycleEvent } from '@beakerstack/waitlist';
 import { beakerstackWaitlistConfig } from '../waitlist/beakerstackWaitlistConfig';
 import { beakerstackBillingConfig } from '../billing/beakerstackBillingConfig';
-import { supabase, supabaseRpc } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { SocialLoginButton } from '../components/SocialLoginButton';
 
 export const INVITE_TOKEN_STORAGE_KEY = 'beakerstack_invite_token';
@@ -31,26 +31,17 @@ export async function finalizeInviteSignup(
         token,
         userId,
         userEmail: userEmail ?? null,
+        productId: beakerstackBillingConfig.productId,
       },
     }
   );
   if (error) throw new Error(error.message);
-  const body = data as { error?: string; default_plan_id?: string };
+  const body = data as {
+    error?: string;
+    already_converted?: boolean;
+    default_plan_id?: string;
+  };
   if (body?.error) throw new Error(body.error);
-
-  const resolvedPlan =
-    body.default_plan_id ??
-    beakerstackBillingConfig.plans.find(p => p.priceCents === 0)?.id ??
-    'beakerstack_free';
-
-  const { error: planErr } = await supabaseRpc.rpc(
-    'billing_ensure_subscription_plan',
-    {
-      p_product_id: beakerstackBillingConfig.productId,
-      p_plan_id: resolvedPlan,
-    }
-  );
-  if (planErr) throw new Error(planErr.message);
 
   sessionStorage.removeItem(INVITE_TOKEN_STORAGE_KEY);
   await emitLifecycleEvent('waitlist.converted', {
@@ -107,6 +98,10 @@ export default function SignupInvitePage() {
     if (!token || !inviteEmail) return;
     if (password !== confirmPassword) {
       setError('Passwords do not match');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
     setSubmitting(true);

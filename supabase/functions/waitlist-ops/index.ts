@@ -18,9 +18,11 @@ type Body = {
   userEmail?: string;
   inviteToken?: string;
   inviteUrl?: string;
+  entryId?: string;
   email?: string;
   subject?: string;
   html?: string;
+  productId?: string;
 };
 
 function renderTemplate(
@@ -135,6 +137,40 @@ Deno.serve(async req => {
     if (error) {
       return jsonResponse({ error: error.message }, 400, req);
     }
+
+    const consumeResult = data as {
+      ok?: boolean;
+      error?: string;
+      already_converted?: boolean;
+      default_plan_id?: string;
+    };
+    if (consumeResult?.error) {
+      return jsonResponse({ error: consumeResult.error }, 400, req);
+    }
+
+    if (
+      consumeResult.ok &&
+      !consumeResult.already_converted &&
+      consumeResult.default_plan_id
+    ) {
+      const productId =
+        body.productId?.trim() ||
+        Deno.env.get('WAITLIST_PRODUCT_ID') ||
+        'beakerstack';
+      const { error: planErr } = await admin.rpc(
+        'billing_ensure_subscription_plan',
+        {
+          p_product_id: productId,
+          p_plan_id: consumeResult.default_plan_id,
+          p_user_id: userId,
+        }
+      );
+      if (planErr) {
+        console.error('billing_ensure_subscription_plan', planErr.message);
+        return jsonResponse({ error: 'plan_provision_failed' }, 500, req);
+      }
+    }
+
     return jsonResponse(data, 200, req);
   }
 
@@ -193,11 +229,26 @@ Deno.serve(async req => {
   }
 
   if (body.action === 'send_invite_email') {
-    const to = body.email;
-    const inviteUrl = body.inviteUrl;
+    const to = body.email?.trim();
+    const inviteUrl = body.inviteUrl?.trim();
     if (!to || !inviteUrl) {
       return jsonResponse({ error: 'invalid_request' }, 400, req);
     }
+
+    if (body.entryId) {
+      const { data: entryRow, error: entryErr } = await authClient.rpc(
+        'admin_get_waitlist_entry',
+        { p_id: body.entryId }
+      );
+      if (entryErr || (entryRow as { error?: string })?.error) {
+        return jsonResponse({ error: 'not_found' }, 404, req);
+      }
+      const entryEmail = (entryRow as { email?: string }).email;
+      if (!entryEmail || entryEmail.toLowerCase() !== to.toLowerCase()) {
+        return jsonResponse({ error: 'email_mismatch' }, 400, req);
+      }
+    }
+
     const subject =
       body.subject ??
       Deno.env.get('WAITLIST_INVITE_SUBJECT') ??
@@ -208,9 +259,34 @@ Deno.serve(async req => {
       '<p>Complete your signup: <a href="{{inviteUrl}}">{{inviteUrl}}</a></p>';
     const html = renderTemplate(htmlTemplate, { inviteUrl });
 
-    console.log(
-      `[beakerstack/email] waitlist invite to=${to} subject=${subject}\n${html}`
-    );
+    const resendKey = Deno.env.get('WAITLIST_RESEND_API_KEY');
+    if (!resendKey) {
+      console.log(
+        `[beakerstack/email] waitlist invite (log only) to=${to} subject=${subject}\n${html}`
+      );
+      return jsonResponse({ error: 'email_not_configured' }, 501, req);
+    }
+
+    const from =
+      Deno.env.get('WAITLIST_INVITE_FROM') ?? 'onboarding@resend.dev';
+    const resendRes = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${resendKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from,
+        to: [to],
+        subject,
+        html,
+      }),
+    });
+    if (!resendRes.ok) {
+      const detail = await resendRes.text();
+      console.error('resend send failed', resendRes.status, detail);
+      return jsonResponse({ error: 'email_send_failed' }, 502, req);
+    }
 
     return jsonResponse({ ok: true }, 200, req);
   }

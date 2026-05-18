@@ -30,7 +30,6 @@ export function corsHeadersForWaitlist(req: Request): HeadersInit {
 
   if (!origin) {
     return {
-      'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Headers': allowHeaders,
     };
   }

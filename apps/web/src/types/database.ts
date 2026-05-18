@@ -803,7 +803,11 @@ export type Database = {
         }
       }
       billing_ensure_subscription_plan: {
-        Args: { p_plan_id: string; p_product_id: string }
+        Args: {
+          p_plan_id: string
+          p_product_id: string
+          p_user_id: string
+        }
         Returns: {
           cancel_at_period_end: boolean
           canceled_at: string | null

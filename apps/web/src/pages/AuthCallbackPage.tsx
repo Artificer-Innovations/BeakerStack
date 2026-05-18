@@ -53,6 +53,10 @@ export default function AuthCallbackPage() {
             setError(
               'Could not complete invite signup. Try the invite link again.'
             );
+            setTimeout(() => {
+              navigatedRef.current = true;
+              navigate('/login', { replace: true });
+            }, 3000);
           });
         return;
       }
@@ -72,6 +76,25 @@ export default function AuthCallbackPage() {
       const a = authRef.current;
       if (a.user && !a.loading) {
         navigatedRef.current = true;
+        const inviteToken = sessionStorage.getItem(INVITE_TOKEN_STORAGE_KEY);
+        if (inviteToken) {
+          void finalizeInviteSignup(
+            inviteToken,
+            a.user.id,
+            a.user.email ?? undefined
+          )
+            .then(() => navigate('/dashboard', { replace: true }))
+            .catch(() => {
+              setError(
+                'Could not complete invite signup. Try the invite link again.'
+              );
+              setTimeout(() => {
+                navigatedRef.current = true;
+                navigate('/login', { replace: true });
+              }, 3000);
+            });
+          return;
+        }
         const stored = readAndClearPostAuthRedirect();
         navigate(stored ?? '/dashboard', { replace: true });
       } else if (!a.loading) {

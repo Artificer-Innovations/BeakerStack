@@ -11,6 +11,15 @@
 
 RLS is **enabled** with **no** policies for `anon` / `authenticated` on PII tables.
 
+## Signup mode gating (client vs server)
+
+`SignupModeGate` hides the signup UI when mode is `waitlist`, `invite_only`, or
+`closed`. **Supabase Auth `signUp()` is not blocked by waitlist mode** — a
+caller can still hit the auth API directly. v1 relies on operator workflow
+(waitlist capture + invite-only signup path) rather than an auth hook. For
+strict server enforcement, add a Supabase `before_user_created` hook that reads
+`waitlist_settings.signup_mode` (tracked follow-up).
+
 ## Public surface
 
 - `waitlist_get_public_settings()` — mode + copy only (no emails).
@@ -21,6 +30,13 @@ RLS is **enabled** with **no** policies for `anon` / `authenticated` on PII tabl
 ## Admin surface
 
 All list/approve/reject/settings RPCs call `admin_is_admin()`. Non-admins get `{ error: 'not_found' }`.
+
+## Billing on invite conversion
+
+`billing_ensure_subscription_plan(product, plan, user_id)` is **service_role
+only**. Plan provisioning runs inside `waitlist-ops` `consume` after
+`waitlist_consume_invite` succeeds. The RPC does not downgrade rows already in
+`active`, `trialing`, or `past_due`.
 
 ## Tokens
 

@@ -41,7 +41,7 @@
 
 2. Set mode to **waitlist** in admin.
 3. Submit email at http://localhost:5173/signup
-4. **Admin → Waitlist** → approve entry → copy invite link from drawer (also logged in function output).
+4. **Admin → Waitlist** → approve entry → copy invite link from drawer. Without `WAITLIST_RESEND_API_KEY`, email send returns `email_not_configured` and the UI prompts you to copy the link.
 5. Open invite URL → complete signup → verify dashboard + billing plan.
 
 ## Edge secrets (hosted)
@@ -51,6 +51,8 @@
 | `WAITLIST_ALLOWED_ORIGINS` | CORS for capture (e.g. `http://localhost:5173`) |
 | `WAITLIST_INVITE_SUBJECT`  | Optional invite email subject                   |
 | `WAITLIST_INVITE_HTML`     | Optional HTML template with `{{inviteUrl}}`     |
+| `WAITLIST_RESEND_API_KEY`  | Resend API key; without it, send returns 501    |
+| `WAITLIST_INVITE_FROM`     | Resend `from` address (e.g. `invites@your.com`) |
 
 Uses the same Supabase service role / URL vars as billing Edge Functions.
 

@@ -93,29 +93,39 @@ describe('SignupInvitePage helpers', () => {
     expect(getInviteTokenFromHash()).toBe('abc123');
   });
 
-  it('finalizeInviteSignup consumes invite and ensures plan', async () => {
+  it('finalizeInviteSignup consumes invite via waitlist-ops', async () => {
     const mem: Record<string, string> = { [INVITE_TOKEN_STORAGE_KEY]: 'x' };
     vi.stubGlobal('sessionStorage', storageMock(mem));
     invokeMock.mockResolvedValueOnce({
-      data: { default_plan_id: 'beakerstack_pro' },
+      data: { ok: true, default_plan_id: 'beakerstack_pro' },
       error: null,
     });
-    rpcMock.mockResolvedValueOnce({ error: null });
 
     await finalizeInviteSignup('tok', 'u1', 'a@b.com');
 
     expect(invokeMock).toHaveBeenCalledWith(
       'waitlist-ops',
       expect.objectContaining({
-        body: expect.objectContaining({ action: 'consume', token: 'tok' }),
+        body: expect.objectContaining({
+          action: 'consume',
+          token: 'tok',
+          productId: 'beakerstack',
+        }),
       })
     );
-    expect(rpcMock).toHaveBeenCalledWith(
-      'billing_ensure_subscription_plan',
-      expect.objectContaining({ p_plan_id: 'beakerstack_pro' })
-    );
+    expect(rpcMock).not.toHaveBeenCalled();
     expect(mem[INVITE_TOKEN_STORAGE_KEY]).toBeUndefined();
     vi.unstubAllGlobals();
+  });
+
+  it('finalizeInviteSignup skips re-provision when already converted', async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: { ok: true, already_converted: true },
+      error: null,
+    });
+    await finalizeInviteSignup('tok', 'u1', 'a@b.com');
+    expect(invokeMock).toHaveBeenCalledTimes(1);
+    expect(rpcMock).not.toHaveBeenCalled();
   });
 
   it('finalizeInviteSignup throws on invoke error', async () => {
@@ -125,16 +135,10 @@ describe('SignupInvitePage helpers', () => {
     );
   });
 
-  it('finalizeInviteSignup falls back to free plan when response omits plan id', async () => {
-    invokeMock.mockResolvedValueOnce({ data: {}, error: null });
-    rpcMock.mockResolvedValueOnce({ error: null });
-
+  it('finalizeInviteSignup succeeds when consume returns ok without client billing', async () => {
+    invokeMock.mockResolvedValueOnce({ data: { ok: true }, error: null });
     await finalizeInviteSignup('tok', 'u1', 'a@b.com');
-
-    expect(rpcMock).toHaveBeenCalledWith(
-      'billing_ensure_subscription_plan',
-      expect.objectContaining({ p_plan_id: 'beakerstack_free' })
-    );
+    expect(rpcMock).not.toHaveBeenCalled();
   });
 
   it('finalizeInviteSignup throws on body error', async () => {
