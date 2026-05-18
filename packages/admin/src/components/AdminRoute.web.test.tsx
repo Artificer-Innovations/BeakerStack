@@ -68,6 +68,22 @@ describe('AdminRoute', () => {
     expect(screen.getByText('Loading…')).toBeInTheDocument();
   });
 
+  it('shows recoverable error when admin check fails', async () => {
+    const refresh = vi.fn();
+    mockUseIsAdmin.mockReturnValue({
+      isAdmin: false,
+      loading: false,
+      error: new Error('network down'),
+      refresh,
+    });
+    renderGuard('user-1');
+    expect(screen.getByRole('alert')).toHaveTextContent('network down');
+    expect(
+      screen.getByRole('button', { name: 'Try again' })
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Denied')).not.toBeInTheDocument();
+  });
+
   it('renders children for admin users', () => {
     mockUseIsAdmin.mockReturnValue({
       isAdmin: true,

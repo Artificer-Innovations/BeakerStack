@@ -30,6 +30,14 @@ describe('AdminPagination', () => {
     expect(onPageChange).toHaveBeenCalledWith(25);
   });
 
+  it('handles limit of zero without NaN page numbers', () => {
+    render(
+      <AdminPagination total={10} limit={0} offset={0} onPageChange={vi.fn()} />
+    );
+    expect(screen.getByText('Page 1 of 10')).toBeInTheDocument();
+    expect(screen.getByText(/Showing 1–1 of 10/)).toBeInTheDocument();
+  });
+
   it('previous page decrements offset', async () => {
     const onPageChange = vi.fn();
     const user = userEvent.setup();

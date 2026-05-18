@@ -24,7 +24,7 @@ function rpcError(error: { message?: string }): Error {
 
 export async function checkIsAdmin(supabase: SupabaseClient): Promise<boolean> {
   const { data, error } = await supabase.rpc('admin_is_admin');
-  if (error) return false;
+  if (error) throw rpcError(error);
   return Boolean(data);
 }
 
@@ -84,7 +84,7 @@ export async function recordAuditEvent(
     p_action: input.action,
     p_target_type: input.target?.type ?? undefined,
     p_target_id: input.target?.id ?? undefined,
-    p_details: (input.details ?? {}) as Record<string, never>,
+    p_details: (input.details ?? {}) as Record<string, unknown>,
   });
   if (error) throw rpcError(error);
 }

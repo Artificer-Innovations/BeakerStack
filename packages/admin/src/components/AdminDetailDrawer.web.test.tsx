@@ -32,7 +32,18 @@ describe('AdminDetailDrawer', () => {
         <p>Detail</p>
       </AdminDetailDrawer>
     );
-    await user.click(screen.getByLabelText('Close panel'));
+    await user.click(screen.getByTestId('admin-drawer-backdrop'));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onClose on Escape', async () => {
+    const onClose = vi.fn();
+    render(
+      <AdminDetailDrawer open title='User' onClose={onClose}>
+        <p>Detail</p>
+      </AdminDetailDrawer>
+    );
+    await userEvent.keyboard('{Escape}');
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 

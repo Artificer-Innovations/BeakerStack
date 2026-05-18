@@ -59,6 +59,13 @@ export default function AdminUsersPage() {
           <button
             type='button'
             className='text-left font-semibold uppercase tracking-wide hover:text-indigo-600'
+            aria-sort={
+              sort === 'signup'
+                ? sortDir === 'asc'
+                  ? 'ascending'
+                  : 'descending'
+                : 'none'
+            }
             onClick={e => {
               e.stopPropagation();
               toggleSort('signup');
@@ -75,6 +82,13 @@ export default function AdminUsersPage() {
           <button
             type='button'
             className='text-left font-semibold uppercase tracking-wide hover:text-indigo-600'
+            aria-sort={
+              sort === 'last_active'
+                ? sortDir === 'asc'
+                  ? 'ascending'
+                  : 'descending'
+                : 'none'
+            }
             onClick={e => {
               e.stopPropagation();
               toggleSort('last_active');

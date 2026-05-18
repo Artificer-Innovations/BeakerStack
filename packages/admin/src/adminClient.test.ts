@@ -32,9 +32,9 @@ describe('adminClient', () => {
     await expect(checkIsAdmin(sb)).resolves.toBe(true);
   });
 
-  it('checkIsAdmin returns false when RPC errors', async () => {
+  it('checkIsAdmin throws when RPC errors', async () => {
     const sb = mockSupabase(() => null, { error: { message: 'fail' } });
-    await expect(checkIsAdmin(sb)).resolves.toBe(false);
+    await expect(checkIsAdmin(sb)).rejects.toThrow('fail');
   });
 
   it('listUsers returns null on not_found', async () => {

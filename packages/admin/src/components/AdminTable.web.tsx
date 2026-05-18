@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 
 export type AdminTableColumn<T> = {
   id: string;
@@ -64,29 +64,47 @@ export function AdminTable<T>({
                 </td>
               </tr>
             ) : (
-              rows.map(row => (
-                <tr
-                  key={getRowKey(row)}
-                  onClick={onRowClick ? () => onRowClick(row) : undefined}
-                  className={
-                    onRowClick
-                      ? 'cursor-pointer hover:bg-indigo-50/50 transition-colors'
-                      : undefined
-                  }
-                >
-                  {columns.map(col => (
-                    <td
-                      key={col.id}
-                      className={[
-                        'px-4 py-3 text-gray-900',
-                        col.className ?? '',
-                      ].join(' ')}
-                    >
-                      {col.cell(row)}
-                    </td>
-                  ))}
-                </tr>
-              ))
+              rows.map(row => {
+                const rowKey = getRowKey(row);
+                return (
+                  <tr
+                    key={rowKey}
+                    tabIndex={onRowClick ? 0 : undefined}
+                    role={onRowClick ? 'button' : undefined}
+                    aria-label={
+                      onRowClick ? `View details for ${rowKey}` : undefined
+                    }
+                    onClick={onRowClick ? () => onRowClick(row) : undefined}
+                    onKeyDown={
+                      onRowClick
+                        ? (event: KeyboardEvent<HTMLTableRowElement>) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              onRowClick(row);
+                            }
+                          }
+                        : undefined
+                    }
+                    className={
+                      onRowClick
+                        ? 'cursor-pointer hover:bg-indigo-50/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-inset'
+                        : undefined
+                    }
+                  >
+                    {columns.map(col => (
+                      <td
+                        key={col.id}
+                        className={[
+                          'px-4 py-3 text-gray-900',
+                          col.className ?? '',
+                        ].join(' ')}
+                      >
+                        {col.cell(row)}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

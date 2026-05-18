@@ -1,4 +1,7 @@
-import type { ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
+
+const FOCUSABLE =
+  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 export type AdminDetailDrawerProps = {
   open: boolean;
@@ -13,23 +16,79 @@ export function AdminDetailDrawer({
   onClose,
   children,
 }: AdminDetailDrawerProps) {
+  const titleId = useId();
+  const panelRef = useRef<HTMLElement | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
+    const panel = panelRef.current;
+
+    const focusFirst = () => {
+      const focusables = panel?.querySelectorAll<HTMLElement>(FOCUSABLE);
+      focusables?.[0]?.focus();
+    };
+    focusFirst();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (event.key !== 'Tab' || !panel) return;
+
+      const focusables = Array.from(
+        panel.querySelectorAll<HTMLElement>(FOCUSABLE)
+      ).filter(el => !el.hasAttribute('disabled'));
+
+      if (focusables.length === 0) return;
+
+      const first = focusables[0]!;
+      const last = focusables[focusables.length - 1]!;
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      previousFocusRef.current?.focus?.();
+    };
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (
     <div
       className='fixed inset-0 z-50 flex justify-end'
       role='dialog'
-      aria-modal
+      aria-modal='true'
+      aria-labelledby={titleId}
     >
-      <button
-        type='button'
+      <div
         className='absolute inset-0 bg-gray-900/40'
-        aria-label='Close panel'
+        aria-hidden='true'
+        data-testid='admin-drawer-backdrop'
         onClick={onClose}
       />
-      <aside className='relative flex h-full w-full max-w-lg flex-col bg-white shadow-xl'>
+      <aside
+        ref={panelRef}
+        className='relative z-10 flex h-full w-full max-w-lg flex-col bg-white shadow-xl'
+      >
         <div className='flex items-center justify-between border-b border-gray-200 px-4 py-4'>
-          <h2 className='text-lg font-semibold text-gray-900'>{title}</h2>
+          <h2 id={titleId} className='text-lg font-semibold text-gray-900'>
+            {title}
+          </h2>
           <button
             type='button'
             onClick={onClose}
