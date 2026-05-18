@@ -159,26 +159,30 @@ test('classify: subscription deploy target mismatch ignores', async () => {
   const stub = stubSupabase(
     new Map([['sub_1', { user_id: 'u', product_id: 'app_a' }]])
   );
-  const decision = await classifyStripeEventCore(
-    {
-      type: 'customer.subscription.updated',
-      data: {
-        object: {
-          id: 'sub_1',
-          metadata: { billing_deploy_target: 'other_ref' },
-        },
-      },
-    },
-    {
-      expectedTarget: EXPECTED,
-      findOwnedSubscription: makeFindOwned(stub),
-      allowedProductIds: allowedSet(stub),
-    }
-  );
-  assert.deepEqual(decision, {
-    action: 'ignore',
-    reason: 'billing_deploy_target_mismatch',
-  });
+  const deps = {
+    expectedTarget: EXPECTED,
+    findOwnedSubscription: makeFindOwned(stub),
+    allowedProductIds: allowedSet(stub),
+  };
+  const mismatchObject = {
+    id: 'sub_1',
+    metadata: { billing_deploy_target: 'other_ref' },
+  };
+
+  for (const type of [
+    'customer.subscription.updated',
+    'customer.subscription.deleted',
+    'customer.subscription.trial_will_end',
+  ]) {
+    const decision = await classifyStripeEventCore(
+      { type, data: { object: mismatchObject } },
+      deps
+    );
+    assert.deepEqual(decision, {
+      action: 'ignore',
+      reason: 'billing_deploy_target_mismatch',
+    });
+  }
 });
 
 test('classify: unknown product_id on owned row ignores', async () => {

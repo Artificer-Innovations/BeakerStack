@@ -180,47 +180,26 @@ Deno.serve(async req => {
     }
   }
 
-  if (ingressIgnored) {
-    const { error: ignoreUpdateErr } = await supabase
-      .from('billing_webhook_events')
-      .update({
-        processed: true,
-        processed_at: new Date().toISOString(),
-        error: `ignored: ${decision.reason}`,
-      })
-      .eq('stripe_event_id', event.id);
-    if (ignoreUpdateErr) {
-      console.error(
-        'Failed to mark ignored webhook event processed',
-        formatCaught(ignoreUpdateErr),
-        event.id
-      );
-      return jsonResponse({ error: 'log_failed' }, 500, req);
-    }
-    return jsonResponse({ received: true, ignored: true }, 200, req);
-  }
-
   try {
-    const result = await processStripeEvent(supabase, event);
-    if (result.status === 'ignored') {
-      await supabase
-        .from('billing_webhook_events')
-        .update({
-          processed: true,
-          processed_at: new Date().toISOString(),
-          error: `ignored: ${result.reason}`,
-        })
-        .eq('stripe_event_id', event.id);
+    if (ingressIgnored) {
+      await markWebhookEventProcessed(
+        supabase,
+        event.id,
+        `ignored: ${decision.reason}`
+      );
       return jsonResponse({ received: true, ignored: true }, 200, req);
     }
-    await supabase
-      .from('billing_webhook_events')
-      .update({
-        processed: true,
-        processed_at: new Date().toISOString(),
-        error: null,
-      })
-      .eq('stripe_event_id', event.id);
+
+    const result = await processStripeEvent(supabase, event);
+    if (result.status === 'ignored') {
+      await markWebhookEventProcessed(
+        supabase,
+        event.id,
+        `ignored: ${result.reason}`
+      );
+      return jsonResponse({ received: true, ignored: true }, 200, req);
+    }
+    await markWebhookEventProcessed(supabase, event.id, null);
   } catch (e) {
     const msg = formatCaught(e);
     console.error('Webhook processing error', msg);
@@ -233,6 +212,22 @@ Deno.serve(async req => {
 
   return jsonResponse({ received: true }, 200, req);
 });
+
+async function markWebhookEventProcessed(
+  supabase: ReturnType<typeof createClient>,
+  stripeEventId: string,
+  error: string | null
+): Promise<void> {
+  const { error: updateErr } = await supabase
+    .from('billing_webhook_events')
+    .update({
+      processed: true,
+      processed_at: new Date().toISOString(),
+      error,
+    })
+    .eq('stripe_event_id', stripeEventId);
+  if (updateErr) throw asErrorFromSupabase(updateErr);
+}
 
 async function requireOwnedSubscription(
   supabase: ReturnType<typeof createClient>,
