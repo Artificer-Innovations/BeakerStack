@@ -17,7 +17,7 @@ type AdminCheckState = {
 
 /**
  * Returns whether the current session user is an active app admin.
- * Defaults to false while loading or on error.
+ * Exposes `error` when the admin_is_admin RPC fails (distinct from not-admin).
  */
 export function useIsAdmin(
   supabase: SupabaseClient | null,
