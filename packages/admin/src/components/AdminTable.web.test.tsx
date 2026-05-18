@@ -38,6 +38,21 @@ describe('AdminTable', () => {
     expect(screen.getByText('Ada')).toBeInTheDocument();
   });
 
+  it('uses getRowLabel for the row accessible name', () => {
+    render(
+      <AdminTable
+        columns={columns}
+        rows={[{ id: 'uuid-1', name: 'Ada' }]}
+        getRowKey={r => r.id}
+        getRowLabel={r => r.name}
+        onRowClick={vi.fn()}
+      />
+    );
+    expect(
+      screen.getByRole('button', { name: 'View details for Ada' })
+    ).toBeInTheDocument();
+  });
+
   it('activates row on Space key when clickable', async () => {
     const onRowClick = vi.fn();
     const user = userEvent.setup();

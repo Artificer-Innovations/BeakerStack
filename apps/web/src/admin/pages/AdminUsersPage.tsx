@@ -55,17 +55,18 @@ export default function AdminUsersPage() {
       },
       {
         id: 'signup',
+        headerCellProps: {
+          'aria-sort':
+            sort === 'signup'
+              ? sortDir === 'asc'
+                ? 'ascending'
+                : 'descending'
+              : 'none',
+        },
         header: (
           <button
             type='button'
-            className='text-left font-semibold uppercase tracking-wide hover:text-indigo-600'
-            aria-sort={
-              sort === 'signup'
-                ? sortDir === 'asc'
-                  ? 'ascending'
-                  : 'descending'
-                : 'none'
-            }
+            className='w-full text-left font-semibold uppercase tracking-wide hover:text-indigo-600'
             onClick={e => {
               e.stopPropagation();
               toggleSort('signup');
@@ -78,17 +79,18 @@ export default function AdminUsersPage() {
       },
       {
         id: 'last_active',
+        headerCellProps: {
+          'aria-sort':
+            sort === 'last_active'
+              ? sortDir === 'asc'
+                ? 'ascending'
+                : 'descending'
+              : 'none',
+        },
         header: (
           <button
             type='button'
-            className='text-left font-semibold uppercase tracking-wide hover:text-indigo-600'
-            aria-sort={
-              sort === 'last_active'
-                ? sortDir === 'asc'
-                  ? 'ascending'
-                  : 'descending'
-                : 'none'
-            }
+            className='w-full text-left font-semibold uppercase tracking-wide hover:text-indigo-600'
             onClick={e => {
               e.stopPropagation();
               toggleSort('last_active');
@@ -143,6 +145,7 @@ export default function AdminUsersPage() {
         columns={columns}
         rows={data?.users ?? []}
         getRowKey={row => row.user_id}
+        getRowLabel={row => row.email ?? row.display_name ?? row.user_id}
         onRowClick={setSelected}
         loading={loading}
         emptyMessage='No users match your search.'

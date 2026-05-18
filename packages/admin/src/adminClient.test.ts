@@ -76,6 +76,20 @@ describe('adminClient', () => {
     expect(result?.users[0]?.email).toBe('a@b.com');
   });
 
+  it('listUsers throws on unexpected payload shape', async () => {
+    const sb = mockSupabase(name =>
+      name === 'admin_list_users' ? 'not-an-object' : null
+    );
+    await expect(listUsers(sb)).rejects.toThrow('unexpected payload');
+  });
+
+  it('listUsers throws when pagination fields are not numeric', async () => {
+    const sb = mockSupabase(name =>
+      name === 'admin_list_users' ? { users: [], total: 'nope' } : null
+    );
+    await expect(listUsers(sb)).rejects.toThrow('invalid pagination');
+  });
+
   it('listUsers throws when RPC errors', async () => {
     const sb = mockSupabase(() => null, { error: { message: 'denied' } });
     await expect(listUsers(sb)).rejects.toThrow('denied');

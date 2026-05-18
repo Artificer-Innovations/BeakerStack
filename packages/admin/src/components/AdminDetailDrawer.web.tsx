@@ -3,6 +3,13 @@ import { useEffect, useId, useRef, type ReactNode } from 'react';
 const FOCUSABLE =
   'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
+function isPanelFocusable(el: HTMLElement): boolean {
+  if (el.hasAttribute('disabled')) return false;
+  if (el.tabIndex < 0) return false;
+  if (el.getAttribute('aria-hidden') === 'true') return false;
+  return true;
+}
+
 export type AdminDetailDrawerProps = {
   open: boolean;
   title: string;
@@ -43,7 +50,7 @@ export function AdminDetailDrawer({
 
       const focusables = Array.from(
         panel.querySelectorAll<HTMLElement>(FOCUSABLE)
-      ).filter(el => !el.hasAttribute('disabled'));
+      ).filter(isPanelFocusable);
 
       if (focusables.length === 0) return;
 

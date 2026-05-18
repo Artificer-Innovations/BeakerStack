@@ -1,16 +1,20 @@
-import type { KeyboardEvent, ReactNode } from 'react';
+import type { KeyboardEvent, ReactNode, ThHTMLAttributes } from 'react';
 
 export type AdminTableColumn<T> = {
   id: string;
   header: ReactNode;
   cell: (row: T) => ReactNode;
   className?: string;
+  /** Applied to `<th scope="col">` (e.g. `aria-sort` for sortable columns). */
+  headerCellProps?: Pick<ThHTMLAttributes<HTMLTableCellElement>, 'aria-sort'>;
 };
 
 export type AdminTableProps<T> = {
   columns: AdminTableColumn<T>[];
   rows: T[];
   getRowKey: (row: T) => string;
+  /** Accessible row label; defaults to `getRowKey(row)`. */
+  getRowLabel?: (row: T) => string;
   onRowClick?: (row: T) => void;
   emptyMessage?: string;
   loading?: boolean;
@@ -20,6 +24,7 @@ export function AdminTable<T>({
   columns,
   rows,
   getRowKey,
+  getRowLabel,
   onRowClick,
   emptyMessage = 'No rows to display.',
   loading = false,
@@ -34,6 +39,7 @@ export function AdminTable<T>({
                 <th
                   key={col.id}
                   scope='col'
+                  aria-sort={col.headerCellProps?.['aria-sort']}
                   className={[
                     'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500',
                     col.className ?? '',
@@ -66,13 +72,14 @@ export function AdminTable<T>({
             ) : (
               rows.map(row => {
                 const rowKey = getRowKey(row);
+                const rowLabel = getRowLabel?.(row) ?? rowKey;
                 return (
                   <tr
                     key={rowKey}
                     tabIndex={onRowClick ? 0 : undefined}
                     role={onRowClick ? 'button' : undefined}
                     aria-label={
-                      onRowClick ? `View details for ${rowKey}` : undefined
+                      onRowClick ? `View details for ${rowLabel}` : undefined
                     }
                     onClick={onRowClick ? () => onRowClick(row) : undefined}
                     onKeyDown={

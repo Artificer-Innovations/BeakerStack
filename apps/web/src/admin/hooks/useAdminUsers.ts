@@ -46,26 +46,34 @@ export function useAdminUsers() {
     }
   }, [offset, debouncedSearch, sort, sortDir]);
 
+  const searchPending = search.trim() !== debouncedSearch;
+
   useEffect(() => {
+    if (searchPending) return;
     void load();
-  }, [load]);
+  }, [load, searchPending]);
 
-  useEffect(() => {
+  const setSearchAndResetPage = useCallback((value: string) => {
+    setSearch(value);
     setOffset(0);
-  }, [debouncedSearch, sort, sortDir]);
+  }, []);
 
-  const toggleSort = (column: AdminListUsersSort) => {
-    if (sort === column) {
-      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSort(column);
-      setSortDir('desc');
-    }
-  };
+  const toggleSort = useCallback(
+    (column: AdminListUsersSort) => {
+      setOffset(0);
+      if (sort === column) {
+        setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+      } else {
+        setSort(column);
+        setSortDir('desc');
+      }
+    },
+    [sort]
+  );
 
   return {
     search,
-    setSearch,
+    setSearch: setSearchAndResetPage,
     sort,
     sortDir,
     toggleSort,

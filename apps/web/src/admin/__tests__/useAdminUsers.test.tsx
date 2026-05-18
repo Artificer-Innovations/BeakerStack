@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { listUsers } from '@beakerstack/admin';
 import { useAdminUsers } from '../hooks/useAdminUsers';
@@ -14,6 +14,10 @@ vi.mock('@beakerstack/admin', async importOriginal => {
 const mockListUsers = vi.mocked(listUsers);
 
 describe('useAdminUsers', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockListUsers.mockResolvedValue({
@@ -50,6 +54,47 @@ describe('useAdminUsers', () => {
     await waitFor(() =>
       expect(result.current.error?.message).toBe('rpc failed')
     );
+  });
+
+  it('waits for debounced search before loading', async () => {
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useAdminUsers());
+      await act(async () => {
+        await vi.runOnlyPendingTimersAsync();
+      });
+      expect(result.current.loading).toBe(false);
+      mockListUsers.mockClear();
+
+      act(() => result.current.setSearch('ada'));
+      expect(mockListUsers).not.toHaveBeenCalled();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(300);
+      });
+      expect(mockListUsers).toHaveBeenCalledTimes(1);
+      expect(mockListUsers).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ search: 'ada', offset: 0 })
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('toggleSort resets to first page without a stale-offset fetch', async () => {
+    const { result } = renderHook(() => useAdminUsers());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => result.current.setOffset(25));
+    await waitFor(() => expect(result.current.offset).toBe(25));
+    mockListUsers.mockClear();
+
+    act(() => result.current.toggleSort('last_active'));
+    await waitFor(() => expect(mockListUsers).toHaveBeenCalled());
+    expect(
+      mockListUsers.mock.calls.every(([, args]) => args?.offset === 0)
+    ).toBe(true);
   });
 
   it('toggleSort flips direction on same column', async () => {

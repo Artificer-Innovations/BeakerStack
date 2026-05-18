@@ -85,6 +85,24 @@ describe('AdminDetailDrawer', () => {
     expect(document.activeElement).toBe(save);
   });
 
+  it('skips elements with tabindex -1 in the Tab trap', () => {
+    render(
+      <AdminDetailDrawer open title='User' onClose={vi.fn()}>
+        <button type='button' tabIndex={-1}>
+          Hidden
+        </button>
+        <button type='button'>Save</button>
+      </AdminDetailDrawer>
+    );
+    const save = screen.getByRole('button', { name: 'Save' });
+    const close = screen.getByLabelText('Close');
+    save.focus();
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Tab', bubbles: true })
+    );
+    expect(document.activeElement).toBe(close);
+  });
+
   it('calls onClose when header close button is clicked', async () => {
     const onClose = vi.fn();
     const user = userEvent.setup();

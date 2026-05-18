@@ -8,6 +8,12 @@ import type {
   RecordAuditEventInput,
 } from './types.js';
 
+function isRecord(payload: unknown): payload is Record<string, unknown> {
+  return (
+    typeof payload === 'object' && payload !== null && !Array.isArray(payload)
+  );
+}
+
 function isNotFound(payload: unknown): boolean {
   return (
     payload !== null &&
@@ -52,14 +58,20 @@ export async function listUsers(
   if (error) throw rpcError(error);
   if (isNotFound(data)) return null;
 
-  const body = data as Record<string, unknown>;
-  const users = (body['users'] as AdminUserListRow[] | undefined) ?? [];
-  return {
-    users,
-    total: Number(body['total'] ?? 0),
-    limit: Number(body['limit'] ?? params.limit ?? 25),
-    offset: Number(body['offset'] ?? params.offset ?? 0),
-  };
+  if (!isRecord(data)) {
+    throw new Error('admin_list_users returned unexpected payload');
+  }
+
+  const users = (data['users'] as AdminUserListRow[] | undefined) ?? [];
+  const total = Number(data['total'] ?? 0);
+  const limit = Number(data['limit'] ?? params.limit ?? 25);
+  const offset = Number(data['offset'] ?? params.offset ?? 0);
+
+  if (Number.isNaN(total) || Number.isNaN(limit) || Number.isNaN(offset)) {
+    throw new Error('admin_list_users returned invalid pagination fields');
+  }
+
+  return { users, total, limit, offset };
 }
 
 export async function getUser(
