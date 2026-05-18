@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   ensureStripeWebhook,
+  findStripeWebhookEndpointByUrl,
   isAutoEnsureStripeWebhookUrl,
   MissingWebhookSecretError,
   normalizeStripeWebhookUrl,
@@ -47,6 +48,36 @@ test('stripeSecretKeyMatchesMode', () => {
   assert.ok(stripeSecretKeyMatchesMode('sk_test_abc', 'test'));
   assert.ok(stripeSecretKeyMatchesMode('sk_live_abc', 'live'));
   assert.ok(!stripeSecretKeyMatchesMode('sk_live_abc', 'test'));
+});
+
+test('findStripeWebhookEndpointByUrl paginates past first page', async () => {
+  const target = 'https://proj.supabase.co/functions/v1/stripe-webhook';
+  const other = 'https://other.supabase.co/functions/v1/stripe-webhook';
+  let call = 0;
+  const mockStripe = {
+    webhookEndpoints: {
+      list: async ({ starting_after: after } = {}) => {
+        call += 1;
+        if (!after) {
+          return {
+            data: Array.from({ length: 100 }, (_, i) => ({
+              id: `we_fill_${i}`,
+              url: other,
+            })),
+            has_more: true,
+          };
+        }
+        return {
+          data: [{ id: 'we_target', url: target }],
+          has_more: false,
+        };
+      },
+    },
+  };
+
+  const found = await findStripeWebhookEndpointByUrl(mockStripe, target);
+  assert.equal(found?.id, 'we_target');
+  assert.equal(call, 2);
 });
 
 test('ensureStripeWebhook creates endpoint when missing', async () => {

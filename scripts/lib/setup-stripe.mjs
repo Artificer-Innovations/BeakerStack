@@ -131,7 +131,6 @@ export function stripeWebhookDescriptionForTier(tier, webhookUrl) {
  *   logInfo: (s: string) => void;
  *   logWarn: (s: string) => void;
  *   applySecret: (raw: string, primaryKey: string) => Promise<void>;
- *   readSecret: (prompt: string) => Promise<string>;
  * }} ctx
  * @returns {Promise<boolean>} true if webhook secret is set when done
  */
@@ -294,7 +293,6 @@ export async function collectStripeEnvKeys(ctx) {
         logInfo,
         logWarn,
         applySecret,
-        readSecret,
       });
       if (!ensured && !(acc[tier.webhookSecretKey] || '').trim()) {
         const wh = await readSecret(

@@ -77,6 +77,31 @@ export function stripeSecretKeyMatchesMode(secretKey, expectedMode) {
 }
 
 /**
+ * @param {import('stripe').Stripe} stripe
+ * @param {string} webhookUrl
+ * @returns {Promise<import('stripe').Stripe.WebhookEndpoint | null>}
+ */
+export async function findStripeWebhookEndpointByUrl(stripe, webhookUrl) {
+  const normalized = normalizeStripeWebhookUrl(webhookUrl);
+  if (!normalized) return null;
+
+  let startingAfter;
+  for (;;) {
+    const list = await stripe.webhookEndpoints.list({
+      limit: 100,
+      ...(startingAfter ? { starting_after: startingAfter } : {}),
+    });
+    const found = list.data.find(
+      e => normalizeStripeWebhookUrl(e.url) === normalized
+    );
+    if (found) return found;
+    if (!list.has_more || list.data.length === 0) break;
+    startingAfter = list.data[list.data.length - 1].id;
+  }
+  return null;
+}
+
+/**
  * @param {{
  *   secretKey: string;
  *   webhookUrl: string;
@@ -103,8 +128,7 @@ export async function ensureStripeWebhook(opts) {
   const description =
     opts.description?.trim() || 'BeakerStack (stripe-webhook)';
 
-  const list = await stripe.webhookEndpoints.list({ limit: 100 });
-  const found = list.data.find(e => normalizeStripeWebhookUrl(e.url) === url);
+  const found = await findStripeWebhookEndpointByUrl(stripe, url);
 
   let signingSecret = String(opts.existingWebhookSecret || '').trim();
 
