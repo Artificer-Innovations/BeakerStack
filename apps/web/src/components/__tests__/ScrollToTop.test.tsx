@@ -128,7 +128,7 @@ describe('ScrollToTop', () => {
 
     vi.mocked(faq.scrollIntoView).mockClear();
     while (rafQueue.length > 0) {
-      rafQueue.shift()!(0);
+      rafQueue.shift()?.(0);
     }
     expect(faq.scrollIntoView).not.toHaveBeenCalled();
 
@@ -140,6 +140,20 @@ describe('ScrollToTop', () => {
 describe('scrollToHashElement', () => {
   it('returns false for malformed percent-encoding without throwing', () => {
     expect(scrollToHashElement('#%E0%A4%A')).toBe(false);
+  });
+
+  it('returns false when element is not in the DOM for a valid id', () => {
+    expect(scrollToHashElement('#not-in-dom-xyz')).toBe(false);
+  });
+
+  it('returns true and scrolls when element is found', () => {
+    const el = document.createElement('section');
+    el.id = 'coverage-anchor';
+    el.scrollIntoView = vi.fn();
+    document.body.append(el);
+    expect(scrollToHashElement('#coverage-anchor')).toBe(true);
+    expect(el.scrollIntoView).toHaveBeenCalled();
+    el.remove();
   });
 });
 
@@ -164,12 +178,12 @@ describe('startHashScroll', () => {
 
     const firstFrame = rafQueue.shift();
     expect(firstFrame).toBeTypeOf('function');
-    firstFrame!(0);
+    firstFrame?.(0);
     expect(target.scrollIntoView).not.toHaveBeenCalled();
 
     document.body.append(target);
     const secondFrame = rafQueue.shift();
-    secondFrame!(0);
+    secondFrame?.(0);
     expect(target.scrollIntoView).toHaveBeenCalled();
 
     cleanup();
@@ -196,5 +210,24 @@ describe('startHashScroll', () => {
     }
     expect(target.scrollIntoView).not.toHaveBeenCalled();
     target.remove();
+  });
+
+  it('stops after HASH_SCROLL_MAX_FRAMES (60) without finding the element', () => {
+    const rafQueue: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
+      rafQueue.push(cb);
+      return rafQueue.length;
+    });
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    startHashScroll('#never-mounts-xyz');
+
+    for (let i = 0; i < 65; i++) {
+      const cb = rafQueue.shift();
+      if (!cb) break;
+      cb(i * 16);
+    }
+
+    expect(rafQueue).toHaveLength(0);
   });
 });

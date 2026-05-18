@@ -112,3 +112,46 @@ describe('useUsage', () => {
     expect(removeChannel).toHaveBeenCalled();
   });
 });
+
+describe('useUsage (coverage)', () => {
+  beforeEach(() => {
+    rpc.mockReset();
+    usageRealtimeCb.current = undefined;
+  });
+
+  it('sets error when RPC returns an error object', async () => {
+    rpc.mockResolvedValue({ data: null, error: new Error('rpc failure') });
+    const { result } = renderHook(() => useUsage('ai'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.error).not.toBeNull();
+    expect(result.current.used).toBe(0);
+  });
+
+  it('does not refetch when realtime product_id does not match', async () => {
+    rpc.mockResolvedValue({
+      data: { used: 1, limit: 5, remaining: 4, periodEnd: '', periodStart: '' },
+      error: null,
+    });
+    renderHook(() => useUsage('ai'));
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(1));
+    rpc.mockClear();
+    usageRealtimeCb.current?.({ new: { product_id: 'other_product', event_type: 'ai' }, old: null });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it('does not refetch when realtime event_type does not match meter key', async () => {
+    rpc.mockResolvedValue({
+      data: { used: 1, limit: 5, remaining: 4, periodEnd: '', periodStart: '' },
+      error: null,
+    });
+    renderHook(() => useUsage('ai'));
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(1));
+    rpc.mockClear();
+    usageRealtimeCb.current?.({ new: { product_id: 'test_product', event_type: 'storage' }, old: null });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(rpc).not.toHaveBeenCalled();
+  });
+});
