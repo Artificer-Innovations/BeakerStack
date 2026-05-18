@@ -8,7 +8,11 @@
 
 - **Client hint:** `admin_is_admin()` RPC (via `useIsAdmin`). Used for UI only.
 - **Authoritative:** Every `admin_*` RPC re-checks `admin_is_admin()` before returning data.
-- **Grants/revokes:** Service role CLI only (`npm run admin:grant` / `admin:revoke`).
+- **Grants/revokes:** Service role CLI only (`npm run admin:grant` / `admin:revoke`). Use `--granted-by <email>` on grant to populate `admin_users.granted_by` when the granter has an auth account.
+
+### Client route guard cache
+
+`useIsAdmin` runs `admin_is_admin()` when the session user changes (and on explicit `refresh`). If an admin grant is **revoked** while a tab stays open, the `/admin` route guard may still show the shell until remount or navigation — but **data RPCs** (`admin_list_users`, `admin_get_user`, etc.) re-check admin status and return `not_found` immediately. Treat the guard as UX; do not rely on it for security.
 
 ## Audit log
 

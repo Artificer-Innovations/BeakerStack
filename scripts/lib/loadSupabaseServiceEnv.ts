@@ -1,17 +1,25 @@
 import { execSync } from 'node:child_process';
 
-/** Parse `supabase status -o env` lines like FOO="bar". */
+/** Parse `supabase status -o env` lines (quoted or unquoted values). */
 export function parseSupabaseStatusEnv(stdout: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const line of stdout.split('\n')) {
     const trimmed = line.trim();
-    const match = trimmed.match(/^([A-Z0-9_]+)="(.*)"$/);
-    if (match) {
-      const key = match[1];
-      const value = match[2];
-      if (key !== undefined && value !== undefined) {
-        out[key] = value;
-      }
+    if (!trimmed || trimmed.startsWith('#')) continue;
+
+    const quoted = trimmed.match(/^([A-Z0-9_]+)="(.*)"$/);
+    if (quoted) {
+      const key = quoted[1];
+      const value = quoted[2];
+      if (key !== undefined && value !== undefined) out[key] = value;
+      continue;
+    }
+
+    const unquoted = trimmed.match(/^([A-Z0-9_]+)=(.*)$/);
+    if (unquoted) {
+      const key = unquoted[1];
+      const value = unquoted[2];
+      if (key !== undefined && value !== undefined) out[key] = value.trim();
     }
   }
   return out;
@@ -44,8 +52,8 @@ export function loadSupabaseServiceEnv(): { url: string; serviceKey: string } {
       stdio: ['ignore', 'pipe', 'ignore'],
     });
     const fromStatus = parseSupabaseStatusEnv(stdout);
-    url = url ?? fromStatus.API_URL ?? fromStatus.SUPABASE_URL;
-    serviceKey = serviceKey ?? fromStatus.SERVICE_ROLE_KEY;
+    url = url ?? fromStatus['API_URL'] ?? fromStatus['SUPABASE_URL'];
+    serviceKey = serviceKey ?? fromStatus['SERVICE_ROLE_KEY'];
   } catch {
     // supabase not running or CLI missing — fall through to error below
   }

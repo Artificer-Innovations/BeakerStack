@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { checkIsAdmin } from '../adminClient.js';
 
@@ -29,6 +29,8 @@ export function useIsAdmin(
     status: 'idle',
   });
   const [error, setError] = useState<Error | null>(null);
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
 
   // Treat a new userId as "loading" on the first render so route guards do not
   // redirect to not-authorized before the RPC runs (useEffect runs after paint).
@@ -49,12 +51,12 @@ export function useIsAdmin(
     try {
       const ok = await checkIsAdmin(supabase);
       setState(prev => {
-        if (checkFor !== userId) return prev;
+        if (checkFor !== userIdRef.current) return prev;
         return { userId: checkFor, isAdmin: ok, status: 'done' };
       });
     } catch (e) {
       setState(prev => {
-        if (checkFor !== userId) return prev;
+        if (checkFor !== userIdRef.current) return prev;
         return { userId: checkFor, isAdmin: false, status: 'done' };
       });
       setError(e instanceof Error ? e : new Error(String(e)));

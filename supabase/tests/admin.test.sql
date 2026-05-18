@@ -1,6 +1,6 @@
 -- pgTAP: admin tables, RLS, and RPC access control
 BEGIN;
-SELECT plan(15);
+SELECT plan(20);
 
 -- ── Schema ───────────────────────────────────────────────────────────────────
 SELECT has_table('public', 'admin_users', 'admin_users table exists');
@@ -134,6 +134,51 @@ SELECT ok(
 SELECT ok(
     (public.admin_list_users(10, 0, NULL, 'signup', 'desc', 'beakerstack') -> 'total') IS NOT NULL,
     'admin admin_list_users returns total count'
+);
+
+SELECT is(
+    public.admin_get_user('a1000000-0000-0000-0000-000000000001'::uuid) ->> 'error',
+    NULL,
+    'admin admin_get_user returns user payload for target'
+);
+
+SELECT ok(
+    (public.admin_get_user('a1000000-0000-0000-0000-000000000001'::uuid) -> 'auth' ->> 'email')
+        = 'admin-test-user@example.com',
+    'admin admin_get_user includes target auth email'
+);
+
+-- Revoked admin is denied (UPDATE as superuser — RLS blocks authenticated)
+RESET ROLE;
+UPDATE public.admin_users
+SET revoked_at = now()
+WHERE user_id = 'a1000000-0000-0000-0000-000000000002';
+
+SELECT ok(
+    (SELECT revoked_at IS NOT NULL
+     FROM public.admin_users
+     WHERE user_id = 'a1000000-0000-0000-0000-000000000002'),
+    'revoked_at is set on operator row'
+);
+
+SELECT set_config('request.jwt.claims',
+    '{"sub":"a1000000-0000-0000-0000-000000000002","role":"authenticated"}',
+    true);
+SET LOCAL ROLE authenticated;
+
+SELECT is(
+    public.admin_is_admin(),
+    false,
+    'revoked operator is not admin'
+);
+
+-- Unauthenticated session (no JWT sub) is denied like non-admin
+SELECT set_config('request.jwt.claims', '{}', true);
+
+SELECT is(
+    public.admin_list_users(10, 0, NULL, 'signup', 'desc', 'beakerstack') ->> 'error',
+    'not_found',
+    'session without auth uid gets not_found from admin_list_users'
 );
 
 RESET ROLE;

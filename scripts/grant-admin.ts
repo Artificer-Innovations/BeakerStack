@@ -2,33 +2,46 @@
 /**
  * Grant app-wide admin to a user by email.
  *
- *   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run admin:grant -- you@example.com
- *   npm run admin:grant -- you@example.com --dry-run
+ *   npm run admin:grant -- operator@example.com
+ *   npm run admin:grant -- operator@example.com --granted-by you@example.com
+ *   npm run admin:grant -- operator@example.com --dry-run
+ *
+ * `granted_by` is set when --granted-by matches an existing auth user (the person
+ * running the grant). Service-role-only grants without --granted-by leave it null.
  */
 import { createClient } from '@supabase/supabase-js';
 import process from 'node:process';
+import { findAuthUserByEmail } from './lib/findAuthUserByEmail.js';
 import { loadSupabaseServiceEnv } from './lib/loadSupabaseServiceEnv.js';
 
 function parseArgs(argv: string[]) {
   let dryRun = false;
+  let grantedByEmail: string | undefined;
   const positional: string[] = [];
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--dry-run') dryRun = true;
-    else if (arg !== undefined) positional.push(arg);
+    else if (arg === '--granted-by') {
+      grantedByEmail = argv[++i]?.trim();
+    } else if (arg !== undefined) positional.push(arg);
   }
-  return { dryRun, email: positional[0]?.trim() };
+  return { dryRun, email: positional[0]?.trim(), grantedByEmail };
 }
 
 async function main() {
-  const { dryRun, email } = parseArgs(process.argv);
+  const { dryRun, email, grantedByEmail } = parseArgs(process.argv);
   if (!email) {
-    console.error('Usage: npm run admin:grant -- <email> [--dry-run]');
+    console.error(
+      'Usage: npm run admin:grant -- <email> [--granted-by <email>] [--dry-run]'
+    );
     process.exit(1);
   }
 
   if (dryRun) {
     console.log(`[dry-run] Would grant admin to: ${email}`);
+    if (grantedByEmail) {
+      console.log(`[dry-run] granted_by would be set from: ${grantedByEmail}`);
+    }
     return;
   }
 
@@ -45,18 +58,40 @@ async function main() {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const { data: users, error: listErr } = await supabase.auth.admin.listUsers();
-  if (listErr) {
-    console.error('Failed to list users:', listErr.message);
+  let match;
+  try {
+    match = await findAuthUserByEmail(supabase, email);
+  } catch (listErr) {
+    console.error(
+      'Failed to list users:',
+      listErr instanceof Error ? listErr.message : listErr
+    );
     process.exit(1);
   }
 
-  const match = users.users.find(
-    u => u.email?.toLowerCase() === email.toLowerCase()
-  );
   if (!match) {
     console.error(`No auth user found with email: ${email}`);
     process.exit(1);
+  }
+
+  let grantedById: string | null = null;
+  if (grantedByEmail) {
+    try {
+      const granter = await findAuthUserByEmail(supabase, grantedByEmail);
+      if (!granter) {
+        console.error(
+          `No auth user found for --granted-by email: ${grantedByEmail}`
+        );
+        process.exit(1);
+      }
+      grantedById = granter.id;
+    } catch (e) {
+      console.error(
+        'Failed to resolve --granted-by user:',
+        e instanceof Error ? e.message : e
+      );
+      process.exit(1);
+    }
   }
 
   const { error: upsertErr } = await supabase.from('admin_users').upsert(
@@ -64,6 +99,7 @@ async function main() {
       user_id: match.id,
       revoked_at: null,
       granted_at: new Date().toISOString(),
+      granted_by: grantedById,
     },
     { onConflict: 'user_id' }
   );

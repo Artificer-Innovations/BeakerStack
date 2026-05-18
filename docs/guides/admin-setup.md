@@ -21,6 +21,9 @@ From the repo root (with local Supabase running):
 ```bash
 # Easiest: script reads `supabase status -o env` automatically
 npm run admin:grant -- operator@example.com
+
+# Optional: record which auth user ran the grant (populates admin_users.granted_by)
+npm run admin:grant -- operator@example.com --granted-by you@example.com
 ```
 
 Or set credentials explicitly (note: `supabase status` uses `API_URL` and `SERVICE_ROLE_KEY`):

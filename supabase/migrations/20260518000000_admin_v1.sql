@@ -45,7 +45,7 @@ ALTER TABLE public.admin_audit_log ENABLE ROW LEVEL SECURITY;
 CREATE OR REPLACE FUNCTION public.admin_is_admin()
 RETURNS boolean
 LANGUAGE sql
-STABLE
+VOLATILE
 SECURITY DEFINER
 SET search_path = public
 AS $$
@@ -57,6 +57,7 @@ AS $$
     );
 $$;
 
+-- Internal only: not exposed to PostgREST (REVOKE ALL FROM PUBLIC).
 CREATE OR REPLACE FUNCTION public._admin_insert_audit(
     p_actor uuid,
     p_action text,
@@ -134,9 +135,23 @@ DECLARE
     v_rows jsonb;
     v_limit integer := LEAST(GREATEST(COALESCE(p_limit, 25), 1), 100);
     v_offset integer := GREATEST(COALESCE(p_offset, 0), 0);
+    v_search text;
 BEGIN
     IF v_uid IS NULL OR NOT public.admin_is_admin() THEN
         RETURN jsonb_build_object('error', 'not_found');
+    END IF;
+
+    IF p_search IS NULL OR length(trim(p_search)) = 0 THEN
+        v_search := NULL;
+    ELSE
+        v_search := left(
+            replace(
+                replace(replace(trim(p_search), '\', '\\'), '%', '\%'),
+                '_',
+                '\_'
+            ),
+            200
+        );
     END IF;
 
     PERFORM public._admin_insert_audit(
@@ -147,7 +162,7 @@ BEGIN
         jsonb_build_object(
             'limit', v_limit,
             'offset', v_offset,
-            'search', p_search,
+            'search', v_search,
             'sort', p_sort,
             'sort_dir', p_sort_dir,
             'product_id', p_product_id
@@ -157,8 +172,8 @@ BEGIN
     SELECT count(*)::bigint INTO v_total
     FROM auth.users u
     LEFT JOIN public.user_profiles p ON p.user_id = u.id
-    WHERE p_search IS NULL
-       OR u.email ILIKE '%' || p_search || '%';
+    WHERE v_search IS NULL
+       OR u.email ILIKE '%' || v_search || '%' ESCAPE '\';
 
     SELECT COALESCE(jsonb_agg(t.row_data), '[]'::jsonb)
     INTO v_rows
@@ -187,8 +202,8 @@ BEGIN
         LEFT JOIN public.billing_subscriptions sub
             ON sub.user_id = u.id AND sub.product_id = p_product_id
         LEFT JOIN public.billing_plans pl ON pl.id = sub.plan_id
-        WHERE p_search IS NULL
-           OR u.email ILIKE '%' || p_search || '%'
+        WHERE v_search IS NULL
+           OR u.email ILIKE '%' || v_search || '%' ESCAPE '\'
         ORDER BY
             CASE WHEN COALESCE(p_sort_dir, 'desc') = 'asc' THEN
                 CASE

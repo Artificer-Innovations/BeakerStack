@@ -2,10 +2,11 @@
 /**
  * Revoke app-wide admin from a user by email.
  *
- *   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run admin:revoke -- you@example.com
+ *   npm run admin:revoke -- you@example.com
  */
 import { createClient } from '@supabase/supabase-js';
 import process from 'node:process';
+import { findAuthUserByEmail } from './lib/findAuthUserByEmail.js';
 import { loadSupabaseServiceEnv } from './lib/loadSupabaseServiceEnv.js';
 
 function parseArgs(argv: string[]) {
@@ -44,28 +45,38 @@ async function main() {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const { data: users, error: listErr } = await supabase.auth.admin.listUsers();
-  if (listErr) {
-    console.error('Failed to list users:', listErr.message);
+  let match;
+  try {
+    match = await findAuthUserByEmail(supabase, email);
+  } catch (listErr) {
+    console.error(
+      'Failed to list users:',
+      listErr instanceof Error ? listErr.message : listErr
+    );
     process.exit(1);
   }
 
-  const match = users.users.find(
-    u => u.email?.toLowerCase() === email.toLowerCase()
-  );
   if (!match) {
     console.error(`No auth user found with email: ${email}`);
     process.exit(1);
   }
 
-  const { error: updateErr } = await supabase
+  const { data, error: updateErr } = await supabase
     .from('admin_users')
     .update({ revoked_at: new Date().toISOString() })
     .eq('user_id', match.id)
-    .is('revoked_at', null);
+    .is('revoked_at', null)
+    .select('user_id');
 
   if (updateErr) {
     console.error('Failed to revoke admin:', updateErr.message);
+    process.exit(1);
+  }
+
+  if (!data?.length) {
+    console.error(
+      `${email} is not an active admin (already revoked or never granted)`
+    );
     process.exit(1);
   }
 
