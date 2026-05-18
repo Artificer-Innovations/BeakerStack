@@ -361,6 +361,12 @@ verify_jwt = false
 [functions.billing-stripe]
 verify_jwt = true
 
+[functions.waitlist-capture]
+verify_jwt = false
+
+[functions.waitlist-ops]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 55327

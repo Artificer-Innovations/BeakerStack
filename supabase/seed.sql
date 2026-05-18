@@ -71,4 +71,29 @@ ON CONFLICT (id) DO NOTHING;
 -- Local dev: allow template demo RPCs (never enable in production revenue DB)
 UPDATE public.billing_system_flags SET value = true WHERE key = 'demo_billing_mode';
 
+-- Waitlist singleton settings (signup_mode open by default for local dev)
+INSERT INTO public.waitlist_settings (
+    id,
+    signup_mode,
+    default_plan_id,
+    copy
+)
+VALUES (
+    1,
+    'open',
+    'beakerstack_free',
+    '{
+      "waitlist": {
+        "confirmation": "Thanks — you''re on the list. We''ll be in touch."
+      },
+      "invite_only": {
+        "message": "Sign up is invite-only. Check your email for an invitation link."
+      },
+      "closed": {
+        "message": "Sign ups are closed right now. Please check back later."
+      }
+    }'::jsonb
+)
+ON CONFLICT (id) DO NOTHING;
+
 SELECT 'Seed data loaded successfully' AS status;

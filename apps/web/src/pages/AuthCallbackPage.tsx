@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { readAndClearPostAuthRedirect } from '../auth/postAuthRedirect';
+import {
+  finalizeInviteSignup,
+  INVITE_TOKEN_STORAGE_KEY,
+} from './SignupInvitePage';
 
 export default function AuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +41,21 @@ export default function AuthCallbackPage() {
 
     if (auth.user) {
       navigatedRef.current = true;
+      const inviteToken = sessionStorage.getItem(INVITE_TOKEN_STORAGE_KEY);
+      if (inviteToken) {
+        void finalizeInviteSignup(
+          inviteToken,
+          auth.user.id,
+          auth.user.email ?? undefined
+        )
+          .then(() => navigate('/dashboard', { replace: true }))
+          .catch(() => {
+            setError(
+              'Could not complete invite signup. Try the invite link again.'
+            );
+          });
+        return;
+      }
       const stored = readAndClearPostAuthRedirect();
       navigate(stored ?? '/dashboard', { replace: true });
       return;

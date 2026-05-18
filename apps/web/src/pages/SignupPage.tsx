@@ -16,6 +16,8 @@ import {
   serializePostAuthRedirectPayload,
 } from '../auth/postAuthRedirect';
 import { appBasePath } from '../lib/appBasePath';
+import { SignupModeGate } from '@beakerstack/waitlist/web';
+import { beakerstackWaitlistConfig } from '../waitlist/beakerstackWaitlistConfig';
 
 function SignupPageContent() {
   const [email, setEmail] = useState('');
@@ -162,103 +164,108 @@ function SignupPageContent() {
               ) : null}
             </div>
 
-            <div className='space-y-3'>
-              <SocialLoginButton onPress={handleGoogleSignup} mode='signup' />
-            </div>
-
-            <div className='relative'>
-              <div className='absolute inset-0 flex items-center'>
-                <div className='w-full border-t border-gray-300 dark:border-gray-600' />
+            <SignupModeGate
+              supabase={supabase}
+              config={beakerstackWaitlistConfig}
+            >
+              <div className='space-y-3'>
+                <SocialLoginButton onPress={handleGoogleSignup} mode='signup' />
               </div>
-              <div className='relative flex justify-center text-sm'>
-                <span className='px-2 bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400'>
-                  Or continue with email
-                </span>
-              </div>
-            </div>
 
-            {error && (
-              <div className='rounded-md bg-red-50 dark:bg-red-900/30 p-4'>
-                <h3 className='text-sm font-medium text-red-800 dark:text-red-300'>
-                  {error}
-                </h3>
-              </div>
-            )}
-
-            <form className='mt-8 space-y-6' onSubmit={handleSignup}>
-              <div className='rounded-md shadow-sm -space-y-px'>
-                <div>
-                  <label htmlFor='email' className='sr-only'>
-                    Email address
-                  </label>
-                  <input
-                    id='email'
-                    name='email'
-                    type='email'
-                    autoComplete='email'
-                    required
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    disabled={isLoading}
-                    className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
-                    placeholder='Email address'
-                  />
+              <div className='relative'>
+                <div className='absolute inset-0 flex items-center'>
+                  <div className='w-full border-t border-gray-300 dark:border-gray-600' />
                 </div>
-                <div>
-                  <label htmlFor='password' className='sr-only'>
-                    Password
-                  </label>
-                  <input
-                    id='password'
-                    name='password'
-                    type='password'
-                    autoComplete='new-password'
-                    required
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    disabled={isLoading}
-                    className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
-                    placeholder='Password'
-                  />
-                </div>
-                <div>
-                  <label htmlFor='confirm-password' className='sr-only'>
-                    Confirm Password
-                  </label>
-                  <input
-                    id='confirm-password'
-                    name='confirm-password'
-                    type='password'
-                    autoComplete='new-password'
-                    required
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    disabled={isLoading}
-                    className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
-                    placeholder='Confirm password'
-                  />
+                <div className='relative flex justify-center text-sm'>
+                  <span className='px-2 bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400'>
+                    Or continue with email
+                  </span>
                 </div>
               </div>
 
-              <div>
-                <button
-                  type='submit'
-                  disabled={isLoading}
-                  className='group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed'
-                >
-                  {submitLabel}
-                </button>
-              </div>
+              {error && (
+                <div className='rounded-md bg-red-50 dark:bg-red-900/30 p-4'>
+                  <h3 className='text-sm font-medium text-red-800 dark:text-red-300'>
+                    {error}
+                  </h3>
+                </div>
+              )}
 
-              <div className='text-center md:text-left'>
-                <Link
-                  to={loginTo}
-                  className='font-medium text-primary-600 hover:text-primary-500'
-                >
-                  Already have an account? Sign in
-                </Link>
-              </div>
-            </form>
+              <form className='mt-8 space-y-6' onSubmit={handleSignup}>
+                <div className='rounded-md shadow-sm -space-y-px'>
+                  <div>
+                    <label htmlFor='email' className='sr-only'>
+                      Email address
+                    </label>
+                    <input
+                      id='email'
+                      name='email'
+                      type='email'
+                      autoComplete='email'
+                      required
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      disabled={isLoading}
+                      className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
+                      placeholder='Email address'
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor='password' className='sr-only'>
+                      Password
+                    </label>
+                    <input
+                      id='password'
+                      name='password'
+                      type='password'
+                      autoComplete='new-password'
+                      required
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      disabled={isLoading}
+                      className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
+                      placeholder='Password'
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor='confirm-password' className='sr-only'>
+                      Confirm Password
+                    </label>
+                    <input
+                      id='confirm-password'
+                      name='confirm-password'
+                      type='password'
+                      autoComplete='new-password'
+                      required
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      disabled={isLoading}
+                      className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
+                      placeholder='Confirm password'
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <button
+                    type='submit'
+                    disabled={isLoading}
+                    className='group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed'
+                  >
+                    {submitLabel}
+                  </button>
+                </div>
+
+                <div className='text-center md:text-left'>
+                  <Link
+                    to={loginTo}
+                    className='font-medium text-primary-600 hover:text-primary-500'
+                  >
+                    Already have an account? Sign in
+                  </Link>
+                </div>
+              </form>
+            </SignupModeGate>
           </div>
 
           {showPlanAside ? (
