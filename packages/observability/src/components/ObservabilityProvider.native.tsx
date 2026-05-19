@@ -64,8 +64,7 @@ export function ObservabilityProvider({ config, children, navigationRef }: Props
         return result;
       },
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.project, config.environment]);
+  }, [config.project, config.environment, navigationRef]);
 
   return (
     <ObservabilityContext.Provider value={handle}>

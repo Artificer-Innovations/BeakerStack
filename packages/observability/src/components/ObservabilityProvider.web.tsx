@@ -50,7 +50,6 @@ export function ObservabilityProvider({ config, children }: Props) {
         return result;
       },
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.project, config.environment]);
 
   return (
