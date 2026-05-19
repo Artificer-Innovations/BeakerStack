@@ -29,6 +29,8 @@ jest.mock('../../../lib/supabase', () => ({
   supabase: { rpc: jest.fn() },
 }));
 
+type RpcResult = { data: unknown; error: { message: string } | null };
+
 jest.mock('../../../lib/fakeAi', () => ({
   nextFakeAiSummary: () => 'Fake AI summary text',
 }));
@@ -40,7 +42,9 @@ jest.mock('../../../lib/randomUuid', () => ({
 const mockUseBillingContext = jest.mocked(useBillingContext);
 const mockUseUsage = jest.mocked(useUsage);
 const mockUseFeature = jest.mocked(useFeature);
-const mockRpc = jest.mocked(supabase.rpc);
+const mockRpc = supabase.rpc as unknown as jest.MockedFunction<
+  (...args: unknown[]) => Promise<RpcResult>
+>;
 const mockRandomUuid = jest.mocked(randomUuid);
 
 const hp = {
@@ -112,8 +116,13 @@ function setupMocks() {
   mockUseUsage.mockImplementation(
     () =>
       ({
+        used: 0,
+        limit: 30,
+        remaining: 30,
+        resetsAt: '',
         exceeded: hp.usageExceeded,
         loading: hp.usageLoading,
+        error: null,
         refresh: hp.refreshUsage,
       }) as ReturnType<typeof useUsage>
   );
@@ -267,10 +276,11 @@ describe('CollectionDetail', () => {
 
   it('disables other summarize buttons while one is in flight', async () => {
     let resolveRpc!: (v: { data: null; error: null }) => void;
-    mockRpc.mockReturnValue(
-      new Promise(res => {
-        resolveRpc = res;
-      })
+    mockRpc.mockImplementation(
+      () =>
+        new Promise(res => {
+          resolveRpc = res;
+        })
     );
 
     const { getAllByLabelText } = renderDetail(

@@ -7,10 +7,19 @@ import { Logger } from '../utils/logger';
 // Web platform does not require native Google configuration
 export function configureGoogleSignIn() {}
 
-function getAuthRedirectUrl(): string {
-  const basePath =
-    window.location.pathname.match(/^(\/pr-\d+)/)?.[1] || '';
-  return `${window.location.origin}${basePath}/auth/callback`;
+function getAuthRedirectBase(): string {
+  const basePath = window.location.pathname.match(/^(\/pr-\d+)/)?.[1] || '';
+  return `${window.location.origin}${basePath}`;
+}
+
+/** OAuth and legacy hash callbacks (Google sign-in). */
+function getAuthCallbackUrl(): string {
+  return `${getAuthRedirectBase()}/auth/callback`;
+}
+
+/** Token-hash emails (password reset, signup confirm, magic link). */
+function getAuthConfirmUrl(): string {
+  return `${getAuthRedirectBase()}/auth/confirm`;
 }
 
 export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
@@ -66,9 +75,15 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
     setLoading(true);
     setError(null);
 
+    const emailRedirectTo =
+      typeof window !== 'undefined' && window.location
+        ? getAuthConfirmUrl()
+        : undefined;
+
     const { error } = await supabaseClient.auth.signUp({
       email,
       password,
+      ...(emailRedirectTo ? { options: { emailRedirectTo } } : {}),
     });
 
     setLoading(false);
@@ -151,7 +166,7 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
 
     let redirectTo: string | undefined;
     if (typeof window !== 'undefined' && window.location) {
-      redirectTo = getAuthRedirectUrl();
+      redirectTo = getAuthCallbackUrl();
     }
 
     const authArgs = redirectTo
@@ -180,7 +195,7 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
 
     const redirectTo =
       typeof window !== 'undefined' && window.location
-        ? getAuthRedirectUrl()
+        ? getAuthConfirmUrl()
         : undefined;
 
     const options = redirectTo ? { redirectTo } : {};

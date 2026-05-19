@@ -183,7 +183,7 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
+enable_confirmations = false  # set to true to require email verification on signup
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
@@ -193,20 +193,37 @@ otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 3600
 
-# Use a production-ready SMTP server
+[auth.email.template.confirmation]
+subject = "Confirm your __PRODUCT_NAME__ account"
+content_path = "./supabase/templates/signup_confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Reset your __PRODUCT_NAME__ password"
+content_path = "./supabase/templates/password_reset.html"
+
+[auth.email.template.magic_link]
+subject = "Your __PRODUCT_NAME__ sign-in link"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your new __PRODUCT_NAME__ email address"
+content_path = "./supabase/templates/email_change.html"
+
+[auth.email.template.invite]
+subject = "You've been invited to __PRODUCT_NAME__"
+content_path = "./supabase/templates/invite.html"
+
+# Optional: custom SMTP (Resend recommended — see docs/EMAIL_TEMPLATES.md)
 # [auth.email.smtp]
 # enabled = true
-# host = "smtp.sendgrid.net"
+# host = "env(SMTP_HOST)"
 # port = 587
-# user = "apikey"
-# pass = "env(SENDGRID_API_KEY)"
-# admin_email = "admin@email.com"
-# sender_name = "Admin"
+# user = "env(SMTP_USER)"
+# pass = "env(SMTP_PASS)"
+# admin_email = "env(SMTP_ADMIN_EMAIL)"
+# sender_name = "env(SMTP_SENDER_NAME)"
 
-# Uncomment to customize email template
-# [auth.email.template.invite]
-# subject = "You have been invited"
-# content_path = "./supabase/templates/invite.html"
+
 
 [auth.sms]
 # Allow/disallow new user signups via SMS to your project.
@@ -385,3 +402,4 @@ s3_region = "env(S3_REGION)"
 s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
+

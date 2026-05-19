@@ -139,6 +139,7 @@
     "setup:local": "./scripts/setup-local.sh",
     "setup:full": "node ./scripts/setup-full.mjs",
     "setup-full": "node ./scripts/setup-full.mjs",
+    "email:personalize": "node scripts/personalize-email-templates.mjs",
     "setup:diagnose-secret-input": "node ./scripts/dev-diagnose-secret-input.mjs",
     "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules apps/*/dist apps/*/build",
     "clean:all": "npm run clean && supabase stop && docker system prune -f",

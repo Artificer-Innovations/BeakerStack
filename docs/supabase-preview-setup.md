@@ -164,6 +164,7 @@ Supabase needs to know which URLs are allowed for OAuth redirects.
 
    ```
    https://deploy.<your-domain>/pr-*/auth/callback
+   https://deploy.<your-domain>/pr-*/auth/confirm
    https://deploy.<your-domain>/pr-*/**
    https://deploy.<your-domain>/**
    ```
@@ -174,6 +175,7 @@ Supabase needs to know which URLs are allowed for OAuth redirects.
 
    ```
    https://deploy.beakerstack.com/pr-*/auth/callback
+   https://deploy.beakerstack.com/pr-*/auth/confirm
    https://deploy.beakerstack.com/pr-*/**
    https://deploy.beakerstack.com/**
    ```
@@ -182,7 +184,8 @@ Supabase needs to know which URLs are allowed for OAuth redirects.
 
 **Important**: Supabase supports wildcard patterns (`*`) in paths. The `**` pattern matches all paths recursively. The patterns above cover:
 
-- Individual PR callback paths: `/pr-123/auth/callback`
+- Individual PR callback paths: `/pr-123/auth/callback` (OAuth)
+- Token-hash email links: `/pr-123/auth/confirm` (password reset, signup confirm)
 - All paths within a PR: `/pr-123/**`
 - All paths on the deploy domain: `/**` (catch-all for any path)
 

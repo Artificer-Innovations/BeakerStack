@@ -1,0 +1,10 @@
+Confirm your new email address
+
+We received a request to update the email address on your {{PRODUCT_NAME}} account. Click the link below to confirm your new email address.
+
+Confirm new email: {{ if .RedirectTo }}{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email_change{{ else }}{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email_change{{ end }}
+
+---
+Sent by {{SENDER_NAME}} ({{PRODUCT_NAME}})
+{{COMPANY_ADDRESS}}
+Questions? {{SUPPORT_EMAIL}}

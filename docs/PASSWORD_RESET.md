@@ -5,30 +5,33 @@
 ### Web
 
 1. User clicks **Forgot password?** on `/login` → `/forgot-password`
-2. User enters email, submits. `auth.requestPasswordReset(email)` calls `supabase.auth.resetPasswordForEmail(email, { redirectTo })` where `redirectTo` is built by `getAuthRedirectUrl()`:
-   - Standard: `https://app.example.com/auth/callback`
-   - PR previews: `https://pr-9.example.com/pr-9/auth/callback`
-3. User receives email, clicks link → browser opens `/auth/callback#access_token=...&type=recovery`
-4. `AuthCallbackPage` detects `type=recovery` in the hash **before** the `auth.user → /dashboard` branch, then subscribes to `onAuthStateChange`. When the `PASSWORD_RECOVERY` event fires, the page navigates to `/reset-password`.
+2. User enters email, submits. `auth.requestPasswordReset(email)` calls `supabase.auth.resetPasswordForEmail(email, { redirectTo })` where `redirectTo` is built by `getAuthConfirmUrl()`:
+   - Standard: `https://app.example.com/auth/confirm`
+   - PR previews: `https://pr-9.example.com/pr-9/auth/confirm`
+3. User receives email, clicks link → browser opens `/auth/confirm?token_hash=...&type=recovery`
+4. `AuthConfirmPage` calls `supabase.auth.verifyOtp({ token_hash, type: 'recovery' })`. On success, redirects to `/reset-password`. On error (expired or already used), redirects to `/forgot-password?expired=1`.
 5. `ResetPasswordPage` calls `supabase.auth.getSession()` on mount. If no session (link expired or revisited after use), redirects to `/forgot-password?expired=1`. With a valid session, the user sets a new password via `auth.updatePassword(password)` and is sent to `/dashboard` with `replace: true`.
 
-### Mobile (iOS / Android)
+### Mobile (iOS / Android) — v1
+
+This PR adds the web **token-hash** flow (`AuthConfirmPage`). Native apps are unchanged:
 
 1. User taps **Forgot password?** on `LoginScreen` → `ForgotPasswordScreen`
-2. User enters email, submits. `auth.requestPasswordReset(email)` calls `resetPasswordForEmail(email, { redirectTo: 'beaker-stack://auth/callback' })`
-3. User receives email, taps link → app opens via deep link to `AuthCallbackScreen`
-4. `AuthCallbackScreen` subscribes to `onAuthStateChange`:
-   - `PASSWORD_RECOVERY` → navigate to `ResetPasswordScreen`
-   - `SIGNED_IN` → navigate to `Dashboard`
-5. `ResetPasswordScreen` guards on `getSession()`. No session → navigate to `ForgotPasswordScreen`. With session, user sets new password via `auth.updatePassword(password)` and is reset-navigated to `Dashboard`.
+2. User submits. `auth.requestPasswordReset(email)` calls `resetPasswordForEmail` with `redirectTo: 'beaker-stack://auth/callback'`
+3. Branded email templates use `{{ .RedirectTo }}`, so the link targets the app deep link when the request comes from mobile
+4. `AuthCallbackScreen` handles the session via `onAuthStateChange(PASSWORD_RECOVERY)` → `ResetPasswordScreen`
 
-## `PASSWORD_RECOVERY` event ordering
+When a user opens a reset link on a phone without the app installed, the link opens in the device browser. Ensure your hosted web `/auth/confirm` URL is allowlisted (see web flow above). A native `AuthConfirm` screen and `beaker-stack://auth/confirm` deep link are follow-up work.
 
-The `PASSWORD_RECOVERY` event from `supabase.auth.onAuthStateChange` is the authoritative signal that a user is in a reset session. On web, `AuthCallbackPage` must subscribe to this event **before** the generic `auth.user → /dashboard` check — otherwise an already-established recovery session would route to the dashboard instead of the reset form.
+## Token-hash flow vs legacy hash-fragment flow
 
-The guard is layered:
+BeakerStack uses the **token-hash strategy** on web: email links contain `?token_hash=...&type=recovery` as query parameters (not `#access_token=...` hash fragments). `AuthConfirmPage` calls `verifyOtp()` to exchange the token for a session, then redirects to the appropriate page.
 
-1. **Synchronous URL capture** (`isPasswordRecoveryCallback` in `apps/web/src/lib/supabase.ts`) — reads `type=recovery` before Supabase initializes and clears the hash, persisting intent in `sessionStorage`.
+This is the Supabase-recommended PKCE-compatible approach and avoids exposing tokens in browser history or server logs.
+
+`AuthCallbackPage` handles OAuth and legacy hash redirects. Password recovery routed through `/auth/callback` uses layered guards in `apps/web/src/lib/supabase.ts`:
+
+1. **Synchronous URL capture** (`isPasswordRecoveryCallback`) — reads `type=recovery` before Supabase initializes and clears the hash, persisting intent in `sessionStorage`.
 2. **Synchronous URL hash check** (`type=recovery`) — prevents the `auth.user` branch from running while the `onAuthStateChange` subscription hasn't fired yet.
 3. **`onAuthStateChange(PASSWORD_RECOVERY)`** — the authoritative redirect to `/reset-password`.
 4. **Recovery fallback timer** (~1.5s) — if a session exists but `PASSWORD_RECOVERY` never fires (e.g. stale localStorage session), navigate to `/reset-password` anyway.
@@ -37,17 +40,18 @@ The guard is layered:
 
 Add these to your Supabase project's **Auth → URL Configuration → Redirect URLs**:
 
-| Environment | URL                                               |
-| ----------- | ------------------------------------------------- |
-| Local dev   | `http://localhost:5173/auth/callback`             |
-| Staging     | `https://staging.beakerstack.com/auth/callback`   |
-| Production  | `https://app.beakerstack.com/auth/callback`       |
-| PR previews | `https://pr-*.beakerstack.com/pr-*/auth/callback` |
-| Mobile      | `beaker-stack://auth/callback`                    |
+| Environment               | URL                                              |
+| ------------------------- | ------------------------------------------------ |
+| Local dev                 | `http://localhost:5173/auth/confirm`             |
+| Staging                   | `https://staging.beakerstack.com/auth/confirm`   |
+| Production                | `https://app.beakerstack.com/auth/confirm`       |
+| PR previews               | `https://pr-*.beakerstack.com/pr-*/auth/confirm` |
+| Mobile (native app)       | `beaker-stack://auth/callback`                   |
+| Mobile (browser fallback) | same hosted `/auth/confirm` URLs as web          |
 
-## Mobile deep-link setup
+## Mobile deep-link setup (native v1)
 
-The app scheme is `beaker-stack` (configured in `app.json` → `expo.scheme`). React Navigation's `linking` config in `AppNavigator.tsx` maps `beaker-stack://auth/callback` to the `AuthCallback` screen. `detectSessionInUrl: true` in `apps/mobile/src/lib/supabase.ts` allows Supabase to parse tokens from the deep-link URL.
+The app scheme is `beaker-stack` (configured in `app.config.js` → `expo.scheme`). React Navigation's `linking` config in `AppNavigator.tsx` maps `beaker-stack://auth/callback` to `AuthCallbackScreen` for OAuth and password recovery.
 
 ## Manual test checklist
 
@@ -58,7 +62,7 @@ The app scheme is `beaker-stack` (configured in `app.json` → `expo.scheme`). R
 - [ ] Set new password ≥ 8 chars → redirected to `/dashboard`
 - [ ] Revisit the reset URL after using it → redirected to `/forgot-password?expired=1`
 - [ ] Google OAuth callback still routes to `/dashboard` (regression)
-- [ ] PR preview: reset link email uses `/pr-N/auth/callback` in `redirectTo`
+- [ ] PR preview: reset link email uses `/pr-N/auth/confirm` in `redirectTo`
 
 ### Local dev (mobile — Expo Go / simulator)
 

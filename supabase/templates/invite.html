@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>You've been invited to {{PRODUCT_NAME}}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f4f4f5;padding:40px 0;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="max-width:560px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <!-- Header -->
+        <tr>
+          <td style="background:{{BRAND_COLOR}};padding:28px 40px;">
+            <p style="margin:0;color:#ffffff;font-size:18px;font-weight:600;letter-spacing:-0.01em;">{{PRODUCT_NAME}}</p>
+          </td>
+        </tr>
+        <!-- Body -->
+        <tr>
+          <td style="padding:40px;">
+            <h1 style="margin:0 0 16px;font-size:22px;font-weight:600;color:#18181b;letter-spacing:-0.02em;">You've been invited to {{PRODUCT_NAME}}</h1>
+            <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#52525b;">{{SENDER_NAME}} has invited you to join {{PRODUCT_NAME}}. Click the button below to accept your invitation and create your account.</p>
+            <!-- CTA button -->
+            <table cellpadding="0" cellspacing="0" role="presentation">
+              <tr>
+                <td style="border-radius:6px;background:{{BRAND_COLOR}};">
+                  <a href="{{ if .RedirectTo }}{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=invite{{ else }}{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=invite{{ end }}"
+                     style="display:inline-block;padding:12px 28px;color:#ffffff;font-size:15px;font-weight:500;text-decoration:none;border-radius:6px;">Accept invitation</a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:24px 0 0;font-size:13px;color:#a1a1aa;">
+              Or copy this link into your browser:<br>
+              <span style="word-break:break-all;color:#71717a;">{{ if .RedirectTo }}{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=invite{{ else }}{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=invite{{ end }}</span>
+            </p>
+          </td>
+        </tr>
+        <!-- Footer (CAN-SPAM) -->
+        <tr>
+          <td style="padding:20px 40px 28px;border-top:1px solid #f4f4f5;">
+            <p style="margin:0 0 6px;font-size:12px;color:#a1a1aa;line-height:1.5;">
+              This email was sent by {{SENDER_NAME}} on behalf of {{PRODUCT_NAME}}.<br>
+              {{COMPANY_ADDRESS}}
+            </p>
+            <p style="margin:0;font-size:12px;color:#a1a1aa;">
+              Questions? Email <a href="mailto:{{SUPPORT_EMAIL}}" style="color:#a1a1aa;text-decoration:underline;">{{SUPPORT_EMAIL}}</a>.
+              If you didn't request this, you can safely ignore it.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
