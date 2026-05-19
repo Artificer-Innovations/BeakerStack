@@ -36,9 +36,14 @@ export default defineConfig({
         '**/vitest.setup.ts',
         '**/*.{test,spec}.{ts,tsx}',
         'src/test/**',
-        // Type-only modules: no executable statements after TS emit; covered via imports in typeOnlyBarrel.test.ts
+        // Type-only modules: no executable statements after TS emit
         'src/types.ts',
+        'src/index.ts',
         'src/**/*.types.ts',
+        // Native-only modules: no React Native runtime in CI
+        'src/init.native.ts',
+        'src/native.ts',
+        'src/components/ObservabilityProvider.native.tsx',
       ],
     },
   },

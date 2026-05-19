@@ -22,6 +22,11 @@ function Consumer({ action }: { action?: string }) {
     if (action === 'setUser') obs.setUser('user-123');
     if (action === 'clearUser') obs.setUser(null);
     if (action === 'breadcrumb') obs.addBreadcrumb({ message: 'hello user@example.com' });
+    if (action === 'captureException') obs.captureException(new Error('oops'));
+    if (action === 'captureExceptionCtx') obs.captureException(new Error('oops'), { key: 'val' });
+    if (action === 'captureMessage') obs.captureMessage('hello', 'warning');
+    if (action === 'withScope') obs.withScope(scope => scope);
+    if (action === 'startSpan') obs.startSpan('op', () => 'done');
   }, [action, obs]);
   return <div>ok</div>;
 }
@@ -71,6 +76,62 @@ describe('ObservabilityProvider (web)', () => {
     await act(async () => {});
     expect(SentryMock.addBreadcrumb).toHaveBeenCalledWith(
       expect.objectContaining({ message: 'hello [email]' })
+    );
+  });
+
+  it('captureException without context', async () => {
+    render(
+      <ObservabilityProvider config={config}>
+        <Consumer action="captureException" />
+      </ObservabilityProvider>
+    );
+    await act(async () => {});
+    expect(SentryMock.captureException).toHaveBeenCalledWith(expect.any(Error), undefined);
+  });
+
+  it('captureException with context', async () => {
+    render(
+      <ObservabilityProvider config={config}>
+        <Consumer action="captureExceptionCtx" />
+      </ObservabilityProvider>
+    );
+    await act(async () => {});
+    expect(SentryMock.captureException).toHaveBeenCalledWith(
+      expect.any(Error),
+      { extra: { key: 'val' } }
+    );
+  });
+
+  it('captureMessage with level', async () => {
+    render(
+      <ObservabilityProvider config={config}>
+        <Consumer action="captureMessage" />
+      </ObservabilityProvider>
+    );
+    await act(async () => {});
+    expect(SentryMock.captureMessage).toHaveBeenCalledWith('hello', 'warning');
+  });
+
+  it('withScope calls Sentry.withScope', async () => {
+    render(
+      <ObservabilityProvider config={config}>
+        <Consumer action="withScope" />
+      </ObservabilityProvider>
+    );
+    await act(async () => {});
+    expect(SentryMock.withScope).toHaveBeenCalled();
+  });
+
+  it('startSpan calls Sentry.startSpan', async () => {
+    render(
+      <ObservabilityProvider config={config}>
+        <Consumer action="startSpan" />
+      </ObservabilityProvider>
+    );
+    await act(async () => {});
+    expect(SentryMock.startSpan).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'op' }),
+      expect.any(Function)
     );
   });
 });
