@@ -23,6 +23,7 @@ import { ProfileStats } from '@beakerstack/shared/components/profile/ProfileStat
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - Dynamic imports are supported by Metro, TypeScript error is a false positive
 import type { ProfileEditorProps } from '@beakerstack/shared/components/profile/ProfileEditor.native';
+import { loadProfileEditorModule } from './profileEditorLoader';
 let ProfileEditor: React.ComponentType<ProfileEditorProps> | null = null;
 
 type RootStackParamList = {
@@ -89,10 +90,7 @@ function ProfileScreenContent({ navigation: _navigation }: Props) {
   // Lazy load ProfileEditor only when editing
   useEffect(() => {
     if (isEditing && !componentsLoaded) {
-      // Dynamic imports are supported by Metro bundler
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore - TypeScript doesn't recognize dynamic imports but Metro supports them
-      import('@beakerstack/shared/components/profile/ProfileEditor.native')
+      loadProfileEditorModule()
         .then(module => {
           ProfileEditor = module.ProfileEditor;
           setComponentsLoaded(true);

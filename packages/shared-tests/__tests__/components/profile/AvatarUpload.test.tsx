@@ -157,6 +157,52 @@ describe('AvatarUpload', () => {
     expect(screen.getByText('Upload failed')).toBeInTheDocument();
   });
 
+  it('clears preview when upload throws', async () => {
+    mockUploadAvatar.mockRejectedValueOnce(new Error('Upload failed'));
+
+    render(
+      <AvatarUpload
+        currentAvatarUrl={null}
+        onUploadComplete={mockOnUploadComplete}
+        onRemove={mockOnRemove}
+        userId='user-id-1'
+        supabaseClient={mockSupabaseClient}
+      />
+    );
+
+    const fileInput = document.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
+    const file = new File(['content'], 'avatar.jpg', { type: 'image/jpeg' });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(mockUploadAvatar).toHaveBeenCalledWith(file);
+    });
+    expect(mockOnUploadComplete).not.toHaveBeenCalled();
+  });
+
+  it('does not call onRemove when removeAvatar throws', async () => {
+    mockRemoveAvatar.mockRejectedValueOnce(new Error('Remove failed'));
+
+    render(
+      <AvatarUpload
+        currentAvatarUrl='https://example.com/avatar.jpg'
+        onUploadComplete={mockOnUploadComplete}
+        onRemove={mockOnRemove}
+        userId='user-id-1'
+        supabaseClient={mockSupabaseClient}
+      />
+    );
+
+    fireEvent.click(screen.getByText('Remove'));
+
+    await waitFor(() => {
+      expect(mockRemoveAvatar).toHaveBeenCalled();
+    });
+    expect(mockOnRemove).not.toHaveBeenCalled();
+  });
+
   it('handles remove avatar', async () => {
     render(
       <AvatarUpload

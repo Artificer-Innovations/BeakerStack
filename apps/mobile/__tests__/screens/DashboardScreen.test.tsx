@@ -695,6 +695,103 @@ describe('DashboardScreen', () => {
     });
   });
 
+  it('reselects another collection when the selected one is deleted', async () => {
+    const rows = [
+      { id: 'keepcol1', item_count: 0 },
+      { id: 'gonecol2', item_count: 0 },
+    ];
+    (supabase.rpc as jest.Mock).mockImplementation((name: string) => {
+      if (name === 'billing_demo_get_collections') {
+        return Promise.resolve({ data: [...rows], error: null });
+      }
+      if (name === 'billing_demo_delete_collection') {
+        const idx = rows.findIndex(r => r.id === 'gonecol2');
+        if (idx >= 0) rows.splice(idx, 1);
+        return Promise.resolve({ data: null, error: null });
+      }
+      if (name === 'billing_record_usage_event') {
+        return Promise.resolve({ data: null, error: null });
+      }
+      if (name === 'ensure_billing_subscription') {
+        return Promise.resolve({ data: null, error: null });
+      }
+      if (name === 'billing_get_remaining_usage') {
+        return Promise.resolve({
+          data: {
+            used: 0,
+            limit: 30,
+            remaining: 30,
+            periodEnd: '',
+            periodStart: '',
+          },
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const { getByText, queryByText, getAllByLabelText, getAllByText } =
+      renderWithProviders(<DashboardScreen navigation={mockNavigation} />);
+
+    await waitFor(() => {
+      expect(getByText('gonecol2…')).toBeTruthy();
+    });
+
+    const collectionCards = getAllByText('Collection');
+    fireEvent.press(collectionCards[collectionCards.length - 1]!);
+
+    const deleteButtons = getAllByLabelText('Delete collection');
+    fireEvent.press(deleteButtons[deleteButtons.length - 1]!);
+
+    await waitFor(() => {
+      expect(queryByText(/gonecol2/)).toBeNull();
+      expect(getByText('keepcol1…')).toBeTruthy();
+    });
+  });
+
+  it('shows demo control error message when simulate upgrade rejects with Error', async () => {
+    process.env.EXPO_PUBLIC_BILLING_DEMO_MODE = 'true';
+    (supabase.rpc as jest.Mock).mockImplementation((name: string) => {
+      if (name === 'billing_demo_simulate_upgrade') {
+        return Promise.reject(new Error('Upgrade boom'));
+      }
+      if (name === 'billing_record_usage_event') {
+        return Promise.resolve({ data: null, error: null });
+      }
+      if (name === 'billing_demo_get_collections') {
+        return Promise.resolve({ data: [], error: null });
+      }
+      if (name === 'billing_demo_reset_usage') {
+        return Promise.resolve({ data: null, error: null });
+      }
+      if (name === 'ensure_billing_subscription') {
+        return Promise.resolve({ data: null, error: null });
+      }
+      if (name === 'billing_get_remaining_usage') {
+        return Promise.resolve({
+          data: {
+            used: 0,
+            limit: 30,
+            remaining: 30,
+            periodEnd: '',
+            periodStart: '',
+          },
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const { getByText } = renderWithProviders(
+      <DashboardScreen navigation={mockNavigation} />
+    );
+
+    await waitFor(() => expect(getByText('To Pro')).toBeTruthy());
+    fireEvent.press(getByText('To Pro'));
+
+    await waitFor(() => expect(getByText('Upgrade boom')).toBeTruthy());
+  });
+
   it('shows Limit on add item when at item cap', async () => {
     const billing = jest.requireMock('@beakerstack/billing') as {
       useFeature: jest.Mock;

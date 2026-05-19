@@ -37,6 +37,8 @@ module.exports = {
     // Pure data files — auto-generated or constant objects with no logic to test
     '!<rootDir>/packages/shared/src/generated/**',
     '!<rootDir>/packages/shared/src/config/legal.ts',
+    '!<rootDir>/packages/shared/src/config/auth.ts',
+    '!<rootDir>/packages/shared/src/constants/auth.ts',
   ],
   coveragePathIgnorePatterns: ['/node_modules/', '/__tests__/', '/__mocks__/'],
   coverageDirectory: path.join(__dirname, 'coverage'),

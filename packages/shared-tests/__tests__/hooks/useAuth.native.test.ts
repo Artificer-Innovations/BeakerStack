@@ -819,4 +819,85 @@ describe('Google Sign-In and configureGoogleSignIn', () => {
       'UNKNOWN_CODE'
     );
   });
+
+  it('should request password reset with mobile deep link', async () => {
+    const { mockClient } = createMockSupabaseClient();
+    mockClient.auth.resetPasswordForEmail = jest.fn().mockResolvedValue({
+      data: {},
+      error: null,
+    });
+    const { result } = renderHook(() => useAuth(mockClient));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.requestPasswordReset('user@example.com');
+    });
+
+    expect(mockClient.auth.resetPasswordForEmail).toHaveBeenCalledWith(
+      'user@example.com',
+      { redirectTo: 'beaker-stack://auth/callback' }
+    );
+  });
+
+  it('should throw when native password reset fails', async () => {
+    const { mockClient } = createMockSupabaseClient();
+    mockClient.auth.resetPasswordForEmail = jest.fn().mockResolvedValue({
+      data: null,
+      error: { message: 'Reset failed' },
+    });
+    const { result } = renderHook(() => useAuth(mockClient));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await expect(
+      act(async () => {
+        await result.current.requestPasswordReset('user@example.com');
+      })
+    ).rejects.toThrow('Reset failed');
+  });
+
+  it('should update password successfully on native', async () => {
+    const { mockClient } = createMockSupabaseClient();
+    mockClient.auth.updateUser = jest.fn().mockResolvedValue({
+      data: { user: {} },
+      error: null,
+    });
+    const { result } = renderHook(() => useAuth(mockClient));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.updatePassword('new-password-1');
+    });
+
+    expect(mockClient.auth.updateUser).toHaveBeenCalledWith({
+      password: 'new-password-1',
+    });
+  });
+
+  it('should throw when native update password fails', async () => {
+    const { mockClient } = createMockSupabaseClient();
+    mockClient.auth.updateUser = jest.fn().mockResolvedValue({
+      data: { user: null },
+      error: { message: 'Weak password' },
+    });
+    const { result } = renderHook(() => useAuth(mockClient));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await expect(
+      act(async () => {
+        await result.current.updatePassword('short');
+      })
+    ).rejects.toThrow('Weak password');
+  });
 });
