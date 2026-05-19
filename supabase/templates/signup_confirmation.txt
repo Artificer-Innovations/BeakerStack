@@ -1,0 +1,10 @@
+Confirm your email address
+
+Thanks for signing up! Click the link below to confirm your email address and activate your account. This link expires in 24 hours.
+
+Confirm your email: {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup
+
+---
+Sent by {{SENDER_NAME}} ({{PRODUCT_NAME}})
+{{COMPANY_ADDRESS}}
+Questions? {{SUPPORT_EMAIL}}

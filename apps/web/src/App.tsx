@@ -24,6 +24,7 @@ const SignupInvitePage = lazy(() => import('./pages/SignupInvitePage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage'));
+const AuthConfirmPage = lazy(() => import('./pages/AuthConfirmPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const PolicyPage = lazy(() => import('./pages/PolicyPage'));
@@ -115,6 +116,7 @@ function App() {
                 <Route path='/forgot-password' element={<ForgotPasswordPage />} />
                 <Route path='/reset-password' element={<ResetPasswordPage />} />
                 <Route path='/auth/callback' element={<AuthCallbackPage />} />
+                <Route path='/auth/confirm' element={<AuthConfirmPage />} />
                 <Route
                   path='/not-authorized'
                   element={
