@@ -2,7 +2,7 @@ Your sign-in link
 
 Here's your magic link for {{PRODUCT_NAME}}. Click the link below to sign in. This link expires in 1 hour and can only be used once.
 
-Sign in now: {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=magiclink
+Sign in now: {{ if .RedirectTo }}{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=magiclink{{ else }}{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=magiclink{{ end }}
 
 ---
 Sent by {{SENDER_NAME}} ({{PRODUCT_NAME}})

@@ -136,6 +136,7 @@ describe('useAuth', () => {
     expect(mockClient.auth.signUp).toHaveBeenCalledWith({
       email: 'test@example.com',
       password: 'password123',
+      options: { emailRedirectTo: 'http://localhost/auth/confirm' },
     });
   });
 
@@ -403,8 +404,35 @@ describe('useAuth', () => {
 
     expect(mockClient.auth.resetPasswordForEmail).toHaveBeenCalledWith(
       'user@example.com',
-      { redirectTo: 'http://localhost/auth/callback' }
+      { redirectTo: 'http://localhost/auth/confirm' }
     );
+  });
+
+  it('should use PR preview path for password reset redirect', async () => {
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/pr-9/forgot-password');
+
+    const { mockClient } = createMockSupabaseClient();
+    mockClient.auth.resetPasswordForEmail = jest.fn().mockResolvedValue({
+      data: {},
+      error: null,
+    });
+    const { result } = renderHook(() => useAuth(mockClient));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.requestPasswordReset('user@example.com');
+    });
+
+    expect(mockClient.auth.resetPasswordForEmail).toHaveBeenCalledWith(
+      'user@example.com',
+      { redirectTo: `${window.location.origin}/pr-9/auth/confirm` }
+    );
+
+    window.history.replaceState({}, '', originalHref);
   });
 
   it('should throw when password reset fails', async () => {

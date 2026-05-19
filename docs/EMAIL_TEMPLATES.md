@@ -4,15 +4,17 @@ BeakerStack ships five ready-to-use transactional email templates that integrate
 
 ## Overview
 
-| Template | File | Supabase Type | Trigger |
-|---|---|---|---|
-| Signup confirmation | `signup_confirmation.html` | `signup` | New user registration |
-| Password reset | `password_reset.html` | `recovery` | Forgot password flow |
-| Magic link | `magic_link.html` | `magiclink` | Passwordless sign-in |
-| Email change | `email_change.html` | `email_change` | User updates their email |
-| Invite | `invite.html` | `invite` | Admin invites a user |
+| Template            | File                       | Supabase Type  | Trigger                  |
+| ------------------- | -------------------------- | -------------- | ------------------------ |
+| Signup confirmation | `signup_confirmation.html` | `signup`       | New user registration    |
+| Password reset      | `password_reset.html`      | `recovery`     | Forgot password flow     |
+| Magic link          | `magic_link.html`          | `magiclink`    | Passwordless sign-in     |
+| Email change        | `email_change.html`        | `email_change` | User updates their email |
+| Invite              | `invite.html`              | `invite`       | Admin invites a user     |
 
 All templates use the **token-hash strategy** — links resolve to `/auth/confirm?token_hash=...&type=...`, which calls `supabase.auth.verifyOtp()` and then redirects to the right page. This is the recommended Supabase PKCE-compatible approach.
+
+Links prefer `{{ .RedirectTo }}` (from `resetPasswordForEmail`, `signUp` `emailRedirectTo`, etc.) and fall back to `{{ .SiteURL }}/auth/confirm` when no redirect is passed. On PR preview deploys, the web app passes `https://deploy.example.com/pr-N/auth/confirm` so email links stay on the preview path instead of the root Site URL.
 
 Plain-text versions (`.txt` files) are provided alongside each HTML template for email clients that prefer or require plain text. **Note:** The `.txt` files in `supabase/templates/` are reference copies for human review only. Supabase derives plain-text email from the HTML template automatically — these files are not wired to Supabase via `config.toml` and do not affect sent emails.
 
@@ -27,6 +29,7 @@ npm run email:personalize
 ```
 
 The script will prompt for:
+
 - Product name (reads from `packages/shared/src/config/branding.ts` as default)
 - Brand color (hex, reads from `packages/shared/src/theme/colors.ts` as default)
 - Sender name
@@ -70,20 +73,21 @@ Templates live in `supabase/templates/`. Each is a self-contained HTML file with
 
 **Brand placeholders** (replaced by the personalization script):
 
-| Placeholder | Description |
-|---|---|
-| `{{PRODUCT_NAME}}` | Your product/app name |
-| `{{BRAND_COLOR}}` | Primary brand color (hex, e.g. `#6366f1`) |
-| `{{SENDER_NAME}}` | Sender display name (e.g. "Acme Team") |
-| `{{SUPPORT_EMAIL}}` | Support email address |
+| Placeholder           | Description                                  |
+| --------------------- | -------------------------------------------- |
+| `{{PRODUCT_NAME}}`    | Your product/app name                        |
+| `{{BRAND_COLOR}}`     | Primary brand color (hex, e.g. `#6366f1`)    |
+| `{{SENDER_NAME}}`     | Sender display name (e.g. "Acme Team")       |
+| `{{SUPPORT_EMAIL}}`   | Support email address                        |
 | `{{COMPANY_ADDRESS}}` | Physical mailing address (CAN-SPAM required) |
 
 **Supabase Go template variables** (never modify these — Supabase substitutes them at send time):
 
-| Variable | Description |
-|---|---|
-| `{{ .SiteURL }}` | Your configured site URL |
-| `{{ .TokenHash }}` | The OTP token hash |
+| Variable            | Description                                                               |
+| ------------------- | ------------------------------------------------------------------------- |
+| `{{ .SiteURL }}`    | Your configured site URL                                                  |
+| `{{ .RedirectTo }}` | Redirect URL from the auth API call (PR preview paths, mobile deep links) |
+| `{{ .TokenHash }}`  | The OTP token hash                                                        |
 
 ### Ejection marker
 
@@ -107,17 +111,18 @@ Resend is the recommended SMTP provider for transactional email. It offers a gen
 
 3. **Add DNS records** — Resend will give you SPF, DKIM, and DMARC records to add to your DNS provider:
 
-   | Record type | Host | Value |
-   |---|---|---|
-   | TXT | `@` or subdomain | SPF record (`v=spf1 include:amazonses.com ~all`) |
-   | TXT | `resend._domainkey` | DKIM public key |
-   | TXT | `_dmarc` | `v=DMARC1; p=quarantine; rua=mailto:dmarc@yourdomain.com` |
+   | Record type | Host                | Value                                                     |
+   | ----------- | ------------------- | --------------------------------------------------------- |
+   | TXT         | `@` or subdomain    | SPF record (`v=spf1 include:amazonses.com ~all`)          |
+   | TXT         | `resend._domainkey` | DKIM public key                                           |
+   | TXT         | `_dmarc`            | `v=DMARC1; p=quarantine; rua=mailto:dmarc@yourdomain.com` |
 
 4. **Wait for verification** — usually a few minutes; can take up to 48 hours for DNS propagation
 
 5. **Get an API key** — API Keys → Create API Key. Copy the key (shown once)
 
 6. **Set environment variables** in `.env.local`:
+
    ```
    SMTP_HOST=smtp.resend.com
    SMTP_PORT=587
@@ -128,6 +133,7 @@ Resend is the recommended SMTP provider for transactional email. It offers a gen
    ```
 
 7. **Uncomment the SMTP block** in `supabase/config.toml`:
+
    ```toml
    [auth.email.smtp]
    enabled = true
@@ -152,6 +158,7 @@ Proper domain authentication is critical for deliverability and protects your br
 **DMARC** (Domain-based Message Authentication, Reporting & Conformance) — tells receiving servers what to do when SPF or DKIM fails. Start with `p=none` for monitoring, then move to `p=quarantine` once you've confirmed legitimate mail is passing.
 
 Recommended DMARC policy for production:
+
 ```
 v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@yourdomain.com; pct=100
 ```
@@ -178,4 +185,3 @@ To switch from Resend to another SMTP provider (SendGrid, Postmark, AWS SES, etc
 3. Restart Supabase: `supabase stop && supabase start`
 
 No template changes required — the SMTP block in `supabase/config.toml` uses `env()` substitution for all connection details.
-

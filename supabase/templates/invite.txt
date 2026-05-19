@@ -2,7 +2,7 @@ You've been invited to {{PRODUCT_NAME}}
 
 {{SENDER_NAME}} has invited you to join {{PRODUCT_NAME}}. Click the link below to accept your invitation and create your account.
 
-Accept invitation: {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite
+Accept invitation: {{ if .RedirectTo }}{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=invite{{ else }}{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite{{ end }}
 
 ---
 Sent by {{SENDER_NAME}} ({{PRODUCT_NAME}})
