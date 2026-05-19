@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
+import { MIN_PASSWORD_LENGTH } from '@beakerstack/shared/constants/auth';
 import { supabase } from '@/lib/supabase';
 import { SocialLoginButton } from '../components/SocialLoginButton';
 import { SignupPlanSummary } from '../components/auth/SignupPlanSummary';
@@ -58,6 +59,11 @@ function SignupPageContent() {
 
     if (!email || !password || !confirmPassword) {
       setError('Please fill in all fields');
+      return;
+    }
+
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
       return;
     }
 

@@ -93,7 +93,7 @@ describe('supabase.ts', () => {
           storage: mockAsyncStorage,
           autoRefreshToken: true,
           persistSession: true,
-          detectSessionInUrl: false,
+          detectSessionInUrl: true,
         },
       })
     );

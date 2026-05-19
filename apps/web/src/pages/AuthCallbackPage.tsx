@@ -6,6 +6,7 @@ import {
   finalizeInviteSignup,
   INVITE_TOKEN_STORAGE_KEY,
 } from './SignupInvitePage';
+import { supabase } from '@/lib/supabase';
 
 export default function AuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +36,19 @@ export default function AuthCallbackPage() {
     [navigate]
   );
 
+  // Handle PASSWORD_RECOVERY before auth.user triggers the /dashboard redirect.
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY' && !navigatedRef.current) {
+        navigatedRef.current = true;
+        navigate('/reset-password', { replace: true });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
   useEffect(() => {
     if (navigatedRef.current) return;
 
@@ -53,6 +67,11 @@ export default function AuthCallbackPage() {
       }, 3000);
       return () => clearTimeout(t);
     }
+
+    // If type=recovery, let the onAuthStateChange subscription handle navigation
+    // to /reset-password — don't fall through to the auth.user → /dashboard branch.
+    const recoveryType = hashParams.get('type') || queryParams.get('type');
+    if (recoveryType === 'recovery') return;
 
     if (auth.loading) return;
 
@@ -132,7 +151,7 @@ export default function AuthCallbackPage() {
       <div className='max-w-md w-full space-y-8 text-center'>
         <div>
           <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white'>
-            Completing sign in...
+            Completing authentication...
           </h2>
           <div className='mt-8 flex justify-center'>
             <svg

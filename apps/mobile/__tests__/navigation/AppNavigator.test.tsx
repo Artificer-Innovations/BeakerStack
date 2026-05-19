@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react-native';
+import { render, waitFor } from '@testing-library/react-native';
 import { AppNavigator } from '../../src/navigation/AppNavigator';
 import { useFeatureFlags } from '../../src/config/featureFlags';
 
@@ -65,6 +65,42 @@ jest.mock('../../src/navigation/BillingNavigator', () => {
   };
 });
 
+jest.mock('../../src/screens/ForgotPasswordScreen', () => {
+  const { View, Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => (
+      <View testID='forgot-password-screen'>
+        <Text>Forgot Password Screen</Text>
+      </View>
+    ),
+  };
+});
+
+jest.mock('../../src/screens/AuthCallbackScreen', () => {
+  const { View, Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => (
+      <View testID='auth-callback-screen'>
+        <Text>Auth Callback Screen</Text>
+      </View>
+    ),
+  };
+});
+
+jest.mock('../../src/screens/ResetPasswordScreen', () => {
+  const { View, Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => (
+      <View testID='reset-password-screen'>
+        <Text>Reset Password Screen</Text>
+      </View>
+    ),
+  };
+});
+
 describe('AppNavigator', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -73,18 +109,18 @@ describe('AppNavigator', () => {
     });
   });
 
-  it('renders navigation container', () => {
+  it('renders navigation container', async () => {
     const { getByTestId } = render(<AppNavigator />);
-    expect(getByTestId('home-screen')).toBeTruthy();
+    await waitFor(() => expect(getByTestId('home-screen')).toBeTruthy());
   });
 
-  it('configures navigation with feature flags', () => {
+  it('configures navigation with feature flags', async () => {
     (useFeatureFlags as jest.Mock).mockReturnValue({
       showNativeHeader: true,
     });
 
     const { getByTestId } = render(<AppNavigator />);
-    expect(getByTestId('home-screen')).toBeTruthy();
+    await waitFor(() => expect(getByTestId('home-screen')).toBeTruthy());
   });
 
   it('exposes navigation ref in dev mode', () => {

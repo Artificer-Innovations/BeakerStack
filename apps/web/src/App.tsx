@@ -24,6 +24,8 @@ const SignupInvitePage = lazy(() => import('./pages/SignupInvitePage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const PolicyPage = lazy(() => import('./pages/PolicyPage'));
 const BillingOverviewPage = lazy(
   () => import('./pages/billing/BillingOverviewPage')
@@ -110,6 +112,8 @@ function App() {
                 <Route path='/login' element={<LoginPage />} />
                 <Route path='/signup' element={<SignupPage />} />
                 <Route path='/signup/invite' element={<SignupInvitePage />} />
+                <Route path='/forgot-password' element={<ForgotPasswordPage />} />
+                <Route path='/reset-password' element={<ResetPasswordPage />} />
                 <Route path='/auth/callback' element={<AuthCallbackPage />} />
                 <Route
                   path='/not-authorized'

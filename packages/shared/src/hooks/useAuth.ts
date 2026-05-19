@@ -7,6 +7,12 @@ import { Logger } from '../utils/logger';
 // Web platform does not require native Google configuration
 export function configureGoogleSignIn() {}
 
+function getAuthRedirectUrl(): string {
+  const basePath =
+    window.location.pathname.match(/^(\/pr-\d+)/)?.[1] || '';
+  return `${window.location.origin}${basePath}/auth/callback`;
+}
+
 export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -145,10 +151,7 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
 
     let redirectTo: string | undefined;
     if (typeof window !== 'undefined' && window.location) {
-      // Extract base path from current location (e.g., /pr-9 from /pr-9/login)
-      // This handles path-based PR previews where the app is served from /pr-<N>/
-      const basePath = window.location.pathname.match(/^(\/pr-\d+)/)?.[1] || '';
-      redirectTo = `${window.location.origin}${basePath}/auth/callback`;
+      redirectTo = getAuthRedirectUrl();
     }
 
     const authArgs = redirectTo
@@ -171,6 +174,46 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
     }
   };
 
+  const requestPasswordReset = async (email: string): Promise<void> => {
+    setLoading(true);
+    setError(null);
+
+    const redirectTo =
+      typeof window !== 'undefined' && window.location
+        ? getAuthRedirectUrl()
+        : undefined;
+
+    const options = redirectTo ? { redirectTo } : {};
+
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(
+      email,
+      options
+    );
+
+    setLoading(false);
+
+    if (error) {
+      const errorObj = new Error(error.message);
+      setError(errorObj);
+      throw errorObj;
+    }
+  };
+
+  const updatePassword = async (password: string): Promise<void> => {
+    setLoading(true);
+    setError(null);
+
+    const { error } = await supabaseClient.auth.updateUser({ password });
+
+    setLoading(false);
+
+    if (error) {
+      const errorObj = new Error(error.message);
+      setError(errorObj);
+      throw errorObj;
+    }
+  };
+
   return {
     user,
     session,
@@ -180,5 +223,7 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
     signUp,
     signOut,
     signInWithGoogle,
+    requestPasswordReset,
+    updatePassword,
   };
 }
