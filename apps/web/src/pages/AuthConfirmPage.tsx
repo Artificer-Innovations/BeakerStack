@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { readAndClearPostAuthRedirect } from '../auth/postAuthRedirect';
 
@@ -56,17 +56,15 @@ export default function AuthConfirmPage() {
       <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8'>
         <div className='max-w-md w-full space-y-8'>
           <div className='rounded-md bg-red-50 dark:bg-red-900/30 p-4'>
-            <div className='flex'>
-              <div className='ml-3'>
-                <h3 className='text-sm font-medium text-red-800 dark:text-red-300'>
-                  Confirmation Error
-                </h3>
-                <div className='mt-2 text-sm text-red-700 dark:text-red-400'>
-                  <p>{error}</p>
-                  <p className='mt-2'>
-                    <a href='/' className='underline'>Return to home</a>
-                  </p>
-                </div>
+            <div>
+              <h3 className='text-sm font-medium text-red-800 dark:text-red-300'>
+                Confirmation Error
+              </h3>
+              <div className='mt-2 text-sm text-red-700 dark:text-red-400'>
+                <p>{error}</p>
+                <p className='mt-2'>
+                  <Link to='/'>Return to home</Link>
+                </p>
               </div>
             </div>
           </div>

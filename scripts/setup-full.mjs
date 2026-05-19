@@ -2757,7 +2757,7 @@ async function main() {
       }
     }
 
-        if (flags.dryRun) {
+    if (flags.dryRun) {
       logInfo(
         '[dry-run] finished: no env/state files written; no real API keys or tokens merged by this script.'
       );
