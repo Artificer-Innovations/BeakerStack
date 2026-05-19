@@ -31,13 +31,30 @@ function readBrandingValue(file, key) {
     const src = readFileSync(file, 'utf8');
     const match = src.match(new RegExp(`${key}:\\s*['"]([^'"]+)['"]`));
     return match ? match[1] : null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
-const brandingFile = join(ROOT, 'packages', 'shared', 'src', 'config', 'branding.ts');
-const colorsFile = join(ROOT, 'packages', 'shared', 'src', 'theme', 'colors.ts');
+const brandingFile = join(
+  ROOT,
+  'packages',
+  'shared',
+  'src',
+  'config',
+  'branding.ts'
+);
+const colorsFile = join(
+  ROOT,
+  'packages',
+  'shared',
+  'src',
+  'theme',
+  'colors.ts'
+);
 
-const defaultProductName = readBrandingValue(brandingFile, 'displayName') ?? 'BeakerStack';
+const defaultProductName =
+  readBrandingValue(brandingFile, 'displayName') ?? 'BeakerStack';
 
 // Try to extract primary brand color — understands the actual colors.ts structure:
 // `brand: indigo[600]` where `indigo` is a local const with hex values.
@@ -46,21 +63,36 @@ function readPrimaryColor(file) {
     const src = readFileSync(file, 'utf8');
 
     // Try direct hex first: brand/primary: '#...'
-    const hexMatch = src.match(/(?:brand|primary(?:Color)?)['"]?\s*:\s*['"]?(#[0-9a-fA-F]{3,8})/);
+    const hexMatch = src.match(
+      /(?:brand|primary(?:Color)?)['"]?\s*:\s*['"]?(#[0-9a-fA-F]{3,8})/
+    );
     if (hexMatch) return hexMatch[1];
 
     // Try `brand: colorName[shade]` or `primary: colors.colorName[shade]`
-    const tokenMatch = src.match(/(?:brand|primary(?:Color)?)['"]?\s*:\s*(?:colors\.)?(\w+)\[(\d+)\]/);
+    const tokenMatch = src.match(
+      /(?:brand|primary(?:Color)?)['"]?\s*:\s*(?:colors\.)?(\w+)\[(\d+)\]/
+    );
     if (tokenMatch) {
       const [, colorName, shade] = tokenMatch;
-      // Look for the shade within the named color's block
-      const colorBlockMatch = src.match(
-        new RegExp(`${colorName}[^{]*\\{[^}]*${shade}[^:]*:\\s*['"]?(#[0-9a-fA-F]{3,8})`, 's')
+      // Match `const indigo = { ... }` — avoid false positives from comments or
+      // other objects that mention `indigo[600]` before the palette definition.
+      const paletteMatch = src.match(
+        new RegExp(
+          `const\\s+${colorName}\\s*=\\s*\\{([\\s\\S]*?)\\}\\s*as const`,
+          'm'
+        )
       );
-      if (colorBlockMatch) return colorBlockMatch[1];
+      if (paletteMatch) {
+        const shadeMatch = paletteMatch[1].match(
+          new RegExp(`${shade}\\s*:\\s*['"]?(#[0-9a-fA-F]{3,8})`)
+        );
+        if (shadeMatch) return shadeMatch[1];
+      }
     }
     return '#6366f1';
-  } catch { return '#6366f1'; }
+  } catch {
+    return '#6366f1';
+  }
 }
 const defaultBrandColor = readPrimaryColor(colorsFile);
 
@@ -68,7 +100,10 @@ const defaultBrandColor = readPrimaryColor(colorsFile);
 async function prompt(question, defaultVal) {
   if (NON_INTERACTIVE) return defaultVal;
   return new Promise(resolve => {
-    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    const rl = createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
     rl.question(`${question} [${defaultVal}]: `, answer => {
       rl.close();
       resolve(answer.trim() || defaultVal);
@@ -81,18 +116,26 @@ function checkConfirmations() {
   try {
     const toml = readFileSync(CONFIG_TOML, 'utf8');
     if (/^\s*enable_confirmations\s*=\s*false/m.test(toml)) {
-      console.log('\ni  Note: enable_confirmations = false in supabase/config.toml.');
-      console.log('   Signup confirmation emails are dormant until you set it to true.');
+      console.log(
+        '\ni  Note: enable_confirmations = false in supabase/config.toml.'
+      );
+      console.log(
+        '   Signup confirmation emails are dormant until you set it to true.'
+      );
       console.log('   See docs/EMAIL_TEMPLATES.md for details.\n');
     }
-  } catch { /* no-op */ }
+  } catch {
+    /* no-op */
+  }
 }
 
 // --- Load previous personalization state ---
 function loadPreviousPersonalization() {
   try {
     return JSON.parse(readFileSync(PERSONALIZATION_FILE, 'utf8'));
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 // --- Reverse previous personalization in content ---
@@ -132,7 +175,9 @@ async function main() {
 
   const prev = loadPreviousPersonalization();
   if (prev) {
-    console.log('i  Previous personalization found — will restore placeholders before re-applying.\n');
+    console.log(
+      'i  Previous personalization found — will restore placeholders before re-applying.\n'
+    );
   }
 
   const productName = await prompt('Product name', defaultProductName);
@@ -147,11 +192,16 @@ async function main() {
     supportEmail = flagSupportEmail ?? null;
     companyAddress = flagCompanyAddress ?? null;
     if (!supportEmail || !companyAddress) {
-      console.log('i  Run without --non-interactive to personalize CAN-SPAM fields (required before sending email).');
+      console.log(
+        'i  Run without --non-interactive to personalize CAN-SPAM fields (required before sending email).'
+      );
     }
   } else {
     supportEmail = await prompt('Support email', 'support@example.com');
-    companyAddress = await prompt('Company address (CAN-SPAM required)', '123 Main St, City, State 00000, Country');
+    companyAddress = await prompt(
+      'Company address (CAN-SPAM required)',
+      '123 Main St, City, State 00000, Country'
+    );
   }
 
   const replacements = {
@@ -164,20 +214,25 @@ async function main() {
 
   // config.toml uses __PRODUCT_NAME__ (double underscores) to avoid Go template conflicts
   const tomlReplacements = {
-    '__PRODUCT_NAME__': productName,
-    '__BRAND_COLOR__': brandColor,
+    __PRODUCT_NAME__: productName,
+    __BRAND_COLOR__: brandColor,
   };
 
   // Personalize template files
   let files;
   try {
-    files = readdirSync(TEMPLATES_DIR).filter(f => f.endsWith('.html') || f.endsWith('.txt'));
+    files = readdirSync(TEMPLATES_DIR).filter(
+      f => f.endsWith('.html') || f.endsWith('.txt')
+    );
   } catch {
-    console.error('x  supabase/templates/ not found. Make sure you have the templates directory.');
+    console.error(
+      'x  supabase/templates/ not found. Make sure you have the templates directory.'
+    );
     process.exit(1);
   }
 
-  let modified = 0, skipped = 0;
+  let modified = 0,
+    skipped = 0;
   for (const file of files) {
     const path = join(TEMPLATES_DIR, file);
     let content = readFileSync(path, 'utf8');
@@ -217,7 +272,9 @@ async function main() {
       console.log('ok supabase/config.toml (subject lines)');
       modified++;
     }
-  } catch { /* config.toml optional */ }
+  } catch {
+    /* config.toml optional */
+  }
 
   // Save current personalization state for idempotent re-runs
   const newState = {
@@ -227,17 +284,27 @@ async function main() {
     ...(supportEmail ? { SUPPORT_EMAIL: supportEmail } : {}),
     ...(companyAddress ? { COMPANY_ADDRESS: companyAddress } : {}),
   };
-  writeFileSync(PERSONALIZATION_FILE, JSON.stringify(newState, null, 2) + '\n', 'utf8');
+  writeFileSync(
+    PERSONALIZATION_FILE,
+    JSON.stringify(newState, null, 2) + '\n',
+    'utf8'
+  );
 
   console.log(`\nDone — ${modified} file(s) updated, ${skipped} skipped.`);
   if (!NON_INTERACTIVE) {
     console.log('\nNext steps:');
-    console.log('  1. Enable SMTP in supabase/config.toml if sending via custom domain');
+    console.log(
+      '  1. Enable SMTP in supabase/config.toml if sending via custom domain'
+    );
     console.log('  2. Set SMTP_* vars in .env.local');
-    console.log('  3. Run: supabase stop && supabase start to apply config changes');
+    console.log(
+      '  3. Run: supabase stop && supabase start to apply config changes'
+    );
     console.log('  4. Test with Inbucket at http://localhost:54324');
   }
 }
 
-main().catch(err => { console.error(err); process.exit(1); });
-
+main().catch(err => {
+  console.error(err);
+  process.exit(1);
+});

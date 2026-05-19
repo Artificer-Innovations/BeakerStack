@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -31,7 +32,7 @@ const { mockReadAndClearPostAuthRedirect } = vi.hoisted(() => ({
   mockReadAndClearPostAuthRedirect: vi.fn(),
 }));
 
-vi.mock('../auth/postAuthRedirect', () => ({
+vi.mock('../../auth/postAuthRedirect', () => ({
   readAndClearPostAuthRedirect: mockReadAndClearPostAuthRedirect,
 }));
 
@@ -58,7 +59,9 @@ describe('AuthConfirmPage', () => {
     it('shows error when both token_hash and type are missing', () => {
       renderWithParams('');
       expect(
-        screen.getByText('This confirmation link is invalid or has already been used.')
+        screen.getByText(
+          'This confirmation link is invalid or has already been used.'
+        )
       ).toBeInTheDocument();
       expect(screen.getByText('Return to home')).toBeInTheDocument();
     });
@@ -66,21 +69,27 @@ describe('AuthConfirmPage', () => {
     it('shows error when token_hash is missing but type is present', () => {
       renderWithParams('?type=signup');
       expect(
-        screen.getByText('This confirmation link is invalid or has already been used.')
+        screen.getByText(
+          'This confirmation link is invalid or has already been used.'
+        )
       ).toBeInTheDocument();
     });
 
     it('shows error when type is missing but token_hash is present', () => {
       renderWithParams('?token_hash=abc123');
       expect(
-        screen.getByText('This confirmation link is invalid or has already been used.')
+        screen.getByText(
+          'This confirmation link is invalid or has already been used.'
+        )
       ).toBeInTheDocument();
     });
 
     it('shows error for invalid type in URL', () => {
       renderWithParams('?token_hash=abc123&type=invalid_type');
       expect(
-        screen.getByText('This confirmation link is invalid or has already been used.')
+        screen.getByText(
+          'This confirmation link is invalid or has already been used.'
+        )
       ).toBeInTheDocument();
       expect(mockVerifyOtp).not.toHaveBeenCalled();
     });
@@ -102,9 +111,12 @@ describe('AuthConfirmPage', () => {
       mockVerifyOtp.mockResolvedValue({ error: { message: 'token expired' } });
       renderWithParams('?token_hash=abc123&type=recovery');
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/forgot-password?expired=1', {
-          replace: true,
-        });
+        expect(mockNavigate).toHaveBeenCalledWith(
+          '/forgot-password?expired=1',
+          {
+            replace: true,
+          }
+        );
       });
     });
 
@@ -199,24 +211,21 @@ describe('AuthConfirmPage', () => {
   });
 
   describe('React Strict Mode guard', () => {
-    it('does not call verifyOtp a second time on remount (Strict Mode guard)', async () => {
+    it('does not call verifyOtp a second time when Strict Mode re-runs effects', async () => {
       mockVerifyOtp.mockResolvedValue({ error: null });
       mockReadAndClearPostAuthRedirect.mockReturnValue(null);
-      const { unmount, rerender } = renderWithParams('?token_hash=abc123&type=signup');
-      await waitFor(() => {
-        expect(mockVerifyOtp).toHaveBeenCalledTimes(1);
-      });
-      // Simulate remount (as React Strict Mode does in dev)
-      unmount();
-      rerender(
-        <MemoryRouter initialEntries={['/auth/confirm?token_hash=abc123&type=signup']}>
-          <Routes>
-            <Route path='/auth/confirm' element={<AuthConfirmPage />} />
-          </Routes>
-        </MemoryRouter>
+      render(
+        <StrictMode>
+          <MemoryRouter
+            initialEntries={['/auth/confirm?token_hash=abc123&type=signup']}
+          >
+            <Routes>
+              <Route path='/auth/confirm' element={<AuthConfirmPage />} />
+            </Routes>
+          </MemoryRouter>
+        </StrictMode>
       );
       await waitFor(() => {
-        // Still only one call total — guard prevents second invocation
         expect(mockVerifyOtp).toHaveBeenCalledTimes(1);
       });
     });
