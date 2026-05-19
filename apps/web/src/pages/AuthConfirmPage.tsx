@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { readAndClearPostAuthRedirect } from '../auth/postAuthRedirect';
+import { readAndClearPostAuthRedirect } from '@/auth/postAuthRedirect';
 
 type OtpType = 'signup' | 'recovery' | 'magiclink' | 'email_change' | 'invite';
 
-const VALID_TYPES: OtpType[] = ['signup', 'recovery', 'magiclink', 'email_change', 'invite'];
+const VALID_TYPES: OtpType[] = [
+  'signup',
+  'recovery',
+  'magiclink',
+  'email_change',
+  'invite',
+];
 
 export default function AuthConfirmPage() {
   const [searchParams] = useSearchParams();
@@ -32,7 +38,9 @@ export default function AuthConfirmPage() {
           if (type === 'recovery') {
             navigate('/forgot-password?expired=1', { replace: true });
           } else {
-            setError('This link has expired or is invalid. Please request a new one.');
+            setError(
+              'This link has expired or is invalid. Please request a new one.'
+            );
           }
           return;
         }

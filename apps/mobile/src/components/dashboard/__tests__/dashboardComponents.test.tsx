@@ -36,6 +36,8 @@ jest.mock('../../../lib/supabase', () => ({
   },
 }));
 
+type RpcResult = { data: unknown; error: { message: string } | null };
+
 jest.mock('../../../lib/fakeAi', () => ({
   nextFakeAiSummary: () => 'Fake summary from test',
 }));
@@ -47,8 +49,12 @@ jest.mock('../../../lib/randomUuid', () => ({
 const mockUseBillingContext = jest.mocked(useBillingContext);
 const mockUseUsage = jest.mocked(useUsage);
 const mockUseFeature = jest.mocked(useFeature);
-const mockRpc = jest.mocked(supabase.rpc);
-const mockInvoke = jest.mocked(supabase.functions.invoke);
+const mockRpc = supabase.rpc as unknown as jest.MockedFunction<
+  (...args: unknown[]) => Promise<RpcResult>
+>;
+const mockInvoke = supabase.functions.invoke as unknown as jest.MockedFunction<
+  typeof supabase.functions.invoke
+>;
 const mockRandomUuid = jest.mocked(randomUuid);
 
 const featureState = {

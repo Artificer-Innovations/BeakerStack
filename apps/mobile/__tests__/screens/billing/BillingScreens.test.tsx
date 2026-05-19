@@ -2,7 +2,7 @@ import React from 'react';
 import { ActivityIndicator } from 'react-native';
 import { render } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import type { BillingUiStateKind } from '@beakerstack/billing';
+import type { BillingUiStateKind, SubscriptionRow } from '@beakerstack/billing';
 import {
   useBillingState,
   usePlan,
@@ -138,7 +138,13 @@ const proPlan = {
   usage_limits: { ai_summarize: 500 },
 };
 
-const defaultSubscription = {
+const defaultSubscription: Pick<
+  SubscriptionRow,
+  | 'status'
+  | 'stripe_subscription_id'
+  | 'current_period_end'
+  | 'pending_target_plan_id'
+> = {
   status: 'free',
   stripe_subscription_id: null,
   current_period_end: null,
@@ -340,7 +346,7 @@ describe('BillingOverviewScreen', () => {
 
   it('treats missing collection count as zero', () => {
     mockUseDemoCollectionCount.mockReturnValue({
-      count: undefined,
+      count: undefined as unknown as number,
       maxItemsInAnyCollection: 0,
       loading: false,
       error: null,

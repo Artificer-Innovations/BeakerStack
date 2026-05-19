@@ -32,7 +32,7 @@ const { mockReadAndClearPostAuthRedirect } = vi.hoisted(() => ({
   mockReadAndClearPostAuthRedirect: vi.fn(),
 }));
 
-vi.mock('../../auth/postAuthRedirect', () => ({
+vi.mock('@/auth/postAuthRedirect', () => ({
   readAndClearPostAuthRedirect: mockReadAndClearPostAuthRedirect,
 }));
 
@@ -49,10 +49,10 @@ const renderWithParams = (search: string = '') => {
 
 describe('AuthConfirmPage', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     mockVerifyOtp.mockReset();
     mockReadAndClearPostAuthRedirect.mockReset();
     mockReadAndClearPostAuthRedirect.mockReturnValue(null);
-    vi.clearAllMocks();
   });
 
   describe('invalid / missing params', () => {

@@ -12,7 +12,7 @@ export type ProfileEditorModule = {
 export function loadProfileEditorModule(): Promise<ProfileEditorModule> {
   return Promise.resolve().then(
     () =>
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      // eslint-disable-next-line @typescript-eslint/no-var-requires -- Metro async require for lazy bundle
       require('@beakerstack/shared/components/profile/ProfileEditor.native') as ProfileEditorModule
   );
 }
