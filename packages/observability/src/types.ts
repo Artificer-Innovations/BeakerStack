@@ -6,7 +6,7 @@ export interface ObservabilityExporter {
 
 export interface ObservabilitySampling {
   traces?: number;
-  errors?: number;
+  replayOnError?: number;
   replay?: number;
 }
 

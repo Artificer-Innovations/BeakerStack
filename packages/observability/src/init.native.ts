@@ -3,15 +3,21 @@ import type { ObservabilityConfig } from './types.js';
 import { validateConfig } from './schema.js';
 import { TRACE_SAMPLE_RATE } from './defaults.js';
 
-// Load Sentry at module initialization — dynamic import is intercepted by vi.mock in tests.
-// If @sentry/react-native is not installed, Sentry stays null and all calls become no-ops.
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore: optional peer dep — not installed in type-check environments
-const Sentry = await import('@sentry/react-native').catch(() => null) as any;
-
+// Lazy module reference — avoids top-level await, which is incompatible with
+// ES2020 / Chrome 87 / Firefox 78 build targets.
+let _Sentry: any;
 let _initialized = false;
 
-export function initObservability(config: ObservabilityConfig): void {
+async function getSentry(): Promise<any> {
+  if (_Sentry !== undefined) return _Sentry;
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore: optional peer dep — not installed in type-check environments
+  _Sentry = await import('@sentry/react-native').catch(() => null);
+  return _Sentry;
+}
+
+export async function initObservability(config: ObservabilityConfig): Promise<void> {
+  const Sentry = await getSentry();
   if (!Sentry) return;
 
   if (_initialized || Sentry.getClient() != null) {
@@ -35,4 +41,5 @@ export function initObservability(config: ObservabilityConfig): void {
 
 export function resetForTesting(): void {
   _initialized = false;
+  _Sentry = undefined;
 }

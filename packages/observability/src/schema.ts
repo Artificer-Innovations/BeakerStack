@@ -9,7 +9,7 @@ const exporterSchema = z.object({
 
 const samplingSchema = z.object({
   traces: z.number().min(0).max(1).optional(),
-  errors: z.number().min(0).max(1).optional(),
+  replayOnError: z.number().min(0).max(1).optional(),
   replay: z.number().min(0).max(1).optional(),
 });
 

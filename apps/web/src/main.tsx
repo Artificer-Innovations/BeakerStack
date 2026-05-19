@@ -6,7 +6,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { PublicShell } from './PublicShell';
 import './index.css';
 
-initObservability(beakerstackObservabilityConfig);
+void initObservability(beakerstackObservabilityConfig);
 
 const rootElement = document.getElementById('root');
 

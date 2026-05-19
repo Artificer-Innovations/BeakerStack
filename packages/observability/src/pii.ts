@@ -1,13 +1,11 @@
-export function hashUserId(id: string): string {
-  // FNV-1a 64-bit pseudonymisation — deterministic, non-reversible at scale,
-  // works sync in browser/RN/Deno. Not cryptographic SHA-256.
-  let h = 0xcbf29ce484222325n;
-  const fnvPrime = 0x100000001b3n;
-  for (let i = 0; i < id.length; i++) {
-    h ^= BigInt(id.charCodeAt(i));
-    h = BigInt.asUintN(64, h * fnvPrime);
-  }
-  return `u_${h.toString(16).padStart(16, '0')}`;
+export async function hashUserId(id: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(id);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  const hex = Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  return `u_${hex}`;
 }
 
 const EMAIL_PATTERN = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;

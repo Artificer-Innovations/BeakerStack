@@ -13,6 +13,9 @@ vi.mock('@sentry/react-native', () => ({
   withScope: vi.fn((fn: (s: unknown) => unknown) => fn({})),
   startSpan: vi.fn((_opts: unknown, fn: () => unknown) => fn()),
   getClient: vi.fn().mockReturnValue(null),
+  ReactNavigationInstrumentation: vi.fn().mockImplementation(() => ({
+    registerNavigationContainer: vi.fn(),
+  })),
 }));
 
 const config = { project: 'test', environment: 'test' };
@@ -48,7 +51,7 @@ describe('ObservabilityProvider (native)', () => {
     );
     await act(async () => {});
     expect(Sentry.setUser).toHaveBeenCalledWith(
-      expect.objectContaining({ id: expect.stringMatching(/^u_[0-9a-f]{16}$/) })
+      expect.objectContaining({ id: expect.stringMatching(/^u_[0-9a-f]{64}$/) })
     );
   });
 });

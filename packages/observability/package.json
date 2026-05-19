@@ -30,6 +30,9 @@
     },
     "react-native": {
       "optional": true
+    },
+    "@sentry/react": {
+      "optional": true
     }
   },
   "dependencies": {

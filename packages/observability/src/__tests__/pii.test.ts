@@ -3,17 +3,17 @@ import { describe, it, expect } from 'vitest';
 import { hashUserId, scrubEmail, scrubRequest } from '../pii.js';
 
 describe('hashUserId', () => {
-  it('returns a u_ prefixed hex string', () => {
-    expect(hashUserId('user-123')).toMatch(/^u_[0-9a-f]{16}$/);
+  it('returns a u_ prefixed hex string', async () => {
+    expect(await hashUserId('user-123')).toMatch(/^u_[0-9a-f]{64}$/);
   });
-  it('is deterministic', () => {
-    expect(hashUserId('user-123')).toBe(hashUserId('user-123'));
+  it('is deterministic', async () => {
+    expect(await hashUserId('user-123')).toBe(await hashUserId('user-123'));
   });
-  it('different inputs produce different outputs', () => {
-    expect(hashUserId('user-123')).not.toBe(hashUserId('user-456'));
+  it('different inputs produce different outputs', async () => {
+    expect(await hashUserId('user-123')).not.toBe(await hashUserId('user-456'));
   });
-  it('does not contain the original id', () => {
-    expect(hashUserId('user-123')).not.toContain('user-123');
+  it('does not contain the original id', async () => {
+    expect(await hashUserId('user-123')).not.toContain('user-123');
   });
 });
 

@@ -13,7 +13,7 @@ describe('withEdgeScope', () => {
     expect(await res.text()).toBe('ok');
   });
 
-  it('isolates scope between calls', async () => {
+  it('calls handler on each invocation', async () => {
     let callCount = 0;
     const handler = vi.fn().mockImplementation(async () => {
       callCount++;

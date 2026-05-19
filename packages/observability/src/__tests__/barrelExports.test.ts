@@ -5,6 +5,7 @@ describe('web barrel exports', () => {
     const mod = await import('../web.js');
     expect(typeof mod.ObservabilityProvider).toBe('function');
     expect(typeof mod.withErrorBoundary).toBe('function');
+    expect(typeof mod.ErrorBoundary).toBe('function');
     expect(typeof mod.Profiler).toBe('function');
     expect(typeof mod.useObservability).toBe('function');
     expect(typeof mod.initObservability).toBe('function');
