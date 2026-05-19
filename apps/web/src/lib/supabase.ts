@@ -65,12 +65,11 @@ function capturePasswordRecoveryCallback(): boolean {
   return true;
 }
 
-/** Captured synchronously before createClient so hash clearing does not lose recovery intent */
+/** Snapshot of whether the initial page load was a recovery callback (immutable). */
 export const isPasswordRecoveryCallback = capturePasswordRecoveryCallback();
 
 export function hasPasswordRecoveryCallback(): boolean {
   if (typeof window === 'undefined') return false;
-  if (isPasswordRecoveryCallback) return true;
   try {
     return sessionStorage.getItem(RECOVERY_CALLBACK_STORAGE_KEY) === '1';
   } catch {

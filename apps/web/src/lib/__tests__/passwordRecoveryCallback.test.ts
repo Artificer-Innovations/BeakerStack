@@ -97,4 +97,24 @@ describe('password recovery callback capture', () => {
     expect(mod.hasPasswordRecoveryCallback()).toBe(false);
     expect(memSession['beakerstack:recovery_callback']).toBeUndefined();
   });
+
+  it('clearPasswordRecoveryCallback clears recovery intent after in-module capture', async () => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        ...originalLocation,
+        hash: '#access_token=tok&type=recovery',
+        search: '',
+      },
+    });
+
+    const mod = await import('../supabase');
+
+    expect(mod.isPasswordRecoveryCallback).toBe(true);
+    expect(mod.hasPasswordRecoveryCallback()).toBe(true);
+
+    mod.clearPasswordRecoveryCallback();
+
+    expect(mod.hasPasswordRecoveryCallback()).toBe(false);
+  });
 });
