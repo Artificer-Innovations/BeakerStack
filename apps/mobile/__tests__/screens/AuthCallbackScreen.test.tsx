@@ -26,7 +26,6 @@ jest.mock('../../src/lib/supabase', () => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const mockOnAuthStateChange = (require('../../src/lib/supabase') as {
   supabase: { auth: { onAuthStateChange: jest.Mock } };
 }).supabase.auth.onAuthStateChange;

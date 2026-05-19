@@ -32,7 +32,6 @@ jest.mock('../../src/lib/supabase', () => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const mockGetSession = (require('../../src/lib/supabase') as {
   supabase: { auth: { getSession: jest.Mock } };
 }).supabase.auth.getSession;
