@@ -1,8 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { initObservability } from '@beakerstack/observability/web';
+import { beakerstackObservabilityConfig } from './config/observability';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { PublicShell } from './PublicShell';
 import './index.css';
+
+initObservability(beakerstackObservabilityConfig);
 
 const rootElement = document.getElementById('root');
 
