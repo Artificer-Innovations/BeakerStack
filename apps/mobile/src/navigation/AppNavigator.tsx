@@ -2,6 +2,7 @@ import React from 'react';
 import {
   NavigationContainer,
   type NavigationContainerRef,
+  type LinkingOptions,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/HomeScreen';
@@ -10,18 +11,33 @@ import SignupScreen from '../screens/SignupScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import BillingNavigator from '../navigation/BillingNavigator';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+import AuthCallbackScreen from '../screens/AuthCallbackScreen';
+import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import { useFeatureFlags } from '../config/featureFlags';
 
-type RootStackParamList = {
+export type RootStackParamList = {
   Home: undefined;
   Login: undefined;
   Signup: undefined;
   Dashboard: undefined;
   Profile: undefined;
   Billing: undefined;
+  ForgotPassword: undefined;
+  AuthCallback: undefined;
+  ResetPassword: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: ['beaker-stack://'],
+  config: {
+    screens: {
+      AuthCallback: 'auth/callback',
+    },
+  },
+};
 
 export const AppNavigator = () => {
   const navigationRef =
@@ -37,7 +53,7 @@ export const AppNavigator = () => {
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} linking={linking}>
       <Stack.Navigator
         screenOptions={{
           gestureEnabled: false, // Disable swipe-back gestures
@@ -53,6 +69,9 @@ export const AppNavigator = () => {
         />
         <Stack.Screen name='Login' component={LoginScreen} />
         <Stack.Screen name='Signup' component={SignupScreen} />
+        <Stack.Screen name='ForgotPassword' component={ForgotPasswordScreen} />
+        <Stack.Screen name='AuthCallback' component={AuthCallbackScreen} />
+        <Stack.Screen name='ResetPassword' component={ResetPasswordScreen} />
         <Stack.Screen name='Dashboard' component={DashboardScreen} />
         <Stack.Screen name='Profile' component={ProfileScreen} />
         <Stack.Screen

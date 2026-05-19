@@ -4,6 +4,7 @@ import { Alert } from 'react-native';
 import SignupScreen from '../../src/screens/SignupScreen';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
+import { MIN_PASSWORD_LENGTH } from '@beakerstack/shared/constants/auth';
 import type { SupabaseClient } from '@supabase/supabase-js';
 // Mock expo-constants
 jest.mock('expo-constants', () => ({
@@ -164,6 +165,34 @@ describe('SignupScreen', () => {
         'Please fill in all fields'
       );
     });
+  });
+
+  it('shows error when password is too short', async () => {
+    const mockClient = createMockSupabaseClient();
+    const { getByPlaceholderText, getByText } = renderWithProviders(
+      <SignupScreen navigation={mockNavigation} />,
+      mockClient
+    );
+
+    await waitFor(() => {
+      const emailInput = getByPlaceholderText('Email address');
+      const passwordInput = getByPlaceholderText('Password');
+      const confirmPasswordInput = getByPlaceholderText('Confirm password');
+      const submitButton = getByText('Create Account');
+
+      fireEvent.changeText(emailInput, 'test@example.com');
+      fireEvent.changeText(passwordInput, 'short');
+      fireEvent.changeText(confirmPasswordInput, 'short');
+      fireEvent.press(submitButton);
+    });
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith(
+        'Password too short',
+        `Password must be at least ${MIN_PASSWORD_LENGTH} characters`
+      );
+    });
+    expect(mockClient.auth.signUp).not.toHaveBeenCalled();
   });
 
   it('shows error when passwords do not match', async () => {

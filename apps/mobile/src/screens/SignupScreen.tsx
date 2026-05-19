@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.native';
 import { colors } from '@beakerstack/shared/theme/colors';
+import { MIN_PASSWORD_LENGTH } from '@beakerstack/shared/constants/auth';
 import { supabase } from '../lib/supabase';
 import { SocialLoginButton } from '../components/SocialLoginButton';
 import { useFeatureFlags } from '../config/featureFlags';
@@ -54,6 +55,14 @@ export default function SignupScreen({ navigation }: Props) {
   const handleSignup = async () => {
     if (!email || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      Alert.alert(
+        'Password too short',
+        `Password must be at least ${MIN_PASSWORD_LENGTH} characters`
+      );
       return;
     }
 

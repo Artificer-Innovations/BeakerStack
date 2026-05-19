@@ -503,6 +503,38 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
     }
   };
 
+  const requestPasswordReset = async (email: string): Promise<void> => {
+    setLoading(true);
+    setError(null);
+
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: 'beaker-stack://auth/callback',
+    });
+
+    setLoading(false);
+
+    if (error) {
+      const errorObj = new Error(error.message);
+      setError(errorObj);
+      throw errorObj;
+    }
+  };
+
+  const updatePassword = async (password: string): Promise<void> => {
+    setLoading(true);
+    setError(null);
+
+    const { error } = await supabaseClient.auth.updateUser({ password });
+
+    setLoading(false);
+
+    if (error) {
+      const errorObj = new Error(error.message);
+      setError(errorObj);
+      throw errorObj;
+    }
+  };
+
   return {
     user,
     session,
@@ -512,5 +544,7 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
     signUp,
     signOut,
     signInWithGoogle,
+    requestPasswordReset,
+    updatePassword,
   };
 }

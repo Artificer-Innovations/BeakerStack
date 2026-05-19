@@ -81,6 +81,8 @@ jest.mock('@beakerstack/shared/contexts/AuthContext', () => ({
     signUp: jest.fn(),
     signOut: jest.fn(),
     signInWithGoogle: jest.fn(),
+    requestPasswordReset: jest.fn(),
+    updatePassword: jest.fn(),
   }),
 }));
 
@@ -119,6 +121,7 @@ jest.mock('@react-navigation/native-stack', () => {
             navigate: jest.fn(),
             replace: jest.fn(),
             goBack: jest.fn(),
+            reset: jest.fn(),
           };
           return <Component navigation={mockNavigation} {...props} />;
         }
@@ -184,6 +187,42 @@ jest.mock('../src/screens/DashboardScreen', () => {
     default: () => (
       <View testID='dashboard-screen'>
         <Text>Dashboard</Text>
+      </View>
+    ),
+  };
+});
+
+jest.mock('../src/screens/ForgotPasswordScreen', () => {
+  const { View, Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => (
+      <View testID='forgot-password-screen'>
+        <Text>Forgot Password</Text>
+      </View>
+    ),
+  };
+});
+
+jest.mock('../src/screens/AuthCallbackScreen', () => {
+  const { View, Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => (
+      <View testID='auth-callback-screen'>
+        <Text>Auth Callback</Text>
+      </View>
+    ),
+  };
+});
+
+jest.mock('../src/screens/ResetPasswordScreen', () => {
+  const { View, Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => (
+      <View testID='reset-password-screen'>
+        <Text>Reset Password</Text>
       </View>
     ),
   };

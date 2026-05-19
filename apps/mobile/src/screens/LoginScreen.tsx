@@ -23,6 +23,7 @@ type RootStackParamList = {
   Login: undefined;
   Signup: undefined;
   Dashboard: undefined;
+  ForgotPassword: undefined;
 };
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<
@@ -140,6 +141,13 @@ export default function LoginScreen({ navigation }: Props) {
             ) : (
               <Text style={styles.loginButtonText}>Sign In</Text>
             )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={() => navigation.navigate('ForgotPassword')}
+          >
+            <Text style={styles.linkText}>Forgot password?</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

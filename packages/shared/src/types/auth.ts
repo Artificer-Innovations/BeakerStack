@@ -12,6 +12,8 @@ export interface AuthActions {
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
 }
 
 export type AuthHookReturn = AuthState & AuthActions;

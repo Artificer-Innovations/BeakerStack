@@ -2,6 +2,7 @@
   "expo": {
     "name": "Beaker Stack",
     "slug": "beaker-stack",
+    "scheme": "beaker-stack",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
