@@ -6,7 +6,11 @@ import {
   finalizeInviteSignup,
   INVITE_TOKEN_STORAGE_KEY,
 } from './SignupInvitePage';
-import { supabase } from '@/lib/supabase';
+import {
+  supabase,
+  hasPasswordRecoveryCallback,
+  clearPasswordRecoveryCallback,
+} from '@/lib/supabase';
 
 export default function AuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +22,13 @@ export default function AuthCallbackPage() {
   const delayedLoginTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
+
+  const navigateToResetPassword = useCallback(() => {
+    if (navigatedRef.current) return;
+    navigatedRef.current = true;
+    clearPasswordRecoveryCallback();
+    navigate('/reset-password', { replace: true });
+  }, [navigate]);
 
   const completeInviteSignup = useCallback(
     (inviteToken: string, userId: string, userEmail: string | undefined) => {
@@ -40,14 +51,28 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY' && !navigatedRef.current) {
-        navigatedRef.current = true;
-        navigate('/reset-password', { replace: true });
+    } = supabase.auth.onAuthStateChange(event => {
+      if (event === 'PASSWORD_RECOVERY') {
+        navigateToResetPassword();
       }
     });
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigateToResetPassword]);
+
+  // Fallback when recovery was detected but PASSWORD_RECOVERY never fires (e.g. stale session).
+  useEffect(() => {
+    if (!hasPasswordRecoveryCallback()) return;
+
+    const fallbackTimer = setTimeout(() => {
+      if (navigatedRef.current) return;
+      const a = authRef.current;
+      if (a.user && !a.loading) {
+        navigateToResetPassword();
+      }
+    }, 1500);
+
+    return () => clearTimeout(fallbackTimer);
+  }, [navigateToResetPassword, auth.user, auth.loading]);
 
   useEffect(() => {
     if (navigatedRef.current) return;
@@ -68,10 +93,12 @@ export default function AuthCallbackPage() {
       return () => clearTimeout(t);
     }
 
-    // If type=recovery, let the onAuthStateChange subscription handle navigation
-    // to /reset-password — don't fall through to the auth.user → /dashboard branch.
     const recoveryType = hashParams.get('type') || queryParams.get('type');
-    if (recoveryType === 'recovery') return;
+    const isRecovery =
+      recoveryType === 'recovery' || hasPasswordRecoveryCallback();
+
+    // Never fall through to auth.user → /dashboard during password recovery.
+    if (isRecovery) return;
 
     if (auth.loading) return;
 

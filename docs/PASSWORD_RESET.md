@@ -26,21 +26,24 @@
 
 The `PASSWORD_RECOVERY` event from `supabase.auth.onAuthStateChange` is the authoritative signal that a user is in a reset session. On web, `AuthCallbackPage` must subscribe to this event **before** the generic `auth.user → /dashboard` check — otherwise an already-established recovery session would route to the dashboard instead of the reset form.
 
-The guard is two-layered:
-1. **Synchronous URL hash check** (`type=recovery`) — prevents the `auth.user` branch from running while the `onAuthStateChange` subscription hasn't fired yet.
-2. **`onAuthStateChange(PASSWORD_RECOVERY)`** — the authoritative redirect to `/reset-password`.
+The guard is layered:
+
+1. **Synchronous URL capture** (`isPasswordRecoveryCallback` in `apps/web/src/lib/supabase.ts`) — reads `type=recovery` before Supabase initializes and clears the hash, persisting intent in `sessionStorage`.
+2. **Synchronous URL hash check** (`type=recovery`) — prevents the `auth.user` branch from running while the `onAuthStateChange` subscription hasn't fired yet.
+3. **`onAuthStateChange(PASSWORD_RECOVERY)`** — the authoritative redirect to `/reset-password`.
+4. **Recovery fallback timer** (~1.5s) — if a session exists but `PASSWORD_RECOVERY` never fires (e.g. stale localStorage session), navigate to `/reset-password` anyway.
 
 ## Supabase redirect URL allowlist
 
 Add these to your Supabase project's **Auth → URL Configuration → Redirect URLs**:
 
-| Environment | URL |
-|---|---|
-| Local dev | `http://localhost:5173/auth/callback` |
-| Staging | `https://staging.beakerstack.com/auth/callback` |
-| Production | `https://app.beakerstack.com/auth/callback` |
+| Environment | URL                                               |
+| ----------- | ------------------------------------------------- |
+| Local dev   | `http://localhost:5173/auth/callback`             |
+| Staging     | `https://staging.beakerstack.com/auth/callback`   |
+| Production  | `https://app.beakerstack.com/auth/callback`       |
 | PR previews | `https://pr-*.beakerstack.com/pr-*/auth/callback` |
-| Mobile | `beaker-stack://auth/callback` |
+| Mobile      | `beaker-stack://auth/callback`                    |
 
 ## Mobile deep-link setup
 
