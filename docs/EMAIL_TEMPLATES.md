@@ -14,7 +14,7 @@ BeakerStack ships five ready-to-use transactional email templates that integrate
 
 All templates use the **token-hash strategy** — links resolve to `/auth/confirm?token_hash=...&type=...`, which calls `supabase.auth.verifyOtp()` and then redirects to the right page. This is the recommended Supabase PKCE-compatible approach.
 
-Plain-text versions (`.txt` files) are provided alongside each HTML template for email clients that prefer or require plain text.
+Plain-text versions (`.txt` files) are provided alongside each HTML template for email clients that prefer or require plain text. **Note:** The `.txt` files in `supabase/templates/` are reference copies for human review only. Supabase derives plain-text email from the HTML template automatically — these files are not wired to Supabase via `config.toml` and do not affect sent emails.
 
 ## Quick start
 
@@ -32,6 +32,8 @@ The script will prompt for:
 - Sender name
 - Support email address
 - Company address (required by CAN-SPAM)
+
+The script is **idempotent** — re-running it restores the previous placeholders before applying new values, so you can safely update your branding at any time.
 
 ### 2. Configure SMTP (optional)
 
@@ -176,3 +178,4 @@ To switch from Resend to another SMTP provider (SendGrid, Postmark, AWS SES, etc
 3. Restart Supabase: `supabase stop && supabase start`
 
 No template changes required — the SMTP block in `supabase/config.toml` uses `env()` substitution for all connection details.
+

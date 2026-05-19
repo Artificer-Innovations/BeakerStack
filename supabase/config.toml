@@ -183,7 +183,7 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
+enable_confirmations = false  # set to true to require email verification on signup
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
@@ -192,10 +192,6 @@ max_frequency = "1s"
 otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 3600
-
-# Uncomment to enable signup email confirmation (disabled by default — see docs/EMAIL_TEMPLATES.md)
-# [auth.email]
-# enable_confirmations = true
 
 [auth.email.template.confirmation]
 subject = "Confirm your __PRODUCT_NAME__ account"
@@ -406,3 +402,4 @@ s3_region = "env(S3_REGION)"
 s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
+

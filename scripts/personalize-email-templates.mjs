@@ -12,6 +12,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const TEMPLATES_DIR = join(ROOT, 'supabase', 'templates');
 const CONFIG_TOML = join(ROOT, 'supabase', 'config.toml');
+const PERSONALIZATION_FILE = join(TEMPLATES_DIR, '.personalization.json');
 const EJECTION_MARKER = 'beakerstack-email:customized';
 const NON_INTERACTIVE = process.argv.includes('--non-interactive');
 
@@ -38,19 +39,25 @@ const colorsFile = join(ROOT, 'packages', 'shared', 'src', 'theme', 'colors.ts')
 
 const defaultProductName = readBrandingValue(brandingFile, 'displayName') ?? 'BeakerStack';
 
-// Try to extract primary color — look for common patterns including Tailwind token style
+// Try to extract primary brand color — understands the actual colors.ts structure:
+// `brand: indigo[600]` where `indigo` is a local const with hex values.
 function readPrimaryColor(file) {
   try {
     const src = readFileSync(file, 'utf8');
-    // Try direct hex first: primary: '#...' or primaryColor: '#...'
-    const hexMatch = src.match(/primary(?:Color)?['"]?\s*:\s*['"]?(#[0-9a-fA-F]{3,8})/);
+
+    // Try direct hex first: brand/primary: '#...'
+    const hexMatch = src.match(/(?:brand|primary(?:Color)?)['"]?\s*:\s*['"]?(#[0-9a-fA-F]{3,8})/);
     if (hexMatch) return hexMatch[1];
-    // Try Tailwind token like colors.indigo[600] or indigo[600]
-    const tokenMatch = src.match(/primary(?:Color)?['"]?\s*:\s*(?:colors\.)?(\w+)\[(\d+)\]/);
+
+    // Try `brand: colorName[shade]` or `primary: colors.colorName[shade]`
+    const tokenMatch = src.match(/(?:brand|primary(?:Color)?)['"]?\s*:\s*(?:colors\.)?(\w+)\[(\d+)\]/);
     if (tokenMatch) {
       const [, colorName, shade] = tokenMatch;
-      const shadeDef = src.match(new RegExp(`${shade}:\\s*['"]?(#[0-9a-fA-F]{3,8})`));
-      if (shadeDef) return shadeDef[1];
+      // Look for the shade within the named color's block
+      const colorBlockMatch = src.match(
+        new RegExp(`${colorName}[^{]*\\{[^}]*${shade}[^:]*:\\s*['"]?(#[0-9a-fA-F]{3,8})`, 's')
+      );
+      if (colorBlockMatch) return colorBlockMatch[1];
     }
     return '#6366f1';
   } catch { return '#6366f1'; }
@@ -81,10 +88,52 @@ function checkConfirmations() {
   } catch { /* no-op */ }
 }
 
+// --- Load previous personalization state ---
+function loadPreviousPersonalization() {
+  try {
+    return JSON.parse(readFileSync(PERSONALIZATION_FILE, 'utf8'));
+  } catch { return null; }
+}
+
+// --- Reverse previous personalization in content ---
+function reversePersonalization(content, prev) {
+  let reversed = content;
+  const tokenMap = {
+    PRODUCT_NAME: '{{PRODUCT_NAME}}',
+    BRAND_COLOR: '{{BRAND_COLOR}}',
+    SENDER_NAME: '{{SENDER_NAME}}',
+    SUPPORT_EMAIL: '{{SUPPORT_EMAIL}}',
+    COMPANY_ADDRESS: '{{COMPANY_ADDRESS}}',
+  };
+  for (const [key, token] of Object.entries(tokenMap)) {
+    if (prev[key]) {
+      reversed = reversed.replaceAll(prev[key], token);
+    }
+  }
+  return reversed;
+}
+
+// --- Reverse previous personalization in config.toml ---
+function reverseTomlPersonalization(content, prev) {
+  let reversed = content;
+  if (prev.PRODUCT_NAME) {
+    reversed = reversed.replaceAll(prev.PRODUCT_NAME, '__PRODUCT_NAME__');
+  }
+  if (prev.BRAND_COLOR) {
+    reversed = reversed.replaceAll(prev.BRAND_COLOR, '__BRAND_COLOR__');
+  }
+  return reversed;
+}
+
 // --- Main ---
 async function main() {
   console.log('BeakerStack Email Template Personalization\n');
   checkConfirmations();
+
+  const prev = loadPreviousPersonalization();
+  if (prev) {
+    console.log('i  Previous personalization found — will restore placeholders before re-applying.\n');
+  }
 
   const productName = await prompt('Product name', defaultProductName);
   const brandColor = await prompt('Brand color (hex)', defaultBrandColor);
@@ -131,11 +180,15 @@ async function main() {
   let modified = 0, skipped = 0;
   for (const file of files) {
     const path = join(TEMPLATES_DIR, file);
-    const content = readFileSync(path, 'utf8');
+    let content = readFileSync(path, 'utf8');
     if (content.includes(EJECTION_MARKER)) {
       console.log(`!  Skipping ${file} — marked as customized.`);
       skipped++;
       continue;
+    }
+    // Reverse previous personalization so tokens are clean before re-applying
+    if (prev) {
+      content = reversePersonalization(content, prev);
     }
     let updated = content;
     for (const [token, value] of Object.entries(replacements)) {
@@ -150,7 +203,11 @@ async function main() {
 
   // Personalize config.toml subject lines (uses __PLACEHOLDER__ style, not {{}} Go template syntax)
   try {
-    const toml = readFileSync(CONFIG_TOML, 'utf8');
+    let toml = readFileSync(CONFIG_TOML, 'utf8');
+    // Reverse previous personalization first
+    if (prev) {
+      toml = reverseTomlPersonalization(toml, prev);
+    }
     let updatedToml = toml;
     for (const [token, value] of Object.entries(tomlReplacements)) {
       updatedToml = updatedToml.replaceAll(token, value);
@@ -161,6 +218,16 @@ async function main() {
       modified++;
     }
   } catch { /* config.toml optional */ }
+
+  // Save current personalization state for idempotent re-runs
+  const newState = {
+    PRODUCT_NAME: productName,
+    BRAND_COLOR: brandColor,
+    SENDER_NAME: senderName,
+    ...(supportEmail ? { SUPPORT_EMAIL: supportEmail } : {}),
+    ...(companyAddress ? { COMPANY_ADDRESS: companyAddress } : {}),
+  };
+  writeFileSync(PERSONALIZATION_FILE, JSON.stringify(newState, null, 2) + '\n', 'utf8');
 
   console.log(`\nDone — ${modified} file(s) updated, ${skipped} skipped.`);
   if (!NON_INTERACTIVE) {
@@ -173,3 +240,4 @@ async function main() {
 }
 
 main().catch(err => { console.error(err); process.exit(1); });
+
