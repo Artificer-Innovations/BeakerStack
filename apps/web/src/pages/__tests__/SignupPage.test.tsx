@@ -10,6 +10,7 @@ import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { POST_AUTH_REDIRECT_KEY } from '../../auth/postAuthRedirect';
+import { MIN_PASSWORD_LENGTH } from '@beakerstack/shared/constants/auth';
 
 const mockCatalogPlans = vi.hoisted(() => {
   const pro: Plan = {
@@ -278,6 +279,28 @@ describe('SignupPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Please fill in all fields')).toBeInTheDocument();
     });
+  });
+
+  it('shows error when password is too short', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<SignupPage />);
+
+    await user.type(screen.getByPlaceholderText('Email address'), 'test@example.com');
+    await user.type(screen.getByPlaceholderText('Password'), 'short');
+    await user.type(screen.getByPlaceholderText('Confirm password'), 'short');
+
+    const form = screen.getByPlaceholderText('Email address').closest('form');
+    const submitButton = form?.querySelector('button[type="submit"]') as HTMLButtonElement;
+    if (submitButton) {
+      await user.click(submitButton);
+    }
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`)
+      ).toBeInTheDocument();
+    });
+    expect(authClientMocks.signUp).not.toHaveBeenCalled();
   });
 
   it('shows error when passwords do not match', async () => {

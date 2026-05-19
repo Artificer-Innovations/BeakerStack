@@ -98,6 +98,8 @@ export default function ResetPasswordScreen({ navigation }: Props) {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            autoCapitalize='none'
+            autoCorrect={false}
             autoComplete='new-password'
             editable={!isLoading}
           />
@@ -109,6 +111,8 @@ export default function ResetPasswordScreen({ navigation }: Props) {
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
+            autoCapitalize='none'
+            autoCorrect={false}
             autoComplete='new-password'
             editable={!isLoading}
           />
