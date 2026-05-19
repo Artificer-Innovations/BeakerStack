@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { hashUserId, scrubEmail, scrubRequest } from '../pii.js';
 
 describe('hashUserId', () => {
-  it('returns a hashed_ prefixed string', () => {
-    expect(hashUserId('user-123')).toMatch(/^hashed_[0-9a-f]+$/);
+  it('returns a u_ prefixed hex string', () => {
+    expect(hashUserId('user-123')).toMatch(/^u_[0-9a-f]{16}$/);
   });
   it('is deterministic', () => {
     expect(hashUserId('user-123')).toBe(hashUserId('user-123'));

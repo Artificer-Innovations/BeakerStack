@@ -48,7 +48,7 @@ describe('ObservabilityProvider (native)', () => {
     );
     await act(async () => {});
     expect(Sentry.setUser).toHaveBeenCalledWith(
-      expect.objectContaining({ id: expect.stringMatching(/^hashed_/) })
+      expect.objectContaining({ id: expect.stringMatching(/^u_[0-9a-f]{16}$/) })
     );
   });
 });

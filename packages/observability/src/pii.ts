@@ -1,13 +1,13 @@
 export function hashUserId(id: string): string {
-  // Deterministic SHA-256 hex — not reversible, safe to send to Sentry.
-  // Using a sync implementation for browser/RN/Deno compatibility.
-  let hash = 0;
+  // FNV-1a 64-bit pseudonymisation — deterministic, non-reversible at scale,
+  // works sync in browser/RN/Deno. Not cryptographic SHA-256.
+  let h = 0xcbf29ce484222325n;
+  const fnvPrime = 0x100000001b3n;
   for (let i = 0; i < id.length; i++) {
-    const char = id.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0;
+    h ^= BigInt(id.charCodeAt(i));
+    h = BigInt.asUintN(64, h * fnvPrime);
   }
-  return `hashed_${Math.abs(hash).toString(16).padStart(8, '0')}`;
+  return `u_${h.toString(16).padStart(16, '0')}`;
 }
 
 const EMAIL_PATTERN = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;

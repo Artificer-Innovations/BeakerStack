@@ -57,16 +57,10 @@ import { initEdgeObservability, withEdgeScope, captureEdgeException } from '../_
 
 initEdgeObservability({ project: 'my-fn', environment: Deno.env.get('ENVIRONMENT') ?? 'development' });
 
-Deno.serve(async (req) => {
-  try {
-    return await withEdgeScope('handle-request', async () => {
-      // ... handler
-    });
-  } catch (err) {
-    captureEdgeException(err);
-    return new Response('Internal error', { status: 500 });
-  }
-});
+Deno.serve(withEdgeScope(async (req) => {
+  // ... handler
+  return new Response('ok');
+}));
 ```
 
 > **Note:** The Sentry Node/browser SDKs are not compatible with the Deno runtime. `withEdgeScope` is currently a pass-through wrapper. A Deno-compatible Sentry SDK can be substituted in `supabase/functions/_shared/observability.ts` without touching call-sites.

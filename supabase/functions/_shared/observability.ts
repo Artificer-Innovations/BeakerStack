@@ -9,7 +9,7 @@
  * Usage:
  *   import { withEdgeScope, initEdgeObservability } from '../_shared/observability.ts';
  *   initEdgeObservability({ project: 'my-fn', environment: Deno.env.get('ENVIRONMENT') ?? 'development' });
- *   await withEdgeScope('my-operation', async () => { ... });
+ *   Deno.serve(withEdgeScope(async (req) => { ... }));
  */
 
 export interface EdgeObservabilityConfig {
@@ -24,11 +24,10 @@ export function initEdgeObservability(config: EdgeObservabilityConfig): void {
   _config = config;
 }
 
-export async function withEdgeScope<T>(
-  _name: string,
-  fn: () => Promise<T>
-): Promise<T> {
-  return fn();
+export function withEdgeScope(
+  handler: (req: Request) => Promise<Response>
+): (req: Request) => Promise<Response> {
+  return (req) => handler(req);
 }
 
 export function captureEdgeException(err: unknown): void {
