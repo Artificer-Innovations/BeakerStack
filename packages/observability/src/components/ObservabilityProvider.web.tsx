@@ -1,10 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { ObservabilityConfig, ObservabilityHandle } from '../types.js';
 import { ObservabilityContext } from '../context.js';
 import { hashUserId, scrubEmail } from '../pii.js';
-
-// Module-level Sentry reference — dynamic import is intercepted by vi.mock in tests.
-const Sentry = await import('@sentry/react').catch(() => null) as typeof import('@sentry/react') | null;
 
 interface Props {
   config: ObservabilityConfig;
@@ -12,45 +9,53 @@ interface Props {
 }
 
 export function ObservabilityProvider({ config, children }: Props) {
-  const handle = useMemo<ObservabilityHandle>(() => {
-    return {
-      captureException(err, context) {
-        Sentry?.captureException(err, context ? { extra: context } : undefined);
-      },
-      captureMessage(msg, level = 'info') {
-        Sentry?.captureMessage(msg, level);
-      },
-      setUser(id) {
-        if (id === null) {
-          Sentry?.setUser(null);
-        } else {
-          Sentry?.setUser({ id: hashUserId(id) });
-        }
-      },
-      addBreadcrumb(crumb) {
-        Sentry?.addBreadcrumb({
-          ...crumb,
-          message: scrubEmail(crumb.message),
-        });
-      },
-      withScope(fn) {
-        if (!Sentry) return fn(null);
-        let result!: ReturnType<typeof fn>;
-        Sentry.withScope((scope) => {
-          result = fn(scope);
-        });
-        return result;
-      },
-      startSpan<T>(name: string, fn: () => T): T {
-        if (!Sentry) return fn();
-        let result!: T;
-        Sentry.startSpan({ name }, () => {
-          result = fn();
-        });
-        return result;
-      },
-    };
-  }, [config.project, config.environment]);
+  const [Sentry, setSentry] = useState<typeof import('@sentry/react') | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    import('@sentry/react')
+      .then(s => { if (!cancelled) setSentry(s); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const handle = useMemo<ObservabilityHandle>(() => ({
+    captureException(err, context) {
+      Sentry?.captureException(err, context ? { extra: context } : undefined);
+    },
+    captureMessage(msg, level = 'info') {
+      Sentry?.captureMessage(msg, level);
+    },
+    setUser(id) {
+      if (id === null) {
+        Sentry?.setUser(null);
+      } else {
+        void hashUserId(id).then(hash => Sentry?.setUser({ id: hash }));
+      }
+    },
+    addBreadcrumb(crumb) {
+      Sentry?.addBreadcrumb({
+        ...crumb,
+        message: scrubEmail(crumb.message),
+      });
+    },
+    withScope(fn) {
+      if (!Sentry) return fn(null);
+      let result!: ReturnType<typeof fn>;
+      Sentry.withScope((scope) => {
+        result = fn(scope);
+      });
+      return result;
+    },
+    startSpan<T>(name: string, fn: () => T): T {
+      if (!Sentry) return fn();
+      let result!: T;
+      Sentry.startSpan({ name }, () => {
+        result = fn();
+      });
+      return result;
+    },
+  }), [Sentry]);
 
   return (
     <ObservabilityContext.Provider value={handle}>

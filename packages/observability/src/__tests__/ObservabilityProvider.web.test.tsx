@@ -53,7 +53,7 @@ describe('ObservabilityProvider (web)', () => {
     );
     await act(async () => {});
     expect(SentryMock.setUser).toHaveBeenCalledWith(
-      expect.objectContaining({ id: expect.stringMatching(/^u_[0-9a-f]{16}$/) })
+      expect.objectContaining({ id: expect.stringMatching(/^u_[0-9a-f]{64}$/) })
     );
   });
 
