@@ -120,6 +120,48 @@ describe('CollectionDetail', () => {
     expect(screen.getByText(/no items yet/i)).toBeInTheDocument();
   });
 
+  it('shows loading ellipsis in item cap subtitle when feature is loading', () => {
+    hp.featLoading = true;
+    renderDetail(makeCollection());
+    expect(screen.getByText('…')).toBeInTheDocument();
+  });
+
+  it('disables summarize while usage is loading', () => {
+    hp.usageLoading = true;
+    renderDetail(makeCollection({ item_count: 1 }));
+    expect(screen.getByRole('button', { name: /summarize/i })).toBeDisabled();
+  });
+
+  it('allows add item when plan has unlimited item cap (-1)', () => {
+    hp.maxItemsValue = -1;
+    renderDetail(makeCollection({ item_count: 99 }));
+    expect(
+      screen.getByRole('button', { name: /add item/i })
+    ).not.toBeDisabled();
+  });
+
+  it('add item error: shows generic message for non-Error rejections', async () => {
+    const user = userEvent.setup();
+    addItem.mockRejectedValue('nope');
+    renderDetail(makeCollection({ item_count: 1 }));
+
+    await user.click(screen.getByRole('button', { name: /add item/i }));
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('Action failed.')
+    );
+  });
+
+  it('summarize failure: surfaces RPC error object message', async () => {
+    const user = userEvent.setup();
+    mockRpc.mockResolvedValue({ error: { message: 'Quota exceeded' } });
+    renderDetail(makeCollection({ item_count: 1 }));
+
+    await user.click(screen.getAllByRole('button', { name: /summarize/i })[0]);
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('Quota exceeded')
+    );
+  });
+
   it('summarize success: calls RPC, refreshes usage, shows summary, fires onActivity', async () => {
     const user = userEvent.setup();
     renderDetail(makeCollection({ item_count: 1 }));

@@ -26,12 +26,15 @@ jest.mock('../../src/lib/supabase', () => ({
   },
 }));
 
-const mockOnAuthStateChange = (require('../../src/lib/supabase') as {
-  supabase: { auth: { onAuthStateChange: jest.Mock } };
-}).supabase.auth.onAuthStateChange;
+const mockOnAuthStateChange = (
+  require('../../src/lib/supabase') as {
+    supabase: { auth: { onAuthStateChange: jest.Mock } };
+  }
+).supabase.auth.onAuthStateChange;
 
 const mockReset = jest.fn();
 const mockNavigation = { reset: mockReset, navigate: jest.fn() } as any;
+const mockUnsubscribe = jest.fn();
 
 describe('AuthCallbackScreen', () => {
   beforeEach(() => {
@@ -42,7 +45,9 @@ describe('AuthCallbackScreen', () => {
   });
 
   it('shows loading spinner', () => {
-    const { getByText } = render(<AuthCallbackScreen navigation={mockNavigation} />);
+    const { getByText } = render(
+      <AuthCallbackScreen navigation={mockNavigation} />
+    );
     expect(getByText('Completing authentication...')).toBeTruthy();
   });
 
@@ -101,6 +106,62 @@ describe('AuthCallbackScreen', () => {
     jest.useRealTimers();
   });
 
+  it('ignores unrelated auth events until fallback timeout', () => {
+    jest.useFakeTimers();
+    mockOnAuthStateChange.mockImplementation((cb: (event: string) => void) => {
+      cb('TOKEN_REFRESHED');
+      return { data: { subscription: { unsubscribe: mockUnsubscribe } } };
+    });
+
+    render(<AuthCallbackScreen navigation={mockNavigation} />);
+    expect(mockReset).not.toHaveBeenCalled();
+
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+
+    expect(mockReset).toHaveBeenCalledWith({
+      index: 0,
+      routes: [{ name: 'Login' }],
+    });
+
+    jest.useRealTimers();
+  });
+
+  it('navigates only once when multiple auth events fire', async () => {
+    let authCallback: ((event: string) => void) | undefined;
+    mockOnAuthStateChange.mockImplementation((cb: (event: string) => void) => {
+      authCallback = cb;
+      return { data: { subscription: { unsubscribe: mockUnsubscribe } } };
+    });
+
+    render(<AuthCallbackScreen navigation={mockNavigation} />);
+    authCallback?.('SIGNED_IN');
+    authCallback?.('SIGNED_IN');
+
+    await waitFor(() => expect(mockReset).toHaveBeenCalledTimes(1));
+  });
+
+  it('unsubscribes and clears timeout on unmount', () => {
+    jest.useFakeTimers();
+    mockOnAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: mockUnsubscribe } },
+    });
+
+    const { unmount } = render(
+      <AuthCallbackScreen navigation={mockNavigation} />
+    );
+    unmount();
+
+    expect(mockUnsubscribe).toHaveBeenCalled();
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+    expect(mockReset).not.toHaveBeenCalled();
+
+    jest.useRealTimers();
+  });
+
   it('does not reset after timeout if auth event already handled', () => {
     jest.useFakeTimers();
 
@@ -117,10 +178,10 @@ describe('AuthCallbackScreen', () => {
     });
 
     const dashboardCalls = mockReset.mock.calls.filter(
-      (c) => c[0]?.routes?.[0]?.name === 'Dashboard'
+      c => c[0]?.routes?.[0]?.name === 'Dashboard'
     );
     const loginCalls = mockReset.mock.calls.filter(
-      (c) => c[0]?.routes?.[0]?.name === 'Login'
+      c => c[0]?.routes?.[0]?.name === 'Login'
     );
     expect(dashboardCalls).toHaveLength(1);
     expect(loginCalls).toHaveLength(0);

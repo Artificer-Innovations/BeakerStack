@@ -14,15 +14,22 @@ describe('randomUuid', () => {
   });
 
   it('returns a valid v4 UUID via getRandomValues when randomUUID is absent (path 2)', () => {
-    const saved = globalThis.crypto?.randomUUID;
+    const savedCrypto = globalThis.crypto;
+    const getRandomValues = jest.fn((arr: Uint8Array) => {
+      for (let i = 0; i < arr.length; i += 1) {
+        arr[i] = (i * 17) % 256;
+      }
+      return arr;
+    });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (globalThis.crypto as any).randomUUID;
+    (globalThis as any).crypto = { getRandomValues };
     try {
-      expect(randomUuid()).toMatch(UUID_RE);
+      const id = randomUuid();
+      expect(getRandomValues).toHaveBeenCalledWith(expect.any(Uint8Array));
+      expect(id).toMatch(UUID_RE);
     } finally {
-      if (saved)
-        (globalThis.crypto as unknown as Record<string, unknown>).randomUUID =
-          saved;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (globalThis as any).crypto = savedCrypto;
     }
   });
 
