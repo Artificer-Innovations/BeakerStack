@@ -8,6 +8,14 @@ const hp = vi.hoisted(() => ({
   limit: 10 as number | null,
   exceeded: false,
   usageLoading: false,
+  // Mutable feature values shared across tests so we can exercise the val()
+  // helper's special cases (-1 → "∞", null/undefined → "null").
+  featureValues: {
+    containers_per_account_max: 2,
+    items_per_container_max: 3,
+    feature_a: false,
+    feature_b: false,
+  } as Record<string, number | boolean | null | undefined>,
 }));
 
 vi.mock('@beakerstack/billing', async importOriginal => {
@@ -21,14 +29,10 @@ vi.mock('@beakerstack/billing', async importOriginal => {
       loading: hp.usageLoading,
     }),
     useFeature: (key: string) => {
-      const featureValues: Record<string, number | boolean> = {
-        containers_per_account_max: 2,
-        items_per_container_max: 3,
-        feature_a: false,
-        feature_b: false,
-      };
-      const v = featureValues[key];
-      return { value: v, enabled: Boolean(v), loading: false, error: null };
+      const v = hp.featureValues[key];
+      const enabled =
+        v === null || v === undefined ? (v as null | undefined) : Boolean(v);
+      return { value: v, enabled, loading: false, error: null };
     },
   };
 });
@@ -49,6 +53,12 @@ describe('DeveloperConsole', () => {
     hp.limit = 10;
     hp.exceeded = false;
     hp.usageLoading = false;
+    hp.featureValues = {
+      containers_per_account_max: 2,
+      items_per_container_max: 3,
+      feature_a: false,
+      feature_b: false,
+    };
   });
 
   it('renders Developer Console heading', () => {
@@ -114,5 +124,25 @@ describe('DeveloperConsole', () => {
     const entries = [makeEntry()];
     render(<DeveloperConsole activityLog={entries} />);
     expect(screen.getByRole('log')).toHaveAttribute('aria-live', 'polite');
+  });
+
+  it('renders infinity glyph when useUsage limit is null', () => {
+    hp.limit = null;
+    render(<DeveloperConsole activityLog={[]} />);
+    expect(
+      screen.getByText(/used: 2, limit: ∞, exceeded: false/)
+    ).toBeInTheDocument();
+  });
+
+  it('renders infinity glyph in useFeature row when value is -1 (unlimited)', () => {
+    hp.featureValues.containers_per_account_max = -1;
+    render(<DeveloperConsole activityLog={[]} />);
+    expect(screen.getByText(/value: ∞,/)).toBeInTheDocument();
+  });
+
+  it('renders null literal for useFeature value when feature is null/undefined', () => {
+    hp.featureValues.feature_a = null;
+    render(<DeveloperConsole activityLog={[]} />);
+    expect(screen.getByText(/\{ enabled: null \}/)).toBeInTheDocument();
   });
 });

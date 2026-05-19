@@ -103,4 +103,11 @@ describe('useAdminWaitlist', () => {
     });
     expect(mockList).toHaveBeenCalledTimes(1);
   });
+
+  it('wraps non-Error throws into Error instances', async () => {
+    mockList.mockRejectedValueOnce('boom');
+    const { result } = renderHook(() => useAdminWaitlist());
+    await waitFor(() => expect(result.current.error).toBeInstanceOf(Error));
+    expect(result.current.error?.message).toBe('boom');
+  });
 });

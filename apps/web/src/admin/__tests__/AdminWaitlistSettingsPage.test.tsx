@@ -215,4 +215,60 @@ describe('AdminWaitlistSettingsPage', () => {
       expect(screen.getByRole('alert')).toHaveTextContent('network');
     });
   });
+
+  it('uses generic copy when save throws a non-Error value', async () => {
+    mockUpdate.mockRejectedValueOnce('boom');
+    const user = userEvent.setup();
+    render(<AdminWaitlistSettingsPage />);
+    await screen.findByRole('button', { name: /save settings/i });
+    await user.click(screen.getByRole('button', { name: /save settings/i }));
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(/save failed/i);
+    });
+  });
+
+  it('handles missing copy block by falling back to empty strings in inputs', async () => {
+    mockGet.mockResolvedValueOnce({
+      ...baseSettings,
+      copy: undefined as unknown as typeof baseSettings.copy,
+    });
+    render(<AdminWaitlistSettingsPage />);
+    await screen.findByRole('button', { name: /save settings/i });
+    expect(screen.getByLabelText(/headline/i)).toHaveValue('');
+  });
+
+  it('updates the headline input through onChange and persists on save', async () => {
+    const user = userEvent.setup();
+    render(<AdminWaitlistSettingsPage />);
+    await screen.findByRole('button', { name: /save settings/i });
+    const headline = screen.getByLabelText(/headline/i);
+    await user.clear(headline);
+    await user.type(headline, 'New headline copy');
+    await user.click(screen.getByRole('button', { name: /save settings/i }));
+    await waitFor(() => {
+      expect(mockUpdate).toHaveBeenCalled();
+    });
+    const patch = mockUpdate.mock.calls.at(-1)?.[1] as {
+      copy?: { waitlist?: Record<string, string> };
+    };
+    expect(patch?.copy?.waitlist?.headline).toBe('New headline copy');
+  });
+
+  it('mirrors success_message into confirmation via updateWaitlistCopyField', async () => {
+    const user = userEvent.setup();
+    render(<AdminWaitlistSettingsPage />);
+    await screen.findByRole('button', { name: /save settings/i });
+    const successMessage = screen.getByLabelText(/success message/i);
+    await user.clear(successMessage);
+    await user.type(successMessage, 'Welcome aboard');
+    await user.click(screen.getByRole('button', { name: /save settings/i }));
+    await waitFor(() => {
+      expect(mockUpdate).toHaveBeenCalled();
+    });
+    const patch = mockUpdate.mock.calls.at(-1)?.[1] as {
+      copy?: { waitlist?: Record<string, string> };
+    };
+    expect(patch?.copy?.waitlist?.success_message).toBe('Welcome aboard');
+    expect(patch?.copy?.waitlist?.confirmation).toBe('Welcome aboard');
+  });
 });

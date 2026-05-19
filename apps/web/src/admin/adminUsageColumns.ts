@@ -4,7 +4,7 @@ import { beakerstackBillingConfig } from '../billing/beakerstackBillingConfig';
 export function getAdminUsageMeterKeys(): string[] {
   const keys = new Set<string>();
   for (const plan of beakerstackBillingConfig.plans) {
-    for (const key of Object.keys(plan.usageLimits ?? {})) {
+    for (const key of Object.keys(plan.usageLimits)) {
       keys.add(key);
     }
   }

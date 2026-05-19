@@ -35,7 +35,8 @@ export function PlanCard({
   blockers?: DowngradeBlockersResult;
   primary?: {
     label: string;
-    onClick: () => void;
+    /** Optional so disabled CTAs (current-plan markers) can omit a no-op handler. */
+    onClick?: () => void;
     disabled?: boolean;
     loading?: boolean;
     variant?: 'primary' | 'secondary';

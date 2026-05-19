@@ -54,10 +54,12 @@ vi.mock('../components/AdminWaitlistDetailDrawer.web', () => ({
   AdminWaitlistDetailDrawer: ({
     open,
     entry,
+    onClose,
     onUpdated,
   }: {
     open: boolean;
     entry: { email: string } | null;
+    onClose: () => void;
     onUpdated: () => void;
   }) =>
     open && entry ? (
@@ -65,6 +67,9 @@ vi.mock('../components/AdminWaitlistDetailDrawer.web', () => ({
         {entry.email}
         <button type='button' onClick={onUpdated}>
           Refresh entry
+        </button>
+        <button type='button' onClick={onClose}>
+          Close drawer
         </button>
       </div>
     ) : null,
@@ -172,5 +177,60 @@ describe('AdminWaitlistPage', () => {
     );
     await user.selectOptions(screen.getByRole('combobox'), 'approved');
     expect(mockHook.setStatus).toHaveBeenCalledWith('approved');
+  });
+
+  it('forwards typed search to the hook via onChange', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <AdminWaitlistPage />
+      </MemoryRouter>
+    );
+    const input = screen.getByPlaceholderText(/search by email/i);
+    await user.type(input, 'b');
+    expect(mockHook.setSearch).toHaveBeenCalled();
+  });
+
+  it('closes drawer when onClose fires', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <AdminWaitlistPage />
+      </MemoryRouter>
+    );
+    await user.click(screen.getByText('wait@example.com'));
+    expect(screen.getByTestId('waitlist-drawer')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /close drawer/i }));
+    expect(screen.queryByTestId('waitlist-drawer')).not.toBeInTheDocument();
+  });
+
+  it('renders without pagination when hook data is null', () => {
+    mockHook.data = null as unknown as typeof mockHook.data;
+    render(
+      <MemoryRouter>
+        <AdminWaitlistPage />
+      </MemoryRouter>
+    );
+    // No row to click → still renders header
+    expect(
+      screen.getByRole('heading', { name: /waitlist/i })
+    ).toBeInTheDocument();
+  });
+
+  it('falls back to original date string when formatDate throws', () => {
+    const original = Date.prototype.toLocaleDateString;
+    Date.prototype.toLocaleDateString = function () {
+      throw new Error('bad date');
+    };
+    try {
+      render(
+        <MemoryRouter>
+          <AdminWaitlistPage />
+        </MemoryRouter>
+      );
+      expect(screen.getByText('not-a-date')).toBeInTheDocument();
+    } finally {
+      Date.prototype.toLocaleDateString = original;
+    }
   });
 });

@@ -34,7 +34,8 @@ import { PlanCard } from '../../components/billing/PlanCard.web';
 
 type Primary = {
   label: string;
-  onClick: () => void;
+  /** Omitted for disabled CTAs that never fire (e.g. the current plan or a tied cadence). */
+  onClick?: () => void;
   disabled: boolean;
   loading: boolean;
   variant?: 'primary' | 'secondary';
@@ -152,7 +153,6 @@ export default function BillingPlansPage() {
       if (!current) {
         return {
           label: '…',
-          onClick: () => {},
           disabled: true,
           loading: false,
         };
@@ -163,7 +163,6 @@ export default function BillingPlansPage() {
         if (p.price_cents === 0 || p.id === 'beakerstack_free') {
           return {
             label: 'Current plan',
-            onClick: () => {},
             disabled: true,
             loading: false,
           };
@@ -171,7 +170,6 @@ export default function BillingPlansPage() {
         if (currentCadence === cadence) {
           return {
             label: 'Current plan',
-            onClick: () => {},
             disabled: true,
             loading: false,
           };
@@ -206,10 +204,7 @@ export default function BillingPlansPage() {
       if (p.id === 'beakerstack_free' && hasPaidStripe) {
         return {
           label: 'Downgrade to Free',
-          onClick: () => {
-            if (hasHardBlock) return;
-            setModal(true);
-          },
+          onClick: () => setModal(true),
           disabled: hasHardBlock,
           loading: false,
           variant: 'secondary',
@@ -242,7 +237,6 @@ export default function BillingPlansPage() {
       }
       return {
         label: 'Current plan',
-        onClick: () => {},
         disabled: true,
         loading: false,
       };

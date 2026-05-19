@@ -175,6 +175,32 @@ describe('Nav', () => {
     expect(header.className).toContain('shadow-sm');
   });
 
+  it('clicking mobile "Go to dashboard" link closes the menu', () => {
+    localStorage.setItem(
+      'sb-localhost-auth-token',
+      JSON.stringify({ access_token: 'jwt-token', refresh_token: 'r' })
+    );
+    renderNav();
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle menu' }));
+    const mobileNav = screen.getByRole('navigation', { name: 'Mobile' });
+    fireEvent.click(
+      within(mobileNav).getByRole('link', { name: 'Go to dashboard' })
+    );
+    expect(
+      screen.queryByRole('navigation', { name: 'Mobile' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('clicking mobile "Sign in" link closes the menu', () => {
+    renderNav();
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle menu' }));
+    const mobileNav = screen.getByRole('navigation', { name: 'Mobile' });
+    fireEvent.click(within(mobileNav).getByRole('link', { name: 'Sign in' }));
+    expect(
+      screen.queryByRole('navigation', { name: 'Mobile' })
+    ).not.toBeInTheDocument();
+  });
+
   it('removes shadow class when scrolled back to top', () => {
     renderNav();
     const header = screen.getByRole('banner');

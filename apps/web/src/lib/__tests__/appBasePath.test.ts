@@ -19,4 +19,13 @@ describe('appBasePath', () => {
     expect(appBasePath()).toBe('https://example.com/pr-9');
     vi.unstubAllEnvs();
   });
+
+  it('falls back to "/" when BASE_URL env is empty', () => {
+    vi.stubEnv('BASE_URL', '');
+    vi.stubGlobal('window', {
+      location: { origin: 'https://example.com' },
+    } as unknown as Window & typeof globalThis);
+    expect(appBasePath()).toBe('https://example.com');
+    vi.unstubAllEnvs();
+  });
 });

@@ -296,4 +296,134 @@ describe('AdminWaitlistDetailDrawer', () => {
       expect(screen.getByRole('alert')).toHaveTextContent('reject failed');
     });
   });
+
+  it('surfaces RPC errors from rejectWaitlistEntry', async () => {
+    mockReject.mockResolvedValueOnce({ error: 'denied' });
+    const user = userEvent.setup();
+    render(
+      <AdminWaitlistDetailDrawer
+        entry={pendingEntry}
+        open
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+      />
+    );
+    await user.click(screen.getByRole('button', { name: /reject/i }));
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('denied');
+    });
+  });
+
+  it('surfaces RPC errors from resendWaitlistInvite', async () => {
+    mockResend.mockResolvedValueOnce({ error: 'denied' });
+    const user = userEvent.setup();
+    render(
+      <AdminWaitlistDetailDrawer
+        entry={{ ...pendingEntry, status: 'approved' }}
+        open
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+      />
+    );
+    await user.click(screen.getByRole('button', { name: /resend invite/i }));
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('denied');
+    });
+  });
+
+  it('surfaces invoke fnErr from send_invite_email', async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'invoke failed' },
+    });
+    const user = userEvent.setup();
+    render(
+      <AdminWaitlistDetailDrawer
+        entry={pendingEntry}
+        open
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+      />
+    );
+    await user.click(screen.getByRole('button', { name: /approve/i }));
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('invoke failed');
+    });
+  });
+
+  it('uses generic copy when approve throws a non-Error value', async () => {
+    mockApprove.mockRejectedValueOnce('boom');
+    const user = userEvent.setup();
+    render(
+      <AdminWaitlistDetailDrawer
+        entry={pendingEntry}
+        open
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+      />
+    );
+    await user.click(screen.getByRole('button', { name: /approve/i }));
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(/approve failed/i);
+    });
+  });
+
+  it('uses generic copy when reject throws a non-Error value', async () => {
+    mockReject.mockRejectedValueOnce('boom');
+    const user = userEvent.setup();
+    render(
+      <AdminWaitlistDetailDrawer
+        entry={pendingEntry}
+        open
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+      />
+    );
+    await user.click(screen.getByRole('button', { name: /reject/i }));
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(/reject failed/i);
+    });
+  });
+
+  it('uses generic copy when resend throws a non-Error value', async () => {
+    mockResend.mockRejectedValueOnce('boom');
+    const user = userEvent.setup();
+    render(
+      <AdminWaitlistDetailDrawer
+        entry={{ ...pendingEntry, status: 'approved' }}
+        open
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+      />
+    );
+    await user.click(screen.getByRole('button', { name: /resend invite/i }));
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(/resend failed/i);
+    });
+  });
+
+  it('copies invite link via clipboard when Copy button is clicked', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    render(
+      <AdminWaitlistDetailDrawer
+        entry={pendingEntry}
+        open
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+      />
+    );
+    await user.click(screen.getByRole('button', { name: /approve/i }));
+    const copy = await screen.findByRole('button', {
+      name: /copy invite link/i,
+    });
+    await user.click(copy);
+    expect(writeText).toHaveBeenCalledWith(
+      expect.stringContaining('/signup/invite#token=tok')
+    );
+  });
 });

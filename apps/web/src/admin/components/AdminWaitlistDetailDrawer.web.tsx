@@ -44,6 +44,8 @@ export function AdminWaitlistDetailDrawer({
   const [error, setError] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
 
+  if (!entry) return null;
+
   const sendInviteEmail = async (
     token: string,
     email: string,
@@ -78,7 +80,6 @@ export function AdminWaitlistDetailDrawer({
   };
 
   const handleApprove = async () => {
-    if (!entry) return;
     setBusy(true);
     setError(null);
     try {
@@ -100,7 +101,6 @@ export function AdminWaitlistDetailDrawer({
   };
 
   const handleReject = async () => {
-    if (!entry) return;
     setBusy(true);
     setError(null);
     try {
@@ -119,7 +119,6 @@ export function AdminWaitlistDetailDrawer({
   };
 
   const handleResend = async () => {
-    if (!entry) return;
     setBusy(true);
     setError(null);
     try {
@@ -140,8 +139,6 @@ export function AdminWaitlistDetailDrawer({
     if (!inviteLink) return;
     await navigator.clipboard.writeText(inviteLink);
   };
-
-  if (!entry) return null;
 
   return (
     <AdminDetailDrawer open={open} title={entry.email} onClose={onClose}>
