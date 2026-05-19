@@ -26,6 +26,15 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+// Mock postAuthRedirect
+const { mockReadAndClearPostAuthRedirect } = vi.hoisted(() => ({
+  mockReadAndClearPostAuthRedirect: vi.fn(),
+}));
+
+vi.mock('../auth/postAuthRedirect', () => ({
+  readAndClearPostAuthRedirect: mockReadAndClearPostAuthRedirect,
+}));
+
 const renderWithParams = (search: string = '') => {
   const path = `/auth/confirm${search}`;
   return render(
@@ -40,6 +49,8 @@ const renderWithParams = (search: string = '') => {
 describe('AuthConfirmPage', () => {
   beforeEach(() => {
     mockVerifyOtp.mockReset();
+    mockReadAndClearPostAuthRedirect.mockReset();
+    mockReadAndClearPostAuthRedirect.mockReturnValue(null);
     vi.clearAllMocks();
   });
 
@@ -64,6 +75,14 @@ describe('AuthConfirmPage', () => {
       expect(
         screen.getByText('This confirmation link is invalid or has already been used.')
       ).toBeInTheDocument();
+    });
+
+    it('shows error for invalid type in URL', () => {
+      renderWithParams('?token_hash=abc123&type=invalid_type');
+      expect(
+        screen.getByText('This confirmation link is invalid or has already been used.')
+      ).toBeInTheDocument();
+      expect(mockVerifyOtp).not.toHaveBeenCalled();
     });
   });
 
@@ -100,6 +119,16 @@ describe('AuthConfirmPage', () => {
         ).toBeInTheDocument();
       });
     });
+
+    it('shows error on network failure', async () => {
+      mockVerifyOtp.mockRejectedValue(new Error('Network error'));
+      renderWithParams('?token_hash=abc123&type=signup');
+      await waitFor(() => {
+        expect(
+          screen.getByText('Something went wrong. Please try again later.')
+        ).toBeInTheDocument();
+      });
+    });
   });
 
   describe('verifyOtp success', () => {
@@ -115,6 +144,7 @@ describe('AuthConfirmPage', () => {
 
     it('navigates to /dashboard on success with signup type', async () => {
       mockVerifyOtp.mockResolvedValue({ error: null });
+      mockReadAndClearPostAuthRedirect.mockReturnValue(null);
       renderWithParams('?token_hash=abc123&type=signup');
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('/dashboard', {
@@ -125,6 +155,7 @@ describe('AuthConfirmPage', () => {
 
     it('navigates to /dashboard on success with magiclink type', async () => {
       mockVerifyOtp.mockResolvedValue({ error: null });
+      mockReadAndClearPostAuthRedirect.mockReturnValue(null);
       renderWithParams('?token_hash=abc123&type=magiclink');
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('/dashboard', {
@@ -135,6 +166,7 @@ describe('AuthConfirmPage', () => {
 
     it('navigates to /dashboard on success with email_change type', async () => {
       mockVerifyOtp.mockResolvedValue({ error: null });
+      mockReadAndClearPostAuthRedirect.mockReturnValue(null);
       renderWithParams('?token_hash=abc123&type=email_change');
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('/dashboard', {
@@ -145,11 +177,47 @@ describe('AuthConfirmPage', () => {
 
     it('navigates to /dashboard on success with invite type', async () => {
       mockVerifyOtp.mockResolvedValue({ error: null });
+      mockReadAndClearPostAuthRedirect.mockReturnValue(null);
       renderWithParams('?token_hash=abc123&type=invite');
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('/dashboard', {
           replace: true,
         });
+      });
+    });
+
+    it('honors post-auth redirect on success', async () => {
+      mockVerifyOtp.mockResolvedValue({ error: null });
+      mockReadAndClearPostAuthRedirect.mockReturnValue('/some/path');
+      renderWithParams('?token_hash=abc123&type=signup');
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('/some/path', {
+          replace: true,
+        });
+      });
+    });
+  });
+
+  describe('React Strict Mode guard', () => {
+    it('does not call verifyOtp a second time on remount (Strict Mode guard)', async () => {
+      mockVerifyOtp.mockResolvedValue({ error: null });
+      mockReadAndClearPostAuthRedirect.mockReturnValue(null);
+      const { unmount, rerender } = renderWithParams('?token_hash=abc123&type=signup');
+      await waitFor(() => {
+        expect(mockVerifyOtp).toHaveBeenCalledTimes(1);
+      });
+      // Simulate remount (as React Strict Mode does in dev)
+      unmount();
+      rerender(
+        <MemoryRouter initialEntries={['/auth/confirm?token_hash=abc123&type=signup']}>
+          <Routes>
+            <Route path='/auth/confirm' element={<AuthConfirmPage />} />
+          </Routes>
+        </MemoryRouter>
+      );
+      await waitFor(() => {
+        // Still only one call total — guard prevents second invocation
+        expect(mockVerifyOtp).toHaveBeenCalledTimes(1);
       });
     });
   });

@@ -198,23 +198,23 @@ otp_expiry = 3600
 # enable_confirmations = true
 
 [auth.email.template.confirmation]
-subject = "Confirm your {{PRODUCT_NAME}} account"
+subject = "Confirm your __PRODUCT_NAME__ account"
 content_path = "./supabase/templates/signup_confirmation.html"
 
 [auth.email.template.recovery]
-subject = "Reset your {{PRODUCT_NAME}} password"
+subject = "Reset your __PRODUCT_NAME__ password"
 content_path = "./supabase/templates/password_reset.html"
 
 [auth.email.template.magic_link]
-subject = "Your {{PRODUCT_NAME}} sign-in link"
+subject = "Your __PRODUCT_NAME__ sign-in link"
 content_path = "./supabase/templates/magic_link.html"
 
 [auth.email.template.email_change]
-subject = "Confirm your new {{PRODUCT_NAME}} email address"
+subject = "Confirm your new __PRODUCT_NAME__ email address"
 content_path = "./supabase/templates/email_change.html"
 
 [auth.email.template.invite]
-subject = "You've been invited to {{PRODUCT_NAME}}"
+subject = "You've been invited to __PRODUCT_NAME__"
 content_path = "./supabase/templates/invite.html"
 
 # Optional: custom SMTP (Resend recommended — see docs/EMAIL_TEMPLATES.md)

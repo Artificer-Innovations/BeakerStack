@@ -2743,16 +2743,18 @@ async function main() {
       }
     }
     // Personalize email templates
-    logInfo('');
-    logInfo('Personalizing email templates...');
-    try {
-      const { execSync } = await import('node:child_process');
-      execSync('node scripts/personalize-email-templates.mjs --non-interactive', {
-        stdio: 'inherit',
-        cwd: REPO_ROOT,
-      });
-    } catch {
-      logInfo('Email template personalization skipped (run manually: npm run email:personalize)');
+    if (!flags.dryRun) {
+      logInfo('');
+      logInfo('Personalizing email templates...');
+      try {
+        const { execSync } = await import('node:child_process');
+        execSync('node scripts/personalize-email-templates.mjs --non-interactive', {
+          stdio: 'inherit',
+          cwd: REPO_ROOT,
+        });
+      } catch {
+        logInfo('Email template personalization skipped (run manually: npm run email:personalize)');
+      }
     }
 
         if (flags.dryRun) {

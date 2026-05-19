@@ -1,19 +1,26 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { readAndClearPostAuthRedirect } from '../auth/postAuthRedirect';
 
 type OtpType = 'signup' | 'recovery' | 'magiclink' | 'email_change' | 'invite';
+
+const VALID_TYPES: OtpType[] = ['signup', 'recovery', 'magiclink', 'email_change', 'invite'];
 
 export default function AuthConfirmPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const verifyingRef = useRef(false);
 
   useEffect(() => {
+    if (verifyingRef.current) return;
+    verifyingRef.current = true;
+
     const tokenHash = searchParams.get('token_hash');
     const type = searchParams.get('type') as OtpType | null;
 
-    if (!tokenHash || !type) {
+    if (!tokenHash || !type || !VALID_TYPES.includes(type)) {
       setError('This confirmation link is invalid or has already been used.');
       return;
     }
@@ -35,8 +42,12 @@ export default function AuthConfirmPage() {
         if (type === 'recovery') {
           navigate('/reset-password', { replace: true });
         } else {
-          navigate('/dashboard', { replace: true });
+          const stored = readAndClearPostAuthRedirect();
+          navigate(stored ?? '/dashboard', { replace: true });
         }
+      })
+      .catch(() => {
+        setError('Something went wrong. Please try again later.');
       });
   }, [searchParams, navigate]);
 
