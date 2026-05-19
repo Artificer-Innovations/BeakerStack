@@ -75,7 +75,7 @@ interface ObservabilityConfig {
   release?: string;         // semver or commit SHA for source map linking
   sampling?: {
     traces?: number;        // default 0.1 (10 %)
-    errors?: number;        // default 1.0 (100 %)
+    replayOnError?: number;  // default 1.0 (100 %) — fraction of error sessions captured as replay
     replay?: number;        // default 0.0 (disabled)
   };
   pii?: {
