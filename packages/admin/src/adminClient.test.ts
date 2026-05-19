@@ -8,7 +8,7 @@ import {
 
 function mockSupabase(
   rpcImpl: (name: string, args?: Record<string, unknown>) => unknown,
-  options?: { error?: { message: string } | null }
+  options?: { error?: { message?: string } | null }
 ) {
   return {
     rpc: vi.fn((name: string, args?: Record<string, unknown>) => {
@@ -37,6 +37,11 @@ describe('adminClient', () => {
     await expect(checkIsAdmin(sb)).rejects.toThrow('fail');
   });
 
+  it('uses generic message when RPC error has no message', async () => {
+    const sb = mockSupabase(() => null, { error: {} });
+    await expect(checkIsAdmin(sb)).rejects.toThrow('RPC request failed');
+  });
+
   it('listUsers returns null on not_found', async () => {
     const sb = mockSupabase(name =>
       name === 'admin_list_users' ? { error: 'not_found' } : null
@@ -52,6 +57,33 @@ describe('adminClient', () => {
     expect(result?.limit).toBe(10);
     expect(result?.offset).toBe(5);
     expect(result?.total).toBe(2);
+  });
+
+  it('listUsers defaults users to empty array when omitted', async () => {
+    const sb = mockSupabase(name =>
+      name === 'admin_list_users' ? { total: 0, limit: 25, offset: 0 } : null
+    );
+    const result = await listUsers(sb);
+    expect(result?.users).toEqual([]);
+  });
+
+  it('listUsers defaults total to zero when omitted', async () => {
+    const sb = mockSupabase(name =>
+      name === 'admin_list_users' ? { users: [], limit: 25, offset: 0 } : null
+    );
+    const result = await listUsers(sb);
+    expect(result?.total).toBe(0);
+  });
+
+  it('listUsers prefers pagination fields from RPC payload', async () => {
+    const sb = mockSupabase(name =>
+      name === 'admin_list_users'
+        ? { users: [], total: 3, limit: 50, offset: 10 }
+        : null
+    );
+    const result = await listUsers(sb, { limit: 10, offset: 5 });
+    expect(result?.limit).toBe(50);
+    expect(result?.offset).toBe(10);
   });
 
   it('listUsers parses users payload', async () => {
@@ -114,6 +146,11 @@ describe('adminClient', () => {
     });
   });
 
+  it('getUser throws when RPC errors', async () => {
+    const sb = mockSupabase(() => null, { error: { message: 'denied' } });
+    await expect(getUser(sb, 'u1')).rejects.toThrow('denied');
+  });
+
   it('getUser returns detail payload', async () => {
     const detail = { auth: { id: 'u1', email: 'a@b.com' } };
     const sb = mockSupabase(name =>
@@ -123,6 +160,19 @@ describe('adminClient', () => {
     expect(sb.rpc).toHaveBeenCalledWith('admin_get_user', {
       p_user_id: 'u1',
       p_product_id: 'my_product',
+    });
+  });
+
+  it('recordAuditEvent omits target fields when target is undefined', async () => {
+    const sb = mockSupabase(name =>
+      name === 'admin_record_audit_event' ? null : null
+    );
+    await recordAuditEvent(sb, { action: 'user.view' });
+    expect(sb.rpc).toHaveBeenCalledWith('admin_record_audit_event', {
+      p_action: 'user.view',
+      p_target_type: undefined,
+      p_target_id: undefined,
+      p_details: {},
     });
   });
 
