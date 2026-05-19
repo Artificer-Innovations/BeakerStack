@@ -51,6 +51,7 @@
     "react-dom": "^18.2.0",
     "react-native-web": "^0.21.2",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "eslint-plugin-react-hooks": "^4.6.2"
   }
 }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useMemo } from 'react';
 import type { ObservabilityConfig, ObservabilityHandle } from '../types.js';
 import { ObservabilityContext } from '../context.js';
@@ -11,7 +12,7 @@ const Sentry = await import('@sentry/react-native').catch(() => null) as any;
 interface Props {
   config: ObservabilityConfig;
   children: React.ReactNode;
-  navigationRef?: React.RefObject<any>;
+  navigationRef?: React.RefObject<unknown>;
 }
 
 export function ObservabilityProvider({ config, children, navigationRef }: Props) {

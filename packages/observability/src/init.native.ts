@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ObservabilityConfig } from './types.js';
 import { validateConfig } from './schema.js';
 import { TRACE_SAMPLE_RATE } from './defaults.js';

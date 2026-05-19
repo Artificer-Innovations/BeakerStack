@@ -10,7 +10,7 @@ export function hashUserId(id: string): string {
   return `u_${h.toString(16).padStart(16, '0')}`;
 }
 
-const EMAIL_PATTERN = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
+const EMAIL_PATTERN = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
 
 export function scrubEmail(str: string): string {
   return str.replace(EMAIL_PATTERN, '[email]');
