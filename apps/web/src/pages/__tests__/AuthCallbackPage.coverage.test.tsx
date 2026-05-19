@@ -26,6 +26,21 @@ const auth = vi.hoisted(() => ({
   loading: true,
 }));
 
+const recoveryCallback = vi.hoisted(() => ({ active: false }));
+
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    auth: {
+      onAuthStateChange: vi.fn(() => ({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      })),
+    },
+  },
+  isPasswordRecoveryCallback: false,
+  hasPasswordRecoveryCallback: () => recoveryCallback.active,
+  clearPasswordRecoveryCallback: vi.fn(),
+}));
+
 vi.mock('react-router-dom', async () => {
   const actual =
     await vi.importActual<typeof import('react-router-dom')>(
@@ -81,6 +96,7 @@ describe('AuthCallbackPage (URL + auth branches)', () => {
     vi.stubGlobal('localStorage', storageMock(memLocal));
     auth.user = null;
     auth.loading = true;
+    recoveryCallback.active = false;
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: {
@@ -395,5 +411,67 @@ describe('AuthCallbackPage (URL + auth branches)', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith(dest, { replace: true });
     expect(memLocal[POST_AUTH_REDIRECT_KEY]).toBeUndefined();
+  });
+
+  it('redirects to reset-password when already signed in with recovery callback flag', async () => {
+    vi.useFakeTimers();
+    recoveryCallback.active = true;
+    auth.loading = false;
+    auth.user = { id: 'u1' };
+
+    render(
+      <MemoryRouter>
+        <AuthCallbackPage />
+      </MemoryRouter>
+    );
+
+    expect(mockNavigate).not.toHaveBeenCalledWith(
+      '/dashboard',
+      expect.anything()
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+
+    expect(mockNavigate).toHaveBeenCalledWith('/reset-password', {
+      replace: true,
+    });
+    vi.useRealTimers();
+  });
+
+  it('redirects to reset-password when recovery flag is set and access token hash has no type=recovery', async () => {
+    vi.useFakeTimers();
+    recoveryCallback.active = true;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        ...original,
+        search: '',
+        hash: '#access_token=tok',
+      },
+    });
+    auth.loading = false;
+    auth.user = { id: 'u1', email: 'a@b.c' };
+
+    render(
+      <MemoryRouter>
+        <AuthCallbackPage />
+      </MemoryRouter>
+    );
+
+    expect(mockNavigate).not.toHaveBeenCalledWith(
+      '/dashboard',
+      expect.anything()
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+
+    expect(mockNavigate).toHaveBeenCalledWith('/reset-password', {
+      replace: true,
+    });
+    vi.useRealTimers();
   });
 });
