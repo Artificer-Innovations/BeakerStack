@@ -1,7 +1,6 @@
 import type { MarketingEmailAdapter } from '../../types.js';
 import { MarketingEmailError } from '../../errors.js';
 import type { KitAdapterConfig } from './kitConfig.js';
-import { signupTag, tierTag, waitlistTag, waitlistApprovedTag, churnedTag } from './kitTagScheme.js';
 
 const KIT_API_BASE = 'https://api.kit.com/v4';
 
