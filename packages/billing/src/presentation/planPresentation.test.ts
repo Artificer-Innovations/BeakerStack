@@ -57,6 +57,10 @@ describe('applyTemplate', () => {
   it('uses empty string for missing keys', () => {
     expect(applyTemplate('{missing}', { other: 1 })).toBe('');
   });
+
+  it('returns empty string when template is undefined', () => {
+    expect(applyTemplate(undefined, { a: 1 })).toBe('');
+  });
 });
 
 describe('mergePlanFeatureRows', () => {

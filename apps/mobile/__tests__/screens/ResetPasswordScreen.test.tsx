@@ -32,9 +32,11 @@ jest.mock('../../src/lib/supabase', () => ({
   },
 }));
 
-const mockGetSession = (require('../../src/lib/supabase') as {
-  supabase: { auth: { getSession: jest.Mock } };
-}).supabase.auth.getSession;
+const mockGetSession = (
+  require('../../src/lib/supabase') as {
+    supabase: { auth: { getSession: jest.Mock } };
+  }
+).supabase.auth.getSession;
 
 jest.mock('@beakerstack/shared/components/navigation/AppHeader.native', () => ({
   AppHeader: () => null,
@@ -65,7 +67,9 @@ const mockSession = {
 const createMockSupabaseClient = (): SupabaseClient =>
   ({
     auth: {
-      getSession: jest.fn().mockResolvedValue({ data: { session: mockSession }, error: null }),
+      getSession: jest
+        .fn()
+        .mockResolvedValue({ data: { session: mockSession }, error: null }),
       onAuthStateChange: jest.fn(() => ({
         data: { subscription: { unsubscribe: jest.fn() } },
       })),
@@ -129,28 +133,40 @@ describe('ResetPasswordScreen', () => {
   });
 
   it('renders the form when a session exists', async () => {
-    mockGetSession.mockResolvedValue({ data: { session: mockSession }, error: null });
+    mockGetSession.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
     const { getByPlaceholderText } = renderScreen();
     await waitFor(() => {
       expect(
-        getByPlaceholderText(`New password (min ${MIN_PASSWORD_LENGTH} characters)`)
+        getByPlaceholderText(
+          `New password (min ${MIN_PASSWORD_LENGTH} characters)`
+        )
       ).toBeTruthy();
     });
     expect(getByPlaceholderText('Confirm new password')).toBeTruthy();
   });
 
   it('shows alert when password is too short', async () => {
-    mockGetSession.mockResolvedValue({ data: { session: mockSession }, error: null });
+    mockGetSession.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
     const { getByPlaceholderText, getByText } = renderScreen();
 
     await waitFor(() =>
       expect(
-        getByPlaceholderText(`New password (min ${MIN_PASSWORD_LENGTH} characters)`)
+        getByPlaceholderText(
+          `New password (min ${MIN_PASSWORD_LENGTH} characters)`
+        )
       ).toBeTruthy()
     );
 
     fireEvent.changeText(
-      getByPlaceholderText(`New password (min ${MIN_PASSWORD_LENGTH} characters)`),
+      getByPlaceholderText(
+        `New password (min ${MIN_PASSWORD_LENGTH} characters)`
+      ),
       'short'
     );
     fireEvent.changeText(getByPlaceholderText('Confirm new password'), 'short');
@@ -166,44 +182,67 @@ describe('ResetPasswordScreen', () => {
   });
 
   it('shows alert when passwords do not match', async () => {
-    mockGetSession.mockResolvedValue({ data: { session: mockSession }, error: null });
+    mockGetSession.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
     const { getByPlaceholderText, getByText } = renderScreen();
 
     await waitFor(() =>
       expect(
-        getByPlaceholderText(`New password (min ${MIN_PASSWORD_LENGTH} characters)`)
+        getByPlaceholderText(
+          `New password (min ${MIN_PASSWORD_LENGTH} characters)`
+        )
       ).toBeTruthy()
     );
 
     fireEvent.changeText(
-      getByPlaceholderText(`New password (min ${MIN_PASSWORD_LENGTH} characters)`),
+      getByPlaceholderText(
+        `New password (min ${MIN_PASSWORD_LENGTH} characters)`
+      ),
       'newpassword1'
     );
-    fireEvent.changeText(getByPlaceholderText('Confirm new password'), 'different123');
+    fireEvent.changeText(
+      getByPlaceholderText('Confirm new password'),
+      'different123'
+    );
     fireEvent.press(getByText('Update password'));
 
     await waitFor(() => {
-      expect(Alert.alert).toHaveBeenCalledWith('Error', 'Passwords do not match');
+      expect(Alert.alert).toHaveBeenCalledWith(
+        'Error',
+        'Passwords do not match'
+      );
     });
     expect(mockUpdateUser).not.toHaveBeenCalled();
   });
 
   it('calls updatePassword and navigates to Dashboard on success', async () => {
-    mockGetSession.mockResolvedValue({ data: { session: mockSession }, error: null });
+    mockGetSession.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
     mockUpdateUser.mockResolvedValue({ data: { user: mockUser }, error: null });
     const { getByPlaceholderText, getByText } = renderScreen();
 
     await waitFor(() =>
       expect(
-        getByPlaceholderText(`New password (min ${MIN_PASSWORD_LENGTH} characters)`)
+        getByPlaceholderText(
+          `New password (min ${MIN_PASSWORD_LENGTH} characters)`
+        )
       ).toBeTruthy()
     );
 
     fireEvent.changeText(
-      getByPlaceholderText(`New password (min ${MIN_PASSWORD_LENGTH} characters)`),
+      getByPlaceholderText(
+        `New password (min ${MIN_PASSWORD_LENGTH} characters)`
+      ),
       'newpassword1'
     );
-    fireEvent.changeText(getByPlaceholderText('Confirm new password'), 'newpassword1');
+    fireEvent.changeText(
+      getByPlaceholderText('Confirm new password'),
+      'newpassword1'
+    );
     fireEvent.press(getByText('Update password'));
 
     await waitFor(() => {
@@ -216,21 +255,31 @@ describe('ResetPasswordScreen', () => {
   });
 
   it('shows alert when updatePassword fails', async () => {
-    mockGetSession.mockResolvedValue({ data: { session: mockSession }, error: null });
+    mockGetSession.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
     mockUpdateUser.mockRejectedValue(new Error('Password too weak'));
     const { getByPlaceholderText, getByText } = renderScreen();
 
     await waitFor(() =>
       expect(
-        getByPlaceholderText(`New password (min ${MIN_PASSWORD_LENGTH} characters)`)
+        getByPlaceholderText(
+          `New password (min ${MIN_PASSWORD_LENGTH} characters)`
+        )
       ).toBeTruthy()
     );
 
     fireEvent.changeText(
-      getByPlaceholderText(`New password (min ${MIN_PASSWORD_LENGTH} characters)`),
+      getByPlaceholderText(
+        `New password (min ${MIN_PASSWORD_LENGTH} characters)`
+      ),
       'newpassword1'
     );
-    fireEvent.changeText(getByPlaceholderText('Confirm new password'), 'newpassword1');
+    fireEvent.changeText(
+      getByPlaceholderText('Confirm new password'),
+      'newpassword1'
+    );
     fireEvent.press(getByText('Update password'));
 
     await waitFor(() => {

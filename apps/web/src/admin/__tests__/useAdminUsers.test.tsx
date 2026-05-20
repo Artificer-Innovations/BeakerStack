@@ -105,4 +105,20 @@ describe('useAdminUsers', () => {
     act(() => result.current.toggleSort('last_active'));
     expect(result.current.sort).toBe('last_active');
   });
+
+  it('toggleSort flips back from asc to desc when applied to same column twice', async () => {
+    const { result } = renderHook(() => useAdminUsers());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    act(() => result.current.toggleSort('signup'));
+    expect(result.current.sortDir).toBe('asc');
+    act(() => result.current.toggleSort('signup'));
+    expect(result.current.sortDir).toBe('desc');
+  });
+
+  it('wraps non-Error throws into Error instances', async () => {
+    mockListUsers.mockRejectedValueOnce('boom');
+    const { result } = renderHook(() => useAdminUsers());
+    await waitFor(() => expect(result.current.error).toBeInstanceOf(Error));
+    expect(result.current.error?.message).toBe('boom');
+  });
 });

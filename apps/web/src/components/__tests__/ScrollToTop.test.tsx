@@ -142,6 +142,14 @@ describe('scrollToHashElement', () => {
     expect(scrollToHashElement('#%E0%A4%A')).toBe(false);
   });
 
+  it('returns false when the hash is empty', () => {
+    expect(scrollToHashElement('')).toBe(false);
+  });
+
+  it('returns false when the hash is just "#"', () => {
+    expect(scrollToHashElement('#')).toBe(false);
+  });
+
   it('returns false when element is not in the DOM for a valid id', () => {
     expect(scrollToHashElement('#not-in-dom-xyz')).toBe(false);
   });

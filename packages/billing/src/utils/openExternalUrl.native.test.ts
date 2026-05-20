@@ -42,6 +42,13 @@ describe('openExternalUrl (coverage)', () => {
     });
   });
 
+  it('uses protocol only when URL has no host', async () => {
+    await expect(openExternalUrl('mailto:')).rejects.toMatchObject({
+      kind: 'stripe',
+      message: 'Unable to open mailto:',
+    });
+  });
+
   it('strips path and query from a valid URL in the error message', async () => {
     await expect(
       openExternalUrl('https://pay.stripe.com/session/cs_secret?token=abc')

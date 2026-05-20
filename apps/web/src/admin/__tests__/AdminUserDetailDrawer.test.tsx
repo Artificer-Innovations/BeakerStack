@@ -94,4 +94,102 @@ describe('AdminUserDetailDrawer', () => {
     );
     expect(container).toBeEmptyDOMElement();
   });
+
+  it('renders em-dash fallbacks for missing detail fields', async () => {
+    mockGetUser.mockResolvedValueOnce({
+      auth: {
+        id: 'u1',
+        email: null,
+        created_at: null,
+        last_sign_in_at: null,
+        email_confirmed_at: null,
+      },
+      profile: { display_name: null, username: null },
+      subscription: null,
+      plan: null,
+      usage_aggregates: [{}],
+      usage_events: [{}],
+      invoices: [{ id: 'inv-only' }],
+    });
+    render(
+      <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
+    );
+    await screen.findByRole('heading', { name: 'Account' });
+    // Account section: email '—', dates '—' twice
+    const dashes = screen.getAllByText('—');
+    expect(dashes.length).toBeGreaterThanOrEqual(3);
+    // Recent usage events: blank event type and quantity ×1 default
+    expect(screen.getByText(/×1/)).toBeInTheDocument();
+    // Invoice without stripe_invoice_id falls back to id
+    expect(screen.getByText('inv-only')).toBeInTheDocument();
+  });
+
+  it('falls back to subscription plan_id when plan has no display_name', async () => {
+    mockGetUser.mockResolvedValueOnce({
+      auth: {
+        id: 'u1',
+        email: 'user@example.com',
+        created_at: '2024-01-01T00:00:00Z',
+        last_sign_in_at: null,
+        email_confirmed_at: null,
+      },
+      profile: null,
+      subscription: { plan_id: 'beakerstack_pro', status: 'active' },
+      plan: {},
+      usage_aggregates: [],
+      usage_events: [],
+      invoices: [],
+    });
+    render(
+      <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
+    );
+    expect(await screen.findByText('beakerstack_pro')).toBeInTheDocument();
+  });
+
+  it('falls back to date string when formatting throws', async () => {
+    mockGetUser.mockResolvedValueOnce({
+      auth: {
+        id: 'u1',
+        email: 'user@example.com',
+        created_at: 'not-iso',
+        last_sign_in_at: null,
+        email_confirmed_at: null,
+      },
+      profile: null,
+      subscription: null,
+      plan: null,
+      usage_aggregates: [],
+      usage_events: [],
+      invoices: [],
+    });
+    const toLocale = Date.prototype.toLocaleString;
+    Date.prototype.toLocaleString = function () {
+      throw new Error('bad date');
+    };
+    try {
+      render(
+        <AdminUserDetailDrawer
+          open
+          userId='u1'
+          title='User'
+          onClose={vi.fn()}
+        />
+      );
+      await screen.findByText('not-iso');
+    } finally {
+      Date.prototype.toLocaleString = toLocale;
+    }
+  });
+
+  it('uses generic error copy when getUser throws a non-Error value', async () => {
+    mockGetUser.mockRejectedValueOnce('boom');
+    render(
+      <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        /failed to load user/i
+      )
+    );
+  });
 });

@@ -96,10 +96,9 @@ describe('ResetPasswordPage', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        '/forgot-password?expired=1',
-        { replace: true }
-      );
+      expect(mockNavigate).toHaveBeenCalledWith('/forgot-password?expired=1', {
+        replace: true,
+      });
     });
   });
 
@@ -113,7 +112,9 @@ describe('ResetPasswordPage', () => {
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/^New password/i)).toBeInTheDocument();
     });
-    expect(screen.getByPlaceholderText('Confirm new password')).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText('Confirm new password')
+    ).toBeInTheDocument();
   });
 
   it('shows error when password is too short', async () => {
@@ -127,12 +128,17 @@ describe('ResetPasswordPage', () => {
       expect(screen.getByPlaceholderText(/^New password/i)).toBeInTheDocument()
     );
 
-    await userEvent.type(screen.getByPlaceholderText(/^New password/i), 'short');
+    await userEvent.type(
+      screen.getByPlaceholderText(/^New password/i),
+      'short'
+    );
     await userEvent.type(
       screen.getByPlaceholderText('Confirm new password'),
       'short'
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Update password' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Update password' })
+    );
 
     expect(
       screen.getByText(
@@ -161,7 +167,9 @@ describe('ResetPasswordPage', () => {
       screen.getByPlaceholderText('Confirm new password'),
       'differentpass'
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Update password' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Update password' })
+    );
 
     expect(screen.getByText('Passwords do not match')).toBeInTheDocument();
     expect(mockUpdateUser).not.toHaveBeenCalled();
@@ -188,11 +196,15 @@ describe('ResetPasswordPage', () => {
       screen.getByPlaceholderText('Confirm new password'),
       'newpassword1'
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Update password' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Update password' })
+    );
 
     await waitFor(() => {
       expect(mockUpdateUser).toHaveBeenCalledWith({ password: 'newpassword1' });
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', {
+        replace: true,
+      });
     });
   });
 
@@ -220,11 +232,16 @@ describe('ResetPasswordPage', () => {
       screen.getByPlaceholderText('Confirm new password'),
       'newpassword1'
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Update password' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Update password' })
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Password too weak')).toBeInTheDocument();
     });
-    expect(mockNavigate).not.toHaveBeenCalledWith('/dashboard', expect.anything());
+    expect(mockNavigate).not.toHaveBeenCalledWith(
+      '/dashboard',
+      expect.anything()
+    );
   });
 });

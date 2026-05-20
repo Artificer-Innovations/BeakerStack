@@ -100,13 +100,18 @@ Is it testing database logic (RLS, triggers, functions)?
 ### Running Unit Tests
 
 ```bash
-# Run all unit tests (mobile, web, shared, and repo scripts under scripts/)
+# Run all unit tests (apps, packages, and repo scripts under scripts/)
 npm run test:unit
 
-# Run unit tests for specific app
+# Run unit tests for a specific app or package
 npm run test:unit:mobile
 npm run test:unit:web
 npm run test:unit:shared
+npm run test:unit:billing
+npm run test:unit:admin
+npm run test:unit:lifecycle-events
+npm run test:unit:waitlist
+npm run test:unit:email
 
 # Run only repo script unit tests (node --test on scripts/__tests__ plus PR-preview shell self-test)
 npm run test:unit:scripts
@@ -439,70 +444,66 @@ npm run test:watch
 
 **Prerequisites:**
 
-- ✅ `@vitest/coverage-v8@^1.6.1` is installed in `apps/web/package.json`
-- ✅ Jest coverage is configured for mobile and shared-tests
-- ✅ All coverage configurations are set up and ready to use
+- ✅ `@vitest/coverage-v8` is installed for Vitest-based apps and packages (`apps/web`, `packages/billing`, `packages/admin`, `packages/waitlist`, `packages/email`, `packages/lifecycle-events`)
+- ✅ Jest coverage is configured for `apps/mobile` and `packages/shared-tests` (which instruments `packages/shared/src`)
+- ✅ `scripts/merge-coverage.js` merges per-workspace reports into `coverage/coverage-summary.json`
 
 ```bash
-# Generate coverage report
+# Generate coverage for all workspaces and merge into one summary
 npm run test:coverage
-
-# Coverage reports are generated in:
-# - apps/mobile/coverage/          → Jest coverage (HTML, JSON, LCOV)
-# - apps/web/coverage/              → Vitest coverage (HTML, JSON, LCOV)
-# - packages/shared-tests/coverage/ → Shared tests coverage (if configured)
-
-# View coverage reports:
-# Open the index.html file in each coverage directory in your browser:
-# - apps/mobile/coverage/index.html
-# - apps/web/coverage/index.html
-
-# Coverage is now fully configured and ready to use!
-# After running tests, coverage reports will be in:
-# - apps/web/coverage/index.html (Vitest HTML report)
-# - apps/mobile/coverage/index.html (Jest HTML report)
-# - packages/shared-tests/coverage/ (Jest HTML report)
 ```
 
-**Coverage Setup Status:**
+**Per-workspace coverage directories** (HTML, JSON, LCOV under each `coverage/` folder):
 
-✅ **All coverage tools are installed and configured:**
-
-- `@vitest/coverage-v8@^1.6.1` installed in `apps/web/`
-- Jest coverage configured in `apps/mobile/` and `packages/shared-tests/`
-- Coverage configurations added to all test configs
+| Workspace                   | Runner | Source under test                        |
+| --------------------------- | ------ | ---------------------------------------- |
+| `apps/web`                  | Vitest | `apps/web/src`                           |
+| `apps/mobile`               | Jest   | `apps/mobile/src`                        |
+| `packages/shared-tests`     | Jest   | `packages/shared/src` (via shared-tests) |
+| `packages/billing`          | Vitest | `packages/billing/src`                   |
+| `packages/admin`            | Vitest | `packages/admin/src`                     |
+| `packages/waitlist`         | Vitest | `packages/waitlist/src`                  |
+| `packages/email`            | Vitest | `packages/email/src`                     |
+| `packages/lifecycle-events` | Vitest | `packages/lifecycle-events/src`          |
 
 **Running Coverage:**
 
 ```bash
-# Run coverage for all apps and generate integrated report
+# Full monorepo: all workspaces above, then merge
 npm run test:coverage
 
 # This will:
-# 1. Run coverage for mobile, web, and shared tests
-# 2. Merge all coverage into a single integrated report
-# 3. Display summary in terminal and save to coverage/coverage-summary.json
+# 1. Run coverage for each app/package listed in root package.json test:coverage:*
+# 2. Merge all reports via scripts/merge-coverage.js
+# 3. Print a summary and write coverage/coverage-summary.json
 
-# Run coverage for individual apps
-npm run test:coverage:web      # Web app only
-npm run test:coverage:mobile   # Mobile app only
-npm run test:coverage:shared   # Shared package only
-npm run test:coverage:merge    # Merge existing coverage reports
+# Individual workspaces
+npm run test:coverage:web
+npm run test:coverage:mobile
+npm run test:coverage:shared
+npm run test:coverage:billing
+npm run test:coverage:admin
+npm run test:coverage:lifecycle-events
+npm run test:coverage:waitlist
+npm run test:coverage:email
+
+# Re-merge existing coverage/ dirs without re-running tests
+npm run test:coverage:merge
 ```
 
 **Viewing Coverage Reports:**
 
 After running `npm run test:coverage`, you'll get:
 
-1. **Integrated Coverage Summary** (in terminal and `coverage/coverage-summary.json`):
-   - Overall coverage across all apps
-   - Per-package breakdown (web, mobile, shared)
-   - Statements, branches, functions, and lines coverage
+1. **Integrated summary** (terminal + `coverage/coverage-summary.json`):
+   - Overall merged coverage across all workspaces
+   - Per-workspace breakdown (web, mobile, shared, billing, admin, lifecycle-events, waitlist, email)
+   - Statements, branches, functions, and lines
 
-2. **Individual HTML Reports**:
-   - `apps/web/coverage/index.html` - Web app coverage (Vitest)
-   - `apps/mobile/coverage/index.html` - Mobile app coverage (Jest)
-   - `packages/shared-tests/coverage/index.html` - Shared package coverage (Jest)
+2. **Individual HTML reports** (open each workspace's `coverage/index.html`):
+   - Apps: `apps/web/coverage/`, `apps/mobile/coverage/`
+   - Shared: `packages/shared-tests/coverage/` (covers `packages/shared`)
+   - Packages: `packages/billing/coverage/`, `packages/admin/coverage/`, `packages/lifecycle-events/coverage/`, `packages/waitlist/coverage/`, `packages/email/coverage/`
 
 **Open reports in browser:**
 
@@ -510,16 +511,14 @@ After running `npm run test:coverage`, you'll get:
 # View integrated summary
 cat coverage/coverage-summary.json
 
-# Open individual reports
-# macOS
+# macOS — example (any workspace)
 open apps/web/coverage/index.html
-open apps/mobile/coverage/index.html
-open packages/shared-tests/coverage/index.html
+open packages/billing/coverage/index.html
+open packages/lifecycle-events/coverage/index.html
 
 # Linux
 xdg-open apps/web/coverage/index.html
-xdg-open apps/mobile/coverage/index.html
-xdg-open packages/shared-tests/coverage/index.html
+xdg-open packages/billing/coverage/index.html
 ```
 
 **Important Note on Web E2E Tests:**
@@ -556,9 +555,10 @@ If coverage reports don't appear:
 2. **Check coverage directories exist after running tests:**
 
    ```bash
-   ls -la apps/web/coverage/
-   ls -la apps/mobile/coverage/
+   ls -la apps/web/coverage/ apps/mobile/coverage/
    ls -la packages/shared-tests/coverage/
+   ls -la packages/billing/coverage/ packages/admin/coverage/
+   ls -la packages/lifecycle-events/coverage/ packages/waitlist/coverage/ packages/email/coverage/
    ```
 
 3. **Run tests individually to see errors:**
@@ -567,6 +567,11 @@ If coverage reports don't appear:
    npm run test:coverage:web
    npm run test:coverage:mobile
    npm run test:coverage:shared
+   npm run test:coverage:billing
+   npm run test:coverage:admin
+   npm run test:coverage:lifecycle-events
+   npm run test:coverage:waitlist
+   npm run test:coverage:email
    ```
 
 4. **For web app coverage issues:** Ensure `@vitest/coverage-v8` is installed:

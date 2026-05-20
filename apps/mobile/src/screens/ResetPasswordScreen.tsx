@@ -77,7 +77,9 @@ export default function ResetPasswordScreen({ navigation }: Props) {
     } catch (err) {
       Alert.alert(
         'Error',
-        err instanceof Error ? err.message : 'Failed to update password. Please try again.'
+        err instanceof Error
+          ? err.message
+          : 'Failed to update password. Please try again.'
       );
     } finally {
       setIsLoading(false);
@@ -87,7 +89,10 @@ export default function ResetPasswordScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <AppHeader supabaseClient={supabase} />
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+      >
         <View style={styles.form}>
           <Text style={styles.title}>Set new password</Text>
 

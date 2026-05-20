@@ -18,6 +18,19 @@ export const useNavigate = () => (_path: string) => {
 
 export const useLocation = () => ({ pathname: '/' });
 
-export const Link = ({ to, children }: { to: string; children: ReactNode }) => (
-  <a href={to}>{children}</a>
+export const Link = ({
+  to,
+  children,
+  onClick,
+  className,
+  ...rest
+}: {
+  to: string;
+  children: ReactNode;
+  onClick?: () => void;
+  className?: string;
+}) => (
+  <a href={to} onClick={onClick} className={className} {...rest}>
+    {children}
+  </a>
 );

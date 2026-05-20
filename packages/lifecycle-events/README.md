@@ -6,28 +6,28 @@ Zero runtime dependencies. No React, no Supabase client.
 
 ## Event taxonomy
 
-| Event | Source | When it fires |
-|---|---|---|
-| `waitlist.joined` | `waitlist-ops` Edge Function | User submits waitlist form |
-| `waitlist.approved` | `waitlist-ops` Edge Function | Admin approves a waitlist entry |
-| `waitlist.rejected` | `waitlist-ops` Edge Function | Admin rejects a waitlist entry |
-| `waitlist.converted` | `waitlist-ops` Edge Function | Waitlist invite accepted; user completes signup |
-| `user.signed_up` | `auth.users` AFTER INSERT trigger | Any auth user created (direct, invite, OAuth) |
-| `user.tier_changed` | `stripe-webhook` Edge Function | Subscription tier changes |
-| `user.churned` | `stripe-webhook` Edge Function | Subscription cancelled or expired |
+| Event                | Source                            | When it fires                                   |
+| -------------------- | --------------------------------- | ----------------------------------------------- |
+| `waitlist.joined`    | `waitlist-ops` Edge Function      | User submits waitlist form                      |
+| `waitlist.approved`  | `waitlist-ops` Edge Function      | Admin approves a waitlist entry                 |
+| `waitlist.rejected`  | `waitlist-ops` Edge Function      | Admin rejects a waitlist entry                  |
+| `waitlist.converted` | `waitlist-ops` Edge Function      | Waitlist invite accepted; user completes signup |
+| `user.signed_up`     | `auth.users` AFTER INSERT trigger | Any auth user created (direct, invite, OAuth)   |
+| `user.tier_changed`  | `stripe-webhook` Edge Function    | Subscription tier changes                       |
+| `user.churned`       | `stripe-webhook` Edge Function    | Subscription cancelled or expired               |
 
 ## Payload fields
 
 All events include:
 
-| Field | Type | Notes |
-|---|---|---|
-| `email` | `string` | Required |
-| `userId` | `string?` | Auth user UUID; absent for pre-signup events |
-| `entryId` | `string?` | Waitlist entry ID; present on `waitlist.*` events |
-| `metadata` | `Record<string, unknown>?` | Arbitrary pass-through |
-| `previousTier` | `string?` | `user.tier_changed` only |
-| `newTier` | `string?` | `user.tier_changed` only |
+| Field          | Type                       | Notes                                             |
+| -------------- | -------------------------- | ------------------------------------------------- |
+| `email`        | `string`                   | Required                                          |
+| `userId`       | `string?`                  | Auth user UUID; absent for pre-signup events      |
+| `entryId`      | `string?`                  | Waitlist entry ID; present on `waitlist.*` events |
+| `metadata`     | `Record<string, unknown>?` | Arbitrary pass-through                            |
+| `previousTier` | `string?`                  | `user.tier_changed` only                          |
+| `newTier`      | `string?`                  | `user.tier_changed` only                          |
 
 ## `waitlist.converted` vs `user.signed_up`
 
@@ -36,7 +36,10 @@ An invite-flow user who was on the waitlist fires **both** `waitlist.converted` 
 ## Usage
 
 ```ts
-import { onLifecycleEvent, emitLifecycleEvent } from '@beakerstack/lifecycle-events';
+import {
+  onLifecycleEvent,
+  emitLifecycleEvent,
+} from '@beakerstack/lifecycle-events';
 
 // Register a listener — returns a cleanup function
 const off = onLifecycleEvent(async (event, payload) => {

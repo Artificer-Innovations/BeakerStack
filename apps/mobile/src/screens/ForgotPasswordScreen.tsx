@@ -47,7 +47,9 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
       setSubmitted(true);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+        err instanceof Error
+          ? err.message
+          : 'Something went wrong. Please try again.'
       );
     } finally {
       setIsLoading(false);
@@ -57,7 +59,10 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <AppHeader supabaseClient={supabase} />
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+      >
         <View style={styles.form}>
           <Text style={styles.title}>Reset your password</Text>
           <Text style={styles.subtitle}>

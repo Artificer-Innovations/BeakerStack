@@ -176,6 +176,46 @@ describe('useDemoCollections', () => {
     );
   });
 
+  it('coerces null RPC data to empty array', async () => {
+    rpc.mockResolvedValue({ data: null, error: null });
+    const { result } = renderHook(() => useDemoCollections());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(result.current.collections).toEqual([]);
+    expect(result.current.error).toBeNull();
+  });
+
+  it('propagates RPC error from deleteCollection', async () => {
+    rpc.mockResolvedValueOnce({ data: [], error: null });
+    rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'delete denied' },
+    });
+    const { result } = renderHook(() => useDemoCollections());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    await expect(result.current.deleteCollection('x')).rejects.toEqual({
+      message: 'delete denied',
+    });
+  });
+
+  it('propagates RPC error from addItem', async () => {
+    rpc.mockResolvedValueOnce({ data: [], error: null });
+    rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'add item denied' },
+    });
+    const { result } = renderHook(() => useDemoCollections());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    await expect(result.current.addItem('col')).rejects.toEqual({
+      message: 'add item denied',
+    });
+  });
+
   it('propagates RPC error from addCollection', async () => {
     rpc.mockResolvedValueOnce({ data: [], error: null });
     rpc.mockResolvedValueOnce({

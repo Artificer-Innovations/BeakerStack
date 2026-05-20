@@ -1,11 +1,15 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import React, { useEffect } from 'react';
 import { ZodError } from 'zod';
 import { BillingProvider } from './BillingProvider.js';
 import { useBillingContext } from './hooks/useBillingContext.js';
 import { productBillingConfigSchema } from './schema.js';
-import { testBillingConfig, testSubscription } from './test/billingFixtures.js';
+import {
+  testBillingConfig,
+  testPlan,
+  testSubscription,
+} from './test/billingFixtures.js';
 
 function Reader() {
   const { userId, subscription } = useBillingContext();
@@ -50,10 +54,16 @@ const auth = vi.hoisted(() => {
 
 const db = vi.hoisted(() => {
   const maybeSingle = vi.fn();
+  const planMaybeSingle = vi.fn();
   const subChain = {
     select: vi.fn(() => subChain),
     eq: vi.fn(() => subChain),
     maybeSingle,
+  };
+  const planChain = {
+    select: vi.fn(() => planChain),
+    eq: vi.fn(() => planChain),
+    maybeSingle: planMaybeSingle,
   };
   const rpc = vi.fn();
   const subscriptionRealtime = {
@@ -78,10 +88,12 @@ const db = vi.hoisted(() => {
   const removeChannel = vi.fn();
   const from = vi.fn((table: string) => {
     if (table === 'billing_subscriptions') return subChain;
+    if (table === 'billing_plans') return planChain;
     throw new Error(`unexpected table ${table}`);
   });
   return {
     maybeSingle,
+    planMaybeSingle,
     rpc,
     from,
     channel,
@@ -114,6 +126,7 @@ describe('BillingProvider', () => {
     vi.clearAllMocks();
     auth.state.session = null;
     db.maybeSingle.mockResolvedValue({ data: null, error: null });
+    db.planMaybeSingle.mockResolvedValue({ data: null, error: null });
     db.rpc.mockResolvedValue({ error: null });
   });
 
@@ -331,5 +344,116 @@ describe('BillingProvider', () => {
     await waitFor(() => {
       expect(db.maybeSingle).toHaveBeenCalled();
     });
+  });
+
+  function PlanReader() {
+    const { plan, planLoading, planError } = useBillingContext();
+    return (
+      <div>
+        <span data-testid='plan'>{plan?.display_name ?? 'none'}</span>
+        <span data-testid='plan-loading'>{planLoading ? 'yes' : 'no'}</span>
+        <span data-testid='plan-err'>{planError?.kind ?? 'none'}</span>
+      </div>
+    );
+  }
+
+  it('loads plan row when subscription has plan_id', async () => {
+    auth.state.session = { user: { id: 'u-plan' } };
+    const row = {
+      ...testSubscription(),
+      user_id: 'u-plan',
+      plan_id: 'plan_free',
+    };
+    db.maybeSingle.mockResolvedValue({ data: row, error: null });
+    db.planMaybeSingle.mockResolvedValue({
+      data: testPlan({ id: 'plan_free', display_name: 'Free' }),
+      error: null,
+    });
+    render(
+      <BillingProvider config={testBillingConfig} {...providerProps}>
+        <PlanReader />
+      </BillingProvider>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('plan').textContent).toBe('Free');
+    });
+    expect(screen.getByTestId('plan-loading').textContent).toBe('no');
+  });
+
+  it('surfaces plan query errors', async () => {
+    auth.state.session = { user: { id: 'u-plan-err' } };
+    const row = { ...testSubscription(), user_id: 'u-plan-err' };
+    db.maybeSingle.mockResolvedValue({ data: row, error: null });
+    db.planMaybeSingle.mockResolvedValue({
+      data: null,
+      error: new Error('plan select failed'),
+    });
+    render(
+      <BillingProvider config={testBillingConfig} {...providerProps}>
+        <PlanReader />
+      </BillingProvider>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('plan-err').textContent).toBe('unknown');
+    });
+  });
+
+  it('ignores realtime payload for a different product', async () => {
+    auth.state.session = { user: { id: 'u-99' } };
+    const row = { ...testSubscription(), user_id: 'u-99' };
+    db.maybeSingle.mockResolvedValue({ data: row, error: null });
+    render(
+      <BillingProvider config={testBillingConfig} {...providerProps}>
+        <Reader />
+      </BillingProvider>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('subid').textContent).toBe('sub_1');
+    });
+    db.maybeSingle.mockClear();
+    db.subscriptionRealtime.handler?.({
+      new: { ...row, product_id: 'other_product' },
+      old: null,
+    });
+    await Promise.resolve();
+    expect(db.maybeSingle).not.toHaveBeenCalled();
+  });
+
+  it('polls subscription refresh after checkout success', async () => {
+    vi.useFakeTimers();
+    const realLocation = window.location;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...realLocation, search: '?checkout=success' },
+    });
+    auth.state.session = { user: { id: 'u-checkout' } };
+    db.maybeSingle.mockResolvedValue({
+      data: { ...testSubscription(), user_id: 'u-checkout' },
+      error: null,
+    });
+    try {
+      await act(async () => {
+        render(
+          <BillingProvider config={testBillingConfig} {...providerProps}>
+            <Reader />
+          </BillingProvider>
+        );
+      });
+      await act(async () => {
+        await vi.runOnlyPendingTimersAsync();
+      });
+      expect(screen.getByTestId('uid').textContent).toBe('u-checkout');
+      const callsAfterMount = db.maybeSingle.mock.calls.length;
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2000);
+      });
+      expect(db.maybeSingle.mock.calls.length).toBeGreaterThan(callsAfterMount);
+    } finally {
+      vi.useRealTimers();
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: realLocation,
+      });
+    }
   });
 });

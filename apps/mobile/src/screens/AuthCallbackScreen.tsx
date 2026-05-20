@@ -26,7 +26,7 @@ export default function AuthCallbackScreen({ navigation }: Props) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
+    } = supabase.auth.onAuthStateChange(event => {
       if (navigatedRef.current) return;
 
       if (event === 'PASSWORD_RECOVERY') {

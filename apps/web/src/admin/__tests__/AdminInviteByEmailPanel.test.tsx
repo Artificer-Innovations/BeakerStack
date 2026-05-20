@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AdminInviteByEmailPanel } from '../components/AdminInviteByEmailPanel.web';
 
@@ -125,6 +125,71 @@ describe('AdminInviteByEmailPanel', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       /already completed signup/i
+    );
+  });
+
+  it('falls back to raw error code when unrecognized', async () => {
+    mockInvite.mockResolvedValue({ error: 'unexpected_thing' });
+    const user = userEvent.setup();
+    render(<AdminInviteByEmailPanel />);
+    await user.type(screen.getByLabelText(/email address/i), 'a@b.com');
+    await user.click(screen.getByRole('button', { name: /send invite/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'unexpected_thing'
+    );
+  });
+
+  it('uses generic copy when invite throws a non-Error value', async () => {
+    mockInvite.mockRejectedValue('boom');
+    const user = userEvent.setup();
+    render(<AdminInviteByEmailPanel />);
+    await user.type(screen.getByLabelText(/email address/i), 'a@b.com');
+    await user.click(screen.getByRole('button', { name: /send invite/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /could not create invite/i
+    );
+  });
+
+  it('handles missing signup_mode (renders general copy)', async () => {
+    mockSettings.mockResolvedValue(null);
+    render(<AdminInviteByEmailPanel />);
+    expect(
+      await screen.findByText(/create an invite for someone who is not on the/i)
+    ).toBeInTheDocument();
+  });
+
+  it('skips submission when email is only whitespace', async () => {
+    const user = userEvent.setup();
+    const onInvited = vi.fn();
+    render(<AdminInviteByEmailPanel onInvited={onInvited} />);
+    const input = screen.getByLabelText(/email address/i);
+    await user.type(input, ' ');
+    const form = input.closest('form');
+    if (!form) throw new Error('expected form');
+    fireEvent.submit(form);
+    expect(mockInvite).not.toHaveBeenCalled();
+    expect(onInvited).not.toHaveBeenCalled();
+  });
+
+  it('copies invite link via clipboard when Copy button is clicked', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    render(<AdminInviteByEmailPanel />);
+    await user.type(
+      screen.getByLabelText(/email address/i),
+      'invitee@example.com'
+    );
+    await user.click(screen.getByRole('button', { name: /send invite/i }));
+    const copyBtn = await screen.findByRole('button', {
+      name: /copy invite link/i,
+    });
+    await user.click(copyBtn);
+    expect(writeText).toHaveBeenCalledWith(
+      expect.stringContaining('/signup/invite#token=secret')
     );
   });
 });

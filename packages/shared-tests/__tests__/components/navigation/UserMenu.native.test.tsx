@@ -40,6 +40,31 @@ jest.mock('react-native', () => {
         }
       ),
     },
+    Modal: ({
+      visible,
+      children,
+      onRequestClose,
+    }: {
+      visible: boolean;
+      children: unknown;
+      onRequestClose?: () => void;
+    }) => {
+      const React = require('react');
+      return visible
+        ? React.createElement(
+            'motion',
+            { 'data-testid': 'user-menu-modal' },
+            children,
+            onRequestClose
+              ? React.createElement('button', {
+                  type: 'button',
+                  'data-testid': 'modal-request-close',
+                  onClick: onRequestClose,
+                })
+              : null
+          )
+        : null;
+    },
     Platform: {
       ...RN.Platform,
       get OS() {
@@ -263,5 +288,82 @@ describe('UserMenu (Native)', () => {
     );
     await openMenu();
     expect(screen.getByText('Profile')).toBeInTheDocument();
+  });
+
+  it('closes menu when sign out is cancelled', async () => {
+    const { Alert } = require('react-native');
+    (Alert.alert as jest.Mock).mockImplementationOnce(
+      (
+        _title: string,
+        _message: string,
+        buttons?: { text?: string; style?: string; onPress?: () => void }[]
+      ) => {
+        const cancel = buttons?.find(b => b?.style === 'cancel');
+        cancel?.onPress?.();
+      }
+    );
+
+    renderWithProviders(
+      <UserMenu
+        user={createMockUser()}
+        profile={createMockProfile()}
+        navigation={mockNavigation}
+      />
+    );
+    await openMenu();
+    fireEvent.click(screen.getByText('Sign Out'));
+    await waitFor(() => {
+      expect(screen.queryByText('Profile')).not.toBeInTheDocument();
+    });
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('closes menu on Modal onRequestClose', async () => {
+    renderWithProviders(
+      <UserMenu
+        user={createMockUser()}
+        profile={createMockProfile()}
+        navigation={mockNavigation}
+      />
+    );
+    await openMenu();
+    fireEvent.click(screen.getByTestId('modal-request-close'));
+    await waitFor(() => {
+      expect(screen.queryByText('Profile')).not.toBeInTheDocument();
+    });
+  });
+
+  it('shows display name fallback when profile and email are missing', async () => {
+    const userWithoutEmail = {
+      ...createMockUser(),
+      email: undefined,
+    } as User;
+    renderWithProviders(
+      <UserMenu
+        user={userWithoutEmail}
+        profile={null}
+        navigation={mockNavigation}
+      />
+    );
+    await openMenu();
+    expect(screen.getByText('User')).toBeInTheDocument();
+    expect(screen.queryByText('test@example.com')).not.toBeInTheDocument();
+  });
+
+  it('closes menu when overlay is pressed', async () => {
+    renderWithProviders(
+      <UserMenu
+        user={createMockUser()}
+        profile={createMockProfile()}
+        navigation={mockNavigation}
+      />
+    );
+    await openMenu();
+    const overlay = screen.getByTestId('user-menu-modal').firstChild;
+    expect(overlay).toBeTruthy();
+    fireEvent.click(overlay as Element);
+    await waitFor(() => {
+      expect(screen.queryByText('Profile')).not.toBeInTheDocument();
+    });
   });
 });

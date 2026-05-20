@@ -6,6 +6,9 @@ import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { BRANDING } from '@beakerstack/shared/config/branding';
+import * as AuthContext from '@beakerstack/shared/contexts/AuthContext';
+import * as ProfileContext from '@beakerstack/shared/contexts/ProfileContext';
+import type { User } from '@supabase/supabase-js';
 
 // Mock React Navigation
 const mockNavigate = jest.fn();
@@ -15,16 +18,40 @@ jest.mock('@react-navigation/native', () => ({
   }),
 }));
 
-// Mock Platform
+const APP_HEADER_PLATFORM_OS_KEY =
+  '__BeakerStack_AppHeaderNativeTest_platformOs';
+
+function appHeaderPlatformOsRef(): { current: string } {
+  const g = globalThis as Record<string, { current: string } | undefined>;
+  if (!g[APP_HEADER_PLATFORM_OS_KEY]) {
+    g[APP_HEADER_PLATFORM_OS_KEY] = { current: 'ios' };
+  }
+  return g[APP_HEADER_PLATFORM_OS_KEY]!;
+}
+
+// Mock Platform (toggle OS via appHeaderPlatformOsRef in tests)
 jest.mock('react-native', () => {
   const RN = jest.requireActual('react-native');
+  const key = APP_HEADER_PLATFORM_OS_KEY;
+  const platformOsRef = (): { current: string } => {
+    const g = globalThis as Record<string, { current: string } | undefined>;
+    if (!g[key]) {
+      g[key] = { current: 'ios' };
+    }
+    return g[key]!;
+  };
   return {
     ...RN,
     Platform: {
-      OS: 'ios',
+      ...RN.Platform,
+      get OS() {
+        return platformOsRef().current;
+      },
     },
     StatusBar: {
-      currentHeight: 0,
+      get currentHeight() {
+        return platformOsRef().current === 'android' ? null : 0;
+      },
     },
   };
 });
@@ -93,7 +120,9 @@ const renderWithProviders = (
 
 describe('AppHeader (Native)', () => {
   beforeEach(() => {
+    jest.restoreAllMocks();
     jest.clearAllMocks();
+    appHeaderPlatformOsRef().current = 'ios';
   });
 
   it('renders app title', () => {
@@ -169,5 +198,51 @@ describe('AppHeader (Native)', () => {
     const signUpButton = screen.getByText('Sign Up');
     fireEvent.click(signUpButton);
     expect(mockNavigate).toHaveBeenCalledWith('Signup');
+  });
+
+  it('renders UserMenu when user is authenticated', () => {
+    const mockUser = {
+      id: 'user-1',
+      email: 'test@example.com',
+      app_metadata: {},
+      user_metadata: {},
+      aud: 'authenticated',
+      created_at: '2024-01-01',
+    } as User;
+
+    jest.spyOn(AuthContext, 'useAuthContext').mockReturnValue({
+      user: mockUser,
+      session: null,
+      loading: false,
+      error: null,
+      signIn: jest.fn(),
+      signUp: jest.fn(),
+      signOut: jest.fn(),
+      signInWithGoogle: jest.fn(),
+      requestPasswordReset: jest.fn(),
+      updatePassword: jest.fn(),
+    });
+    jest.spyOn(ProfileContext, 'useProfileContext').mockReturnValue({
+      profile: null,
+      loading: false,
+      error: null,
+      updateProfile: jest.fn(),
+      refreshProfile: jest.fn(),
+    });
+
+    render(<AppHeader supabaseClient={createMockSupabaseClient()} />);
+
+    expect(screen.getByTestId('user-menu')).toBeInTheDocument();
+    expect(screen.queryByText('Sign In')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sign Up')).not.toBeInTheDocument();
+  });
+
+  it('renders on Android with null status bar height fallback', async () => {
+    appHeaderPlatformOsRef().current = 'android';
+    renderWithProviders(
+      <AppHeader supabaseClient={createMockSupabaseClient()} />
+    );
+    await screen.findByText(BRANDING.displayName);
+    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
   });
 });

@@ -87,6 +87,28 @@ describe('AdminTable', () => {
     expect(onRowClick).toHaveBeenCalledWith({ id: '1', name: 'Ada' });
   });
 
+  it('applies column className and aria-sort on headers', () => {
+    render(
+      <AdminTable
+        columns={[
+          {
+            id: 'name',
+            header: 'Name',
+            cell: (r: Row) => r.name,
+            className: 'w-48',
+            headerCellProps: { 'aria-sort': 'ascending' },
+          },
+        ]}
+        rows={[{ id: '1', name: 'Ada' }]}
+        getRowKey={r => r.id}
+      />
+    );
+    const header = screen.getByRole('columnheader', { name: 'Name' });
+    expect(header).toHaveAttribute('aria-sort', 'ascending');
+    expect(header.className).toContain('w-48');
+    expect(screen.getByText('Ada').className).toContain('w-48');
+  });
+
   it('renders rows and handles row click', async () => {
     const onRowClick = vi.fn();
     const user = userEvent.setup();

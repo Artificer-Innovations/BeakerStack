@@ -52,7 +52,8 @@ export default function ForgotPasswordPage() {
           {isExpired && (
             <div className='rounded-md bg-yellow-50 dark:bg-yellow-900/30 p-4'>
               <p className='text-sm text-yellow-800 dark:text-yellow-300'>
-                Your password reset link has expired. Enter your email below to request a new one.
+                Your password reset link has expired. Enter your email below to
+                request a new one.
               </p>
             </div>
           )}

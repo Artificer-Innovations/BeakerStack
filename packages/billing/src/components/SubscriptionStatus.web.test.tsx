@@ -42,6 +42,28 @@ describe('SubscriptionStatus (web)', () => {
     expect(screen.getByText(/Status:/)).toBeInTheDocument();
   });
 
+  it('falls back to plan_id when plan row is missing', () => {
+    vi.mocked(usePlan).mockReturnValue({
+      data: null,
+      loading: false,
+      error: null,
+    });
+    render(<SubscriptionStatus />);
+    expect(screen.getByText(/plan_free/)).toBeInTheDocument();
+  });
+
+  it('shows em dash when period end is missing', () => {
+    vi.mocked(useSubscription).mockReturnValue({
+      data: testSubscription({ current_period_end: null }),
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+    });
+    render(<SubscriptionStatus />);
+    expect(screen.getByText('Renews / period ends:')).toBeInTheDocument();
+    expect(screen.getByText('—')).toBeInTheDocument();
+  });
+
   it('shows past_due warning', () => {
     vi.mocked(useSubscription).mockReturnValue({
       data: testSubscription({ status: 'past_due' }),

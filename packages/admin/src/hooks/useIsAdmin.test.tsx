@@ -86,6 +86,37 @@ describe('useIsAdmin', () => {
     expect(result.current.loading).toBe(false);
   });
 
+  it('ignores stale RPC errors when userId changes before reject', async () => {
+    const sb = createSupabase(false);
+    let rejectFirst: (reason: unknown) => void = () => {};
+    let rpcCalls = 0;
+    vi.mocked(sb.rpc).mockImplementation((name: string) => {
+      if (name !== 'admin_is_admin')
+        return Promise.resolve({ data: null, error: null });
+      rpcCalls += 1;
+      if (rpcCalls === 1) {
+        return new Promise((_resolve, reject) => {
+          rejectFirst = reject;
+        });
+      }
+      return Promise.resolve({ data: false, error: null });
+    });
+
+    const { result, rerender } = renderHook(
+      ({ uid }: { uid: string | undefined }) => useIsAdmin(sb, uid),
+      { initialProps: { uid: 'user-a' as string | undefined } }
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(true));
+    rerender({ uid: 'user-b' });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.isAdmin).toBe(false);
+
+    rejectFirst(new Error('stale failure'));
+    await waitFor(() => expect(rpcCalls).toBe(2));
+    expect(result.current.loading).toBe(false);
+  });
+
   it('ignores stale RPC result when userId changes before first resolve', async () => {
     const sb = createSupabase(false);
     let resolveFirst: (value: {

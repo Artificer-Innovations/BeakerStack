@@ -172,6 +172,27 @@ describe('Modal (Web)', () => {
     expect(document.documentElement.style.overflow).not.toBe('hidden');
   });
 
+  it('focuses panel on Tab when focusable list is empty', () => {
+    const onClose = jest.fn();
+    render(
+      <Modal open onClose={onClose} title='Empty focus'>
+        <p tabIndex={-1}>Static</p>
+      </Modal>
+    );
+    act(() => {
+      jest.runAllTimers();
+    });
+    const dialog = screen.getByRole('dialog');
+    const panel = dialog.querySelector('[tabindex="-1"]') as HTMLElement;
+    panel?.focus();
+    fireEvent.keyDown(document, {
+      key: 'Tab',
+      code: 'Tab',
+      bubbles: true,
+    });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('does not prevent Tab when no focusable elements exist', async () => {
     const user = userEvent.setup({ delay: null });
     const onClose = jest.fn();

@@ -97,6 +97,7 @@ const plansState = vi.hoisted(() => {
     proTwinPlan,
     maxPlan,
     current: proPlan,
+    catalogOverride: null as Plan[] | null,
     catLoading: false,
     currentNull: false,
     billingKind: 'paid_active' as BillingUiStateKind,
@@ -126,13 +127,19 @@ const checkoutSpies = vi.hoisted(() => ({
   scheduleCancelToFree: vi.fn().mockResolvedValue(true),
 }));
 
+const hookState = vi.hoisted(() => ({
+  demoCount: 0 as number | null,
+  demoMaxItems: 0 as number | null,
+  aiUsed: 0 as number | null,
+}));
+
 vi.mock('@beakerstack/billing', async importOriginal => {
   const actual = await importOriginal<typeof import('@beakerstack/billing')>();
   return {
     ...actual,
     useBillingConfig: () => beakerstackBillingConfig,
     usePlanCatalog: () => ({
-      plans: [
+      plans: plansState.catalogOverride ?? [
         plansState.freePlan,
         plansState.proPlan,
         plansState.proTwinPlan,
@@ -172,7 +179,7 @@ vi.mock('@beakerstack/billing', async importOriginal => {
       error: null,
     }),
     useUsage: () => ({
-      used: 0,
+      used: hookState.aiUsed,
       limit: 10,
       remaining: 10,
       resetsAt: '',
@@ -185,7 +192,11 @@ vi.mock('@beakerstack/billing', async importOriginal => {
 });
 
 vi.mock('@/billing/useDemoCollectionCount', () => ({
-  useDemoCollectionCount: () => ({ count: 0, loading: false }),
+  useDemoCollectionCount: () => ({
+    count: hookState.demoCount,
+    maxItemsInAnyCollection: hookState.demoMaxItems,
+    loading: false,
+  }),
 }));
 
 vi.mock('@/components/billing/BillingPageShell.web', () => ({
@@ -212,6 +223,10 @@ describe('BillingPlansPage', () => {
     checkoutSpies.startCheckout.mockResolvedValue(null);
     checkoutSpies.updateSubscription.mockResolvedValue(true);
     checkoutSpies.scheduleCancelToFree.mockResolvedValue(true);
+    hookState.demoCount = 0;
+    hookState.demoMaxItems = 0;
+    hookState.aiUsed = 0;
+    plansState.catalogOverride = null;
     plansState.billingKind = 'paid_active';
     plansState.current = plansState.proPlan;
     plansState.subscription = {
@@ -669,5 +684,162 @@ describe('BillingPlansPage', () => {
     expect(
       await screen.findByText(/Annual billing is selected below/i)
     ).toBeInTheDocument();
+  });
+
+  it('coerces null demo counts and AI usage to zero when computing blockers', () => {
+    hookState.demoCount = null;
+    hookState.demoMaxItems = null;
+    hookState.aiUsed = null;
+    plansState.current = plansState.maxPlan;
+    plansState.subscription = {
+      id: 's_max',
+      user_id: 'u1',
+      product_id: 'beakerstack',
+      plan_id: 'beakerstack_max',
+      stripe_customer_id: 'cus',
+      stripe_subscription_id: 'sub_max',
+      stripe_price_id: 'price',
+      status: 'active',
+      current_period_start: null,
+      current_period_end: null,
+      cancel_at_period_end: false,
+      pending_target_plan_id: null,
+      canceled_at: null,
+      trial_start: null,
+      trial_end: null,
+    };
+    renderPage();
+    expect(
+      screen.getByRole('button', { name: 'Downgrade to Pro' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Downgrade to Free/i })
+    ).toBeInTheDocument();
+  });
+
+  it('treats missing display_order as 0 when comparing plans', () => {
+    const noOrderCurrent: Plan = {
+      ...plansState.proPlan,
+      display_order: undefined as unknown as number,
+    };
+    const noOrderHigher: Plan = {
+      ...plansState.maxPlan,
+      display_order: undefined as unknown as number,
+    };
+    plansState.current = noOrderCurrent;
+    plansState.catalogOverride = [
+      plansState.freePlan,
+      noOrderCurrent,
+      noOrderHigher,
+    ];
+    plansState.subscription = {
+      id: 's_paid',
+      user_id: 'u1',
+      product_id: 'beakerstack',
+      plan_id: 'beakerstack_pro',
+      stripe_customer_id: 'cus',
+      stripe_subscription_id: 'sub_paid',
+      stripe_price_id: 'price',
+      status: 'active',
+      current_period_start: null,
+      current_period_end: null,
+      cancel_at_period_end: false,
+      pending_target_plan_id: null,
+      canceled_at: null,
+      trial_start: null,
+      trial_end: null,
+    };
+    renderPage();
+    expect(
+      screen.getByRole('heading', { name: 'Choose a plan' })
+    ).toBeInTheDocument();
+  });
+
+  it('shows raw upgrade label when trial_period_days is unset', () => {
+    const noTrialMax: Plan = {
+      ...plansState.maxPlan,
+      trial_period_days: undefined as unknown as number,
+    };
+    plansState.current = plansState.freePlan;
+    plansState.subscription = null;
+    plansState.catalogOverride = [
+      plansState.freePlan,
+      plansState.proPlan,
+      noTrialMax,
+    ];
+    renderPage();
+    expect(
+      screen.getByRole('button', { name: 'Upgrade to Max' })
+    ).toBeInTheDocument();
+  });
+
+  it('closes the downgrade modal when Cancel is clicked', async () => {
+    const user = userEvent.setup();
+    plansState.current = plansState.proPlan;
+    plansState.subscription = {
+      id: 's_paid',
+      user_id: 'u1',
+      product_id: 'beakerstack',
+      plan_id: 'beakerstack_pro',
+      stripe_customer_id: 'cus',
+      stripe_subscription_id: 'sub_paid',
+      stripe_price_id: 'price',
+      status: 'active',
+      current_period_start: null,
+      current_period_end: null,
+      cancel_at_period_end: false,
+      pending_target_plan_id: null,
+      canceled_at: null,
+      trial_start: null,
+      trial_end: null,
+    };
+    renderPage();
+    await user.click(
+      screen.getByRole('button', { name: /Downgrade to Free/i })
+    );
+    expect(
+      screen.getByRole('button', { name: /Confirm downgrade/i })
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^Cancel$/i }));
+    expect(
+      screen.queryByRole('button', { name: /Confirm downgrade/i })
+    ).not.toBeInTheDocument();
+    expect(checkoutSpies.scheduleCancelToFree).not.toHaveBeenCalled();
+  });
+
+  it('does not reload when downgrade modal confirm resolves false', async () => {
+    const user = userEvent.setup();
+    const reload = vi.fn();
+    vi.stubGlobal('location', { ...window.location, reload });
+    checkoutSpies.scheduleCancelToFree.mockResolvedValue(false);
+    plansState.current = plansState.proPlan;
+    plansState.subscription = {
+      id: 's_paid',
+      user_id: 'u1',
+      product_id: 'beakerstack',
+      plan_id: 'beakerstack_pro',
+      stripe_customer_id: 'cus',
+      stripe_subscription_id: 'sub_paid',
+      stripe_price_id: 'price',
+      status: 'active',
+      current_period_start: null,
+      current_period_end: null,
+      cancel_at_period_end: false,
+      pending_target_plan_id: null,
+      canceled_at: null,
+      trial_start: null,
+      trial_end: null,
+    };
+    renderPage();
+    await user.click(
+      screen.getByRole('button', { name: /Downgrade to Free/i })
+    );
+    await user.click(
+      screen.getByRole('button', { name: /Confirm downgrade/i })
+    );
+    await waitFor(() => {
+      expect(checkoutSpies.scheduleCancelToFree).toHaveBeenCalled();
+    });
+    expect(reload).not.toHaveBeenCalled();
   });
 });

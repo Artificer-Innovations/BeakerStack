@@ -8,7 +8,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import { beakerstackWaitlistConfig } from '../../waitlist/beakerstackWaitlistConfig';
 
-function mapInviteError(code: string | undefined): string {
+function mapInviteError(code: string): string {
   switch (code) {
     case 'invalid_email':
       return 'Enter a valid email address.';
@@ -17,7 +17,7 @@ function mapInviteError(code: string | undefined): string {
     case 'not_found':
       return 'You do not have permission to send invites.';
     default:
-      return code ?? 'Could not create invite.';
+      return code;
   }
 }
 
@@ -30,8 +30,9 @@ export function AdminInviteByEmailPanel({
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [inviteLink, setInviteLink] = useState<string | null>(null);
-  const [lastEmail, setLastEmail] = useState<string | null>(null);
+  const [invite, setInvite] = useState<{ link: string; email: string } | null>(
+    null
+  );
 
   useEffect(() => {
     void getAdminWaitlistSettings(supabase).then(settings => {
@@ -58,7 +59,7 @@ export function AdminInviteByEmailPanel({
 
     setBusy(true);
     setError(null);
-    setInviteLink(null);
+    setInvite(null);
     try {
       const result = await inviteWaitlistEmail(supabase, trimmed);
       if (result?.error) throw new Error(mapInviteError(result.error));
@@ -70,8 +71,7 @@ export function AdminInviteByEmailPanel({
         beakerstackWaitlistConfig.appOrigin,
         result.invite_token
       );
-      setInviteLink(link);
-      setLastEmail(result.email);
+      setInvite({ link, email: result.email });
       await sendInviteEmail(link, result.email);
       await emitLifecycleEvent('waitlist.approved', {
         email: result.email,
@@ -86,9 +86,8 @@ export function AdminInviteByEmailPanel({
     }
   };
 
-  const copyLink = async () => {
-    if (!inviteLink) return;
-    await navigator.clipboard.writeText(inviteLink);
+  const copyLink = async (link: string) => {
+    await navigator.clipboard.writeText(link);
   };
 
   const inviteOnly = signupMode === 'invite_only';
@@ -144,18 +143,17 @@ export function AdminInviteByEmailPanel({
         </p>
       ) : null}
 
-      {inviteLink ? (
+      {invite ? (
         <div className='mt-4 space-y-2 rounded-md border border-green-200 bg-white p-3'>
           <p className='text-sm text-green-800'>
-            Invite created{lastEmail ? ` for ${lastEmail}` : ''}. The signup
-            link was emailed when delivery is configured; you can also copy it
-            below.
+            Invite created for {invite.email}. The signup link was emailed when
+            delivery is configured; you can also copy it below.
           </p>
-          <p className='text-xs text-gray-500 break-all'>{inviteLink}</p>
+          <p className='text-xs text-gray-500 break-all'>{invite.link}</p>
           <button
             type='button'
             className='text-sm font-medium text-indigo-600 hover:text-indigo-500'
-            onClick={() => void copyLink()}
+            onClick={() => void copyLink(invite.link)}
           >
             Copy invite link
           </button>

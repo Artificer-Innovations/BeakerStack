@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { PolicyPublicHeader } from '../PolicyPublicHeader';
 
@@ -81,5 +81,23 @@ describe('PolicyPublicHeader', () => {
     expect(mobileNav).toHaveTextContent('Pricing');
     expect(mobileNav).toHaveTextContent('FAQ');
     expect(mobileNav).toHaveTextContent('Sign in');
+  });
+
+  it('leaves non-hash nav hrefs untouched when prefixing base path', async () => {
+    const landingMod = await import('../../config/landing');
+    const original = landingMod.landingConfig.nav.links;
+    // Inject a non-hash link entry to exercise the alternate branch.
+    landingMod.landingConfig.nav.links = [
+      ...original,
+      { label: 'Docs', href: '/docs' },
+    ];
+    try {
+      renderHeader();
+      const mainNav = screen.getByRole('navigation', { name: 'Main' });
+      const docsLink = within(mainNav).getByRole('link', { name: 'Docs' });
+      expect(docsLink).toHaveAttribute('href', '/docs');
+    } finally {
+      landingMod.landingConfig.nav.links = original;
+    }
   });
 });

@@ -48,7 +48,8 @@ module.exports = {
       : ['text', 'lcov', 'html', 'json'],
   testMatch: [
     '**/__tests__/**/*.test.{ts,tsx}',
-    '!**/__tests__/**/*.native.test.{ts,tsx}',
+    // Native suites (including *.native.android.test, *.native.coverage.test, etc.)
+    '!**/__tests__/**/*.native*.test.{ts,tsx}',
   ],
   coverageProvider: 'v8',
 };

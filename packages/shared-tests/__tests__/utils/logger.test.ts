@@ -155,6 +155,16 @@ describe('Logger', () => {
       process.env.NODE_ENV = originalEnv;
     });
 
+    it('uses process.env.NODE_ENV when __DEV__ is undefined and process exists', () => {
+      // @ts-expect-error - accessing private __DEV__ for testing
+      delete global.__DEV__;
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'test';
+      Logger.debug('env branch');
+      expect(consoleDebugSpy).toHaveBeenCalledWith('env branch');
+      process.env.NODE_ENV = originalEnv;
+    });
+
     it('should return false when __DEV__ and NODE_ENV are both undefined', () => {
       // @ts-expect-error - accessing private __DEV__ for testing
       delete global.__DEV__;

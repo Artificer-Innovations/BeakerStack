@@ -104,6 +104,18 @@ describe('ProfileStats', () => {
     expect(screen.getByText(/January 2024/)).toBeInTheDocument();
   });
 
+  it('handles date formatting errors in member since', () => {
+    const spy = jest
+      .spyOn(Date.prototype, 'toLocaleDateString')
+      .mockImplementation(() => {
+        throw new Error('locale unsupported');
+      });
+    render(<ProfileStats profile={mockProfile} />);
+    expect(screen.queryByText(/Member since:/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Profile completion:/)).toBeInTheDocument();
+    spy.mockRestore();
+  });
+
   it('counts empty strings as unfilled fields', () => {
     const profileWithEmptyStrings = {
       ...mockProfile,
