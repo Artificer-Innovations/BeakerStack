@@ -24,6 +24,7 @@ function logInitFailure(err: unknown): void {
   if (typeof process !== 'undefined' && process.env?.['NODE_ENV'] === 'test') {
     return;
   }
+  // eslint-disable-next-line no-console -- init must not throw; surface failures for local debugging
   console.warn('[observability] init failed:', err);
 }
 
