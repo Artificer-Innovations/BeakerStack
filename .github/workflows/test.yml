@@ -76,8 +76,6 @@ jobs:
         continue-on-error: true
         env:
           COVERAGE_MERGE: '1'
-          VITE_SUPABASE_URL: ''
-          VITE_SUPABASE_ANON_KEY: ''
         run: |
           mkdir -p ci
           set -o pipefail
