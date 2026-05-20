@@ -12,6 +12,9 @@ declare global {
       SUPABASE_ANON_KEY?: string;
       SUPABASE_SERVICE_ROLE_KEY?: string;
       TEST_PASSWORD?: string;
+      RUN_INTEGRATION_EDGE_TESTS?: string;
+      STRIPE_SECRET_KEY?: string;
+      CI_EXPORT_EDGE_TESTS?: string;
     }
   }
 }

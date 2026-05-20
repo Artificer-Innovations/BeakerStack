@@ -147,61 +147,75 @@ describe('useAuth', () => {
 
 ## Integration Tests
 
-### What to Test
+Jest integration tests live in `tests/integration/` and run against a **real local Supabase** stack (`supabase start`). They validate authenticated client behavior (Auth, RLS, RPCs, Storage)—not UI flows (see E2E) and not schema contracts alone (see Database Tests).
 
-- Cross-platform data synchronization
-- Auth flows that span web + mobile + database
-- File upload/download across platforms
-- Real-time updates between clients
-- Complex business logic involving multiple systems
+**Prerequisites:** `supabase start` from the repo root. Optional env: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (defaults to CLI demo keys on `127.0.0.1:54321`).
+
+### Suite layout (Tier 1 — default CI)
+
+| File                              | Coverage                                                           |
+| --------------------------------- | ------------------------------------------------------------------ |
+| `auth.test.ts`                    | Signup, sign-in/out, session, profile read                         |
+| `auth-rls.test.ts`                | `user_profiles` RLS (cross-user read/update/delete, anon read)     |
+| `profile-sync.test.ts`            | Web + mobile clients, bio sync, independent sign-out               |
+| `billing-entitlements.test.ts`    | `ensure_billing_subscription`, usage RPCs, demo upgrade, RLS       |
+| `billing-usage-lifecycle.test.ts` | Demo usage reset, demo collections, subscription row after upgrade |
+| `waitlist-flow.test.ts`           | Capture, settings, admin approve, invite validate/consume          |
+| `admin-access.test.ts`            | `admin_is_admin`, `admin_list_users`, audit log, revoke            |
+| `storage-avatars.test.ts`         | Avatars bucket upload RLS, profile `avatar_url` sync               |
+
+Tier 1 runs in the main [Test workflow](../.github/workflows/test.yml) after `supabase start` (Edge runtime excluded for speed).
+
+### Tier 2 — Edge + Stripe (optional)
+
+| File                     | Coverage                                 |
+| ------------------------ | ---------------------------------------- |
+| `billing-edge.test.ts`   | `billing-stripe` Edge Function           |
+| `waitlist-edge.test.ts`  | `waitlist-capture` / `waitlist-ops` HTTP |
+| `stripe-webhook.test.ts` | Webhook signature rejection              |
+
+Triggered manually or on schedule via [integration-edge.yml](../.github/workflows/integration-edge.yml). Optional GitHub secrets: `STRIPE_TEST_SECRET_KEY`, `STRIPE_TEST_WEBHOOK_SECRET`.
 
 ### Running Integration Tests
 
 ```bash
-# Run all integration tests
+# Tier 1 (default PR/local)
 npm run test:integration
 
-# Run with coverage (note: integration tests may not support coverage by default)
-npm run test:integration
+# Tier 2 Edge tests (local)
+npm run test:integration:edge
 ```
 
-### Test Utilities
+Locally, `test:integration:edge` runs [`scripts/run-integration-edge-tests.sh`](../scripts/run-integration-edge-tests.sh), which:
 
-Integration tests can use utilities from `tests/utils/`:
+1. Starts Supabase if it is not running (`supabase start`, with Edge runtime).
+2. Starts `supabase functions serve` in the background if functions are not reachable (uses `supabase/.env.local` when present).
+3. Runs the Edge Jest suites, then stops only the functions process it started.
 
-- `test-clients.ts` - Create Supabase clients for web/mobile
-- `test-helpers.ts` - Common test helpers (createTestUser, signInTestUser, etc.)
-- `test-database.ts` - Database test helpers
-- `mock-supabase.ts` - Supabase mocks for unit tests
+If Supabase is already up from `supabase start -x edge-runtime`, restart without excluding Edge runtime, or run `supabase stop && supabase start` before Edge tests.
 
-### Example Integration Test
+Optional: put `STRIPE_SECRET_KEY` (and related vars) in `supabase/.env.local` for the billing checkout Edge test.
 
-```typescript
-// tests/integration/auth-flow.test.ts
-import {
-  createWebTestClient,
-  createMobileTestClient,
-} from '../utils/test-clients';
-import { createTestUser, signInTestUser } from '../utils/test-helpers';
+### Test utilities
 
-describe('Auth Flow Integration', () => {
-  it('should sync auth state across web and mobile', async () => {
-    const webClient = createWebTestClient();
-    const mobileClient = createMobileTestClient();
+| Module                    | Purpose                                                          |
+| ------------------------- | ---------------------------------------------------------------- |
+| `test-clients.ts`         | Web, mobile, and service-role Supabase clients                   |
+| `test-helpers.ts`         | `createTestUser`, `signInTestUser`, `cleanupTestData`, etc.      |
+| `test-database.ts`        | Config, `waitFor`, retries                                       |
+| `integration-fixtures.ts` | Admin grant/revoke, waitlist capture/mode, service-role teardown |
+| `billing-fixtures.ts`     | Demo billing RPC wrappers                                        |
+| `integration-setup.ts`    | Jest `beforeAll` Supabase reachability check                     |
+| `mock-supabase.ts`        | Mocks for **unit** tests only                                    |
 
-    const { email, password } = await createTestUser(webClient);
-    await signInTestUser(mobileClient, email, password);
+### Coverage
 
-    // Verify both clients have the same session
-    const webSession = await webClient.auth.getSession();
-    const mobileSession = await mobileClient.auth.getSession();
+Integration tests **do not** contribute to `npm run test:coverage` or merged `coverage/coverage-summary.json`. Use unit/workspace coverage for line metrics; use integration tests for runtime Supabase behavior.
 
-    expect(webSession.data.session?.user.id).toBe(
-      mobileSession.data.session?.user.id
-    );
-  });
-});
-```
+### Relationship to other layers
+
+- **pgTAP (`npm run test:db`):** migration contracts, policy existence, SQL-only matrices.
+- **E2E (`npm run test:e2e`):** Maestro UI journeys (separate from this suite).
 
 ## E2E Tests
 
