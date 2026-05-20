@@ -285,19 +285,26 @@ describe('SignupPage', () => {
     const user = userEvent.setup();
     renderWithProviders(<SignupPage />);
 
-    await user.type(screen.getByPlaceholderText('Email address'), 'test@example.com');
+    await user.type(
+      screen.getByPlaceholderText('Email address'),
+      'test@example.com'
+    );
     await user.type(screen.getByPlaceholderText('Password'), 'short');
     await user.type(screen.getByPlaceholderText('Confirm password'), 'short');
 
     const form = screen.getByPlaceholderText('Email address').closest('form');
-    const submitButton = form?.querySelector('button[type="submit"]') as HTMLButtonElement;
+    const submitButton = form?.querySelector(
+      'button[type="submit"]'
+    ) as HTMLButtonElement;
     if (submitButton) {
       await user.click(submitButton);
     }
 
     await waitFor(() => {
       expect(
-        screen.getByText(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`)
+        screen.getByText(
+          `Password must be at least ${MIN_PASSWORD_LENGTH} characters`
+        )
       ).toBeInTheDocument();
     });
     expect(authClientMocks.signUp).not.toHaveBeenCalled();

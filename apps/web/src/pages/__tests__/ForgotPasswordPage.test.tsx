@@ -95,7 +95,9 @@ describe('ForgotPasswordPage', () => {
 
   it('shows error when submitted with no email', async () => {
     renderPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Send reset link' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Send reset link' })
+    );
     expect(
       screen.getByText('Please enter your email address')
     ).toBeInTheDocument();
@@ -110,7 +112,9 @@ describe('ForgotPasswordPage', () => {
       screen.getByPlaceholderText('Email address'),
       'user@example.com'
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Send reset link' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Send reset link' })
+    );
 
     await waitFor(() => {
       expect(mockRequestPasswordReset).toHaveBeenCalledWith(
@@ -119,9 +123,7 @@ describe('ForgotPasswordPage', () => {
       );
     });
 
-    expect(
-      screen.getByText(/If an account exists for/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/If an account exists for/i)).toBeInTheDocument();
     // Must not reveal whether the address exists
     expect(
       screen.queryByText(/account does not exist/i)
@@ -129,14 +131,18 @@ describe('ForgotPasswordPage', () => {
   });
 
   it('shows generic error message on failure', async () => {
-    mockRequestPasswordReset.mockRejectedValue(new Error('Rate limit exceeded'));
+    mockRequestPasswordReset.mockRejectedValue(
+      new Error('Rate limit exceeded')
+    );
     renderPage();
 
     await userEvent.type(
       screen.getByPlaceholderText('Email address'),
       'user@example.com'
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Send reset link' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Send reset link' })
+    );
 
     await waitFor(() => {
       expect(
@@ -147,9 +153,8 @@ describe('ForgotPasswordPage', () => {
 
   it('has a link back to login', () => {
     renderPage();
-    expect(screen.getByRole('link', { name: 'Back to sign in' })).toHaveAttribute(
-      'href',
-      '/login'
-    );
+    expect(
+      screen.getByRole('link', { name: 'Back to sign in' })
+    ).toHaveAttribute('href', '/login');
   });
 });

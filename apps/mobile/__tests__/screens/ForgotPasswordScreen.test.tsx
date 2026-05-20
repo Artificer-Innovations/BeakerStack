@@ -22,7 +22,9 @@ jest.mock('expo-constants', () => ({
 jest.mock('../../src/lib/supabase', () => ({
   supabase: {
     auth: {
-      getSession: jest.fn().mockResolvedValue({ data: { session: null }, error: null }),
+      getSession: jest
+        .fn()
+        .mockResolvedValue({ data: { session: null }, error: null }),
       onAuthStateChange: jest.fn(() => ({
         data: { subscription: { unsubscribe: jest.fn() } },
       })),
@@ -42,7 +44,9 @@ const mockNavigation = { navigate: mockNavigate, reset: jest.fn() } as any;
 const createMockSupabaseClient = (): SupabaseClient =>
   ({
     auth: {
-      getSession: jest.fn().mockResolvedValue({ data: { session: null }, error: null }),
+      getSession: jest
+        .fn()
+        .mockResolvedValue({ data: { session: null }, error: null }),
       onAuthStateChange: jest.fn(() => ({
         data: { subscription: { unsubscribe: jest.fn() } },
       })),
@@ -102,7 +106,10 @@ describe('ForgotPasswordScreen', () => {
     mockResetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
     const { getByPlaceholderText, getByText, queryByText } = renderScreen();
 
-    fireEvent.changeText(getByPlaceholderText('Email address'), 'user@example.com');
+    fireEvent.changeText(
+      getByPlaceholderText('Email address'),
+      'user@example.com'
+    );
     fireEvent.press(getByText('Send reset link'));
 
     await waitFor(() => {
@@ -122,7 +129,10 @@ describe('ForgotPasswordScreen', () => {
     });
     const { getByPlaceholderText, getByText } = renderScreen();
 
-    fireEvent.changeText(getByPlaceholderText('Email address'), 'user@example.com');
+    fireEvent.changeText(
+      getByPlaceholderText('Email address'),
+      'user@example.com'
+    );
     fireEvent.press(getByText('Send reset link'));
 
     await waitFor(() => {
