@@ -42,7 +42,7 @@ export function formatTxtValue(value) {
  *   awsProfileArgs?: string[];
  *   dryRun?: boolean;
  * }} opts
- * @returns {Promise<{ changeId: string; records: object[] }>}
+ * @returns {Promise<{ changeId: string; records: object[]; resolvedZoneId: string }>}
  */
 export async function upsertEmailDnsRecords(records, opts) {
   const {
@@ -71,7 +71,7 @@ export async function upsertEmailDnsRecords(records, opts) {
       const rrs = c.ResourceRecordSet;
       console.log(`  ${rrs.Type.padEnd(5)} ${rrs.Name}`);
     }
-    return { changeId: 'dry-run', records: changes };
+    return { changeId: 'dry-run', records: changes, resolvedZoneId: hostedZoneId };
   }
 
   await checkExistingSpf(zoneId, sendingDomain, awsProfileArgs);
@@ -81,7 +81,8 @@ export async function upsertEmailDnsRecords(records, opts) {
     tmpdir(),
     `beakerstack-r53-email-${Date.now()}.json`
   );
-  writeFileSync(tmpFile, JSON.stringify(changeBatch, null, 2));
+  // mode 0o600 — batch file contains hosted zone ID; restrict to current user
+  writeFileSync(tmpFile, JSON.stringify(changeBatch, null, 2), { mode: 0o600 });
 
   try {
     const result = spawnSync(
@@ -104,7 +105,7 @@ export async function upsertEmailDnsRecords(records, opts) {
     }
     const out = JSON.parse(result.stdout);
     const changeId = out?.ChangeInfo?.Id ?? 'unknown';
-    return { changeId, records: changes };
+    return { changeId, records: changes, resolvedZoneId: hostedZoneId };
   } finally {
     try {
       unlinkSync(tmpFile);
@@ -175,8 +176,9 @@ function buildChanges(records, { sendingDomain, dmarc, dmarcEmail }) {
       );
     } else if (type === 'MX') {
       changes.push(upsertRecord(name, 'MX', ttl, [{ Value: value }]));
+    } else if (type) {
+      console.warn(`[setup:email-dns] Skipping unrecognized Resend record type "${rec.type}" for ${name}`);
     }
-    // Skip unknown types (e.g. Resend tracking subdomains — not needed)
   }
 
   if (dmarc) {
@@ -205,6 +207,9 @@ function upsertRecord(name, type, ttl, resourceRecords) {
 }
 
 async function checkExistingSpf(zoneId, sendingDomain, awsProfileArgs) {
+  // Skip if domain contains characters that would break the JMESPath query
+  if (/['"\\]/.test(sendingDomain)) return;
+
   const result = spawnSync(
     'aws',
     [

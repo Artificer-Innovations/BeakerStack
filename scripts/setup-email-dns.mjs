@@ -12,6 +12,9 @@
  *   --yes                    Non-interactive; accept all defaults, skip verification poll
  *   --dry-run                Print planned actions without making any changes
  *   --plain-secret-prompts   Echo API key prompt in plain text (default: masked on TTY)
+ *
+ * Note: re-running this script merges SMTP_* keys into .env.local. Any user-written
+ * comments in .env.local are removed on each merge (parseDotEnv strips comments).
  */
 
 import { createInterface } from 'node:readline/promises';
@@ -59,7 +62,16 @@ export async function phaseEmailDns(flags, rl, acc) {
     process.env.RESEND_API_KEY = key;
   }
 
-  const sendingDomain = (await rl.question('Sending domain (e.g. auth.myapp.com): ')).trim();
+  // Default sending domain to apex from aws phase if available
+  const defaultDomain = acc.PR_PREVIEW_DOMAIN || '';
+  const sendingDomain = (
+    (await rl.question(
+      defaultDomain
+        ? `Sending domain [${defaultDomain}]: `
+        : 'Sending domain (e.g. auth.myapp.com): '
+    )).trim()
+  ) || defaultDomain;
+
   if (!sendingDomain) {
     logWarn('No sending domain provided; skipping email DNS setup.');
     return;
@@ -80,7 +92,7 @@ export async function phaseEmailDns(flags, rl, acc) {
 
   const addDmarc = await promptYesNo(rl, 'Add DMARC TXT record? (recommended)', true);
 
-  await runEmailDns({
+  const { completed } = await runEmailDns({
     rl,
     sendingDomain,
     apex,
@@ -93,10 +105,13 @@ export async function phaseEmailDns(flags, rl, acc) {
     dryRun,
     nonInteractive: false,
     yes: false,
+    skipEnvLocal: true, // phaseWrite handles .env.local via acc
   });
 
-  // Merge SMTP keys into acc so phaseWrite picks them up
-  Object.assign(acc, buildSmtpVars(sendingDomain, adminEmail, senderName));
+  // Only merge into acc if setup completed (not aborted at confirm step)
+  if (completed) {
+    Object.assign(acc, buildSmtpVars(sendingDomain, adminEmail, senderName));
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -163,6 +178,7 @@ async function main() {
       dryRun: flags.dryRun,
       nonInteractive: flags.yes,
       yes: flags.yes,
+      skipEnvLocal: false,
     });
   } finally {
     rl.close();
@@ -171,15 +187,19 @@ async function main() {
 
 // ---------------------------------------------------------------------------
 // Core orchestration
-// Correct order per issue spec:
-//   1. Create/reuse Resend domain → records[]
-//   2. Show plan + confirm
-//   3. UPSERT Route 53
-//   4. Verify + poll
-//   5. Write .env.local, config.toml
-//   6. Print completion
+// Order:
+//   1. Confirm before any API side effects
+//   2. Create/reuse Resend domain → records[]
+//   3. Plan Route 53 changes (dry-run, resolves zone once)
+//   4. UPSERT Route 53 (reuses resolved zone ID — no second discovery)
+//   5. Verify + poll (after DNS is written)
+//   6. Write .env.local, config.toml (standalone only; setup-full uses phaseWrite)
+//   7. Print completion
 // ---------------------------------------------------------------------------
 
+/**
+ * @returns {Promise<{ completed: boolean }>}
+ */
 async function runEmailDns({
   rl,
   sendingDomain,
@@ -193,12 +213,26 @@ async function runEmailDns({
   dryRun,
   nonInteractive,
   yes,
+  skipEnvLocal,
 }) {
-  // 1. Create/reuse Resend domain — get DNS records (no verify yet)
+  // 1. Confirm before any API side effects (Resend domain creation is a real write)
+  if (!yes && !dryRun && rl) {
+    const proceed = await promptYesNo(
+      rl,
+      `Set up Resend sending domain "${sendingDomain}" + Route 53 DNS for ${apex}?`,
+      true
+    );
+    if (!proceed) {
+      logInfo('Aborted by user.');
+      return { completed: false };
+    }
+  }
+
+  // 2. Create/reuse Resend domain — get DNS records (no verify yet)
   logInfo(`Creating/reusing Resend domain: ${sendingDomain}`);
   const { domainId, records } = await createOrGetResendDomain(sendingDomain, { dryRun });
 
-  // 2. Show planned Route 53 changes and confirm (unless --yes or --dry-run)
+  // 3. Plan Route 53 changes — zone is resolved once here and reused for the real UPSERT
   logInfo(`Planning Route 53 UPSERT for zone apex: ${apex}`);
   const planResult = await upsertEmailDnsRecords(records, {
     sendingDomain,
@@ -207,48 +241,47 @@ async function runEmailDns({
     dmarc,
     dmarcEmail,
     awsProfileArgs,
-    dryRun: true, // always plan first
+    dryRun: true,
   });
 
-  if (!yes && !dryRun && rl) {
+  if (!dryRun) {
     console.log('\nPlanned DNS changes:');
     for (const c of planResult.records) {
       const rrs = c.ResourceRecordSet;
       console.log(`  UPSERT  ${rrs.Type.padEnd(5)}  ${rrs.Name}`);
     }
-    const answer = (await rl.question('\nProceed with Route 53 UPSERT? [Y/n]: ')).trim().toLowerCase();
-    if (answer === 'n' || answer === 'no') {
-      logInfo('Aborted by user.');
-      return;
-    }
+    console.log();
   }
 
-  // 3. UPSERT Route 53 (real or dry-run)
+  // 4. UPSERT Route 53 — pass resolved zone ID to avoid a second zone discovery call
   logInfo('Upserting DNS records in Route 53…');
   const { changeId, records: changes } = await upsertEmailDnsRecords(records, {
     sendingDomain,
     apexDomain: apex,
-    hostedZoneId,
+    hostedZoneId: planResult.resolvedZoneId,
     dmarc,
     dmarcEmail,
     awsProfileArgs,
     dryRun,
   });
 
-  // 4. Trigger verification + poll (after DNS is written)
+  // 5. Trigger verification + poll (after DNS is written)
   logInfo('Triggering Resend domain verification…');
   const { verified } = await verifyResendDomain(domainId, {
     dryRun,
     nonInteractive: nonInteractive || yes,
   });
 
-  // 5. Write .env.local (merge only SMTP keys) and uncomment config.toml
+  // 6. Write .env.local and uncomment config.toml (skipped in setup-full; phaseWrite handles it)
   const smtpVars = buildSmtpVars(sendingDomain, adminEmail, senderName);
-  await mergeEnvLocal(smtpVars, dryRun);
+  if (!skipEnvLocal) {
+    await mergeEnvLocal(smtpVars, dryRun);
+  }
   await applyConfigToml(dryRun);
 
-  // 6. Completion summary
+  // 7. Completion summary
   printCompletion({ sendingDomain, verified, changeId, changes, dmarc, dryRun });
+  return { completed: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -289,14 +322,14 @@ function stringifyDotEnv(record) {
 
 async function mergeEnvLocal(smtpVars, dryRun) {
   if (dryRun) {
-    logInfo('[dry-run] would merge SMTP_* keys into .env.local (preserving all other keys)');
+    logInfo('[dry-run] would merge SMTP_* keys into .env.local (preserving all other keys; note: user-written comments are stripped)');
     return;
   }
   const existing = await readEnvFileIfExists(LOCAL_ENV_PATH);
   const merged = { ...existing, ...smtpVars };
   try {
     await fs.writeFile(LOCAL_ENV_PATH, stringifyDotEnv(merged), 'utf8');
-    logInfo('.env.local: SMTP_* keys merged (all other keys preserved)');
+    logInfo('.env.local: SMTP_* keys merged (other keys preserved; user-written comments stripped)');
   } catch (err) {
     throw new Error(
       `Failed to write .env.local: ${err.message}\n` +
@@ -336,28 +369,29 @@ async function applyConfigToml(dryRun) {
 }
 
 /**
- * Uncomment the `# [auth.email.smtp]` block and replace placeholder values with Resend config.
+ * Uncomment the `# [auth.email.smtp]` block and replace placeholder values with Resend env-var refs.
  *
- * Matches the commented section header `# [auth.email.smtp]` plus all consecutive `# ` prefixed
- * lines that follow (bounded by blank line or next `[` header — Mei's section-bound constraint).
- * Replaces the whole matched block with a ready-to-use Resend SMTP config.
- * Idempotent: if the block is already uncommented (no `# [auth.email.smtp]` present), returns toml unchanged.
+ * Matches an optional preceding prose comment line, the commented section header
+ * `# [auth.email.smtp]`, plus all consecutive `# ` prefixed lines that follow
+ * (bounded by blank line or next `[` header). Replaces the whole matched block
+ * with a ready-to-use Resend SMTP config using env() references throughout.
+ * Idempotent: returns toml unchanged if `# [auth.email.smtp]` is not present.
  *
  * @param {string} toml
  * @returns {string}
  */
 export function uncommentSmtpSection(toml) {
-  // Match: `# [auth.email.smtp]` line + all immediately following `# ` prefixed lines
-  // Stops at blank line or next `[` header (both are not matched by `# [^\n]*`)
-  const pattern = /# \[auth\.email\.smtp\]\n(# [^\n]*\n)*/;
+  // Optional prose comment line immediately before the section header, then
+  // the commented header + all following `# `-prefixed lines.
+  const pattern = /(?:# [^\n]+\n)?# \[auth\.email\.smtp\]\n(# [^\n]*\n)*/;
   if (!pattern.test(toml)) return toml;
 
   const smtpBlock =
     '[auth.email.smtp]\n' +
     'enabled = true\n' +
-    'host = "smtp.resend.com"\n' +
+    'host = "env(SMTP_HOST)"\n' +
     'port = 587\n' +
-    'user = "resend"\n' +
+    'user = "env(SMTP_USER)"\n' +
     'pass = "env(SMTP_PASS)"\n' +
     'admin_email = "env(SMTP_ADMIN_EMAIL)"\n' +
     'sender_name = "env(SMTP_SENDER_NAME)"\n';
@@ -368,6 +402,7 @@ export function uncommentSmtpSection(toml) {
 function apexFromDomain(domain) {
   const parts = domain.split('.');
   if (parts.length < 2) return domain;
+  // Note: for two-part TLDs (e.g. .co.uk) this returns "co.uk" — pass --hosted-zone-id explicitly.
   return parts.slice(-2).join('.');
 }
 
@@ -463,7 +498,8 @@ function printHelp() {
 
 Options:
   --domain=DOMAIN          Sending domain (e.g. auth.myapp.com)
-  --hosted-zone-id=ID      Route 53 hosted zone ID (auto-discovered if omitted)
+  --hosted-zone-id=ID      Route 53 hosted zone ID (auto-discovered if omitted;
+                           required for two-part TLDs like .co.uk)
   --aws-profile=NAME       AWS CLI profile name
   --dmarc / --no-dmarc     Add DMARC record (prompted if omitted, default: yes)
   --dmarc-email=EMAIL      DMARC rua address (defaults to SMTP_ADMIN_EMAIL)
@@ -474,6 +510,9 @@ Options:
 
 Environment:
   RESEND_API_KEY           Resend API key — prompted interactively if not set
+
+Note: re-running merges SMTP_* keys into .env.local. User-written comments
+in .env.local are removed on each merge.
 `);
 }
 

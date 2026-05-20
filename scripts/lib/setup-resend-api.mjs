@@ -14,14 +14,13 @@ const RESEND_BASE = 'https://api.resend.com';
  * @returns {Promise<{ domainId: string; records: ResendRecord[] }>}
  */
 export async function createOrGetResendDomain(sendingDomain, { dryRun = false } = {}) {
-  const apiKey = requireApiKey();
-
   if (dryRun) {
     console.log(`[dry-run] would create/reuse Resend domain: ${sendingDomain}`);
     console.log('[dry-run] would disable click_tracking and open_tracking');
     return { domainId: 'dry-run', records: [] };
   }
 
+  const apiKey = requireApiKey();
   let domain = await _createOrGetDomain(sendingDomain, apiKey);
 
   if (domain.click_tracking || domain.open_tracking) {
@@ -42,13 +41,12 @@ export async function createOrGetResendDomain(sendingDomain, { dryRun = false } 
  * @returns {Promise<{ verified: boolean }>}
  */
 export async function verifyResendDomain(domainId, { dryRun = false, nonInteractive = false } = {}) {
-  const apiKey = requireApiKey();
-
   if (dryRun) {
     console.log('[dry-run] would POST /verify and poll for verification');
     return { verified: false };
   }
 
+  const apiKey = requireApiKey();
   await _verifyDomain(domainId, apiKey);
 
   if (nonInteractive) {
@@ -67,6 +65,9 @@ export async function verifyResendDomain(domainId, { dryRun = false, nonInteract
 function requireApiKey() {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) throw new Error('RESEND_API_KEY is not set in the environment.');
+  if (!apiKey.startsWith('re_')) {
+    console.warn('⚠  RESEND_API_KEY does not start with "re_" — verify the key is correct.');
+  }
   return apiKey;
 }
 
@@ -96,15 +97,20 @@ async function _createOrGetDomain(name, apiKey) {
     });
   } catch (err) {
     if (err.status === 409) {
-      const list = await resendFetch('/domains', apiKey);
-      const existing = (list.data ?? list).find(d => d.name === name);
-      if (!existing) {
-        throw new Error(
-          `Resend domain "${name}" already exists (409) but was not found in the domain list. ` +
-            'Check your Resend account or use a different API key.'
-        );
-      }
-      return _getDomain(existing.id, apiKey);
+      // Paginate through all pages to find the existing domain
+      let cursor;
+      do {
+        const url = cursor ? `/domains?cursor=${encodeURIComponent(cursor)}` : '/domains';
+        const list = await resendFetch(url, apiKey);
+        const data = list.data ?? list;
+        const existing = Array.isArray(data) ? data.find(d => d.name === name) : undefined;
+        if (existing) return _getDomain(existing.id, apiKey);
+        cursor = list.has_more ? list.next : null;
+      } while (cursor);
+      throw new Error(
+        `Resend domain "${name}" already exists (409) but was not found in any page of the domain list. ` +
+          'Check your Resend account or use a different API key.'
+      );
     }
     throw err;
   }
@@ -140,11 +146,7 @@ async function _pollVerification(domainId, apiKey) {
 
   try {
     for (;;) {
-      const delaySec = backoffSecs[Math.min(attempt, backoffSecs.length - 1)];
-      await new Promise(resolve => setTimeout(resolve, delaySec * 1000));
-      elapsedSec += delaySec;
-      attempt++;
-
+      // Check status before sleeping — handles re-runs on already-verified domains immediately
       if (siginted) {
         process.stdout.write(
           '\n  Verification pending — re-run `node scripts/setup-email-dns.mjs` to check status.\n'
@@ -157,7 +159,15 @@ async function _pollVerification(domainId, apiKey) {
         return { verified: true };
       }
 
-      process.stdout.write(`  Still pending (${elapsedSec}s elapsed)…\n`);
+      const delaySec = backoffSecs[Math.min(attempt, backoffSecs.length - 1)];
+      process.stdout.write(
+        attempt === 0
+          ? `  Pending — checking again in ${delaySec}s…\n`
+          : `  Still pending (${elapsedSec}s elapsed) — checking again in ${delaySec}s…\n`
+      );
+      await new Promise(resolve => setTimeout(resolve, delaySec * 1000));
+      elapsedSec += delaySec;
+      attempt++;
     }
   } finally {
     process.removeListener('SIGINT', sigintHandler);

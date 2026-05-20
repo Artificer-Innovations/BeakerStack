@@ -66,14 +66,16 @@ describe('uncommentSmtpSection', () => {
 [auth.sms]
 `;
 
-  it('uncomments the smtp block and replaces values with Resend config', () => {
+  it('uncomments the smtp block and replaces values with Resend env-var refs', () => {
     const result = uncommentSmtpSection(commentedBlock);
     assert.ok(result.includes('[auth.email.smtp]'), 'section header should be uncommented');
-    assert.ok(result.includes('host = "smtp.resend.com"'), 'host should be resend');
+    assert.ok(result.includes('host = "env(SMTP_HOST)"'), 'host should use env var');
+    assert.ok(result.includes('user = "env(SMTP_USER)"'), 'user should use env var');
     assert.ok(result.includes('port = 587'), 'port should be 587');
     assert.ok(result.includes('pass = "env(SMTP_PASS)"'), 'pass should use env var');
     assert.ok(!result.includes('# [auth.email.smtp]'), 'commented header should be gone');
     assert.ok(!result.includes('smtp.sendgrid.net'), 'sendgrid placeholder should be gone');
+    assert.ok(!result.includes('# Use a production-ready SMTP server'), 'prose comment should be removed');
   });
 
   it('does not bleed into adjacent sections', () => {
@@ -82,9 +84,15 @@ describe('uncommentSmtpSection', () => {
   });
 
   it('is idempotent — no-op if block already uncommented', () => {
-    const alreadyUncommented = commentedBlock.replace(/# \[auth\.email\.smtp\]\n(# [^\n]*\n)*/, '');
-    const withUncommented = alreadyUncommented.replace('[auth.sms]',
-      '[auth.email.smtp]\nenabled = true\nhost = "smtp.resend.com"\n\n[auth.sms]');
+    // Strip both the prose comment and the commented section header block
+    const alreadyUncommented = commentedBlock.replace(
+      /(?:# [^\n]+\n)?# \[auth\.email\.smtp\]\n(# [^\n]*\n)*/,
+      ''
+    );
+    const withUncommented = alreadyUncommented.replace(
+      '[auth.sms]',
+      '[auth.email.smtp]\nenabled = true\nhost = "env(SMTP_HOST)"\n\n[auth.sms]'
+    );
     const result = uncommentSmtpSection(withUncommented);
     assert.equal(result, withUncommented);
   });
