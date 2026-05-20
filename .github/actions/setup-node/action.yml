@@ -1,0 +1,15 @@
+name: Setup Node
+description: Install Node.js 20 and run npm ci (run actions/checkout first)
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: npm
+
+    - name: Install dependencies
+      shell: bash
+      run: npm ci

@@ -113,6 +113,14 @@ export default defineConfig(({ mode }) => {
       globals: true,
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.ts'],
+      // Placeholder Supabase env when unset (jsdom imports supabase.ts at module load).
+      // CI integration exports real credentials via GITHUB_ENV — those take precedence.
+      env: {
+        VITE_SUPABASE_URL:
+          process.env.VITE_SUPABASE_URL ?? 'http://localhost:54321',
+        VITE_SUPABASE_ANON_KEY:
+          process.env.VITE_SUPABASE_ANON_KEY ?? 'test-anon-key',
+      },
       coverage: {
         provider: 'v8',
         reporter:

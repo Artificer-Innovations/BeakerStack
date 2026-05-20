@@ -29,8 +29,9 @@ on:
       # Scripts and repo lint config (lint covers scripts/**)
       - 'scripts/**'
       - '.eslintrc.js'
-      # Workflow file itself
+      # Workflow and composite actions
       - '.github/workflows/test.yml'
+      - '.github/actions/**'
 
 permissions:
   contents: read
@@ -39,27 +40,98 @@ permissions:
   pull-requests: write
 
 jobs:
-  tests:
-    # On edited events, only run when the base branch was retargeted (not title/body-only edits).
+  lint:
     if: github.event.action != 'edited' || github.event.changes.base
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+      - name: Run lint
+        run: npm run lint
+
+  type-check:
+    if: github.event.action != 'edited' || github.event.changes.base
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+      - name: Type check
+        run: npm run type-check
+
+  unit-coverage:
+    if: github.event.action != 'edited' || github.event.changes.base
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+
+      - name: Run unit tests with coverage
+        id: run-tests
+        continue-on-error: true
+        env:
+          COVERAGE_MERGE: '1'
+        run: |
+          mkdir -p ci
+          set -o pipefail
+          (
+            npm run test:coverage:mobile &&
+            npm run test:coverage:web &&
+            npm run test:coverage:shared &&
+            npm run test:coverage:billing &&
+            npm run test:coverage:admin &&
+            npm run test:coverage:lifecycle-events &&
+            npm run test:coverage:waitlist &&
+            npm run test:coverage:email &&
+            npm run test:coverage:observability &&
+            npm run test:unit:scripts
+          ) 2>&1 | tee ci/unit-coverage.log
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-coverage-reports
+          path: |
+            apps/web/coverage
+            apps/mobile/coverage
+            packages/shared-tests/coverage
+            packages/billing/coverage
+            packages/admin/coverage
+            packages/waitlist/coverage
+            packages/email/coverage
+            packages/lifecycle-events/coverage
+            packages/observability/coverage
+          if-no-files-found: warn
+
+      - name: Upload test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-coverage-log
+          path: ci/unit-coverage.log
+          if-no-files-found: warn
+
+      - name: Fail job if tests failed
+        if: steps.run-tests.outcome == 'failure'
+        run: exit 1
+
+  integration:
+    if: github.event.action != 'edited' || github.event.changes.base
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     env:
       TEST_EMAIL: ci-test@example.com
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20.x
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
 
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v1
@@ -69,7 +141,6 @@ jobs:
       - name: Start Supabase services
         run: |
           mkdir -p .supabase/logs
-          # Exclude non-essential services to speed up CI startup
           supabase start -x studio,imgproxy,inbucket,edge-runtime,analytics > .supabase/logs/start.log 2>&1
           supabase status > .supabase/logs/status.log 2>&1
           cat .supabase/logs/status.log
@@ -77,29 +148,130 @@ jobs:
       - name: Export Supabase credentials from local stack
         run: ./scripts/ci-export-supabase-env.sh
 
-      - name: Run lint
-        run: npm run lint
-
-      - name: Type check
-        run: npm run type-check
-
-      - name: Run tests with coverage
+      - name: Run integration tests
         id: run-tests
         continue-on-error: true
+        env:
+          RUN_LIVE_SUPABASE_TEST: '1'
         run: |
           mkdir -p ci
           set -o pipefail
           (
             npm run test:integration &&
-            npm run test:db &&
-            npm run test:coverage
-          ) 2>&1 | tee ci/test-output.log
+            cd apps/web && npx vitest run src/lib/supabase.test.ts
+          ) 2>&1 | tee ci/integration.log
 
-      - name: Build coverage summary
-        id: build-summary
+      - name: Upload test log
         if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-log
+          path: ci/integration.log
+          if-no-files-found: warn
+
+      - name: Upload Supabase logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-supabase-logs
+          path: .supabase/logs
+          if-no-files-found: warn
+
+      - name: Fail job if tests failed
+        if: steps.run-tests.outcome == 'failure'
+        run: exit 1
+
+      - name: Stop Supabase services
+        if: always()
+        run: supabase stop || true
+
+  db-tests:
+    if: github.event.action != 'edited' || github.event.changes.base
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.54.11
+
+      - name: Start Supabase services
+        run: |
+          mkdir -p .supabase/logs
+          supabase start -x studio,imgproxy,inbucket,edge-runtime,analytics > .supabase/logs/start.log 2>&1
+          supabase status > .supabase/logs/status.log 2>&1
+          cat .supabase/logs/status.log
+
+      - name: Export Supabase credentials from local stack
+        run: ./scripts/ci-export-supabase-env.sh
+
+      - name: Run database tests
+        id: run-tests
+        continue-on-error: true
         run: |
           mkdir -p ci
+          set -o pipefail
+          npm run test:db 2>&1 | tee ci/db-tests.log
+
+      - name: Upload test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-tests-log
+          path: ci/db-tests.log
+          if-no-files-found: warn
+
+      - name: Upload Supabase logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-tests-supabase-logs
+          path: .supabase/logs
+          if-no-files-found: warn
+
+      - name: Fail job if tests failed
+        if: steps.run-tests.outcome == 'failure'
+        run: exit 1
+
+      - name: Stop Supabase services
+        if: always()
+        run: supabase stop || true
+
+  coverage-report:
+    needs: [unit-coverage, integration, db-tests]
+    if: always() && !cancelled() && (github.event.action != 'edited' || github.event.changes.base)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+
+      - name: Download unit coverage reports
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: unit-coverage-reports
+          path: .
+
+      - name: Download test logs
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: '*-log'
+          merge-multiple: true
+          path: .
+
+      - name: Merge coverage and test logs
+        id: build-summary
+        run: |
+          mkdir -p coverage
+          node scripts/merge-coverage.js
+          cat ci/unit-coverage.log ci/integration.log ci/db-tests.log > ci/test-output.log 2>/dev/null || true
           node scripts/format-ci-summary.mjs \
             --coverage coverage/coverage-summary.json \
             --test-log ci/test-output.log \
@@ -110,8 +282,6 @@ jobs:
             cat ci/comment.md
             printf '\nEOF_COMMENT\n'
           } >> "$GITHUB_OUTPUT"
-          tests_failed=$(node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync('ci/summary.json','utf8')); process.stdout.write(String(data.tests.suites.failed || 0));")
-          echo "tests_failed=$tests_failed" >> "$GITHUB_OUTPUT"
 
       - name: Comment coverage summary
         if: github.event_name == 'pull_request'
@@ -125,7 +295,6 @@ jobs:
               return;
             }
 
-            // Add timestamp in Pacific time
             const now = new Date();
             const pacificTime = now.toLocaleString('en-US', {
               timeZone: 'America/Los_Angeles',
@@ -216,30 +385,6 @@ jobs:
             packages/observability/coverage
           if-no-files-found: warn
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: |
-            **/junit*.xml
-            **/test-results/**/*.xml
-            **/jest-stare/**/*.html
-          if-no-files-found: warn
-
-      - name: Upload Supabase logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: supabase-logs
-          path: .supabase/logs
-          if-no-files-found: warn
-
-      - name: Fail job if tests failed
-        if: steps.run-tests.outcome == 'failure'
+      - name: Fail if upstream test jobs failed
+        if: needs.unit-coverage.result == 'failure' || needs.integration.result == 'failure' || needs.db-tests.result == 'failure'
         run: exit 1
-
-      - name: Stop Supabase services
-        if: always()
-        run: supabase stop || true
-
