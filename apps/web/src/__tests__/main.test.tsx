@@ -21,6 +21,12 @@ vi.mock('../PublicShell', () => ({
 // Mock CSS import
 vi.mock('../index.css', () => ({}));
 
+vi.mock('@beakerstack/observability/web', () => ({
+  initObservability: vi.fn(),
+  ObservabilityProvider: ({ children }: { children: React.ReactNode }) =>
+    React.createElement(React.Fragment, null, children),
+}));
+
 describe('main.tsx', () => {
   let rootElement: HTMLElement | null;
 
@@ -65,7 +71,7 @@ describe('main.tsx', () => {
     expect(mockRender).toHaveBeenCalled();
   });
 
-  it('should render ThemeProvider with PublicShell child', async () => {
+  it('should render ThemeProvider with PublicShell child inside ObservabilityProvider', async () => {
     await import('../main');
     await new Promise(resolve => setTimeout(resolve, 10));
 
@@ -73,7 +79,11 @@ describe('main.tsx', () => {
     const renderCall = mockRender.mock.calls[0][0];
     expect(renderCall.type).toBe(React.StrictMode);
 
-    const themeProvider = renderCall.props.children;
+    const observabilityProvider = renderCall.props.children;
+    expect(observabilityProvider).toBeDefined();
+    expect(observabilityProvider.type).toBeDefined();
+
+    const themeProvider = observabilityProvider.props.children;
     expect(themeProvider).toBeDefined();
     expect(themeProvider.type).toBeDefined();
 

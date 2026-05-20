@@ -1,7 +1,11 @@
 import type { ObservabilityConfig } from '@beakerstack/observability';
 
+const env = typeof process !== 'undefined' && process.env ? process.env : {};
+
 export const beakerstackObservabilityConfig: ObservabilityConfig = {
   project: 'beakerstack-mobile',
-  environment: process.env.NODE_ENV ?? 'development',
-  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  environment:
+    env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ??
+    (__DEV__ ? 'development' : 'production'),
+  dsn: env.EXPO_PUBLIC_SENTRY_DSN,
 };

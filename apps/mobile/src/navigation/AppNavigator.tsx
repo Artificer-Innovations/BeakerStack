@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   NavigationContainer,
-  type NavigationContainerRef,
   type LinkingOptions,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -15,18 +14,10 @@ import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import AuthCallbackScreen from '../screens/AuthCallbackScreen';
 import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import { useFeatureFlags } from '../config/featureFlags';
+import { navigationRef } from './navigationRef';
+import type { RootStackParamList } from './types';
 
-export type RootStackParamList = {
-  Home: undefined;
-  Login: undefined;
-  Signup: undefined;
-  Dashboard: undefined;
-  Profile: undefined;
-  Billing: undefined;
-  ForgotPassword: undefined;
-  AuthCallback: undefined;
-  ResetPassword: undefined;
-};
+export type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -40,8 +31,6 @@ const linking: LinkingOptions<RootStackParamList> = {
 };
 
 export const AppNavigator = () => {
-  const navigationRef =
-    React.useRef<NavigationContainerRef<RootStackParamList>>(null);
   const { showNativeHeader } = useFeatureFlags();
 
   // Expose navigation to global scope for debugging (dev only)

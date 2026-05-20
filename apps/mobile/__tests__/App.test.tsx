@@ -31,6 +31,14 @@ jest.mock('expo-updates', () => ({
   channel: null,
   updateId: null,
   manifest: null,
+  reloadAsync: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('@beakerstack/observability/native', () => ({
+  ObservabilityProvider: ({ children }: { children: React.ReactNode }) =>
+    children,
+  ErrorBoundary: ({ children }: { children: React.ReactNode }) => children,
+  initObservability: jest.fn().mockResolvedValue(undefined),
 }));
 
 // Mock configureGoogleSignIn (added in our auth changes)
