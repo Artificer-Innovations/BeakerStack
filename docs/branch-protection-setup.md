@@ -41,7 +41,7 @@ Branch protection prevents accidental squash merges into `main`, which can cause
      - ✅ Require approvals: 1 (or your team's requirement)
      - ✅ Dismiss stale pull request approvals when new commits are pushed
    - ✅ Require status checks to pass before merging
-     - Select required status checks (e.g., "Test", "Lint & Type Check")
+     - Select required status checks (see [Required CI status checks](#required-ci-status-checks) below)
    - ✅ Require branches to be up to date before merging
    - ✅ **Require merge queue** (optional, but recommended for teams)
 
@@ -60,12 +60,30 @@ Branch protection prevents accidental squash merges into `main`, which can cause
    - ✅ Require a pull request before merging
      - ✅ Require approvals: 1 (or your team's requirement)
    - ✅ Require status checks to pass before merging
+     - Select required status checks (see [Required CI status checks](#required-ci-status-checks) below)
    - ✅ Require branches to be up to date before merging
 
    **Restrict who can push to matching branches:**
    - ✅ Do not allow bypassing the above settings
 
 4. Click **Create** (or **Save changes**)
+
+### Required CI status checks
+
+The [`Test` workflow](../.github/workflows/test.yml) runs parallel jobs. Each job reports an independent status check. Require these on `main` and `develop`:
+
+| Status check             | Job                                            | Blocks merge?      |
+| ------------------------ | ---------------------------------------------- | ------------------ |
+| `Test / lint`            | ESLint across all workspaces                   | Yes                |
+| `Test / type-check`      | TypeScript `--noEmit`                          | Yes                |
+| `Test / unit-coverage`   | Unit tests with coverage (no Supabase)         | Yes                |
+| `Test / integration`     | Integration tests + web Supabase smoke test    | Yes                |
+| `Test / db-tests`        | Migration filename checks + `supabase test db` | Yes                |
+| `Test / coverage-report` | Merges coverage and posts PR comment           | No (informational) |
+
+After migrating from the old monolithic `Test / tests` check, remove `Test / tests` from branch protection and add the five required checks above.
+
+`Test / coverage-report` should **not** be required — it aggregates results and may still post a coverage comment when other jobs fail.
 
 ### Step 4: Optional - GitHub Action to Enforce Merge Strategy
 
