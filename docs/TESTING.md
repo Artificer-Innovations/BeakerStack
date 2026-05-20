@@ -831,7 +831,7 @@ appId: ${WEB_URL}
 
 Tests are automatically run in CI/CD:
 
-- **On every PR:** Unit tests, integration tests, database tests
+- **On every PR:** Unit tests (parallel `unit-coverage-shard` matrix per workspace in `.github/workflows/test.yml`), integration tests, database tests
 - **After PR preview deployment:** E2E tests against preview environment
 - **On merge to develop:** All tests + staging E2E tests
 - **On merge to main:** All tests + production smoke tests

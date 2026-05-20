@@ -72,18 +72,20 @@ Branch protection prevents accidental squash merges into `main`, which can cause
 
 The [`Test` workflow](../.github/workflows/test.yml) runs parallel jobs. Each job reports an independent status check. Require these on `main` and `develop`:
 
-| Status check             | Job                                            | Blocks merge?      |
-| ------------------------ | ---------------------------------------------- | ------------------ |
-| `Test / lint`            | ESLint across all workspaces                   | Yes                |
-| `Test / type-check`      | TypeScript `--noEmit`                          | Yes                |
-| `Test / unit-coverage`   | Unit tests with coverage (no Supabase)         | Yes                |
-| `Test / integration`     | Integration tests + web Supabase smoke test    | Yes                |
-| `Test / db-tests`        | Migration filename checks + `supabase test db` | Yes                |
-| `Test / coverage-report` | Merges coverage and posts PR comment           | No (informational) |
+| Status check             | Job                                                                                        | Blocks merge?      |
+| ------------------------ | ------------------------------------------------------------------------------------------ | ------------------ |
+| `Test / lint`            | ESLint across all workspaces                                                               | Yes                |
+| `Test / type-check`      | TypeScript `--noEmit`                                                                      | Yes                |
+| `Test / unit-coverage`   | Gate: all `unit-coverage-shard` matrix legs passed (unit tests with coverage, no Supabase) | Yes                |
+| `Test / integration`     | Integration tests + web Supabase smoke test                                                | Yes                |
+| `Test / db-tests`        | Migration filename checks + `supabase test db`                                             | Yes                |
+| `Test / coverage-report` | Merges coverage and posts PR comment                                                       | No (informational) |
 
 After migrating from the old monolithic `Test / tests` check, remove `Test / tests` from branch protection and add the five required checks above.
 
 `Test / coverage-report` should **not** be required — it aggregates results and may still post a coverage comment when other jobs fail.
+
+Unit tests run in parallel via the `unit-coverage-shard` matrix (one leg per workspace: web, mobile, billing, etc.). GitHub also reports informational checks such as `Test / unit-coverage-shard (web)` — do **not** add those to required checks; only require `Test / unit-coverage`, which fails if any shard fails.
 
 ### Step 4: Optional - GitHub Action to Enforce Merge Strategy
 
