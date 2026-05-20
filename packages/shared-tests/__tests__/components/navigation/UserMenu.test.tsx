@@ -179,9 +179,41 @@ describe('UserMenu (Web)', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Profile')).toBeInTheDocument();
+      expect(screen.getByText('Billing')).toBeInTheDocument();
       expect(screen.getByText('Dashboard')).toBeInTheDocument();
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
     });
+  });
+
+  it('should toggle menu closed when avatar is clicked again', async () => {
+    renderWithProviders(<UserMenu user={mockUser} profile={mockProfile} />);
+    await waitFor(() => {
+      expect(screen.getByLabelText('User menu')).toBeInTheDocument();
+    });
+    const menuButton = screen.getByLabelText('User menu');
+    fireEvent.click(menuButton);
+    await waitFor(() =>
+      expect(screen.getByText('Profile')).toBeInTheDocument()
+    );
+    fireEvent.click(menuButton);
+    await waitFor(() => {
+      expect(screen.queryByText('Profile')).not.toBeInTheDocument();
+    });
+  });
+
+  it('should link to billing page from menu', async () => {
+    renderWithProviders(<UserMenu user={mockUser} profile={mockProfile} />);
+    await waitFor(() => {
+      expect(screen.getByLabelText('User menu')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByLabelText('User menu'));
+    await waitFor(() =>
+      expect(screen.getByText('Billing')).toBeInTheDocument()
+    );
+    expect(screen.getByText('Billing').closest('a')).toHaveAttribute(
+      'href',
+      '/billing'
+    );
   });
 
   it('should close menu when clicking outside', async () => {

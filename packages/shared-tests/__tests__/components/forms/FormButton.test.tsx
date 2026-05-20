@@ -72,4 +72,34 @@ describe('FormButton (Web)', () => {
 
     expect(mockOnPress).not.toHaveBeenCalled();
   });
+
+  it('maps secondary and danger variants', () => {
+    const mockOnPress = jest.fn();
+    const { rerender } = render(
+      <FormButton title='Secondary' onPress={mockOnPress} variant='secondary' />
+    );
+    expect(screen.getByRole('button').className).toMatch(/bg-white/);
+
+    rerender(
+      <FormButton title='Danger' onPress={mockOnPress} variant='danger' />
+    );
+    expect(screen.getByRole('button').className).toMatch(/bg-red-600/);
+  });
+
+  it('supports submit type and partial width', () => {
+    const mockOnPress = jest.fn();
+    render(
+      <FormButton
+        title='Submit'
+        onPress={mockOnPress}
+        type='submit'
+        fullWidth={false}
+        className='mt-4'
+      />
+    );
+    const button = screen.getByRole('button');
+    expect(button).toHaveAttribute('type', 'submit');
+    expect(button.className).toMatch(/mt-4/);
+    expect(button.className).not.toMatch(/\bw-full\b/);
+  });
 });

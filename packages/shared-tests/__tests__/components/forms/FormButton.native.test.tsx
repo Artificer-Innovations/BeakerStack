@@ -92,4 +92,17 @@ describe('FormButton (Native)', () => {
 
     expect(screen.getByText('Submit')).toBeInTheDocument();
   });
+
+  it('passes style and textStyle when provided', () => {
+    const mockOnPress = jest.fn();
+    render(
+      <FormButton
+        title='Styled'
+        onPress={mockOnPress}
+        style={{ marginTop: 8 }}
+        textStyle={{ fontSize: 16 }}
+      />
+    );
+    expect(screen.getByText('Styled')).toBeInTheDocument();
+  });
 });

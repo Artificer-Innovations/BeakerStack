@@ -126,6 +126,18 @@ describe('AppHeader (Web)', () => {
     expect(header.className).toContain('shadow-sm');
   });
 
+  it('uses PR preview base path for icon src', () => {
+    const originalPath = window.location.pathname;
+    window.history.pushState({}, '', '/pr-42/dashboard');
+    try {
+      renderAppHeader();
+      const icon = screen.getByAltText(BRANDING.displayName);
+      expect(icon).toHaveAttribute('src', '/pr-42/demo-flask-icon.svg');
+    } finally {
+      window.history.pushState({}, '', originalPath || '/');
+    }
+  });
+
   it('removes shadow class when scrolled back to top', () => {
     renderAppHeader();
     const header = screen.getByRole('banner');

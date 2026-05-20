@@ -31,6 +31,15 @@ describe('Skeleton (Web)', () => {
 
     rerender(<Skeleton data-testid='sk' rounded='none' />);
     expect(screen.getByTestId('sk').className).toMatch(/rounded-none/);
+
+    rerender(<Skeleton data-testid='sk' rounded='sm' />);
+    expect(screen.getByTestId('sk').className).toContain('rounded');
+  });
+
+  it('uses explicit width and height when provided', () => {
+    render(<Skeleton data-testid='sk' width={120} height={24} />);
+    const el = screen.getByTestId('sk');
+    expect(el).toHaveStyle({ width: '120px', height: '24px' });
   });
 
   it('Skeleton.Text renders multiple lines', () => {

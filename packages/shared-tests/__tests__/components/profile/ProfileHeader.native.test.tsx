@@ -1,5 +1,6 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { Linking } from 'react-native';
 import '@testing-library/jest-dom';
 import { ProfileHeader } from '@beakerstack/shared/components/profile/ProfileHeader.native';
 import type { UserProfile } from '@beakerstack/shared/types/profile';
@@ -139,6 +140,46 @@ describe('ProfileHeader (Native)', () => {
 
     render(<ProfileHeader profile={profile} />);
     expect(screen.queryByText(/✉️|📍|🔗/)).not.toBeInTheDocument();
+  });
+
+  it('opens website URL when website link is pressed', async () => {
+    const profile: UserProfile = {
+      id: '1',
+      user_id: 'user-1',
+      username: 'testuser',
+      display_name: 'Test User',
+      website: 'https://example.com',
+      created_at: '2024-01-01',
+      updated_at: '2024-01-01',
+    };
+
+    render(<ProfileHeader profile={profile} />);
+    fireEvent.click(screen.getByText('example.com'));
+    expect(Linking.openURL).toHaveBeenCalledWith('https://example.com');
+  });
+
+  it('logs warning when website open fails', async () => {
+    const { Logger } = jest.requireMock('@beakerstack/shared/utils/logger') as {
+      Logger: { warn: jest.Mock };
+    };
+    jest
+      .mocked(Linking.openURL)
+      .mockRejectedValueOnce(new Error('cannot open'));
+
+    const profile: UserProfile = {
+      id: '1',
+      user_id: 'user-1',
+      username: 'testuser',
+      display_name: 'Test User',
+      website: 'https://bad.example',
+      created_at: '2024-01-01',
+      updated_at: '2024-01-01',
+    };
+
+    render(<ProfileHeader profile={profile} />);
+    fireEvent.click(screen.getByText('bad.example'));
+    await Promise.resolve();
+    expect(Logger.warn).toHaveBeenCalled();
   });
 
   it('renders only email when other metadata is missing', () => {

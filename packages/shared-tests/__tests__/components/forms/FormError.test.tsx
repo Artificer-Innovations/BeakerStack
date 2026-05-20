@@ -23,6 +23,11 @@ describe('FormError (Web)', () => {
     expect(errorElement).toBeInTheDocument();
   });
 
+  it('merges custom className', () => {
+    render(<FormError message='Oops' className='my-error' />);
+    expect(screen.getByRole('alert').className).toMatch(/my-error/);
+  });
+
   it('renders different error messages', () => {
     const { rerender } = render(<FormError message='First error' />);
     expect(screen.getByText('First error')).toBeInTheDocument();
