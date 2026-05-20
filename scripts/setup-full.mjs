@@ -91,6 +91,7 @@ import {
   discoverIssuedCertsCoveringApexWildcard,
   discoverRoute53PublicZonesForApex,
 } from './lib/setup-aws-discover.mjs';
+import { phaseEmailDns } from './setup-email-dns.mjs';
 
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -108,6 +109,7 @@ const PHASE_ORDER = [
   'identity',
   'supabase',
   'aws',
+  'email-dns',
   'expo',
   'google',
   'stripe',
@@ -118,7 +120,7 @@ const PHASE_ORDER = [
 /** Merged from dotenv-style secret files / pastes (allowlisted keys only). */
 const MERGEABLE_SETUP_ENV_KEYS = mergeableSetupEnvKeys();
 
-/** @typedef {{ dryRun: boolean; fromPhase: string; skipRename: boolean; awsProfile: string; skipGithub: boolean; skipStripe: boolean; githubRepo: string; mobileEnabled: boolean; plainSecretPrompts: boolean; guide: 'full' | 'brief'; guideFromCli: boolean }} CliFlags */
+/** @typedef {{ dryRun: boolean; fromPhase: string; skipRename: boolean; awsProfile: string; skipGithub: boolean; skipStripe: boolean; skipEmailDns: boolean; githubRepo: string; mobileEnabled: boolean; plainSecretPrompts: boolean; guide: 'full' | 'brief'; guideFromCli: boolean }} CliFlags */
 
 function printHelp() {
   console.log(`Usage: node scripts/setup-full.mjs [options]
@@ -127,10 +129,11 @@ Options:
   --dry-run              No env/state file writes; no PAT/EXPO env merge; no Supabase api-keys fetch;
                          no AWS bootstrap run; no google-services import; GitHub sync skips gh but still
                          reads .env*.local to log what would be synced
-  --from=PHASE           Resume at prereqs|identity|supabase|aws|expo|google|stripe|write|github (alias: gh=github;
+  --from=PHASE           Resume at prereqs|identity|supabase|aws|email-dns|expo|google|stripe|write|github (alias: gh=github;
                          merges existing .env*.local first when resuming)
   --skip-rename          Skip the identity / rename phase entirely
   --skip-github          Skip GitHub Actions secret/variable sync
+  --skip-email-dns       Skip Resend domain + Route 53 DNS email setup
   --skip-stripe          Skip Stripe key collection; Stripe secrets not required at github sync
   --github-repo=OWNER/NAME  Override repo for gh secret/variable sync (default: gh repo view in cwd)
   --skip-mobile          Skip Expo, EAS, and Google Services setup (web-only repos)
@@ -175,6 +178,7 @@ function parseArgv(argv) {
     awsProfile: '',
     skipGithub: false,
     skipStripe: false,
+    skipEmailDns: false,
     githubRepo: '',
     mobileEnabled: true,
     plainSecretPrompts: false,
@@ -186,6 +190,7 @@ function parseArgv(argv) {
     else if (a === '--skip-rename') flags.skipRename = true;
     else if (a === '--skip-github') flags.skipGithub = true;
     else if (a === '--skip-stripe') flags.skipStripe = true;
+    else if (a === '--skip-email-dns') flags.skipEmailDns = true;
     else if (a.startsWith('--github-repo='))
       flags.githubRepo = a.slice('--github-repo='.length).trim();
     else if (a === '--skip-mobile') flags.mobileEnabled = false;
@@ -2644,6 +2649,10 @@ async function main() {
         logInfo('Skipping GitHub sync (--skip-github).');
         continue;
       }
+      if (phase === 'email-dns' && flags.skipEmailDns) {
+        logInfo('Skipping email DNS setup (--skip-email-dns).');
+        continue;
+      }
       if (
         (phase === 'expo' || phase === 'google') &&
         acc.MOBILE_ENABLED === 'false'
@@ -2725,6 +2734,9 @@ async function main() {
           break;
         case 'aws':
           await phaseAws(flags, rl, acc);
+          break;
+        case 'email-dns':
+          await phaseEmailDns(flags, rl, acc);
           break;
         case 'expo':
           await phaseExpo(flags, rl, acc, promptInput);
