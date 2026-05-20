@@ -16,7 +16,8 @@ module.exports = {
   moduleNameMapper: {
     '^@/utils/(.*)$': '<rootDir>/utils/$1',
   },
-  setupFilesAfterEnv: [],
-  testTimeout: 30000, // 30 seconds for integration tests
+  setupFilesAfterEnv: ['<rootDir>/utils/integration-setup.ts'],
+  testTimeout: 60000,
+  maxWorkers: 1,
   verbose: true,
 };

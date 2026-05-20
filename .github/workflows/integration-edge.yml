@@ -1,0 +1,69 @@
+name: Integration Edge
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  integration-edge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      SUPABASE_URL: http://127.0.0.1:54321
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+      SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.3a1SuBbAPEU4S9r0iEmL4YI9P_HT8bjemN7Dz9f1hQ0
+      RUN_INTEGRATION_EDGE_TESTS: '1'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+
+      - run: npm ci
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.54.11
+
+      - name: Start Supabase with Edge runtime
+        run: |
+          supabase start -x studio,imgproxy,inbucket,analytics
+
+      - name: Serve Edge Functions
+        run: |
+          supabase functions serve > /tmp/functions-serve.log 2>&1 &
+          echo $! > /tmp/functions-serve.pid
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:54321/functions/v1/waitlist-capture -X OPTIONS >/dev/null 2>&1; then
+              echo "Edge functions ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/functions-serve.log
+          exit 1
+
+      - name: Run Tier 1 integration tests
+        run: npm run test:integration
+
+      - name: Run Edge integration tests
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_TEST_WEBHOOK_SECRET }}
+        run: npm run test:integration:edge
+
+      - name: Stop functions
+        if: always()
+        run: |
+          if [ -f /tmp/functions-serve.pid ]; then
+            kill "$(cat /tmp/functions-serve.pid)" 2>/dev/null || true
+          fi
+          supabase stop || true

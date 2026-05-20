@@ -150,17 +150,25 @@ export async function assertUserCannotAccessOtherProfile(
 }
 
 /**
- * Clean up all test data for a user
+ * Clean up all test data for a user (prefer service-role teardown in integration tests).
  */
 export async function cleanupTestData(
   supabase: SupabaseClient,
-  userId: string
+  userId: string,
+  options?: { email?: string }
 ): Promise<void> {
   try {
-    // Try to delete profile (may fail if user is not authenticated)
+    const { cleanupIntegrationTestUser } =
+      await import('./integration-fixtures');
+    await cleanupIntegrationTestUser(userId, options);
+    return;
+  } catch {
+    // Fall back when service role / admin API unavailable
+  }
+
+  try {
     await supabase.from('user_profiles').delete().eq('user_id', userId);
   } catch (error) {
-    // Ignore errors - test database will be reset anyway
     console.warn('Cleanup warning:', error);
   }
 }
