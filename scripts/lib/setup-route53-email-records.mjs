@@ -21,6 +21,7 @@ import {
  */
 export function formatTxtValue(value) {
   const raw = value.replace(/^"|"$/g, '');
+  if (raw.length === 0) return '""';
   const chunks = [];
   for (let i = 0; i < raw.length; i += 255) {
     chunks.push(`"${raw.slice(i, i + 255)}"`);
@@ -53,13 +54,19 @@ export async function upsertEmailDnsRecords(records, opts) {
     dryRun = false,
   } = opts;
 
-  const hostedZoneId = await resolveHostedZone(opts.hostedZoneId, apexDomain, awsProfileArgs);
+  const hostedZoneId = await resolveHostedZone(
+    opts.hostedZoneId,
+    apexDomain,
+    awsProfileArgs
+  );
   const zoneId = route53ResourceIdToZoneId(hostedZoneId);
 
   const changes = buildChanges(records, { sendingDomain, dmarc, dmarcEmail });
 
   if (dryRun) {
-    console.log(`[dry-run] would UPSERT ${changes.length} DNS record(s) in Route 53 zone ${zoneId}:`);
+    console.log(
+      `[dry-run] would UPSERT ${changes.length} DNS record(s) in Route 53 zone ${zoneId}:`
+    );
     for (const c of changes) {
       const rrs = c.ResourceRecordSet;
       console.log(`  ${rrs.Type.padEnd(5)} ${rrs.Name}`);
@@ -70,7 +77,10 @@ export async function upsertEmailDnsRecords(records, opts) {
   await checkExistingSpf(zoneId, sendingDomain, awsProfileArgs);
 
   const changeBatch = { Changes: changes };
-  const tmpFile = path.join(tmpdir(), `beakerstack-r53-email-${Date.now()}.json`);
+  const tmpFile = path.join(
+    tmpdir(),
+    `beakerstack-r53-email-${Date.now()}.json`
+  );
   writeFileSync(tmpFile, JSON.stringify(changeBatch, null, 2));
 
   try {
@@ -88,13 +98,19 @@ export async function upsertEmailDnsRecords(records, opts) {
       { encoding: 'utf8' }
     );
     if (result.status !== 0) {
-      throw new Error(`aws route53 change-resource-record-sets failed:\n${result.stderr}`);
+      throw new Error(
+        `aws route53 change-resource-record-sets failed:\n${result.stderr}`
+      );
     }
     const out = JSON.parse(result.stdout);
     const changeId = out?.ChangeInfo?.Id ?? 'unknown';
     return { changeId, records: changes };
   } finally {
-    try { unlinkSync(tmpFile); } catch {}
+    try {
+      unlinkSync(tmpFile);
+    } catch {
+      // best-effort temp batch file cleanup
+    }
   }
 }
 
@@ -150,9 +166,13 @@ function buildChanges(records, { sendingDomain, dmarc, dmarcEmail }) {
     const ttl = rec.ttl ?? 300;
 
     if (type === 'TXT') {
-      changes.push(upsertRecord(name, 'TXT', ttl, [{ Value: formatTxtValue(value) }]));
+      changes.push(
+        upsertRecord(name, 'TXT', ttl, [{ Value: formatTxtValue(value) }])
+      );
     } else if (type === 'CNAME') {
-      changes.push(upsertRecord(name, 'CNAME', ttl, [{ Value: value.replace(/\.$/, '') }]));
+      changes.push(
+        upsertRecord(name, 'CNAME', ttl, [{ Value: value.replace(/\.$/, '') }])
+      );
     } else if (type === 'MX') {
       changes.push(upsertRecord(name, 'MX', ttl, [{ Value: value }]));
     }
@@ -175,7 +195,12 @@ function buildChanges(records, { sendingDomain, dmarc, dmarcEmail }) {
 function upsertRecord(name, type, ttl, resourceRecords) {
   return {
     Action: 'UPSERT',
-    ResourceRecordSet: { Name: name, Type: type, TTL: ttl, ResourceRecords: resourceRecords },
+    ResourceRecordSet: {
+      Name: name,
+      Type: type,
+      TTL: ttl,
+      ResourceRecords: resourceRecords,
+    },
   };
 }
 
@@ -194,19 +219,23 @@ async function checkExistingSpf(zoneId, sendingDomain, awsProfileArgs) {
     { encoding: 'utf8' }
   );
   if (result.status !== 0) return;
+
+  let existing;
   try {
-    const existing = JSON.parse(result.stdout);
-    if (Array.isArray(existing) && existing.length > 0) {
-      const hasSpf = existing.some(rrs =>
-        (rrs.ResourceRecords ?? []).some(r => r.Value?.includes('v=spf1'))
-      );
-      if (hasSpf) {
-        console.warn(
-          `\n⚠  Existing SPF TXT record found for ${sendingDomain}.\n` +
-            "   The UPSERT will replace it with Resend's SPF record.\n" +
-            '   If you send from multiple providers, merge SPF includes manually after setup.\n'
-        );
-      }
-    }
-  } catch {}
+    existing = JSON.parse(result.stdout);
+  } catch {
+    return;
+  }
+  if (!Array.isArray(existing) || existing.length === 0) return;
+
+  const hasSpf = existing.some(rrs =>
+    (rrs.ResourceRecords ?? []).some(r => r.Value?.includes('v=spf1'))
+  );
+  if (hasSpf) {
+    console.warn(
+      `\n⚠  Existing SPF TXT record found for ${sendingDomain}.\n` +
+        "   The UPSERT will replace it with Resend's SPF record.\n" +
+        '   If you send from multiple providers, merge SPF includes manually after setup.\n'
+    );
+  }
 }
