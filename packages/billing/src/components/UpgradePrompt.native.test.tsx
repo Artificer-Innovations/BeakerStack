@@ -71,6 +71,47 @@ describe('UpgradePrompt (native)', () => {
     expect(screen.getByText('hook-level-error')).toBeInTheDocument();
   });
 
+  it('shows pending label on the default button', () => {
+    vi.mocked(useCheckout).mockReturnValue({
+      startCheckout,
+      pending: true,
+      error: null,
+    });
+    render(<UpgradePrompt targetTier='plan_pro' reason='Upgrade reason' />);
+    expect(screen.getByText('…')).toBeInTheDocument();
+  });
+
+  it('uses suggestedPlanId when targetTier is omitted', async () => {
+    startCheckout.mockResolvedValue({
+      checkoutUrl: 'https://pay.example/start',
+    });
+    render(
+      <UpgradePrompt suggestedPlanId='plan_suggested' reason='Upgrade reason' />
+    );
+    fireEvent.click(screen.getByText('Upgrade'));
+    await waitFor(() => {
+      expect(launchStripeCheckout).toHaveBeenCalledWith(
+        startCheckout,
+        'plan_suggested'
+      );
+    });
+  });
+
+  it('does not start checkout without a plan id', async () => {
+    render(<UpgradePrompt reason='Upgrade reason' />);
+    fireEvent.click(screen.getByText('Upgrade'));
+    expect(startCheckout).not.toHaveBeenCalled();
+  });
+
+  it('shows mapped error when launchStripeCheckout throws', async () => {
+    vi.mocked(launchStripeCheckout).mockRejectedValue('offline');
+    render(<UpgradePrompt targetTier='plan_pro' reason='Upgrade reason' />);
+    fireEvent.click(screen.getByText('Upgrade'));
+    await waitFor(() => {
+      expect(screen.getByText('offline')).toBeInTheDocument();
+    });
+  });
+
   it('shows "Could not start checkout" when launchStripeCheckout returns false', async () => {
     vi.mocked(launchStripeCheckout).mockResolvedValue(false);
     render(<UpgradePrompt targetTier='plan_pro' reason='Upgrade reason' />);

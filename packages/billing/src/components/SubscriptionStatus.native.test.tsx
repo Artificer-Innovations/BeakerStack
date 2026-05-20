@@ -51,6 +51,17 @@ describe('SubscriptionStatus (native)', () => {
     expect(screen.getByText(/Payment issue/)).toBeInTheDocument();
   });
 
+  it('shows em dash when period end is missing', () => {
+    vi.mocked(useSubscription).mockReturnValue({
+      data: testSubscription({ current_period_end: null }),
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+    });
+    render(<SubscriptionStatus />);
+    expect(screen.getByText(/Renews \/ period ends: —/)).toBeInTheDocument();
+  });
+
   it('falls back to plan_id when plan row missing', () => {
     vi.mocked(usePlan).mockReturnValue({
       data: null,

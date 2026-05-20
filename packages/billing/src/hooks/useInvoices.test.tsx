@@ -126,6 +126,34 @@ describe('useInvoices', () => {
     expect(result.current.hasMore).toBe(false);
   });
 
+  it('loadMore is a no-op when there is no next page', async () => {
+    const inv: BillingInvoiceRow = {
+      id: 'inv1',
+      user_id: 'user-1',
+      stripe_invoice_id: 'in_1',
+      stripe_customer_id: 'cus',
+      stripe_subscription_id: null,
+      amount_due: 100,
+      amount_paid: 0,
+      currency: 'usd',
+      status: 'open',
+      description: null,
+      hosted_invoice_url: null,
+      invoice_pdf_url: null,
+      period_start: null,
+      period_end: null,
+      created_at: new Date().toISOString(),
+      finalized_at: null,
+      paid_at: null,
+    };
+    range.mockResolvedValue({ data: [inv], error: null });
+    const { result } = renderHook(() => useInvoices({ pageSize: 20 }));
+    await waitFor(() => expect(result.current.items.length).toBe(1));
+    range.mockClear();
+    await result.current.loadMore();
+    expect(range).not.toHaveBeenCalled();
+  });
+
   it('refresh reloads first page', async () => {
     const inv: BillingInvoiceRow = {
       id: 'inv1',

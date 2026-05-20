@@ -144,6 +144,59 @@ describe('useUsage (coverage)', () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 
+  it('parses explicit null limit and remaining from RPC', async () => {
+    rpc.mockResolvedValue({
+      data: {
+        used: 1,
+        limit: null,
+        remaining: null,
+        periodEnd: '2026-01-01',
+        periodStart: '2025-12-01',
+      },
+      error: null,
+    });
+    const { result } = renderHook(() => useUsage('ai'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.limit).toBeNull();
+    expect(result.current.remaining).toBeNull();
+  });
+
+  it('refresh triggers a second RPC fetch', async () => {
+    rpc.mockResolvedValue({
+      data: {
+        used: 1,
+        limit: 5,
+        remaining: 4,
+        periodEnd: '',
+        periodStart: '',
+      },
+      error: null,
+    });
+    const { result } = renderHook(() => useUsage('ai'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    rpc.mockClear();
+    await result.current.refresh();
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(1));
+  });
+
+  it('skips re-attaching handlers when channel is already joined', async () => {
+    rpc.mockResolvedValue({
+      data: { used: 1, limit: 5, remaining: 4, periodEnd: '', periodStart: '' },
+      error: null,
+    });
+    const joinedChannel = {
+      state: 'joined' as const,
+      on: vi.fn(),
+      subscribe: vi.fn(),
+    };
+    vi.mocked(mockSupabase.channel).mockReturnValueOnce(joinedChannel as never);
+    const { unmount } = renderHook(() => useUsage('ai'));
+    await waitFor(() => expect(rpc).toHaveBeenCalled());
+    expect(joinedChannel.on).not.toHaveBeenCalled();
+    unmount();
+    expect(removeChannel).toHaveBeenCalled();
+  });
+
   it('does not refetch when realtime event_type does not match meter key', async () => {
     rpc.mockResolvedValue({
       data: { used: 1, limit: 5, remaining: 4, periodEnd: '', periodStart: '' },
