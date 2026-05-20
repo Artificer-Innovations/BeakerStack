@@ -88,6 +88,7 @@ jobs:
             npm run test:coverage:lifecycle-events &&
             npm run test:coverage:waitlist &&
             npm run test:coverage:email &&
+            npm run test:coverage:marketing-email &&
             npm run test:coverage:observability &&
             npm run test:unit:scripts
           ) 2>&1 | tee ci/unit-coverage.log
@@ -105,6 +106,7 @@ jobs:
             packages/admin/coverage
             packages/waitlist/coverage
             packages/email/coverage
+            packages/marketing-email/coverage
             packages/lifecycle-events/coverage
             packages/observability/coverage
           if-no-files-found: warn
@@ -381,6 +383,7 @@ jobs:
             packages/admin/coverage
             packages/waitlist/coverage
             packages/email/coverage
+            packages/marketing-email/coverage
             packages/lifecycle-events/coverage
             packages/observability/coverage
           if-no-files-found: warn
