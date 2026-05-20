@@ -7,6 +7,7 @@
  * - packages/shared-tests/coverage (Jest)
  * - packages/billing/coverage (Vitest)
  * - packages/admin/coverage (Vitest)
+ * - packages/lifecycle-events/coverage (Vitest)
  * - packages/waitlist/coverage (Vitest)
  * - packages/email/coverage (Vitest)
  */
@@ -21,6 +22,7 @@ const coverageDirs = [
   { name: 'shared', path: 'packages/shared-tests/coverage' },
   { name: 'billing', path: 'packages/billing/coverage' },
   { name: 'admin', path: 'packages/admin/coverage' },
+  { name: 'lifecycle-events', path: 'packages/lifecycle-events/coverage' },
   { name: 'waitlist', path: 'packages/waitlist/coverage' },
   { name: 'email', path: 'packages/email/coverage' },
 ];
