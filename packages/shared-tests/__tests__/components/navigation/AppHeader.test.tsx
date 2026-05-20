@@ -7,6 +7,9 @@ import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { BRANDING } from '@beakerstack/shared/config/branding';
+import * as AuthContext from '@beakerstack/shared/contexts/AuthContext';
+import * as ProfileContext from '@beakerstack/shared/contexts/ProfileContext';
+import type { User } from '@supabase/supabase-js';
 
 // Mock Supabase client
 const createMockSupabaseClient = (): SupabaseClient => {
@@ -41,6 +44,7 @@ function renderAppHeader(mockClient = createMockSupabaseClient()) {
 
 describe('AppHeader (Web)', () => {
   beforeEach(() => {
+    jest.restoreAllMocks();
     jest.clearAllMocks();
   });
 
@@ -161,5 +165,64 @@ describe('AppHeader (Web)', () => {
       window.dispatchEvent(new Event('scroll'));
     });
     expect(header.className).not.toContain('shadow-sm');
+  });
+
+  it('skips scrolled state update when scroll position unchanged', () => {
+    renderAppHeader();
+    const header = screen.getByRole('banner');
+
+    act(() => {
+      Object.defineProperty(window, 'scrollY', {
+        value: 50,
+        writable: true,
+        configurable: true,
+      });
+      window.dispatchEvent(new Event('scroll'));
+      window.dispatchEvent(new Event('scroll'));
+    });
+
+    expect(header.className).toContain('shadow-sm');
+  });
+
+  it('shows UserMenu when user is authenticated', () => {
+    const mockUser = {
+      id: 'user-1',
+      email: 'test@example.com',
+      app_metadata: {},
+      user_metadata: {},
+      aud: 'authenticated',
+      created_at: new Date().toISOString(),
+    } as User;
+
+    jest.spyOn(AuthContext, 'useAuthContext').mockReturnValue({
+      user: mockUser,
+      session: null,
+      loading: false,
+      error: null,
+      signIn: jest.fn(),
+      signUp: jest.fn(),
+      signOut: jest.fn(),
+      signInWithGoogle: jest.fn(),
+      requestPasswordReset: jest.fn(),
+      updatePassword: jest.fn(),
+    });
+    jest.spyOn(ProfileContext, 'useProfileContext').mockReturnValue({
+      profile: null,
+      loading: false,
+      error: null,
+      updateProfile: jest.fn(),
+      refreshProfile: jest.fn(),
+    });
+
+    const mockClient = createMockSupabaseClient();
+    render(
+      <BrowserRouter>
+        <AppHeader supabaseClient={mockClient} />
+      </BrowserRouter>
+    );
+
+    expect(screen.getByLabelText('User menu')).toBeInTheDocument();
+    expect(screen.queryByText('Sign In')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sign Up')).not.toBeInTheDocument();
   });
 });

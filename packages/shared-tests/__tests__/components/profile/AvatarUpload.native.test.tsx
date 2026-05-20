@@ -1,7 +1,11 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import TestRenderer, { act as testRendererAct } from 'react-test-renderer';
+import { Image } from 'react-native';
+import { Buffer } from 'buffer';
 import { AvatarUpload } from '@beakerstack/shared/components/profile/AvatarUpload.native';
+import { Logger } from '@beakerstack/shared/utils/logger';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Mock expo-image-picker
@@ -676,6 +680,193 @@ describe('AvatarUpload (Native)', () => {
     expect(mockRemoveAvatar).toHaveBeenCalled();
 
     alertSpy.mockRestore();
+  });
+
+  it('invokes preview image onLoad and onError handlers', () => {
+    let tree!: TestRenderer.ReactTestRenderer;
+    testRendererAct(() => {
+      tree = TestRenderer.create(
+        <AvatarUpload
+          currentAvatarUrl='https://example.com/avatar.jpg'
+          onUploadComplete={mockOnUploadComplete}
+          onRemove={mockOnRemove}
+          userId='user-id-1'
+          supabaseClient={mockClient}
+        />
+      );
+    });
+
+    const image = tree.root.findByType(Image);
+    testRendererAct(() => {
+      image.props.onLoad();
+      image.props.onError({ nativeEvent: { error: 'load failed' } });
+    });
+
+    expect(Logger.debug).toHaveBeenCalledWith(
+      '[AvatarUpload] Preview image loaded successfully:',
+      expect.any(String)
+    );
+    expect(Logger.warn).toHaveBeenCalledWith(
+      '[AvatarUpload] Failed to load preview image:',
+      expect.any(String),
+      'load failed'
+    );
+  });
+
+  it('alerts when base64 decodes to empty bytes', async () => {
+    const fromSpy = jest
+      .spyOn(Buffer, 'from')
+      .mockReturnValueOnce(Buffer.alloc(0));
+    const { readAsStringAsync } = require('expo-file-system');
+    readAsStringAsync.mockResolvedValueOnce('YmFzZTY0');
+    const { launchImageLibraryAsync } = require('expo-image-picker');
+    launchImageLibraryAsync.mockResolvedValueOnce({
+      canceled: false,
+      assets: [
+        {
+          uri: 'file:///test/empty.jpg',
+          mimeType: 'image/jpeg',
+          width: 1,
+          height: 1,
+        },
+      ],
+    });
+    const { Alert } = require('react-native');
+    const alertSpy = jest.spyOn(Alert, 'alert');
+
+    render(
+      <AvatarUpload
+        currentAvatarUrl={null}
+        onUploadComplete={mockOnUploadComplete}
+        onRemove={mockOnRemove}
+        userId='user-id-1'
+        supabaseClient={mockClient}
+      />
+    );
+
+    fireEvent.click(screen.getByText('Choose File'));
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith(
+        'Error',
+        expect.stringContaining('could not be converted')
+      );
+    });
+
+    fromSpy.mockRestore();
+    alertSpy.mockRestore();
+  });
+
+  it('alerts when converted image blob has zero size', async () => {
+    const RealBlob = global.Blob;
+    const blobSpy = jest
+      .spyOn(global, 'Blob')
+      .mockImplementation((parts, opts) => {
+        const blob = new RealBlob(parts as BlobPart[], opts);
+        Object.defineProperty(blob, 'size', { value: 0 });
+        return blob;
+      });
+    const { readAsStringAsync } = require('expo-file-system');
+    readAsStringAsync.mockResolvedValueOnce('YmFzZTY0');
+    const { launchImageLibraryAsync } = require('expo-image-picker');
+    launchImageLibraryAsync.mockResolvedValueOnce({
+      canceled: false,
+      assets: [
+        {
+          uri: 'file:///test/zero-blob.jpg',
+          mimeType: 'image/jpeg',
+          width: 1,
+          height: 1,
+        },
+      ],
+    });
+    const { Alert } = require('react-native');
+    const alertSpy = jest.spyOn(Alert, 'alert');
+
+    render(
+      <AvatarUpload
+        currentAvatarUrl={null}
+        onUploadComplete={mockOnUploadComplete}
+        onRemove={mockOnRemove}
+        userId='user-id-1'
+        supabaseClient={mockClient}
+      />
+    );
+
+    fireEvent.click(screen.getByText('Choose File'));
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith(
+        'Error',
+        expect.stringContaining('could not be converted')
+      );
+    });
+
+    blobSpy.mockRestore();
+    alertSpy.mockRestore();
+  });
+
+  it('surfaces pick errors when the inner alert handler throws', async () => {
+    const { launchImageLibraryAsync } = require('expo-image-picker');
+    launchImageLibraryAsync.mockRejectedValueOnce(new Error('picker exploded'));
+    const { Alert } = require('react-native');
+    let alertCalls = 0;
+    const alertSpy = jest
+      .spyOn(Alert, 'alert')
+      .mockImplementation((title: string) => {
+        alertCalls += 1;
+        if (alertCalls === 1 && title === 'Error') {
+          throw new Error('alert exploded');
+        }
+      });
+
+    render(
+      <AvatarUpload
+        currentAvatarUrl={null}
+        onUploadComplete={mockOnUploadComplete}
+        onRemove={mockOnRemove}
+        userId='user-id-1'
+        supabaseClient={mockClient}
+      />
+    );
+
+    fireEvent.click(screen.getByText('Choose File'));
+
+    await waitFor(() => {
+      expect(Logger.error).toHaveBeenCalledWith(
+        '[AvatarUpload] Error in handlePickImage:',
+        expect.any(Error)
+      );
+      expect(alertSpy).toHaveBeenCalledTimes(2);
+    });
+
+    alertSpy.mockRestore();
+  });
+
+  it('reloads image when avatar URL changes after initial mount', () => {
+    const { rerender } = render(
+      <AvatarUpload
+        currentAvatarUrl='https://example.com/avatar-v1.jpg'
+        onUploadComplete={mockOnUploadComplete}
+        onRemove={mockOnRemove}
+        userId='user-id-1'
+        supabaseClient={mockClient}
+      />
+    );
+
+    expect(screen.getAllByRole('img').length).toBeGreaterThan(0);
+
+    rerender(
+      <AvatarUpload
+        currentAvatarUrl='https://example.com/avatar-v2.jpg'
+        onUploadComplete={mockOnUploadComplete}
+        onRemove={mockOnRemove}
+        userId='user-id-1'
+        supabaseClient={mockClient}
+      />
+    );
+
+    expect(screen.getAllByRole('img').length).toBeGreaterThan(0);
   });
 
   it('handles button disabled state during upload', () => {
