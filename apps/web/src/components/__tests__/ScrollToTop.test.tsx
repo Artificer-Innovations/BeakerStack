@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, act } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
+import { Logger } from '@beakerstack/logger';
 import {
   ScrollToTop,
   scrollToHashElement,
@@ -166,7 +167,15 @@ describe('scrollToHashElement', () => {
 });
 
 describe('startHashScroll', () => {
+  const originalDev = import.meta.env.DEV;
+
+  beforeEach(() => {
+    import.meta.env.DEV = true;
+    vi.spyOn(Logger, 'warn').mockImplementation(() => {});
+  });
+
   afterEach(() => {
+    import.meta.env.DEV = originalDev;
     vi.restoreAllMocks();
   });
 
@@ -226,7 +235,6 @@ describe('startHashScroll', () => {
       rafQueue.push(cb);
       return rafQueue.length;
     });
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     startHashScroll('#never-mounts-xyz');
 
@@ -237,5 +245,27 @@ describe('startHashScroll', () => {
     }
 
     expect(rafQueue).toHaveLength(0);
+    expect(Logger.warn).toHaveBeenCalledWith(
+      'ScrollToTop: hash anchor not found: #never-mounts-xyz'
+    );
+  });
+
+  it('does not warn when hash anchor is missing outside dev', () => {
+    import.meta.env.DEV = false;
+    const rafQueue: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
+      rafQueue.push(cb);
+      return rafQueue.length;
+    });
+
+    startHashScroll('#never-mounts-xyz');
+
+    for (let i = 0; i < 65; i++) {
+      const cb = rafQueue.shift();
+      if (!cb) break;
+      cb(i * 16);
+    }
+
+    expect(Logger.warn).not.toHaveBeenCalled();
   });
 });

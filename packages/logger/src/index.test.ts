@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { Logger, log } from './index.js';
+import {
+  Logger,
+  log,
+  resetGlobalRefForTests,
+  setGlobalRefForTests,
+} from './index.js';
 
 describe('Logger', () => {
   let consoleDebugSpy: ReturnType<typeof vi.spyOn>;
@@ -20,6 +25,7 @@ describe('Logger', () => {
     consoleWarnSpy.mockRestore();
     consoleErrorSpy.mockRestore();
     Logger.setTelemetryHandler(null);
+    resetGlobalRefForTests();
   });
 
   describe('debug', () => {
@@ -37,6 +43,15 @@ describe('Logger', () => {
       globalThis.__DEV__ = false;
       Logger.debug('test message');
       expect(consoleDebugSpy).not.toHaveBeenCalled();
+    });
+
+    it('should not forward debug telemetry in production', () => {
+      // @ts-expect-error - accessing private __DEV__ for testing
+      globalThis.__DEV__ = false;
+      const telemetryHandler = vi.fn();
+      Logger.setTelemetryHandler(telemetryHandler);
+      Logger.debug('test message');
+      expect(telemetryHandler).not.toHaveBeenCalled();
     });
 
     it('should call telemetry handler for debug messages in dev', () => {
@@ -164,6 +179,12 @@ describe('Logger', () => {
       Logger.debug('env branch');
       expect(consoleDebugSpy).toHaveBeenCalledWith('env branch');
       process.env.NODE_ENV = originalEnv;
+    });
+
+    it('should treat missing global ref as non-dev', () => {
+      setGlobalRefForTests(undefined);
+      Logger.debug('test');
+      expect(consoleDebugSpy).not.toHaveBeenCalled();
     });
 
     it('should return false when __DEV__ and NODE_ENV are both undefined', () => {
