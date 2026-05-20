@@ -337,7 +337,7 @@ jobs:
 
   deploy-preview-mobile:
     if: github.event.action != 'closed' && needs.preview-scope.outputs.run_deploy == 'true' && (github.base_ref != 'develop' || github.head_ref != 'main') && vars.MOBILE_ENABLED != 'false'
-    needs: [preview-scope, deploy-preview]
+    needs: [preview-scope]
     runs-on: ubuntu-latest
     outputs:
       mobile-channel: ${{ steps.mobile.outputs.PREVIEW_MOBILE_CHANNEL }}
