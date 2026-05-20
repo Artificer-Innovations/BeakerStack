@@ -160,11 +160,21 @@ jobs:
             exit 1
           fi
 
-  integration:
-    # TEMP: disabled while debugging parallel unit coverage + coverage-report merge
-    if: false
+  migration-filenames:
+    if: github.event.action != 'edited' || github.event.changes.base
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+      - name: Check SQL migration filenames
+        run: node --test scripts/__tests__/db-migration-filenames.test.mjs
+
+  supabase-tests:
+    if: github.event.action != 'edited' || github.event.changes.base
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
 
     env:
       TEST_EMAIL: ci-test@example.com
@@ -173,35 +183,50 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node
 
+      - name: Cache Supabase CLI and Docker state
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.supabase
+          key: supabase-${{ runner.os }}-${{ hashFiles('supabase/config.toml') }}
+          restore-keys: |
+            supabase-${{ runner.os }}-
+
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v1
         with:
           version: 2.54.11
 
       - name: Start Supabase services
-        run: |
-          mkdir -p .supabase/logs
-          supabase start -x studio,imgproxy,inbucket,edge-runtime,analytics > .supabase/logs/start.log 2>&1
-          supabase status > .supabase/logs/status.log 2>&1
-          cat .supabase/logs/status.log
+        run: ./scripts/ci-supabase-start.sh
 
       - name: Export Supabase credentials from local stack
         run: ./scripts/ci-export-supabase-env.sh
 
-      - name: Run integration tests
+      - name: Run database and integration tests
         id: run-tests
         continue-on-error: true
         env:
           RUN_LIVE_SUPABASE_TEST: '1'
         run: |
           mkdir -p ci
-          set -o pipefail
+          failed=0
+          ( npm run test:db:pgtap ) 2>&1 | tee ci/db-tests.log || failed=1
           (
             npm run test:integration &&
             cd apps/web && npx vitest run src/lib/supabase.test.ts
-          ) 2>&1 | tee ci/integration.log
+          ) 2>&1 | tee ci/integration.log || failed=1
+          exit $failed
 
-      - name: Upload test log
+      - name: Upload database test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-tests-log
+          path: ci/db-tests.log
+          if-no-files-found: warn
+
+      - name: Upload integration test log
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -213,7 +238,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: integration-supabase-logs
+          name: supabase-tests-supabase-logs
           path: .supabase/logs
           if-no-files-found: warn
 
@@ -225,62 +250,37 @@ jobs:
         if: always()
         run: supabase stop || true
 
-  db-tests:
-    # TEMP: disabled while debugging parallel unit coverage + coverage-report merge
-    if: false
+  integration:
+    needs: supabase-tests
+    if: always() && !cancelled() && (github.event.action != 'edited' || github.event.changes.base)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 2
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-node
-
-      - name: Install Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: 2.54.11
-
-      - name: Start Supabase services
+      - name: Verify Supabase integration tests passed
         run: |
-          mkdir -p .supabase/logs
-          supabase start -x studio,imgproxy,inbucket,edge-runtime,analytics > .supabase/logs/start.log 2>&1
-          supabase status > .supabase/logs/status.log 2>&1
-          cat .supabase/logs/status.log
+          if [ "${{ needs.supabase-tests.result }}" != "success" ]; then
+            echo "supabase-tests failed (includes integration suite)"
+            exit 1
+          fi
 
-      - name: Export Supabase credentials from local stack
-        run: ./scripts/ci-export-supabase-env.sh
+  db-tests:
+    needs: [migration-filenames, supabase-tests]
+    if: always() && !cancelled() && (github.event.action != 'edited' || github.event.changes.base)
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
 
-      - name: Run database tests
-        id: run-tests
-        continue-on-error: true
+    steps:
+      - name: Verify migration filenames and pgTAP tests passed
         run: |
-          mkdir -p ci
-          set -o pipefail
-          npm run test:db 2>&1 | tee ci/db-tests.log
-
-      - name: Upload test log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: db-tests-log
-          path: ci/db-tests.log
-          if-no-files-found: warn
-
-      - name: Upload Supabase logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: db-tests-supabase-logs
-          path: .supabase/logs
-          if-no-files-found: warn
-
-      - name: Fail job if tests failed
-        if: steps.run-tests.outcome == 'failure'
-        run: exit 1
-
-      - name: Stop Supabase services
-        if: always()
-        run: supabase stop || true
+          if [ "${{ needs.migration-filenames.result }}" != "success" ]; then
+            echo "migration-filenames failed"
+            exit 1
+          fi
+          if [ "${{ needs.supabase-tests.result }}" != "success" ]; then
+            echo "supabase-tests failed (includes pgTAP suite)"
+            exit 1
+          fi
 
   coverage-report:
     needs: [unit-coverage-shard, unit-coverage]

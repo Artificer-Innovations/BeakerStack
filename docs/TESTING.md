@@ -165,7 +165,7 @@ Jest integration tests live in `tests/integration/` and run against a **real loc
 | `admin-access.test.ts`            | `admin_is_admin`, `admin_list_users`, audit log, revoke            |
 | `storage-avatars.test.ts`         | Avatars bucket upload RLS, profile `avatar_url` sync               |
 
-Tier 1 runs in the main [Test workflow](../.github/workflows/test.yml) after `supabase start` (Edge runtime excluded for speed).
+Tier 1 runs in the main [Test workflow](../.github/workflows/test.yml) in the `supabase-tests` job (one minimal `supabase start` via [`scripts/ci-supabase-start.sh`](../scripts/ci-supabase-start.sh); migration filename lint runs in parallel as `migration-filenames`). Edge runtime excluded for speed.
 
 ### Tier 2 — Edge + Stripe (optional)
 

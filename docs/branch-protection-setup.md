@@ -77,8 +77,8 @@ The [`Test` workflow](../.github/workflows/test.yml) runs parallel jobs. Each jo
 | `Test / lint`            | ESLint across all workspaces                                                               | Yes                |
 | `Test / type-check`      | TypeScript `--noEmit`                                                                      | Yes                |
 | `Test / unit-coverage`   | Gate: all `unit-coverage-shard` matrix legs passed (unit tests with coverage, no Supabase) | Yes                |
-| `Test / integration`     | Integration tests + web Supabase smoke test                                                | Yes                |
-| `Test / db-tests`        | Migration filename checks + `supabase test db`                                             | Yes                |
+| `Test / integration`     | Gate: `supabase-tests` job (integration + web Supabase smoke)                              | Yes                |
+| `Test / db-tests`        | Gate: `migration-filenames` + `supabase-tests` (pgTAP)                                     | Yes                |
 | `Test / coverage-report` | Merges coverage and posts PR comment                                                       | No (informational) |
 
 After migrating from the old monolithic `Test / tests` check, remove `Test / tests` from branch protection and add the five required checks above.
@@ -86,6 +86,8 @@ After migrating from the old monolithic `Test / tests` check, remove `Test / tes
 `Test / coverage-report` should **not** be required — it aggregates results and may still post a coverage comment when other jobs fail.
 
 Unit tests run in parallel via the `unit-coverage-shard` matrix (one leg per workspace: web, mobile, billing, etc.). GitHub also reports informational checks such as `Test / unit-coverage-shard (web)` — do **not** add those to required checks; only require `Test / unit-coverage`, which fails if any shard fails.
+
+`Test / coverage-report` does not wait on `integration` or `db-tests`; it only merges unit-test coverage. Supabase tests run in one `supabase-tests` job (single `supabase start`) with `migration-filenames` in parallel; `Test / integration` and `Test / db-tests` are lightweight gates preserving existing required check names.
 
 ### Step 4: Optional - GitHub Action to Enforce Merge Strategy
 
