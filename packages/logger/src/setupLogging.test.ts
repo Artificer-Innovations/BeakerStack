@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { Logger } from './loggerCore.js';
-import { setupLogging, type LoggingTelemetry } from './setupLogging.js';
+import { Logger } from './loggerCore';
+import { setupLogging, type LoggingTelemetry } from './setupLogging';
 
 function createTelemetry(): LoggingTelemetry {
   return {

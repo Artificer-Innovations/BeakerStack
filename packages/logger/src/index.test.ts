@@ -4,7 +4,7 @@ import {
   log,
   resetGlobalRefForTests,
   setGlobalRefForTests,
-} from './index.js';
+} from './index';
 
 describe('Logger', () => {
   let consoleDebugSpy: ReturnType<typeof vi.spyOn>;

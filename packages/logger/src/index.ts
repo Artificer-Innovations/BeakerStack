@@ -4,5 +4,5 @@ export {
   resetGlobalRefForTests,
   setGlobalRefForTests,
   type LoggerLevel,
-} from './loggerCore.js';
-export { setupLogging, type LoggingTelemetry } from './setupLogging.js';
+} from './loggerCore';
+export { setupLogging, type LoggingTelemetry } from './setupLogging';

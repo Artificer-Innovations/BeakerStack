@@ -1,4 +1,4 @@
-import { Logger, type LoggerLevel } from './loggerCore.js';
+import { Logger, type LoggerLevel } from './loggerCore';
 
 /** Duck-typed observability surface; apps pass their Sentry handle at startup. */
 export interface LoggingTelemetry {
