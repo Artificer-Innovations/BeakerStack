@@ -62,16 +62,53 @@ jobs:
       - name: Type check
         run: npm run type-check
 
-  unit-coverage:
+  unit-coverage-shard:
     if: github.event.action != 'edited' || github.event.changes.base
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: mobile
+            script: test:coverage:mobile
+            coverage_path: apps/mobile/coverage
+          - shard: web
+            script: test:coverage:web
+            coverage_path: apps/web/coverage
+          - shard: shared
+            script: test:coverage:shared
+            coverage_path: packages/shared-tests/coverage
+          - shard: billing
+            script: test:coverage:billing
+            coverage_path: packages/billing/coverage
+          - shard: admin
+            script: test:coverage:admin
+            coverage_path: packages/admin/coverage
+          - shard: lifecycle-events
+            script: test:coverage:lifecycle-events
+            coverage_path: packages/lifecycle-events/coverage
+          - shard: waitlist
+            script: test:coverage:waitlist
+            coverage_path: packages/waitlist/coverage
+          - shard: email
+            script: test:coverage:email
+            coverage_path: packages/email/coverage
+          - shard: marketing-email
+            script: test:coverage:marketing-email
+            coverage_path: packages/marketing-email/coverage
+          - shard: observability
+            script: test:coverage:observability
+            coverage_path: packages/observability/coverage
+          - shard: scripts
+            script: test:unit:scripts
+            coverage_path: ''
 
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node
 
-      - name: Run unit tests with coverage
+      - name: Run unit tests (${{ matrix.shard }})
         id: run-tests
         continue-on-error: true
         env:
@@ -79,49 +116,41 @@ jobs:
         run: |
           mkdir -p ci
           set -o pipefail
-          (
-            npm run test:coverage:mobile &&
-            npm run test:coverage:web &&
-            npm run test:coverage:shared &&
-            npm run test:coverage:billing &&
-            npm run test:coverage:admin &&
-            npm run test:coverage:lifecycle-events &&
-            npm run test:coverage:waitlist &&
-            npm run test:coverage:email &&
-            npm run test:coverage:marketing-email &&
-            npm run test:coverage:observability &&
-            npm run test:unit:scripts
-          ) 2>&1 | tee ci/unit-coverage.log
+          npm run ${{ matrix.script }} 2>&1 | tee ci/unit-coverage-${{ matrix.shard }}.log
 
       - name: Upload coverage reports
-        if: always()
+        if: always() && matrix.coverage_path != ''
         uses: actions/upload-artifact@v4
         with:
-          name: unit-coverage-reports
-          path: |
-            apps/web/coverage
-            apps/mobile/coverage
-            packages/shared-tests/coverage
-            packages/billing/coverage
-            packages/admin/coverage
-            packages/waitlist/coverage
-            packages/email/coverage
-            packages/marketing-email/coverage
-            packages/lifecycle-events/coverage
-            packages/observability/coverage
+          name: unit-coverage-reports-${{ matrix.shard }}
+          path: ${{ matrix.coverage_path }}
           if-no-files-found: warn
 
       - name: Upload test log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: unit-coverage-log
-          path: ci/unit-coverage.log
+          name: unit-coverage-log-${{ matrix.shard }}
+          path: ci/unit-coverage-${{ matrix.shard }}.log
           if-no-files-found: warn
 
       - name: Fail job if tests failed
         if: steps.run-tests.outcome == 'failure'
         run: exit 1
+
+  unit-coverage:
+    needs: unit-coverage-shard
+    if: always() && !cancelled() && (github.event.action != 'edited' || github.event.changes.base)
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Verify all unit test shards passed
+        run: |
+          if [ "${{ needs.unit-coverage-shard.result }}" != "success" ]; then
+            echo "One or more unit-coverage-shard jobs failed"
+            exit 1
+          fi
 
   integration:
     if: github.event.action != 'edited' || github.event.changes.base
@@ -244,7 +273,7 @@ jobs:
         run: supabase stop || true
 
   coverage-report:
-    needs: [unit-coverage, integration, db-tests]
+    needs: [unit-coverage-shard, unit-coverage, integration, db-tests]
     if: always() && !cancelled() && (github.event.action != 'edited' || github.event.changes.base)
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -257,7 +286,8 @@ jobs:
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
-          name: unit-coverage-reports
+          pattern: unit-coverage-reports-*
+          merge-multiple: true
           path: .
 
       - name: Download test logs
@@ -273,7 +303,7 @@ jobs:
         run: |
           mkdir -p coverage
           node scripts/merge-coverage.js
-          cat ci/unit-coverage.log ci/integration.log ci/db-tests.log > ci/test-output.log 2>/dev/null || true
+          cat ci/unit-coverage-*.log ci/integration.log ci/db-tests.log > ci/test-output.log 2>/dev/null || true
           node scripts/format-ci-summary.mjs \
             --coverage coverage/coverage-summary.json \
             --test-log ci/test-output.log \
