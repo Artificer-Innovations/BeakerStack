@@ -1,12 +1,9 @@
 name: Setup Node
-description: Checkout repository, install Node.js 20, and run npm ci
+description: Install Node.js 20 and run npm ci (run actions/checkout first)
 
 runs:
   using: composite
   steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
