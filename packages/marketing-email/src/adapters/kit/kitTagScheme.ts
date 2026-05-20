@@ -1,4 +1,4 @@
-interface TagSchemeOpts {
+export interface TagSchemeOpts {
   separator?: string;
   tierPrefix?: string;
 }

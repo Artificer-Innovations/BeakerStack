@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { KitAdapter } from '../adapters/kit/kitAdapter.js';
+import { KitAdapter, isPermanentKitError } from '../adapters/kit/kitAdapter.js';
 import { MarketingEmailError } from '../errors.js';
 
 const config = { formId: 'form-1', namespace: 'acme' };
@@ -48,8 +48,7 @@ describe('KitAdapter.subscribeUser', () => {
   it('POSTs to /forms/{formId}/subscribers then applies each tag', async () => {
     mockFetch(
       { status: 201, body: {} }, // subscribe
-      { status: 200, body: { tags: [] } }, // findTag for 'acme:signup'
-      { status: 201, body: { tag: { id: 'tag-1' } } }, // createTag
+      { status: 200, body: { tags: [{ id: 'tag-1', name: 'acme:signup' }] } }, // findTag
       { status: 201, body: {} } // applyTag subscriber
     );
     const adapter = makeAdapter();
@@ -57,6 +56,13 @@ describe('KitAdapter.subscribeUser', () => {
     const calls = vi.mocked(fetch).mock.calls;
     expect(calls[0][0]).toContain('/forms/form-1/subscribers');
     expect(calls[0][1]?.method).toBe('POST');
+  });
+
+  it('skips tag application when tags array is empty', async () => {
+    mockFetch({ status: 201, body: {} });
+    const adapter = makeAdapter();
+    await adapter.subscribeUser('user@example.com', []);
+    expect(vi.mocked(fetch).mock.calls).toHaveLength(1);
   });
 });
 
@@ -72,26 +78,12 @@ describe('KitAdapter.applyTag', () => {
     expect(calls[1][0]).toContain('/tags/tag-42/subscribers');
   });
 
-  it('creates tag when not found, then applies', async () => {
-    mockFetch(
-      { status: 200, body: { tags: [] } },
-      { status: 201, body: { tag: { id: 'new-tag' } } },
-      { status: 201, body: {} }
-    );
-    const adapter = makeAdapter();
-    await adapter.applyTag('user@example.com', 'new-tag-name');
-    const calls = vi.mocked(fetch).mock.calls;
-    expect(calls[2][0]).toContain('/tags/new-tag/subscribers');
-  });
-
-  it('throws when create tag response omits tag id', async () => {
-    mockFetch({ status: 200, body: { tags: [] } }, { status: 201, body: {} });
+  it('throws kit_tag_not_found when tag does not exist in Kit', async () => {
+    mockFetch({ status: 200, body: { tags: [] } });
     const adapter = makeAdapter();
     await expect(
-      adapter.applyTag('user@example.com', 'new-tag')
-    ).rejects.toMatchObject({
-      code: 'kit_api_invalid',
-    });
+      adapter.applyTag('user@example.com', 'acme:missing')
+    ).rejects.toMatchObject({ code: 'kit_tag_not_found' });
   });
 });
 
@@ -118,13 +110,33 @@ describe('KitAdapter.removeTag', () => {
 });
 
 describe('KitAdapter.deleteUser', () => {
-  it('DELETEs the subscriber', async () => {
-    mockFetch({ status: 204 });
+  it('looks up subscriber by email then DELETEs by id', async () => {
+    mockFetch(
+      { status: 200, body: { subscribers: [{ id: 'sub-99' }] } }, // lookup
+      { status: 204 } // delete
+    );
     const adapter = makeAdapter();
     await adapter.deleteUser('user@example.com');
     const calls = vi.mocked(fetch).mock.calls;
-    expect(calls[0][0]).toContain('/subscribers/');
-    expect(calls[0][1]?.method).toBe('DELETE');
+    expect(calls[0][0]).toContain('/subscribers?email_address=');
+    expect(calls[1][0]).toContain('/subscribers/sub-99');
+    expect(calls[1][1]?.method).toBe('DELETE');
+  });
+
+  it('is idempotent — returns without deleting when subscriber not found', async () => {
+    mockFetch({ status: 200, body: { subscribers: [] } });
+    const adapter = makeAdapter();
+    await expect(adapter.deleteUser('gone@example.com')).resolves.toBeUndefined();
+    expect(vi.mocked(fetch).mock.calls).toHaveLength(1);
+  });
+
+  it('resolves to undefined on successful 204 delete', async () => {
+    mockFetch(
+      { status: 200, body: { subscribers: [{ id: 'sub-1' }] } },
+      { status: 204 }
+    );
+    const adapter = makeAdapter();
+    await expect(adapter.deleteUser('user@example.com')).resolves.toBeUndefined();
   });
 });
 
@@ -132,36 +144,36 @@ describe('KitAdapter error handling', () => {
   it('throws MarketingEmailError on non-2xx response', async () => {
     mockFetch({ status: 422, body: { message: 'Unprocessable' } });
     const adapter = makeAdapter();
-    await expect(adapter.deleteUser('bad@example.com')).rejects.toBeInstanceOf(
-      MarketingEmailError
-    );
+    await expect(
+      adapter.deleteUser('bad@example.com')
+    ).rejects.toBeInstanceOf(MarketingEmailError);
   });
 
   it('error code includes the HTTP status', async () => {
     mockFetch({ status: 401, body: {} });
     const adapter = makeAdapter();
-    try {
-      await adapter.deleteUser('x@x.com');
-    } catch (e) {
-      expect((e as MarketingEmailError).code).toBe('kit_api_401');
-    }
-  });
-
-  it('204 response returns empty object', async () => {
-    mockFetch({ status: 204 });
-    const adapter = makeAdapter();
-    await expect(
-      adapter.deleteUser('user@example.com')
-    ).resolves.toBeUndefined();
+    await expect(adapter.deleteUser('x@x.com')).rejects.toMatchObject({
+      code: 'kit_api_401',
+    });
   });
 
   it('includes response body in error message when present', async () => {
     mockFetch({ status: 500, body: { message: 'Server exploded' } });
     const adapter = makeAdapter();
+    await expect(adapter.deleteUser('x@x.com')).rejects.toMatchObject({
+      message: expect.stringContaining('Server exploded'),
+    });
+  });
+
+  it('truncates long error body to 200 chars', async () => {
+    const longBody = 'x'.repeat(300);
+    mockFetch({ status: 500, text: longBody });
+    const adapter = makeAdapter();
     try {
       await adapter.deleteUser('x@x.com');
     } catch (e) {
-      expect((e as MarketingEmailError).message).toContain('Server exploded');
+      expect((e as MarketingEmailError).message).toContain('x'.repeat(200));
+      expect((e as MarketingEmailError).message).not.toContain('x'.repeat(201));
     }
   });
 });
@@ -185,26 +197,13 @@ describe('KitAdapter.findTag', () => {
   });
 });
 
-describe('KitAdapter.subscribeUser edge cases', () => {
-  it('skips tag application when tags array is empty', async () => {
-    mockFetch({ status: 201, body: {} });
-    const adapter = makeAdapter();
-    await adapter.subscribeUser('user@example.com', []);
-    expect(vi.mocked(fetch).mock.calls).toHaveLength(1);
-  });
-});
-
 describe('KitAdapter error message formatting', () => {
   it('omits body suffix when error response text is empty', async () => {
     mockFetch({ status: 500, text: '' });
     const adapter = makeAdapter();
-    try {
-      await adapter.deleteUser('x@x.com');
-    } catch (e) {
-      expect((e as MarketingEmailError).message).toBe(
-        'Kit API DELETE /subscribers/x%40x.com failed: 500 Error'
-      );
-    }
+    await expect(adapter.deleteUser('x@x.com')).rejects.toMatchObject({
+      message: 'Kit API GET /subscribers?email_address=x%40x.com failed: 500 Error',
+    });
   });
 
   it('uses empty string when res.text() rejects', async () => {
@@ -215,12 +214,26 @@ describe('KitAdapter error message formatting', () => {
       },
     });
     const adapter = makeAdapter();
-    try {
-      await adapter.deleteUser('x@x.com');
-    } catch (e) {
-      expect((e as MarketingEmailError).message).toBe(
-        'Kit API DELETE /subscribers/x%40x.com failed: 502 Error'
-      );
-    }
+    await expect(adapter.deleteUser('x@x.com')).rejects.toMatchObject({
+      message: 'Kit API GET /subscribers?email_address=x%40x.com failed: 502 Error',
+    });
+  });
+});
+
+describe('isPermanentKitError', () => {
+  it('returns true for permanent HTTP status codes', () => {
+    expect(isPermanentKitError('kit_api_400')).toBe(true);
+    expect(isPermanentKitError('kit_api_404')).toBe(true);
+    expect(isPermanentKitError('kit_api_422')).toBe(true);
+  });
+
+  it('returns true for kit_tag_not_found', () => {
+    expect(isPermanentKitError('kit_tag_not_found')).toBe(true);
+  });
+
+  it('returns false for transient codes', () => {
+    expect(isPermanentKitError('kit_api_500')).toBe(false);
+    expect(isPermanentKitError('kit_api_429')).toBe(false);
+    expect(isPermanentKitError('kit_api_503')).toBe(false);
   });
 });
