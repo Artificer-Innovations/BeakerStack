@@ -12,6 +12,7 @@ export function initEdgeObservability(config: ObservabilityConfig): void {
 export function withEdgeScope(
   handler: (req: Request) => Promise<Response>
 ): (req: Request) => Promise<Response> {
+  // TODO: wrap with Sentry.runWithAsyncContext once Deno async context API is stable
   return (req) => handler(req);
 }
 

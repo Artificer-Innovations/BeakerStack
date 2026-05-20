@@ -6,8 +6,9 @@ interface ProfilerProps {
   onRender?: React.ProfilerOnRenderCallback;
 }
 
+const noop: React.ProfilerOnRenderCallback = () => {};
+
 export function Profiler({ name, children, onRender }: ProfilerProps) {
-  const noop: React.ProfilerOnRenderCallback = () => {};
   return (
     <React.Profiler id={name} onRender={onRender ?? noop}>
       {children}

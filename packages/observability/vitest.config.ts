@@ -23,10 +23,10 @@ export default defineConfig({
         ? ['text', 'json']
         : ['text', 'json', 'html', 'lcov'],
       thresholds: {
-        statements: 95,
-        branches: 85,
-        functions: 95,
-        lines: 95,
+        statements: 99,
+        branches: 95,
+        functions: 98,
+        lines: 99,
       },
       exclude: [
         'node_modules/',
