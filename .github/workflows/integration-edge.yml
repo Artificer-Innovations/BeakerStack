@@ -13,12 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
-    env:
-      SUPABASE_URL: http://127.0.0.1:54321
-      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
-      SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.3a1SuBbAPEU4S9r0iEmL4YI9P_HT8bjemN7Dz9f1hQ0
-      RUN_INTEGRATION_EDGE_TESTS: '1'
-
     steps:
       - uses: actions/checkout@v4
 
@@ -36,6 +30,11 @@ jobs:
       - name: Start Supabase with Edge runtime
         run: |
           supabase start -x studio,imgproxy,inbucket,analytics
+
+      - name: Export Supabase credentials from local stack
+        run: |
+          chmod +x scripts/ci-export-supabase-env.sh
+          ./scripts/ci-export-supabase-env.sh
 
       - name: Serve Edge Functions
         run: |
