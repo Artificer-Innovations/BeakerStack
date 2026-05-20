@@ -95,6 +95,19 @@ Beaker Stack is a monorepo with two distribution models living side by side:
 
 When adding new shared code, prefer creating a new workspace package under `packages/` rather than burying it inside `apps/`. Clear package boundaries make it easier to promote mature code to published `@beakerstack/*` packages later, and they improve code quality even for single-app use.
 
+### Logging
+
+Use `@beakerstack/logger` for all package and app logging — never call `console.*` directly and never import `Logger` from `@beakerstack/shared`:
+
+```ts
+import { Logger } from '@beakerstack/logger';
+
+Logger.warn('[my-package] something unexpected');
+Logger.error('[my-package] operation failed', err);
+```
+
+See [packages/logger/README.md](packages/logger/README.md) for conventions and observability wiring.
+
 ### Adding a changeset
 
 Any PR that modifies a publishable `@beakerstack/*` package needs a changeset describing the change. Changesets drive version bumps and changelog entries.

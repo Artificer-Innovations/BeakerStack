@@ -1,4 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@beakerstack/logger', () => ({
+  Logger: {
+    debug: vi.fn(),
+  },
+}));
+
+import { Logger } from '@beakerstack/logger';
 import { createLogEmailAdapter } from './logAdapter.js';
 
 describe('createLogEmailAdapter', () => {
@@ -12,18 +20,18 @@ describe('createLogEmailAdapter', () => {
       text: 'Hi plain',
     });
     expect(log).toHaveBeenCalledOnce();
-    expect(log.mock.calls[0]?.[0]).toContain('Hi plain');
+    expect(log.mock.calls[0]?.[0]).toContain('subject=Invite');
+    expect(log.mock.calls[0]?.[0]).not.toContain('Hi plain');
   });
 
-  it('uses console.log when no logger is passed', async () => {
-    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  it('uses Logger.debug when no logger is passed', async () => {
     const adapter = createLogEmailAdapter();
     await adapter.send({
       to: 'a@example.com',
       subject: 'Invite',
       html: '<p>Hi</p>',
     });
-    expect(spy).toHaveBeenCalled();
-    spy.mockRestore();
+    expect(Logger.debug).toHaveBeenCalled();
+    expect(vi.mocked(Logger.debug).mock.calls[0]?.[0]).not.toContain('<p>');
   });
 });

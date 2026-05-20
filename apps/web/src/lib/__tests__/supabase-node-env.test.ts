@@ -10,7 +10,7 @@ describe('supabase.ts — node env logs (coverage)', () => {
   async function loadSupabaseWithNodeEnv(env: Record<string, string>) {
     const warn = vi.fn();
     const debug = vi.fn();
-    vi.doMock('@beakerstack/shared/utils/logger', () => ({
+    vi.doMock('@beakerstack/logger', () => ({
       Logger: { warn, debug, error: vi.fn(), info: vi.fn() },
     }));
     vi.doMock('@supabase/supabase-js', () => ({

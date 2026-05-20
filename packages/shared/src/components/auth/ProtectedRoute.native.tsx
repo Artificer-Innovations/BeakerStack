@@ -3,7 +3,7 @@ import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { ParamListBase, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthContext } from '../../contexts/AuthContext';
-import { Logger } from '../../utils/logger';
+import { Logger } from '@beakerstack/logger';
 import { colors } from '../../theme/colors';
 
 interface ProtectedRouteProps {

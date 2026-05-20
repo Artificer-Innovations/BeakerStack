@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import type { UserProfile } from '../../types/profile';
-import { Logger } from '../../utils/logger';
+import { Logger } from '@beakerstack/logger';
 
 export interface ProfileAvatarProps {
   profile: UserProfile | null;

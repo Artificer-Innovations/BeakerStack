@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, ViewStyle, Linking } from 'react-native';
 import { ProfileAvatar } from './ProfileAvatar.native';
 import type { UserProfile } from '../../types/profile';
-import { Logger } from '../../utils/logger';
+import { Logger } from '@beakerstack/logger';
 
 export interface ProfileHeaderProps {
   profile: UserProfile | null;

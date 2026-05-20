@@ -8,7 +8,7 @@ import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 // Import from native-specific file for correct types
 import { configureGoogleSignIn } from '@beakerstack/shared/hooks/useAuth.native';
-import { Logger } from '@beakerstack/shared/utils/logger';
+import { Logger } from '@beakerstack/logger';
 import { AppErrorBoundary } from './src/components/AppErrorBoundary';
 import { ObservabilityUserSync } from './src/components/ObservabilityUserSync';
 import { beakerstackBillingConfig } from './src/billing/beakerstackBillingConfig';

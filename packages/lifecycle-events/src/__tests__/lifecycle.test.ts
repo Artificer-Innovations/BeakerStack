@@ -56,6 +56,7 @@ describe('onLifecycleEvent / emitLifecycleEvent', () => {
     expect(good).toHaveBeenCalledTimes(1);
     expect(errorSpy).toHaveBeenCalledWith(
       '[lifecycle-events] listener failed:',
+      'user.churned',
       expect.any(Error)
     );
     errorSpy.mockRestore();

@@ -5,6 +5,7 @@ const path = require('path');
 
 const projectRoot = __dirname;
 const workspaceRoot = path.resolve(projectRoot, '../..');
+const loggerPkg = path.resolve(projectRoot, '../../packages/logger');
 const sharedPkg = path.resolve(projectRoot, '../../packages/shared');
 const billingPkg = path.resolve(projectRoot, '../../packages/billing');
 const observabilityPkg = path.resolve(
@@ -29,7 +30,7 @@ config.resolver.sourceExts = [
 ];
 
 // Only watch what we need
-config.watchFolders = [sharedPkg, billingPkg, observabilityPkg];
+config.watchFolders = [loggerPkg, sharedPkg, billingPkg, observabilityPkg];
 
 // Resolve node_modules (mobile first, then root)
 config.resolver.nodeModulesPaths = [

@@ -9,7 +9,7 @@ import { ProfileHeader } from '@beakerstack/shared/components/profile/ProfileHea
 import { ProfileStats } from '@beakerstack/shared/components/profile/ProfileStats.web';
 // Import ProfileEditor - Vite will automatically resolve .web.tsx file
 import { ProfileEditor } from '@beakerstack/shared/components/profile/ProfileEditor.web';
-import { Logger } from '@beakerstack/shared/utils/logger';
+import { Logger } from '@beakerstack/logger';
 
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);

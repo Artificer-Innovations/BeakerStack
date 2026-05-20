@@ -17,7 +17,7 @@ import {
   useAvatarUpload,
   type ArrayBufferWithMetadata,
 } from '../../hooks/useAvatarUpload';
-import { Logger } from '../../utils/logger';
+import { Logger } from '@beakerstack/logger';
 
 // Helper function to fix URLs for Android emulator
 const fixUrlForAndroid = (url: string | null): string | null => {

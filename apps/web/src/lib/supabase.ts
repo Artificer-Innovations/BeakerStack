@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@beakerstack/shared/types/database';
-import { Logger } from '@beakerstack/shared/utils/logger';
+import { Logger } from '@beakerstack/logger';
 
 // In the Node/vite-node pre-render path, env vars may be absent and no Supabase
 // calls happen during renderToStaticMarkup, so placeholder values are safe.

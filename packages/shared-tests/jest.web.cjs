@@ -1,6 +1,7 @@
 const path = require('path');
 const root = path.resolve(__dirname, '../..');
 const sharedSrcPath = path.join(root, 'packages/shared/src');
+const loggerSrcPath = path.join(root, 'packages/logger/src');
 
 module.exports = {
   testEnvironment: 'jsdom',
@@ -9,6 +10,7 @@ module.exports = {
   setupFilesAfterEnv: [path.join(__dirname, 'jest.setup.web.ts')],
   moduleNameMapper: {
     '^@beakerstack/shared/(.*)$': path.join(sharedSrcPath, '$1'),
+    '^@beakerstack/logger$': path.join(loggerSrcPath, 'index.ts'),
     '^react-native$': 'react-native-web',
     '^react-router-dom$': path.join(
       __dirname,

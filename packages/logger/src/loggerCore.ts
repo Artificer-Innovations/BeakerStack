@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-
 declare const __DEV__: boolean | undefined;
 
 type LogArgs = Array<unknown>;
@@ -8,15 +6,38 @@ type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 let telemetryHandler: ((level: LogLevel, args: LogArgs) => void) | null = null;
 
+/** Distinguishes "tests did not override global ref" from an explicit `undefined` override. */
+const globalRefUnset = Symbol('globalRefUnset');
+let globalRefOverride: typeof globalThis | undefined | symbol = globalRefUnset;
+
+/** @internal Override global ref for unit tests only. */
+export function setGlobalRefForTests(ref: typeof globalThis | undefined): void {
+  globalRefOverride = ref;
+}
+
+/** @internal Reset global ref override after unit tests. */
+export function resetGlobalRefForTests(): void {
+  globalRefOverride = globalRefUnset;
+}
+
+function getGlobalRef(): typeof globalThis | undefined {
+  if (globalRefOverride !== globalRefUnset) {
+    return globalRefOverride as typeof globalThis | undefined;
+  }
+
+  return globalThis;
+}
+
 const isDevEnvironment = (): boolean => {
   if (typeof __DEV__ !== 'undefined') {
     return __DEV__;
   }
 
+  const globalRef = getGlobalRef();
   const maybeProcess =
-    typeof globalThis !== 'undefined'
+    globalRef !== undefined
       ? (
-          globalThis as {
+          globalRef as {
             process?: { env?: Record<string, string | undefined> };
           }
         ).process

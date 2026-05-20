@@ -6,7 +6,7 @@ import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { BRANDING } from '@beakerstack/shared/config/branding';
-import { Logger } from '@beakerstack/shared/utils/logger';
+import { Logger } from '@beakerstack/logger';
 import { loadProfileEditorModule } from '../../src/screens/profileEditorLoader';
 
 // Mock expo-constants
@@ -120,7 +120,7 @@ jest.mock('@beakerstack/shared/components/profile/ProfileStats.native', () => ({
   },
 }));
 
-jest.mock('@beakerstack/shared/utils/logger', () => ({
+jest.mock('@beakerstack/logger', () => ({
   Logger: {
     debug: jest.fn(),
     info: jest.fn(),

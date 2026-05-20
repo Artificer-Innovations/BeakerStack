@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { Logger } from '@beakerstack/shared/utils/logger';
+import { Logger } from '@beakerstack/logger';
 
 interface SocialLoginButtonProps {
   onPress: () => Promise<void>;

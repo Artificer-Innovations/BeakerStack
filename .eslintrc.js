@@ -31,7 +31,7 @@ module.exports = {
     '@typescript-eslint/no-non-null-assertion': 'warn',
     'prefer-const': 'error',
     'no-var': 'error',
-    'no-console': 'warn',
+    'no-console': 'error',
     'no-debugger': 'error',
   },
   ignorePatterns: [
@@ -60,6 +60,12 @@ module.exports = {
       },
       rules: {
         '@typescript-eslint/no-var-requires': 'off',
+      },
+    },
+    {
+      files: ['packages/logger/src/**'],
+      rules: {
+        'no-console': 'off',
       },
     },
     {

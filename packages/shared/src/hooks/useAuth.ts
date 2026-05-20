@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { AuthHookReturn } from '../types/auth';
-import { Logger } from '../utils/logger';
+import { Logger } from '@beakerstack/logger';
 
 // Web platform does not require native Google configuration
 export function configureGoogleSignIn() {}

@@ -5,7 +5,7 @@ import TestRenderer, { act as testRendererAct } from 'react-test-renderer';
 import { Image } from 'react-native';
 import { Buffer } from 'buffer';
 import { AvatarUpload } from '@beakerstack/shared/components/profile/AvatarUpload.native';
-import { Logger } from '@beakerstack/shared/utils/logger';
+import { Logger } from '@beakerstack/logger';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Mock expo-image-picker
@@ -65,7 +65,7 @@ jest.mock('@beakerstack/shared/hooks/useAvatarUpload', () => ({
 }));
 
 // Mock Logger
-jest.mock('@beakerstack/shared/utils/logger', () => ({
+jest.mock('@beakerstack/logger', () => ({
   Logger: {
     debug: jest.fn(),
     warn: jest.fn(),

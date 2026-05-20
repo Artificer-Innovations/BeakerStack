@@ -8,7 +8,7 @@ import { ProfileAvatar } from '@beakerstack/shared/components/profile/ProfileAva
 import type { UserProfile } from '@beakerstack/shared/types/profile';
 
 // Mock Logger
-jest.mock('@beakerstack/shared/utils/logger', () => ({
+jest.mock('@beakerstack/logger', () => ({
   Logger: {
     warn: jest.fn(),
   },

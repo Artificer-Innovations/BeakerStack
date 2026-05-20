@@ -1,3 +1,4 @@
+import { Logger } from '@beakerstack/logger';
 import React, { type ErrorInfo, type ReactNode } from 'react';
 
 type Props = {
@@ -15,8 +16,7 @@ export class BillingErrorBoundary extends React.Component<Props, State> {
   }
 
   override componentDidCatch(error: Error, info: ErrorInfo): void {
-    // eslint-disable-next-line no-console -- error boundary diagnostics
-    console.error('BillingErrorBoundary', error, info.componentStack);
+    Logger.error('BillingErrorBoundary', error, info.componentStack);
   }
 
   reset = (): void => {
