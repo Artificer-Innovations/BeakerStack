@@ -46,11 +46,6 @@ jobs:
     timeout-minutes: 45
 
     env:
-      SUPABASE_URL: http://127.0.0.1:54321
-      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
-      SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.3a1SuBbAPEU4S9r0iEmL4YI9P_HT8bjemN7Dz9f1hQ0
-      VITE_SUPABASE_URL: http://127.0.0.1:54321
-      VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
       TEST_EMAIL: ci-test@example.com
 
     steps:
@@ -78,6 +73,9 @@ jobs:
           supabase start -x studio,imgproxy,inbucket,edge-runtime,analytics > .supabase/logs/start.log 2>&1
           supabase status > .supabase/logs/status.log 2>&1
           cat .supabase/logs/status.log
+
+      - name: Export Supabase credentials from local stack
+        run: ./scripts/ci-export-supabase-env.sh
 
       - name: Run lint
         run: npm run lint

@@ -22,10 +22,18 @@ while IFS= read -r line; do
   val="${val%\"}"
   val="${val#\"}"
   case "$key" in
-    API_URL) echo "SUPABASE_URL=$val" >>"$target" ;;
-    ANON_KEY) echo "SUPABASE_ANON_KEY=$val" >>"$target" ;;
+    API_URL)
+      echo "SUPABASE_URL=$val" >>"$target"
+      echo "VITE_SUPABASE_URL=$val" >>"$target"
+      ;;
+    ANON_KEY)
+      echo "SUPABASE_ANON_KEY=$val" >>"$target"
+      echo "VITE_SUPABASE_ANON_KEY=$val" >>"$target"
+      ;;
     SERVICE_ROLE_KEY) echo "SUPABASE_SERVICE_ROLE_KEY=$val" >>"$target" ;;
   esac
 done < <(supabase status -o env 2>/dev/null)
 
-echo "RUN_INTEGRATION_EDGE_TESTS=1" >>"$target"
+if [ "${CI_EXPORT_EDGE_TESTS:-0}" = "1" ]; then
+  echo "RUN_INTEGRATION_EDGE_TESTS=1" >>"$target"
+fi

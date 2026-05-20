@@ -32,9 +32,9 @@ jobs:
           supabase start -x studio,imgproxy,inbucket,analytics
 
       - name: Export Supabase credentials from local stack
-        run: |
-          chmod +x scripts/ci-export-supabase-env.sh
-          ./scripts/ci-export-supabase-env.sh
+        env:
+          CI_EXPORT_EDGE_TESTS: '1'
+        run: ./scripts/ci-export-supabase-env.sh
 
       - name: Serve Edge Functions
         run: |
