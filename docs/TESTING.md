@@ -112,6 +112,7 @@ npm run test:unit:admin
 npm run test:unit:lifecycle-events
 npm run test:unit:waitlist
 npm run test:unit:email
+npm run test:unit:marketing-email
 
 # Run only repo script unit tests (node --test on scripts/__tests__ plus PR-preview shell self-test)
 npm run test:unit:scripts
@@ -458,7 +459,7 @@ npm run test:watch
 
 **Prerequisites:**
 
-- ✅ `@vitest/coverage-v8` is installed for Vitest-based apps and packages (`apps/web`, `packages/billing`, `packages/admin`, `packages/waitlist`, `packages/email`, `packages/lifecycle-events`, `packages/observability`)
+- ✅ `@vitest/coverage-v8` is installed for Vitest-based apps and packages (`apps/web`, `packages/billing`, `packages/admin`, `packages/waitlist`, `packages/email`, `packages/marketing-email`, `packages/lifecycle-events`, `packages/observability`)
 - ✅ Jest coverage is configured for `apps/mobile` and `packages/shared-tests` (which instruments `packages/shared/src`)
 - ✅ `scripts/merge-coverage.js` merges per-workspace reports into `coverage/coverage-summary.json`
 
@@ -478,6 +479,7 @@ npm run test:coverage
 | `packages/admin`            | Vitest | `packages/admin/src`                     |
 | `packages/waitlist`         | Vitest | `packages/waitlist/src`                  |
 | `packages/email`            | Vitest | `packages/email/src`                     |
+| `packages/marketing-email`  | Vitest | `packages/marketing-email/src`           |
 | `packages/lifecycle-events` | Vitest | `packages/lifecycle-events/src`          |
 | `packages/observability`    | Vitest | `packages/observability/src`             |
 
@@ -501,6 +503,7 @@ npm run test:coverage:admin
 npm run test:coverage:lifecycle-events
 npm run test:coverage:waitlist
 npm run test:coverage:email
+npm run test:coverage:marketing-email
 npm run test:coverage:observability
 
 # Re-merge existing coverage/ dirs without re-running tests
@@ -588,6 +591,7 @@ If coverage reports don't appear:
    npm run test:coverage:lifecycle-events
    npm run test:coverage:waitlist
    npm run test:coverage:email
+   npm run test:coverage:marketing-email
    npm run test:coverage:observability
    ```
 

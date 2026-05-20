@@ -11,7 +11,9 @@ export class KitAdapter implements MarketingEmailAdapter {
   ) {}
 
   async subscribeUser(email: string, tags: string[]): Promise<void> {
-    await this.post(`/forms/${this.config.formId}/subscribers`, { email_address: email });
+    await this.post(`/forms/${this.config.formId}/subscribers`, {
+      email_address: email,
+    });
     for (const tag of tags) {
       await this.applyTag(email, tag);
     }
@@ -26,7 +28,9 @@ export class KitAdapter implements MarketingEmailAdapter {
   async removeTag(email: string, tag: string): Promise<void> {
     const tagId = await this.findTag(tag);
     if (!tagId) return; // tag doesn't exist, nothing to remove
-    await this.delete(`/subscribers/${encodeURIComponent(email)}/tags/${tagId}`);
+    await this.delete(
+      `/subscribers/${encodeURIComponent(email)}/tags/${tagId}`
+    );
   }
 
   async deleteUser(email: string): Promise<void> {
@@ -38,12 +42,22 @@ export class KitAdapter implements MarketingEmailAdapter {
     const existing = await this.findTag(name);
     if (existing) return existing;
     const res = await this.post('/tags', { name });
-    return res.tag.id as string;
+    const tag = res['tag'] as { id: string } | undefined;
+    if (!tag?.id) {
+      throw new MarketingEmailError(
+        'Kit API POST /tags response missing tag id',
+        'kit_api_invalid'
+      );
+    }
+    return tag.id;
   }
 
   private async findTag(name: string): Promise<string | null> {
     const res = await this.get(`/tags?name=${encodeURIComponent(name)}`);
-    const tags: Array<{ id: string; name: string }> = res.tags ?? [];
+    const raw = res['tags'];
+    const tags = Array.isArray(raw)
+      ? (raw as Array<{ id: string; name: string }>)
+      : [];
     return tags.find(t => t.name === name)?.id ?? null;
   }
 
@@ -51,7 +65,10 @@ export class KitAdapter implements MarketingEmailAdapter {
     return this.request('GET', path);
   }
 
-  private async post(path: string, body: unknown): Promise<Record<string, unknown>> {
+  private async post(
+    path: string,
+    body: unknown
+  ): Promise<Record<string, unknown>> {
     return this.request('POST', path, body);
   }
 
@@ -59,13 +76,17 @@ export class KitAdapter implements MarketingEmailAdapter {
     return this.request('DELETE', path);
   }
 
-  private async request(method: string, path: string, body?: unknown): Promise<Record<string, unknown>> {
+  private async request(
+    method: string,
+    path: string,
+    body?: unknown
+  ): Promise<Record<string, unknown>> {
     const res = await fetch(`${KIT_API_BASE}${path}`, {
       method,
       headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });

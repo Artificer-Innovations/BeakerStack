@@ -1,13 +1,21 @@
 {
   "name": "@beakerstack/marketing-email",
   "version": "1.0.0",
+  "description": "Marketing email adapter interface for BeakerStack (Kit reference implementation)",
   "private": true,
   "type": "module",
   "main": "src/index.ts",
+  "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
     "./web": "./src/web.ts",
     "./native": "./src/native.ts"
+  },
+  "scripts": {
+    "lint": "eslint src --ext ts --report-unused-disable-directives --max-warnings 0",
+    "type-check": "tsc --noEmit",
+    "test": "vitest --run",
+    "test:coverage": "vitest --coverage --run"
   },
   "dependencies": {
     "@beakerstack/lifecycle-events": "^1.0.0"
