@@ -10,6 +10,7 @@
  * - packages/lifecycle-events/coverage (Vitest)
  * - packages/waitlist/coverage (Vitest)
  * - packages/email/coverage (Vitest)
+ * - packages/observability/coverage (Vitest)
  */
 
 const fs = require('fs');
@@ -25,6 +26,7 @@ const coverageDirs = [
   { name: 'lifecycle-events', path: 'packages/lifecycle-events/coverage' },
   { name: 'waitlist', path: 'packages/waitlist/coverage' },
   { name: 'email', path: 'packages/email/coverage' },
+  { name: 'observability', path: 'packages/observability/coverage' },
 ];
 
 const outputDir = path.join(__dirname, '..', 'coverage');

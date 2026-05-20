@@ -25,6 +25,10 @@ vi.mock('../admin/AdminApp', () => ({
   default: () => <p>Admin area</p>,
 }));
 
+vi.mock('../components/ObservabilityUserSync', () => ({
+  ObservabilityUserSync: () => null,
+}));
+
 const adminUser = {
   id: 'admin-user-id',
   email: 'admin@example.com',

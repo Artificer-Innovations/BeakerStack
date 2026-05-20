@@ -444,7 +444,7 @@ npm run test:watch
 
 **Prerequisites:**
 
-- ✅ `@vitest/coverage-v8` is installed for Vitest-based apps and packages (`apps/web`, `packages/billing`, `packages/admin`, `packages/waitlist`, `packages/email`, `packages/lifecycle-events`)
+- ✅ `@vitest/coverage-v8` is installed for Vitest-based apps and packages (`apps/web`, `packages/billing`, `packages/admin`, `packages/waitlist`, `packages/email`, `packages/lifecycle-events`, `packages/observability`)
 - ✅ Jest coverage is configured for `apps/mobile` and `packages/shared-tests` (which instruments `packages/shared/src`)
 - ✅ `scripts/merge-coverage.js` merges per-workspace reports into `coverage/coverage-summary.json`
 
@@ -465,6 +465,7 @@ npm run test:coverage
 | `packages/waitlist`         | Vitest | `packages/waitlist/src`                  |
 | `packages/email`            | Vitest | `packages/email/src`                     |
 | `packages/lifecycle-events` | Vitest | `packages/lifecycle-events/src`          |
+| `packages/observability`    | Vitest | `packages/observability/src`             |
 
 **Running Coverage:**
 
@@ -486,6 +487,7 @@ npm run test:coverage:admin
 npm run test:coverage:lifecycle-events
 npm run test:coverage:waitlist
 npm run test:coverage:email
+npm run test:coverage:observability
 
 # Re-merge existing coverage/ dirs without re-running tests
 npm run test:coverage:merge
@@ -497,13 +499,13 @@ After running `npm run test:coverage`, you'll get:
 
 1. **Integrated summary** (terminal + `coverage/coverage-summary.json`):
    - Overall merged coverage across all workspaces
-   - Per-workspace breakdown (web, mobile, shared, billing, admin, lifecycle-events, waitlist, email)
+   - Per-workspace breakdown (web, mobile, shared, billing, admin, lifecycle-events, waitlist, email, observability)
    - Statements, branches, functions, and lines
 
 2. **Individual HTML reports** (open each workspace's `coverage/index.html`):
    - Apps: `apps/web/coverage/`, `apps/mobile/coverage/`
    - Shared: `packages/shared-tests/coverage/` (covers `packages/shared`)
-   - Packages: `packages/billing/coverage/`, `packages/admin/coverage/`, `packages/lifecycle-events/coverage/`, `packages/waitlist/coverage/`, `packages/email/coverage/`
+   - Packages: `packages/billing/coverage/`, `packages/admin/coverage/`, `packages/lifecycle-events/coverage/`, `packages/waitlist/coverage/`, `packages/email/coverage/`, `packages/observability/coverage/`
 
 **Open reports in browser:**
 
@@ -558,7 +560,7 @@ If coverage reports don't appear:
    ls -la apps/web/coverage/ apps/mobile/coverage/
    ls -la packages/shared-tests/coverage/
    ls -la packages/billing/coverage/ packages/admin/coverage/
-   ls -la packages/lifecycle-events/coverage/ packages/waitlist/coverage/ packages/email/coverage/
+   ls -la packages/lifecycle-events/coverage/ packages/waitlist/coverage/ packages/email/coverage/ packages/observability/coverage/
    ```
 
 3. **Run tests individually to see errors:**
@@ -572,6 +574,7 @@ If coverage reports don't appear:
    npm run test:coverage:lifecycle-events
    npm run test:coverage:waitlist
    npm run test:coverage:email
+   npm run test:coverage:observability
    ```
 
 4. **For web app coverage issues:** Ensure `@vitest/coverage-v8` is installed:
