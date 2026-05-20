@@ -60,6 +60,10 @@ vi.mock('../pages/billing/BillingOverviewPage', () => ({
   default: () => <h1>Billing overview</h1>,
 }));
 
+vi.mock('../components/ObservabilityUserSync', () => ({
+  ObservabilityUserSync: () => null,
+}));
+
 describe('App billing route', () => {
   it('loads BillingProviderLayout when visiting /billing', async () => {
     await act(async () => {
