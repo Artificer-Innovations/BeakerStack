@@ -124,6 +124,29 @@ describe('initObservability (web)', () => {
     await initObservability(config);
     expect(SentryMock.init).toHaveBeenCalledTimes(2);
   });
+
+  it('logs init failures outside test env', async () => {
+    const originalNodeEnv = process.env['NODE_ENV'];
+    process.env['NODE_ENV'] = 'development';
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.mocked(SentryMock.init).mockImplementationOnce(() => {
+      throw new Error('init failed');
+    });
+
+    await initObservability(config);
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[observability] init failed:',
+      expect.any(Error)
+    );
+
+    warnSpy.mockRestore();
+    if (originalNodeEnv === undefined) {
+      delete process.env['NODE_ENV'];
+    } else {
+      process.env['NODE_ENV'] = originalNodeEnv;
+    }
+  });
 });
 
 describe('initObservability when @sentry/react is unavailable', () => {
