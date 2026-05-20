@@ -10,7 +10,11 @@ interface Props {
   navigationRef?: React.RefObject<unknown>;
 }
 
-export function ObservabilityProvider({ config, children, navigationRef }: Props) {
+export function ObservabilityProvider({
+  config: _config,
+  children,
+  navigationRef,
+}: Props) {
   const [Sentry, setSentry] = useState<any>(null);
 
   useEffect(() => {
@@ -18,9 +22,13 @@ export function ObservabilityProvider({ config, children, navigationRef }: Props
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore: optional peer dep — not installed in type-check environments
     import('@sentry/react-native')
-      .then(s => { if (!cancelled) setSentry(s); })
+      .then(s => {
+        if (!cancelled) setSentry(s);
+      })
       .catch(() => {});
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -33,43 +41,46 @@ export function ObservabilityProvider({ config, children, navigationRef }: Props
     }
   }, [Sentry, navigationRef]);
 
-  const handle = useMemo<ObservabilityHandle>(() => ({
-    captureException(err, context) {
-      Sentry?.captureException(err, context ? { extra: context } : undefined);
-    },
-    captureMessage(msg, level = 'info') {
-      Sentry?.captureMessage(msg, level);
-    },
-    setUser(id) {
-      if (id === null) {
-        Sentry?.setUser(null);
-      } else {
-        void hashUserId(id).then(hash => Sentry?.setUser({ id: hash }));
-      }
-    },
-    addBreadcrumb(crumb) {
-      Sentry?.addBreadcrumb({
-        ...crumb,
-        message: scrubEmail(crumb.message),
-      });
-    },
-    withScope(fn) {
-      if (!Sentry) return fn(null);
-      let result!: ReturnType<typeof fn>;
-      Sentry.withScope((scope: unknown) => {
-        result = fn(scope);
-      });
-      return result;
-    },
-    startSpan<T>(name: string, fn: () => T): T {
-      if (!Sentry) return fn();
-      let result!: T;
-      (Sentry as any).startSpan({ name }, () => {
-        result = fn();
-      });
-      return result;
-    },
-  }), [Sentry]);
+  const handle = useMemo<ObservabilityHandle>(
+    () => ({
+      captureException(err, context) {
+        Sentry?.captureException(err, context ? { extra: context } : undefined);
+      },
+      captureMessage(msg, level = 'info') {
+        Sentry?.captureMessage(msg, level);
+      },
+      setUser(id) {
+        if (id === null) {
+          Sentry?.setUser(null);
+        } else {
+          void hashUserId(id).then(hash => Sentry?.setUser({ id: hash }));
+        }
+      },
+      addBreadcrumb(crumb) {
+        Sentry?.addBreadcrumb({
+          ...crumb,
+          message: scrubEmail(crumb.message),
+        });
+      },
+      withScope(fn) {
+        if (!Sentry) return fn(null);
+        let result!: ReturnType<typeof fn>;
+        Sentry.withScope((scope: unknown) => {
+          result = fn(scope);
+        });
+        return result;
+      },
+      startSpan<T>(name: string, fn: () => T): T {
+        if (!Sentry) return fn();
+        let result!: T;
+        (Sentry as any).startSpan({ name }, () => {
+          result = fn();
+        });
+        return result;
+      },
+    }),
+    [Sentry]
+  );
 
   return (
     <ObservabilityContext.Provider value={handle}>

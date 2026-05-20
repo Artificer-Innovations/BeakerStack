@@ -4,7 +4,7 @@ import type { ObservabilityConfig } from './types.js';
 const exporterSchema = z.object({
   type: z.enum(['sentry', 'otlp']),
   endpoint: z.string().url().optional(),
-  headers: z.record(z.string()).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
 });
 
 const samplingSchema = z.object({
@@ -35,7 +35,7 @@ export function validateConfig(config: ObservabilityConfig): void {
   if (config.exporter?.type === 'otlp') {
     throw new Error(
       'OTLP exporter is not supported in v1 — set exporter.type to "sentry" or remove the exporter field. ' +
-      'OTLP support is tracked for a future release.'
+        'OTLP support is tracked for a future release.'
     );
   }
 }

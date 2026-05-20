@@ -14,6 +14,15 @@
       "@beakerstack/billing/native": ["../../packages/billing/src/native.ts"],
       "@beakerstack/billing/presentation": [
         "../../packages/billing/src/presentation/index.ts"
+      ],
+      "@beakerstack/observability": [
+        "../../packages/observability/src/index.ts"
+      ],
+      "@beakerstack/observability/web": [
+        "../../packages/observability/src/web.ts"
+      ],
+      "@beakerstack/observability/native": [
+        "../../packages/observability/src/native.ts"
       ]
     }
   },
@@ -21,11 +30,15 @@
     "**/*.ts",
     "**/*.tsx",
     "../../packages/billing/src/**/*.ts",
-    "../../packages/billing/src/**/*.tsx"
+    "../../packages/billing/src/**/*.tsx",
+    "../../packages/observability/src/**/*.ts",
+    "../../packages/observability/src/**/*.tsx"
   ],
   "exclude": [
     "../../packages/billing/src/**/*.test.ts",
-    "../../packages/billing/src/**/*.test.tsx"
+    "../../packages/billing/src/**/*.test.tsx",
+    "../../packages/observability/src/**/*.test.ts",
+    "../../packages/observability/src/**/*.test.tsx"
   ],
   "references": [
     {

@@ -215,6 +215,7 @@ jobs:
             packages/waitlist/coverage
             packages/email/coverage
             packages/lifecycle-events/coverage
+            packages/observability/coverage
           if-no-files-found: warn
 
       - name: Upload test results

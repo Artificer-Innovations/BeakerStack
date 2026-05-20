@@ -48,6 +48,7 @@
   },
   "dependencies": {
     "@beakerstack/billing": "^1.0.0",
+    "@beakerstack/observability": "^1.0.0",
     "@react-native-async-storage/async-storage": "1.21.0",
     "@react-native-google-signin/google-signin": "13.3.1",
     "@react-navigation/native": "^6.1.18",
