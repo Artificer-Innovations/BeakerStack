@@ -26,6 +26,10 @@ const mockSupabaseClient = vi.hoisted(() => ({
 
 vi.mock('../lib/supabase', () => ({ supabase: mockSupabaseClient }));
 
+vi.mock('../components/ObservabilityUserSync', () => ({
+  ObservabilityUserSync: () => null,
+}));
+
 function Probe() {
   const auth = useAuthContext();
   const profile = useProfileContext();

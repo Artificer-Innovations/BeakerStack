@@ -10,6 +10,7 @@ import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import { configureGoogleSignIn } from '@beakerstack/shared/hooks/useAuth.native';
 import { Logger } from '@beakerstack/shared/utils/logger';
 import { AppErrorBoundary } from './src/components/AppErrorBoundary';
+import { ObservabilityUserSync } from './src/components/ObservabilityUserSync';
 import { beakerstackBillingConfig } from './src/billing/beakerstackBillingConfig';
 import { beakerstackObservabilityConfig } from './src/config/observability';
 import { getMobileBillingProviderUrls } from './src/billing/mobileBillingUrls';
@@ -118,6 +119,7 @@ export default function App() {
     >
       <AppErrorBoundary>
         <AuthProvider supabaseClient={supabase}>
+          <ObservabilityUserSync />
           <ProfileProvider supabaseClient={supabase}>
             <BillingProvider<typeof beakerstackBillingConfig>
               supabase={supabase}

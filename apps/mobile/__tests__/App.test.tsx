@@ -39,6 +39,7 @@ jest.mock('@beakerstack/observability/native', () => ({
     children,
   ErrorBoundary: ({ children }: { children: React.ReactNode }) => children,
   initObservability: jest.fn().mockResolvedValue(undefined),
+  useObservability: () => ({ setUser: jest.fn() }),
 }));
 
 // Mock configureGoogleSignIn (added in our auth changes)
