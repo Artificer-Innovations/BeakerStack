@@ -8,6 +8,11 @@ interface Props {
   children: React.ReactNode;
 }
 
+// Module-scope singleton: Vite can statically analyze a top-level dynamic import
+// and generate a proper chunk hash. Inside a useEffect callback it can't, leaving
+// an unresolved !~{NNN}~ placeholder in the built output.
+const _sentryLoad = import('@sentry/react').catch(() => null);
+
 export function ObservabilityProvider({ config: _config, children }: Props) {
   const [Sentry, setSentry] = useState<typeof import('@sentry/react') | null>(
     null
@@ -15,11 +20,9 @@ export function ObservabilityProvider({ config: _config, children }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    import('@sentry/react')
-      .then(s => {
-        if (!cancelled) setSentry(s);
-      })
-      .catch(() => {});
+    _sentryLoad.then(s => {
+      if (!cancelled) setSentry(s);
+    });
     return () => {
       cancelled = true;
     };
