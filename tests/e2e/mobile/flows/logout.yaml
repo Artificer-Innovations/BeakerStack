@@ -1,0 +1,14 @@
+# Mobile E2E: Login then sign out → home
+appId: ${MOBILE_APP_ID}
+---
+- launchApp
+- waitForAnimationToEnd
+- runFlow:
+    file: ../subflows/navigate-login.yaml
+- runFlow:
+    file: ../subflows/fill-login.yaml
+- runFlow:
+    file: ../subflows/assert-dashboard.yaml
+- runFlow:
+    file: ../subflows/logout.yaml
+- assertVisible: 'Welcome to Beaker Stack'

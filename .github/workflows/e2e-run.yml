@@ -1,0 +1,321 @@
+name: E2E Run
+
+on:
+  pull_request_review:
+    types: [submitted]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number (develop PR)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+  statuses: write
+
+concurrency:
+  group: e2e-run-${{ github.event.pull_request.number || github.event.issue.number || github.event.inputs.pr_number }}
+  cancel-in-progress: true
+
+jobs:
+  resolve-trigger:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.resolve.outputs.should_run }}
+      pr_number: ${{ steps.resolve.outputs.pr_number }}
+      head_sha: ${{ steps.resolve.outputs.head_sha }}
+      is_fork: ${{ steps.resolve.outputs.is_fork }}
+    steps:
+      - name: Resolve PR from event
+        id: resolve
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            let shouldRun = false;
+            let prNumber = '';
+            let headSha = '';
+            let isFork = 'false';
+
+            if (context.eventName === 'workflow_dispatch') {
+              prNumber = String(context.payload.inputs.pr_number || '').trim();
+              shouldRun = prNumber.length > 0;
+            } else if (context.eventName === 'pull_request_review') {
+              const review = context.payload.review;
+              const pr = context.payload.pull_request;
+              shouldRun =
+                review.state === 'approved' &&
+                review.user.login === 'ZappoMan' &&
+                pr.base.ref === 'develop';
+              prNumber = String(pr.number);
+              headSha = pr.head.sha;
+              isFork =
+                pr.head.repo.full_name !== pr.base.repo.full_name
+                  ? 'true'
+                  : 'false';
+            } else if (context.eventName === 'issue_comment') {
+              const issue = context.payload.issue;
+              const comment = context.payload.comment || {};
+              if (!issue.pull_request) {
+                core.setOutput('should_run', 'false');
+                return;
+              }
+              const body = (comment.body || '').toLowerCase();
+              const trigger =
+                body.includes('run e2e tests') || body.includes('/run e2e');
+              if (!trigger) {
+                core.setOutput('should_run', 'false');
+                return;
+              }
+              prNumber = String(issue.number);
+              const { data: pr } = await github.rest.pulls.get({
+                owner,
+                repo,
+                pull_number: Number(prNumber),
+              });
+              shouldRun = pr.base.ref === 'develop';
+              headSha = pr.head.sha;
+              isFork =
+                pr.head.repo.full_name !== pr.base.repo.full_name
+                  ? 'true'
+                  : 'false';
+            }
+
+            if (!shouldRun) {
+              core.setOutput('should_run', 'false');
+              return;
+            }
+
+            if (!headSha || context.eventName === 'workflow_dispatch') {
+              const { data: pr } = await github.rest.pulls.get({
+                owner,
+                repo,
+                pull_number: Number(prNumber),
+              });
+              if (context.eventName === 'workflow_dispatch' && pr.base.ref !== 'develop') {
+                core.setOutput('should_run', 'false');
+                return;
+              }
+              headSha = pr.head.sha;
+              isFork =
+                pr.head.repo.full_name !== pr.base.repo.full_name
+                  ? 'true'
+                  : 'false';
+            }
+
+            core.setOutput('should_run', 'true');
+            core.setOutput('pr_number', prNumber);
+            core.setOutput('head_sha', headSha);
+            core.setOutput('is_fork', isFork);
+
+  e2e-run:
+    needs: resolve-trigger
+    if: needs.resolve-trigger.outputs.should_run == 'true' && needs.resolve-trigger.outputs.is_fork == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PR_NUMBER: ${{ needs.resolve-trigger.outputs.pr_number }}
+      HEAD_SHA: ${{ needs.resolve-trigger.outputs.head_sha }}
+      E2E_LOGIN_EMAIL: e2e-valid@example.com
+      MAESTRO_VERSION: '1.39.0'
+      PR_PREVIEW_DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
+      PR_PREVIEW_PREFIX: ${{ vars.PR_PREVIEW_PREFIX }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set in-progress e2e status
+        uses: actions/github-script@v7
+        env:
+          HEAD_SHA: ${{ env.HEAD_SHA }}
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: process.env.HEAD_SHA,
+              state: 'pending',
+              context: 'e2e',
+              description: 'E2E tests running…',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate E2E secrets
+        run: |
+          if [[ -z "${{ secrets.E2E_TEST_PASSWORD }}" ]]; then
+            echo "::error::Repository secret E2E_TEST_PASSWORD is not set. Add it for Maestro login/signup flows."
+            exit 1
+          fi
+
+      - name: Resolve preview URL
+        id: preview
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/e2e/resolve-preview-url.sh
+          eval "$(./scripts/e2e/resolve-preview-url.sh "${PR_NUMBER}")"
+          if [[ -z "${WEB_URL:-}" ]]; then
+            echo "::error::Could not resolve WEB_URL. Set vars.PR_PREVIEW_DOMAIN or ensure preview deploy ran."
+            exit 1
+          fi
+          echo "web_url=${WEB_URL}" >> "$GITHUB_OUTPUT"
+          echo "bootstrap_url=${PREVIEW_BOOTSTRAP_URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for preview to be reachable
+        env:
+          WEB_URL: ${{ steps.preview.outputs.web_url }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/e2e/bootstrap-preview-session.sh
+          if [[ -n "${{ steps.preview.outputs.bootstrap_url }}" ]]; then
+            source ./scripts/e2e/bootstrap-preview-session.sh "${{ steps.preview.outputs.bootstrap_url }}"
+          fi
+          for attempt in $(seq 1 30); do
+            if [[ -n "${PREVIEW_COOKIE:-}" ]]; then
+              if curl -fsS -H "Cookie: ${PREVIEW_COOKIE}" "${WEB_URL}" -o /dev/null; then
+                echo "Preview reachable (with cookie) on attempt ${attempt}"
+                exit 0
+              fi
+            elif curl -fsS "${WEB_URL}" -o /dev/null; then
+              echo "Preview reachable on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Waiting for preview (${attempt}/30)…"
+            sleep 20
+          done
+          echo "::error::Preview not reachable at ${WEB_URL}"
+          exit 1
+
+      - name: Seed E2E login user
+        env:
+          SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PR_TESTING_SUPABASE_SERVICE_ROLE_KEY }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+        run: node ./scripts/e2e/seed-e2e-user.mjs
+
+      - name: Install Maestro
+        run: |
+          chmod +x scripts/e2e/install-maestro.sh
+          ./scripts/e2e/install-maestro.sh
+
+      - name: Run web E2E tests
+        id: maestro
+        env:
+          WEB_URL: ${{ steps.preview.outputs.web_url }}
+          PREVIEW_BOOTSTRAP_URL: ${{ steps.preview.outputs.bootstrap_url }}
+          TEST_EMAIL: e2e-signup-${{ github.run_id }}@example.com
+          TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+        run: |
+          chmod +x scripts/e2e/run-web-e2e.sh
+          ./scripts/e2e/run-web-e2e.sh
+
+      - name: Upload E2E artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-web-results-pr-${{ env.PR_NUMBER }}
+          path: |
+            tests/e2e/results/
+            ~/.maestro/tests/**/*
+          if-no-files-found: ignore
+
+      - name: Set e2e status (success)
+        if: success()
+        uses: actions/github-script@v7
+        env:
+          HEAD_SHA: ${{ env.HEAD_SHA }}
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: process.env.HEAD_SHA,
+              state: 'success',
+              context: 'e2e',
+              description: 'Web E2E tests passed',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+
+      - name: Set e2e status (failure)
+        if: failure()
+        uses: actions/github-script@v7
+        env:
+          HEAD_SHA: ${{ env.HEAD_SHA }}
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: process.env.HEAD_SHA,
+              state: 'failure',
+              context: 'e2e',
+              description: 'Web E2E tests failed',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+
+      - name: Post E2E results comment
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ env.PR_NUMBER }}
+          JOB_STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const marker = '<!-- e2e-results -->';
+            const prNumber = Number(process.env.PR_NUMBER);
+            const status = process.env.JOB_STATUS;
+            const icon =
+              status === 'success' ? '✅' : status === 'failure' ? '❌' : '⚠️';
+            const body = [
+              marker,
+              '',
+              `## ${icon} E2E tests (${status})`,
+              '',
+              `Web Maestro flows ran against PR preview #${prNumber}.`,
+              '',
+              `[View workflow run](${process.env.RUN_URL})`,
+              '',
+              '_Re-run after new commits: get approval from @ZappoMan or comment `run e2e tests`._',
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              per_page: 100,
+            });
+            const existing = comments.find(c =>
+              (c.body || '').includes(marker)
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body,
+              });
+            }

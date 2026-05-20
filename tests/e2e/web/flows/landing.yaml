@@ -1,0 +1,7 @@
+# Web E2E: Marketing landing page
+url: ${WEB_URL}
+---
+- launchApp
+- waitForAnimationToEnd
+- assertVisible: 'Beaker Stack'
+- assertVisible: 'Everything you need to ship a real product.'

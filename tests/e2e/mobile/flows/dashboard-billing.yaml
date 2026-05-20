@@ -1,0 +1,15 @@
+# Mobile E2E: Dashboard billing demo smoke
+appId: ${MOBILE_APP_ID}
+---
+- launchApp
+- waitForAnimationToEnd
+- runFlow:
+    file: ../subflows/navigate-login.yaml
+- runFlow:
+    file: ../subflows/fill-login.yaml
+- runFlow:
+    file: ../subflows/assert-dashboard.yaml
+- assertVisible: 'Simulate AI summarize'
+- tapOn: 'Simulate AI summarize'
+- waitForAnimationToEnd
+- assertVisible: 'Collections'

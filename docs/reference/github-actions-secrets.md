@@ -9,6 +9,7 @@ This file lists repository **secrets** and **variables** the setup wizard can sy
 | Name                                       | Optional | Group      |
 | ------------------------------------------ | -------- | ---------- |
 | `SUPABASE_ACCESS_TOKEN`                    | no       | core       |
+| `E2E_TEST_PASSWORD`                        | yes      | core       |
 | `AWS_ACCESS_KEY_ID`                        | no       | aws        |
 | `AWS_SECRET_ACCESS_KEY`                    | no       | aws        |
 | `AWS_SESSION_TOKEN`                        | yes      | aws        |

@@ -1,0 +1,23 @@
+# Mobile E2E: Edit profile display name
+appId: ${MOBILE_APP_ID}
+---
+- launchApp
+- waitForAnimationToEnd
+- runFlow:
+    file: ../subflows/navigate-login.yaml
+- runFlow:
+    file: ../subflows/fill-login.yaml
+- runFlow:
+    file: ../subflows/assert-dashboard.yaml
+- tapOn:
+    text: 'Open user menu'
+- tapOn: 'Profile'
+- waitForAnimationToEnd
+- tapOn: 'Edit Profile'
+- waitForAnimationToEnd
+- tapOn: 'Display Name'
+- eraseText
+- inputText: 'E2E Test User'
+- tapOn: 'Update Profile'
+- waitForAnimationToEnd
+- assertVisible: 'E2E Test User'

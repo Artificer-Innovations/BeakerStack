@@ -464,7 +464,7 @@ When a pull request is opened with database changes:
     ↓
 11. Deploy mobile update (pointing to PR Testing database)
     ↓
-12. Run E2E tests against deployed previews
+12. E2E gate sets `e2e` status pending; web Maestro runs on demand (approval or `run e2e tests` comment) via `e2e-run` workflow
     ↓
 13. Comment on PR with preview URLs and database status
 ```
@@ -3297,7 +3297,7 @@ EXPO_TOKEN                              # For mobile deployments
 - [ ] PR review completed
 - [ ] All CI checks pass (tests, linting, type checking)
 - [ ] PR preview environment tested manually
-- [ ] E2E tests pass on PR preview
+- [ ] `e2e` status check passed (trigger: @ZappoMan approval or `run e2e tests` comment)
 - [ ] Database migrations verified in Supabase Studio
 - [ ] No merge conflicts with develop
 - [ ] Breaking changes documented

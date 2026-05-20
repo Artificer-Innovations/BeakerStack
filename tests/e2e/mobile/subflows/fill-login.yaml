@@ -1,0 +1,11 @@
+---
+- assertVisible: 'Sign in to your account'
+- tapOn:
+    id: 'email'
+- inputText: '${E2E_LOGIN_EMAIL}'
+- tapOn:
+    id: 'password'
+- inputText: '${TEST_PASSWORD}'
+- tapOn:
+    id: 'login-submit'
+- waitForAnimationToEnd

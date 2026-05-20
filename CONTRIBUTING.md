@@ -65,6 +65,7 @@ If the hook blocks your commit, fix the reported errors and re-commit. Do not us
 ## Pull requests
 
 - Prefer small PRs over large mixed ones.
+- **E2E (PRs targeting `develop`):** The `e2e` status check stays **pending** until web Maestro tests run and pass. They do not run on every push — after the PR is review-ready, ask @ZappoMan for approval or comment `run e2e tests`. New commits reset `e2e` to pending; re-trigger after fixing. See [docs/TESTING.md](docs/TESTING.md#e2e-in-ci-develop-prs).
 - If you change `scripts/lib/setup-manifest.mjs`, run `npm run docs:actions-secrets` and commit updates to `docs/reference/github-actions-secrets.md`.
 - If you add or change setup wizard prompts in `scripts/setup-full.mjs` or `scripts/lib/setup-manual-instructions.mjs`, update `docs/setup-prep-checklist.md`.
 - Do not commit `.env*` files or real secrets.

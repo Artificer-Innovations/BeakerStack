@@ -21,6 +21,13 @@ export const GITHUB_SECRETS = [
   },
   {
     type: 'secret',
+    name: 'E2E_TEST_PASSWORD',
+    envKeys: ['E2E_TEST_PASSWORD'],
+    optional: true,
+    group: 'core',
+  },
+  {
+    type: 'secret',
     name: 'AWS_ACCESS_KEY_ID',
     envKeys: ['AWS_ACCESS_KEY_ID'],
     group: 'aws',

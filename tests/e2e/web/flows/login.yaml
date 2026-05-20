@@ -1,0 +1,11 @@
+# Web E2E: Email login with seeded user → dashboard
+url: ${WEB_URL}
+---
+- launchApp
+- waitForAnimationToEnd
+- runFlow:
+    file: ../subflows/navigate-login.yaml
+- runFlow:
+    file: ../subflows/fill-login.yaml
+- runFlow:
+    file: ../subflows/assert-dashboard.yaml

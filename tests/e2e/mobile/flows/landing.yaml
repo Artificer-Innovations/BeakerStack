@@ -1,0 +1,8 @@
+# Mobile E2E: Home screen
+appId: ${MOBILE_APP_ID}
+---
+- launchApp
+- waitForAnimationToEnd
+- assertVisible: 'Welcome to Beaker Stack'
+- assertVisible: 'Sign Up'
+- assertVisible: 'Sign In'

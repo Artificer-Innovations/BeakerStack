@@ -84,11 +84,11 @@ export const WebSelectors = {
  * Common selectors for mobile E2E tests
  */
 export const MobileSelectors = {
-  emailInput: 'Email address',
-  passwordInput: 'Password',
-  confirmPasswordInput: 'Confirm Password',
-  loginButton: 'Sign in',
-  signupButton: 'Create account',
+  emailInput: 'email',
+  passwordInput: 'password',
+  confirmPasswordInput: 'confirm-password',
+  loginButton: 'login-submit',
+  signupButton: 'signup-submit',
   googleLoginButton: 'Sign in with Google',
   googleSignupButton: 'Sign up with Google',
   profileTab: 'Profile',

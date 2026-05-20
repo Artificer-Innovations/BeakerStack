@@ -1,0 +1,4 @@
+---
+- assertVisible: 'Sign Up'
+- tapOn: 'Sign Up'
+- waitForAnimationToEnd

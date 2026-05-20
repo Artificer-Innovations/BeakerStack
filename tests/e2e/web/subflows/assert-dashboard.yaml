@@ -1,0 +1,4 @@
+# Assert authenticated dashboard loaded (billing demo surface).
+---
+- waitForAnimationToEnd
+- assertVisible: 'AI Summaries'

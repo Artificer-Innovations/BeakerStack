@@ -1,0 +1,4 @@
+# Open login from marketing home.
+---
+- tapOn: 'Sign in'
+- waitForAnimationToEnd

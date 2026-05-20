@@ -1,0 +1,15 @@
+---
+- runFlow:
+    file: assert-signup-open.yaml
+- tapOn:
+    id: 'email'
+- inputText: '${TEST_EMAIL}'
+- tapOn:
+    id: 'password'
+- inputText: '${TEST_PASSWORD}'
+- tapOn:
+    id: 'confirm-password'
+- inputText: '${TEST_PASSWORD}'
+- tapOn:
+    id: 'signup-submit'
+- waitForAnimationToEnd

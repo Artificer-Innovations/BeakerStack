@@ -85,6 +85,7 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
               ) : null}
 
               <TextInput
+                testID='email'
                 style={styles.input}
                 placeholder='Email address'
                 placeholderTextColor={colors.textMuted}
@@ -98,6 +99,7 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
               />
 
               <TouchableOpacity
+                testID='forgot-password-submit'
                 style={[styles.button, isLoading && styles.buttonDisabled]}
                 onPress={handleSubmit}
                 disabled={isLoading}

@@ -1,0 +1,42 @@
+name: E2E Gate
+
+on:
+  pull_request:
+    branches:
+      - develop
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+permissions:
+  pull-requests: read
+  statuses: write
+
+concurrency:
+  group: e2e-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-gate:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Set pending e2e status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/workflows/e2e-run.yml`;
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: pr.head.sha,
+              state: 'pending',
+              context: 'e2e',
+              description:
+                'Awaiting approval from @ZappoMan or comment "run e2e tests"',
+              target_url: runUrl,
+            });

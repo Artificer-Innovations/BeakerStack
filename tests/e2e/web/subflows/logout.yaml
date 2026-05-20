@@ -1,0 +1,6 @@
+# Sign out via user menu (expects authenticated session).
+---
+- tapOn:
+    text: 'User menu'
+- tapOn: 'Sign Out'
+- waitForAnimationToEnd

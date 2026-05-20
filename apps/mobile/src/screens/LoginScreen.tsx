@@ -109,6 +109,7 @@ export default function LoginScreen({ navigation }: Props) {
             </View>
           )}
           <TextInput
+            testID='email'
             style={styles.input}
             placeholder='Email address'
             value={email}
@@ -119,6 +120,7 @@ export default function LoginScreen({ navigation }: Props) {
           />
 
           <TextInput
+            testID='password'
             style={styles.input}
             placeholder='Password'
             value={password}
@@ -129,6 +131,7 @@ export default function LoginScreen({ navigation }: Props) {
           />
 
           <TouchableOpacity
+            testID='login-submit'
             style={[
               styles.loginButton,
               isLoading && styles.loginButtonDisabled,

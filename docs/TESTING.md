@@ -293,29 +293,39 @@ describe('Auth Flow Integration', () => {
 **Then run tests:**
 
 ```bash
-# Run all E2E tests
+# Seed the shared login user (e2e-valid@example.com) — requires local Supabase
+export E2E_TEST_PASSWORD="E2e_$(openssl rand -hex 16)_Aa1"
+npm run test:e2e:seed
+
+# Run all E2E tests (web + mobile)
 npm run test:e2e
 
-# Run web E2E tests only
+# Run web E2E flows (full suite under tests/e2e/web/flows/)
 npm run test:e2e:web
 
-# Run mobile E2E tests only
-# Prerequisites: App must be built and installed, simulator/emulator must be running
+# Run mobile E2E flows
 npm run test:e2e:mobile
-
-# Or run directly with Maestro (with custom app ID)
-export PATH="$PATH:$HOME/.maestro/bin"
-maestro test tests/e2e/mobile/flows/home.yaml \
- --env MOBILE_APP_ID="com.anonymous.beakerstack" \
-  --env TEST_EMAIL="e2e-test-$(date +%s)@example.com" \
-  --env TEST_PASSWORD="E2e_$(openssl rand -hex 16)_Aa1"
 
 # Run against specific environment (script sets env vars automatically)
 ./scripts/run-e2e.sh local
-./scripts/run-e2e.sh pr 123
-./scripts/run-e2e.sh staging
-./scripts/run-e2e.sh production
+PR_PREVIEW_DOMAIN=yourdomain.com ./scripts/run-e2e.sh pr 123
 ```
+
+See also [`tests/e2e/README.md`](../tests/e2e/README.md) for the full flow list.
+
+### E2E in CI (develop PRs)
+
+E2E does **not** run on every push. Workflows:
+
+- **E2E Gate** — sets commit status `e2e` to **pending** when the PR is updated (merge blocked until E2E passes).
+- **E2E Run** — runs web Maestro tests against the PR preview when:
+  - @ZappoMan **approves** the PR, or
+  - Someone comments **`run e2e tests`** or **`/run e2e`**, or
+  - Maintainers trigger **E2E Run** via `workflow_dispatch`.
+
+**Branch protection:** On `develop`, require status check **`e2e`** in addition to **`tests`**.
+
+**Secrets:** Set repository secret `E2E_TEST_PASSWORD` (same value as local `E2E_TEST_PASSWORD` in `.env`). Preview Supabase uses `PR_TESTING_SUPABASE_SERVICE_ROLE_KEY` to seed the login user before tests.
 
 ### E2E Test Structure
 

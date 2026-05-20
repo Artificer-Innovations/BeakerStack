@@ -1,0 +1,6 @@
+---
+- tapOn:
+    text: 'Open user menu'
+- tapOn: 'Sign Out'
+- tapOn: 'Sign Out'
+- waitForAnimationToEnd

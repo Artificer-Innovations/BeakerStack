@@ -1,0 +1,5 @@
+# Establish signed-cookie session for protected PR previews (run when PREVIEW_BOOTSTRAP_URL is set).
+url: ${PREVIEW_BOOTSTRAP_URL}
+---
+- launchApp
+- waitForAnimationToEnd

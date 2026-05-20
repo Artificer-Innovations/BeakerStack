@@ -1,0 +1,11 @@
+# Mobile E2E: Email login → dashboard
+appId: ${MOBILE_APP_ID}
+---
+- launchApp
+- waitForAnimationToEnd
+- runFlow:
+    file: ../subflows/navigate-login.yaml
+- runFlow:
+    file: ../subflows/fill-login.yaml
+- runFlow:
+    file: ../subflows/assert-dashboard.yaml

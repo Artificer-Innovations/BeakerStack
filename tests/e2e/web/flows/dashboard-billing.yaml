@@ -1,0 +1,17 @@
+# Web E2E: Dashboard billing demo smoke
+url: ${WEB_URL}
+---
+- launchApp
+- waitForAnimationToEnd
+- runFlow:
+    file: ../subflows/navigate-login.yaml
+- runFlow:
+    file: ../subflows/fill-login.yaml
+- runFlow:
+    file: ../subflows/assert-dashboard.yaml
+- assertVisible: 'Simulate AI summarize'
+- tapOn: 'Simulate AI summarize'
+- waitForAnimationToEnd
+- assertVisible: 'Collections'
+- tapOn: 'New collection'
+- waitForAnimationToEnd

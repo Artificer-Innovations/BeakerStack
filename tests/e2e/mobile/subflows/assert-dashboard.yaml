@@ -1,0 +1,3 @@
+---
+- waitForAnimationToEnd
+- assertVisible: 'AI Summaries'

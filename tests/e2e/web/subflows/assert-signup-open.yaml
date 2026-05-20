@@ -1,0 +1,5 @@
+# Fail fast when signup is gated (waitlist mode) instead of timing out on missing fields.
+---
+- assertVisible:
+    text: 'Create your account'
+    optional: false

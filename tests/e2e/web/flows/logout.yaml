@@ -1,0 +1,15 @@
+# Web E2E: Login then sign out → public home
+url: ${WEB_URL}
+---
+- launchApp
+- waitForAnimationToEnd
+- runFlow:
+    file: ../subflows/navigate-login.yaml
+- runFlow:
+    file: ../subflows/fill-login.yaml
+- runFlow:
+    file: ../subflows/assert-dashboard.yaml
+- runFlow:
+    file: ../subflows/logout.yaml
+- assertVisible: 'Beaker Stack'
+- assertVisible: 'Everything you need to ship a real product.'

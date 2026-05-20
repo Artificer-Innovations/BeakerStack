@@ -1,0 +1,15 @@
+# Fill email signup form (caller must already be on /signup).
+---
+- runFlow:
+    file: assert-signup-open.yaml
+- inputText:
+    id: 'email'
+    text: '${TEST_EMAIL}'
+- inputText:
+    id: 'password'
+    text: '${TEST_PASSWORD}'
+- inputText:
+    id: 'confirm-password'
+    text: '${TEST_PASSWORD}'
+- tapOn: 'Create account'
+- waitForAnimationToEnd

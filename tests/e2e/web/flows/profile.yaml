@@ -1,0 +1,23 @@
+# Web E2E: Edit profile display name
+url: ${WEB_URL}
+---
+- launchApp
+- waitForAnimationToEnd
+- runFlow:
+    file: ../subflows/navigate-login.yaml
+- runFlow:
+    file: ../subflows/fill-login.yaml
+- runFlow:
+    file: ../subflows/assert-dashboard.yaml
+- tapOn:
+    text: 'User menu'
+- tapOn: 'Profile'
+- waitForAnimationToEnd
+- tapOn: 'Edit Profile'
+- waitForAnimationToEnd
+- tapOn: 'Display Name'
+- eraseText
+- inputText: 'E2E Test User'
+- tapOn: 'Update Profile'
+- waitForAnimationToEnd
+- assertVisible: 'E2E Test User'

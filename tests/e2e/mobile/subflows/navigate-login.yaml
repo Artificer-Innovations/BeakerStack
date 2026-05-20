@@ -1,0 +1,3 @@
+---
+- tapOn: 'Sign In'
+- waitForAnimationToEnd

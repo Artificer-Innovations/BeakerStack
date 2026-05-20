@@ -37,6 +37,8 @@ Squash merging to `main` causes painful conflicts on the next `develop` → `mai
 
 <!-- Describe how you tested your changes -->
 
+**E2E (PRs to `develop`):** Web E2E does not run on every push. When ready for merge, get approval from @ZappoMan or comment `run e2e tests`. Merge requires the `e2e` check to pass on the latest commit.
+
 ## Related Issues
 
 <!-- Link to related issues, if any -->

@@ -277,6 +277,8 @@ supabase/logs
 
 # Maestro
 maestro.log
+tests/e2e/results/
+tests/e2e/screenshots/
 # takeScreenshot outputs (written to repo root by default when running e2e flows)
 after-signup.png
 apps/mobile/google-services.json

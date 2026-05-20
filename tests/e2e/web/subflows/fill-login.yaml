@@ -1,0 +1,11 @@
+# Fill email login form (caller must already be on /login).
+---
+- assertVisible: 'Sign in to your account'
+- inputText:
+    id: 'email'
+    text: '${E2E_LOGIN_EMAIL}'
+- inputText:
+    id: 'password'
+    text: '${TEST_PASSWORD}'
+- tapOn: 'Sign in'
+- waitForAnimationToEnd

@@ -1,0 +1,8 @@
+# Web E2E: Unauthenticated /dashboard redirects to login
+url: ${WEB_URL}
+---
+- launchApp
+- waitForAnimationToEnd
+- openLink: ${WEB_URL}dashboard
+- waitForAnimationToEnd
+- assertVisible: 'Sign in to your account'

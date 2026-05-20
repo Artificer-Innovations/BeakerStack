@@ -1,0 +1,5 @@
+# Open signup from marketing home.
+---
+- assertVisible: 'Get started'
+- tapOn: 'Get started'
+- waitForAnimationToEnd

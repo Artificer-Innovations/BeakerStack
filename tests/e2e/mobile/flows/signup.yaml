@@ -1,9 +1,8 @@
-# Mobile E2E: Smoke suite (home + signup)
+# Mobile E2E: Email signup → dashboard
 appId: ${MOBILE_APP_ID}
 ---
 - launchApp
 - waitForAnimationToEnd
-- assertVisible: 'Welcome to Beaker Stack'
 - runFlow:
     file: ../subflows/navigate-signup.yaml
 - runFlow:

@@ -123,6 +123,7 @@ export default function SignupScreen({ navigation }: Props) {
             </View>
           )}
           <TextInput
+            testID='email'
             style={styles.input}
             placeholder='Email address'
             value={email}
@@ -133,6 +134,7 @@ export default function SignupScreen({ navigation }: Props) {
           />
 
           <TextInput
+            testID='password'
             style={styles.input}
             placeholder='Password'
             value={password}
@@ -143,6 +145,7 @@ export default function SignupScreen({ navigation }: Props) {
           />
 
           <TextInput
+            testID='confirm-password'
             style={styles.input}
             placeholder='Confirm password'
             value={confirmPassword}
@@ -153,6 +156,7 @@ export default function SignupScreen({ navigation }: Props) {
           />
 
           <TouchableOpacity
+            testID='signup-submit'
             style={[
               styles.signupButton,
               isLoading && styles.signupButtonDisabled,
