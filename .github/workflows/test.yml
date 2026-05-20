@@ -121,16 +121,18 @@ jobs:
       - name: Stage coverage for upload
         if: always() && matrix.coverage_path != ''
         run: |
-          mkdir -p ".coverage-artifact/${{ matrix.coverage_path }}"
-          cp -a "${{ matrix.coverage_path }}/." ".coverage-artifact/${{ matrix.coverage_path }}/"
+          staging="coverage-artifact-staging/${{ matrix.coverage_path }}"
+          mkdir -p "$staging"
+          cp -a "${{ matrix.coverage_path }}/." "$staging/"
+          test -f "$staging/coverage-final.json"
 
       - name: Upload coverage reports
         if: always() && matrix.coverage_path != ''
         uses: actions/upload-artifact@v4
         with:
           name: unit-coverage-reports-${{ matrix.shard }}
-          path: .coverage-artifact/
-          if-no-files-found: warn
+          path: coverage-artifact-staging/
+          if-no-files-found: error
 
       - name: Upload test log
         if: always()
