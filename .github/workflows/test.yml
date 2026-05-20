@@ -298,14 +298,44 @@ jobs:
           merge-multiple: true
           path: .
 
-      # merge-multiple extracts each artifact into a named subdirectory; flatten
-      # so merge-coverage.js finds apps/*/coverage and logs land under ci/
+      # merge-multiple nests artifacts under unit-coverage-reports-*; each upload
+      # contains only the coverage/ directory contents (not apps/.../coverage).
       - name: Restore layout from downloaded artifacts
         run: |
           shopt -s nullglob
-          for dir in unit-coverage-reports-* unit-coverage-log-* integration-log db-tests-log; do
-            if [ -d "$dir" ]; then
-              cp -a "$dir"/. .
+          declare -A COVERAGE_PATHS=(
+            [mobile]=apps/mobile/coverage
+            [web]=apps/web/coverage
+            [shared]=packages/shared-tests/coverage
+            [billing]=packages/billing/coverage
+            [admin]=packages/admin/coverage
+            [lifecycle-events]=packages/lifecycle-events/coverage
+            [waitlist]=packages/waitlist/coverage
+            [email]=packages/email/coverage
+            [marketing-email]=packages/marketing-email/coverage
+            [observability]=packages/observability/coverage
+          )
+          for dir in unit-coverage-reports-*; do
+            shard="${dir#unit-coverage-reports-}"
+            target="${COVERAGE_PATHS[$shard]:-}"
+            if [ -n "$target" ]; then
+              mkdir -p "$target"
+              cp -a "$dir"/. "$target/"
+            fi
+          done
+          mkdir -p ci
+          for dir in unit-coverage-log-*; do
+            if [ -f "$dir"/*.log ]; then
+              cp -a "$dir"/*.log ci/
+            elif [ -d "$dir/ci" ]; then
+              cp -a "$dir"/ci/. ci/
+            fi
+          done
+          for dir in integration-log db-tests-log; do
+            if [ -f "$dir"/*.log ]; then
+              cp -a "$dir"/*.log ci/
+            elif [ -d "$dir/ci" ]; then
+              cp -a "$dir"/ci/. ci/
             fi
           done
 
