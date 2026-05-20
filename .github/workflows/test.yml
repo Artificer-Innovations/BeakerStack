@@ -290,7 +290,15 @@ jobs:
           merge-multiple: true
           path: .
 
-      - name: Download test logs
+      - name: Download unit test logs
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: unit-coverage-log-*
+          merge-multiple: true
+          path: .
+
+      - name: Download integration and db test logs
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
@@ -324,19 +332,11 @@ jobs:
             fi
           done
           mkdir -p ci
-          for dir in unit-coverage-log-*; do
-            if [ -f "$dir"/*.log ]; then
-              cp -a "$dir"/*.log ci/
-            elif [ -d "$dir/ci" ]; then
-              cp -a "$dir"/ci/. ci/
-            fi
-          done
-          for dir in integration-log db-tests-log; do
-            if [ -f "$dir"/*.log ]; then
-              cp -a "$dir"/*.log ci/
-            elif [ -d "$dir/ci" ]; then
-              cp -a "$dir"/ci/. ci/
-            fi
+          for dir in unit-coverage-log-* integration-log db-tests-log; do
+            [ -d "$dir" ] || continue
+            while IFS= read -r -d '' logfile; do
+              cp -a "$logfile" "ci/$(basename "$logfile")"
+            done < <(find "$dir" -type f -name '*.log' -print0)
           done
 
       - name: Merge coverage and test logs
