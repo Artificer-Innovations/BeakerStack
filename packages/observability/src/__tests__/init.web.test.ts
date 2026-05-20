@@ -15,7 +15,11 @@ describe('initObservability (web)', () => {
     resetForTesting();
   });
 
-  const config = { project: 'test', environment: 'test' };
+  const config = {
+    project: 'test',
+    environment: 'test',
+    dsn: 'https://public@o0.ingest.sentry.io/0',
+  };
 
   it('calls Sentry.init on first call', async () => {
     await initObservability(config);
@@ -28,8 +32,11 @@ describe('initObservability (web)', () => {
     expect(SentryMock.init).toHaveBeenCalledTimes(1);
   });
 
-  it('throws on OTLP config', async () => {
-    await expect(initObservability({ ...config, exporter: { type: 'otlp' } })).rejects.toThrow(/OTLP/);
+  it('swallows OTLP config validation errors', async () => {
+    await expect(
+      initObservability({ ...config, exporter: { type: 'otlp' } })
+    ).resolves.toBeUndefined();
+    expect(SentryMock.init).not.toHaveBeenCalled();
   });
 
   it('skips init when getClient already returns a client', async () => {
@@ -45,10 +52,18 @@ describe('initObservability (web)', () => {
     );
   });
 
-  it('omits dsn when not provided', async () => {
-    await initObservability(config);
-    const call = vi.mocked(SentryMock.init).mock.calls[0][0] as any;
-    expect(call).not.toHaveProperty('dsn');
+  it('skips init when dsn is not provided', async () => {
+    await initObservability({ project: 'test', environment: 'test' });
+    expect(SentryMock.init).not.toHaveBeenCalled();
+  });
+
+  it('skips init when dsn is blank', async () => {
+    await initObservability({
+      project: 'test',
+      environment: 'test',
+      dsn: '  ',
+    });
+    expect(SentryMock.init).not.toHaveBeenCalled();
   });
 
   it('passes release when provided', async () => {
@@ -96,6 +111,18 @@ describe('initObservability (web)', () => {
     const { beforeSend } = vi.mocked(SentryMock.init).mock.calls[0][0] as any;
     const event = { message: 'something happened' };
     expect(beforeSend(event)).toBe(event);
+  });
+
+  it('does not mark initialized when Sentry.init throws', async () => {
+    vi.mocked(SentryMock.init).mockImplementationOnce(() => {
+      throw new Error('init failed');
+    });
+
+    await initObservability(config);
+    expect(SentryMock.init).toHaveBeenCalledTimes(1);
+
+    await initObservability(config);
+    expect(SentryMock.init).toHaveBeenCalledTimes(2);
   });
 });
 

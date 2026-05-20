@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import type { ObservabilityConfig, ObservabilityHandle } from '../types.js';
 import { ObservabilityContext } from '../context.js';
 import { hashUserId, scrubEmail } from '../pii.js';
+import { getReactNavigationIntegration } from '../reactNavigationIntegration.native.js';
 
 interface Props {
   config: ObservabilityConfig;
@@ -32,14 +33,9 @@ export function ObservabilityProvider({
   }, []);
 
   useEffect(() => {
-    if (!Sentry || !navigationRef?.current) return;
-    try {
-      const instrumentation = new Sentry.ReactNavigationInstrumentation();
-      instrumentation.registerNavigationContainer(navigationRef);
-    } catch {
-      // instrumentation not available
-    }
-  }, [Sentry, navigationRef]);
+    if (!navigationRef?.current) return;
+    getReactNavigationIntegration()?.registerNavigationContainer(navigationRef);
+  }, [navigationRef]);
 
   const handle = useMemo<ObservabilityHandle>(
     () => ({

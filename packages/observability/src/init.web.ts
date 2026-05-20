@@ -1,6 +1,10 @@
 import type { ObservabilityConfig } from './types.js';
-import { validateConfig } from './schema.js';
-import { TRACE_SAMPLE_RATE, ERROR_SAMPLE_RATE, REPLAY_SAMPLE_RATE } from './defaults.js';
+import { normalizeObservabilityConfig, validateConfig } from './schema.js';
+import {
+  TRACE_SAMPLE_RATE,
+  ERROR_SAMPLE_RATE,
+  REPLAY_SAMPLE_RATE,
+} from './defaults.js';
 
 // Lazy module reference — avoids top-level await, which is incompatible with
 // ES2020 / Chrome 87 / Firefox 78 build targets.
@@ -13,32 +17,52 @@ async function getSentry(): Promise<typeof import('@sentry/react') | null> {
   return _Sentry;
 }
 
-export async function initObservability(config: ObservabilityConfig): Promise<void> {
-  const Sentry = await getSentry();
-  if (!Sentry) return;
-
-  if (_initialized || Sentry.getClient() != null) {
-    _initialized = true;
+function logInitFailure(err: unknown): void {
+  if (typeof process !== 'undefined' && process.env?.['NODE_ENV'] === 'test') {
     return;
   }
+  console.warn('[observability] init failed:', err);
+}
 
-  validateConfig(config);
-  _initialized = true;
+export async function initObservability(
+  config: ObservabilityConfig
+): Promise<void> {
+  try {
+    const Sentry = await getSentry();
+    if (!Sentry) return;
 
-  Sentry.init({
-    ...(config.dsn != null && { dsn: config.dsn }),
-    environment: config.environment,
-    ...(config.release != null && { release: config.release }),
-    tracesSampleRate: config.sampling?.traces ?? TRACE_SAMPLE_RATE,
-    replaysSessionSampleRate: config.sampling?.replay ?? REPLAY_SAMPLE_RATE,
-    replaysOnErrorSampleRate: config.sampling?.replayOnError ?? ERROR_SAMPLE_RATE,
-    beforeSend(event) {
-      if (!config.pii?.captureIp && event.user) {
-        delete event.user.ip_address;
-      }
-      return event;
-    },
-  });
+    if (_initialized || Sentry.getClient() != null) {
+      _initialized = true;
+      return;
+    }
+
+    const normalized = normalizeObservabilityConfig(config);
+    validateConfig(normalized);
+
+    if (!normalized.dsn) {
+      return;
+    }
+
+    Sentry.init({
+      dsn: normalized.dsn,
+      environment: normalized.environment,
+      ...(normalized.release != null && { release: normalized.release }),
+      tracesSampleRate: normalized.sampling?.traces ?? TRACE_SAMPLE_RATE,
+      replaysSessionSampleRate:
+        normalized.sampling?.replay ?? REPLAY_SAMPLE_RATE,
+      replaysOnErrorSampleRate:
+        normalized.sampling?.replayOnError ?? ERROR_SAMPLE_RATE,
+      beforeSend(event) {
+        if (!normalized.pii?.captureIp && event.user) {
+          delete event.user.ip_address;
+        }
+        return event;
+      },
+    });
+    _initialized = true;
+  } catch (err) {
+    logInitFailure(err);
+  }
 }
 
 export function resetForTesting(): void {

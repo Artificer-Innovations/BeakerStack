@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
 
+describe('root barrel exports', () => {
+  it('exports PII helpers', async () => {
+    const mod = await import('../index.js');
+    expect(typeof mod.hashUserId).toBe('function');
+    expect(typeof mod.scrubEmail).toBe('function');
+    expect(typeof mod.scrubRequest).toBe('function');
+  });
+});
+
 describe('web barrel exports', () => {
   it('exports expected symbols', async () => {
     const mod = await import('../web.js');

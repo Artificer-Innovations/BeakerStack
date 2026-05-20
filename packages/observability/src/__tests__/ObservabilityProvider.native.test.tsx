@@ -14,9 +14,10 @@ vi.mock('@sentry/react-native', () => ({
   withScope: vi.fn((fn: (s: unknown) => unknown) => fn({})),
   startSpan: vi.fn((_opts: unknown, fn: () => unknown) => fn()),
   getClient: vi.fn().mockReturnValue(null),
-  ReactNavigationInstrumentation: vi.fn().mockImplementation(() => ({
+  reactNavigationIntegration: vi.fn().mockImplementation(() => ({
     registerNavigationContainer: vi.fn(),
   })),
+  reactNativeTracingIntegration: vi.fn().mockReturnValue({}),
 }));
 
 const config = { project: 'test', environment: 'test' };

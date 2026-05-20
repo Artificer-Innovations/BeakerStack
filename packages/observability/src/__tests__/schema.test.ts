@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateConfig } from '../schema.js';
+import { normalizeObservabilityConfig, validateConfig } from '../schema.js';
 
 describe('validateConfig', () => {
   const base = { project: 'test', environment: 'test' };
@@ -11,12 +11,47 @@ describe('validateConfig', () => {
     expect(() => validateConfig({ ...base, project: '' })).toThrow();
   });
   it('throws on sampling out of range', () => {
-    expect(() => validateConfig({ ...base, sampling: { traces: 1.5 } })).toThrow();
+    expect(() =>
+      validateConfig({ ...base, sampling: { traces: 1.5 } })
+    ).toThrow();
   });
   it('throws on OTLP exporter', () => {
-    expect(() => validateConfig({ ...base, exporter: { type: 'otlp' } })).toThrow(/OTLP/);
+    expect(() =>
+      validateConfig({ ...base, exporter: { type: 'otlp' } })
+    ).toThrow(/OTLP/);
   });
   it('passes sentry exporter', () => {
-    expect(() => validateConfig({ ...base, exporter: { type: 'sentry' } })).not.toThrow();
+    expect(() =>
+      validateConfig({ ...base, exporter: { type: 'sentry' } })
+    ).not.toThrow();
+  });
+  it('throws on malformed dsn', () => {
+    expect(() => validateConfig({ ...base, dsn: 'not-a-valid-dsn' })).toThrow();
+  });
+});
+
+describe('normalizeObservabilityConfig', () => {
+  it('treats blank dsn as absent', () => {
+    expect(
+      normalizeObservabilityConfig({
+        project: 'test',
+        environment: 'test',
+        dsn: '   ',
+      })
+    ).not.toHaveProperty('dsn');
+  });
+
+  it('trims environment and release', () => {
+    expect(
+      normalizeObservabilityConfig({
+        project: 'test',
+        environment: ' preview ',
+        release: ' 1.2.3 ',
+      })
+    ).toEqual({
+      project: 'test',
+      environment: 'preview',
+      release: '1.2.3',
+    });
   });
 });

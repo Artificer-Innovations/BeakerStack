@@ -22,17 +22,33 @@ const piiSchema = z.object({
 export const observabilityConfigSchema = z.object({
   project: z.string().min(1),
   environment: z.string().min(1),
-  release: z.string().optional(),
-  dsn: z.string().optional(),
+  release: z.string().min(1).optional(),
+  dsn: z.string().url().optional(),
   exporter: exporterSchema.optional(),
   sampling: samplingSchema.optional(),
   pii: piiSchema.optional(),
 });
 
-export function validateConfig(config: ObservabilityConfig): void {
-  observabilityConfigSchema.parse(config);
+export function normalizeObservabilityConfig(
+  config: ObservabilityConfig
+): ObservabilityConfig {
+  const { dsn: rawDsn, release: rawRelease, ...rest } = config;
+  const dsn = rawDsn?.trim();
+  const release = rawRelease?.trim();
 
-  if (config.exporter?.type === 'otlp') {
+  return {
+    ...rest,
+    environment: config.environment.trim(),
+    ...(dsn ? { dsn } : {}),
+    ...(release ? { release } : {}),
+  };
+}
+
+export function validateConfig(config: ObservabilityConfig): void {
+  const normalized = normalizeObservabilityConfig(config);
+  observabilityConfigSchema.parse(normalized);
+
+  if (normalized.exporter?.type === 'otlp') {
     throw new Error(
       'OTLP exporter is not supported in v1 — set exporter.type to "sentry" or remove the exporter field. ' +
         'OTLP support is tracked for a future release.'
