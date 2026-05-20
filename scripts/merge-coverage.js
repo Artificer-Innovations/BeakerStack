@@ -11,6 +11,7 @@
  * - packages/waitlist/coverage (Vitest)
  * - packages/email/coverage (Vitest)
  * - packages/observability/coverage (Vitest)
+ * - packages/logger/coverage (Vitest)
  */
 
 const fs = require('fs');
@@ -27,6 +28,7 @@ const coverageDirs = [
   { name: 'waitlist', path: 'packages/waitlist/coverage' },
   { name: 'email', path: 'packages/email/coverage' },
   { name: 'observability', path: 'packages/observability/coverage' },
+  { name: 'logger', path: 'packages/logger/coverage' },
 ];
 
 const outputDir = path.join(__dirname, '..', 'coverage');

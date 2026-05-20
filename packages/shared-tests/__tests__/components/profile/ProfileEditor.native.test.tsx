@@ -77,7 +77,7 @@ jest.mock('@beakerstack/shared/components/profile/AvatarUpload.native', () => ({
 }));
 
 // Mock Logger
-jest.mock('@beakerstack/shared/utils/logger', () => ({
+jest.mock('@beakerstack/logger', () => ({
   Logger: {
     debug: jest.fn(),
     warn: jest.fn(),

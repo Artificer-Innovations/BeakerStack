@@ -41,5 +41,3 @@ export * from './validation/profileSchema';
 // Metro (mobile) and Vite (web) will automatically resolve to .native.tsx or .web.tsx
 // Apps should import directly from './components/profile/ProfileAvatar' etc.
 // Exporting both would cause conflicts, so let the bundlers handle platform resolution
-
-export * from './utils/logger';

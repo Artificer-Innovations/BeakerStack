@@ -11,7 +11,7 @@ import { FormInput } from '../forms/FormInput.web';
 import { FormButton } from '../forms/FormButton.web';
 import { FormError } from '../forms/FormError.web';
 import { AvatarUpload } from './AvatarUpload.web';
-import { Logger } from '../../utils/logger';
+import { Logger } from '@beakerstack/logger';
 
 export interface ProfileEditorProps {
   onSuccess?: () => void;

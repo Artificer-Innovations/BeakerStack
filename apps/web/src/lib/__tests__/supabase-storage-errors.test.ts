@@ -15,7 +15,7 @@ describe('supabase storage error / SSR guards', () => {
       env?: Record<string, string>;
     } = {}
   ) {
-    vi.doMock('@beakerstack/shared/utils/logger', () => ({
+    vi.doMock('@beakerstack/logger', () => ({
       Logger: { warn: vi.fn(), debug: vi.fn(), error: vi.fn(), info: vi.fn() },
     }));
     vi.doMock('@supabase/supabase-js', () => ({
@@ -109,7 +109,7 @@ describe('supabase storage error / SSR guards', () => {
   });
 
   it('falls back to placeholder URL/anon-key when env vars are undefined in node', async () => {
-    vi.doMock('@beakerstack/shared/utils/logger', () => ({
+    vi.doMock('@beakerstack/logger', () => ({
       Logger: { warn: vi.fn(), debug: vi.fn(), error: vi.fn(), info: vi.fn() },
     }));
     const createClient = vi.fn(() => ({}));

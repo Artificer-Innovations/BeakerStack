@@ -1,16 +1,17 @@
-import { Logger, log } from '@beakerstack/shared/utils/logger';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { Logger, log } from './index.js';
 
 describe('Logger', () => {
-  let consoleDebugSpy: jest.SpyInstance;
-  let consoleInfoSpy: jest.SpyInstance;
-  let consoleWarnSpy: jest.SpyInstance;
-  let consoleErrorSpy: jest.SpyInstance;
+  let consoleDebugSpy: ReturnType<typeof vi.spyOn>;
+  let consoleInfoSpy: ReturnType<typeof vi.spyOn>;
+  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
-    consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation();
-    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    consoleDebugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    consoleInfoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -24,7 +25,7 @@ describe('Logger', () => {
   describe('debug', () => {
     it('should log debug messages in dev environment', () => {
       // @ts-expect-error - accessing private __DEV__ for testing
-      global.__DEV__ = true;
+      globalThis.__DEV__ = true;
       Logger.debug('test message', { key: 'value' });
       expect(consoleDebugSpy).toHaveBeenCalledWith('test message', {
         key: 'value',
@@ -33,15 +34,15 @@ describe('Logger', () => {
 
     it('should not log debug messages in production', () => {
       // @ts-expect-error - accessing private __DEV__ for testing
-      global.__DEV__ = false;
+      globalThis.__DEV__ = false;
       Logger.debug('test message');
       expect(consoleDebugSpy).not.toHaveBeenCalled();
     });
 
     it('should call telemetry handler for debug messages in dev', () => {
       // @ts-expect-error - accessing private __DEV__ for testing
-      global.__DEV__ = true;
-      const telemetryHandler = jest.fn();
+      globalThis.__DEV__ = true;
+      const telemetryHandler = vi.fn();
       Logger.setTelemetryHandler(telemetryHandler);
       Logger.debug('test message');
       expect(telemetryHandler).toHaveBeenCalledWith('debug', ['test message']);
@@ -57,7 +58,7 @@ describe('Logger', () => {
     });
 
     it('should call telemetry handler for info messages', () => {
-      const telemetryHandler = jest.fn();
+      const telemetryHandler = vi.fn();
       Logger.setTelemetryHandler(telemetryHandler);
       Logger.info('info message');
       expect(telemetryHandler).toHaveBeenCalledWith('info', ['info message']);
@@ -74,7 +75,7 @@ describe('Logger', () => {
     });
 
     it('should call telemetry handler for warn messages', () => {
-      const telemetryHandler = jest.fn();
+      const telemetryHandler = vi.fn();
       Logger.setTelemetryHandler(telemetryHandler);
       Logger.warn('warning message');
       expect(telemetryHandler).toHaveBeenCalledWith('warn', [
@@ -91,7 +92,7 @@ describe('Logger', () => {
     });
 
     it('should call telemetry handler for error messages', () => {
-      const telemetryHandler = jest.fn();
+      const telemetryHandler = vi.fn();
       Logger.setTelemetryHandler(telemetryHandler);
       Logger.error('error message');
       expect(telemetryHandler).toHaveBeenCalledWith('error', ['error message']);
@@ -100,14 +101,14 @@ describe('Logger', () => {
 
   describe('setTelemetryHandler', () => {
     it('should set and use telemetry handler', () => {
-      const telemetryHandler = jest.fn();
+      const telemetryHandler = vi.fn();
       Logger.setTelemetryHandler(telemetryHandler);
       Logger.info('test');
       expect(telemetryHandler).toHaveBeenCalledWith('info', ['test']);
     });
 
     it('should allow removing telemetry handler by passing null', () => {
-      const telemetryHandler = jest.fn();
+      const telemetryHandler = vi.fn();
       Logger.setTelemetryHandler(telemetryHandler);
       Logger.setTelemetryHandler(null);
       Logger.info('test');
@@ -115,7 +116,7 @@ describe('Logger', () => {
     });
 
     it('should handle multiple log calls with telemetry handler', () => {
-      const telemetryHandler = jest.fn();
+      const telemetryHandler = vi.fn();
       Logger.setTelemetryHandler(telemetryHandler);
       Logger.info('info1');
       Logger.warn('warn1');
@@ -130,14 +131,14 @@ describe('Logger', () => {
   describe('environment detection', () => {
     it('should detect dev environment from __DEV__', () => {
       // @ts-expect-error - accessing private __DEV__ for testing
-      global.__DEV__ = true;
+      globalThis.__DEV__ = true;
       Logger.debug('test');
       expect(consoleDebugSpy).toHaveBeenCalled();
     });
 
     it('should detect production from NODE_ENV', () => {
       // @ts-expect-error - accessing private __DEV__ for testing
-      delete global.__DEV__;
+      delete globalThis.__DEV__;
       const originalEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'production';
       Logger.debug('test');
@@ -147,7 +148,7 @@ describe('Logger', () => {
 
     it('should detect development from NODE_ENV', () => {
       // @ts-expect-error - accessing private __DEV__ for testing
-      delete global.__DEV__;
+      delete globalThis.__DEV__;
       const originalEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'development';
       Logger.debug('test');
@@ -157,7 +158,7 @@ describe('Logger', () => {
 
     it('uses process.env.NODE_ENV when __DEV__ is undefined and process exists', () => {
       // @ts-expect-error - accessing private __DEV__ for testing
-      delete global.__DEV__;
+      delete globalThis.__DEV__;
       const originalEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'test';
       Logger.debug('env branch');
@@ -167,49 +168,44 @@ describe('Logger', () => {
 
     it('should return false when __DEV__ and NODE_ENV are both undefined', () => {
       // @ts-expect-error - accessing private __DEV__ for testing
-      delete global.__DEV__;
+      delete globalThis.__DEV__;
       const originalEnv = process.env.NODE_ENV;
-      const originalProcess = (globalThis as any).process;
+      const originalProcess = (globalThis as { process?: unknown }).process;
 
-      // Delete NODE_ENV if it exists
       if (process.env.NODE_ENV !== undefined) {
         delete process.env.NODE_ENV;
       }
-      // Mock globalThis.process to be undefined
-      delete (globalThis as any).process;
+      delete (globalThis as { process?: unknown }).process;
 
       Logger.debug('test');
       expect(consoleDebugSpy).not.toHaveBeenCalled();
 
-      // Restore process first, then NODE_ENV
       if (originalProcess !== undefined) {
-        (globalThis as any).process = originalProcess;
+        (globalThis as { process?: unknown }).process = originalProcess;
       }
-      if (originalEnv !== undefined && (globalThis as any).process) {
-        (globalThis as any).process.env.NODE_ENV = originalEnv;
+      if (
+        originalEnv !== undefined &&
+        (globalThis as { process?: unknown }).process
+      ) {
+        process.env.NODE_ENV = originalEnv;
       }
     });
   });
 
   describe('default case handling', () => {
     it('should handle unknown log level with default case', () => {
-      // Test the default case by calling log() directly with an invalid level
-      // We use type assertion to bypass TypeScript's type checking for this test
-      const telemetryHandler = jest.fn();
+      const telemetryHandler = vi.fn();
       Logger.setTelemetryHandler(telemetryHandler);
 
-      // Clear spies to get fresh counts
       consoleDebugSpy.mockClear();
       consoleInfoSpy.mockClear();
       consoleWarnSpy.mockClear();
       consoleErrorSpy.mockClear();
       telemetryHandler.mockClear();
 
-      // Call log with an invalid level to trigger the default case
       // @ts-expect-error - intentionally passing invalid level to test default case
-      log('invalid-level' as any, ['test message']);
+      log('invalid-level' as never, ['test message']);
 
-      // Default case should call console.debug and forward to telemetry as 'debug'
       expect(consoleDebugSpy).toHaveBeenCalledWith('test message');
       expect(telemetryHandler).toHaveBeenCalledWith('debug', ['test message']);
     });

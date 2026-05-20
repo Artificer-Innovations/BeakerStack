@@ -86,7 +86,7 @@ vi.mock('@beakerstack/shared/components/profile/ProfileEditor.web', () => ({
 }));
 
 const loggerError = vi.fn();
-vi.mock('@beakerstack/shared/utils/logger', () => ({
+vi.mock('@beakerstack/logger', () => ({
   Logger: { error: (...a: unknown[]) => loggerError(...a) },
 }));
 

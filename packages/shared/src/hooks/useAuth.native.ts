@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Platform } from 'react-native';
 import type { SupabaseClient, User, Session } from '@supabase/supabase-js';
 import type { AuthHookReturn } from '../types/auth';
-import { Logger } from '../utils/logger';
+import { Logger } from '@beakerstack/logger';
 import Constants from 'expo-constants';
 
 type GoogleSignInModule = {

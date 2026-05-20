@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-
 declare const __DEV__: boolean | undefined;
 
 type LogArgs = Array<unknown>;

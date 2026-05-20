@@ -5,11 +5,13 @@ import {
   ObservabilityProvider,
 } from '@beakerstack/observability/web';
 import { beakerstackObservabilityConfig } from './config/observability';
+import { setupLogging } from './setupLogging';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { PublicShell } from './PublicShell';
 import './index.css';
 
 void initObservability(beakerstackObservabilityConfig);
+setupLogging();
 
 const rootElement = document.getElementById('root');
 

@@ -1,7 +1,7 @@
 {
-  "name": "@beakerstack/lifecycle-events",
+  "name": "@beakerstack/logger",
   "version": "1.0.0",
-  "description": "Lifecycle event bus for BeakerStack — framework-wide stable public API",
+  "description": "Shared logging facade for BeakerStack packages and apps",
   "private": true,
   "type": "module",
   "main": "src/index.ts",
@@ -14,9 +14,6 @@
     "type-check": "tsc --noEmit",
     "test": "vitest --run",
     "test:coverage": "vitest --coverage --run"
-  },
-  "dependencies": {
-    "@beakerstack/logger": "1.0.0"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.18.0",

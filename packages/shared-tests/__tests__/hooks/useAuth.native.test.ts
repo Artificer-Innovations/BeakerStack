@@ -75,7 +75,7 @@ jest.mock(
   { virtual: true }
 );
 
-jest.mock('@beakerstack/shared/utils/logger', () => ({
+jest.mock('@beakerstack/logger', () => ({
   Logger: {
     debug: jest.fn(),
     info: jest.fn(),
@@ -415,7 +415,7 @@ describe('useAuth (Native)', () => {
   });
 
   it('should warn when getAllKeys fails in catch path after signOut throws', async () => {
-    const { Logger } = require('@beakerstack/shared/utils/logger');
+    const { Logger } = require('@beakerstack/logger');
     const { mockClient, mockStorage } = createMockSupabaseClient(true);
     (mockClient.auth.signOut as jest.Mock).mockRejectedValue(
       new Error('Network error')
@@ -508,7 +508,7 @@ describe('useAuth (Native)', () => {
   });
 
   it('should warn when configureGoogleSignIn called without webClientId', () => {
-    const { Logger } = require('@beakerstack/shared/utils/logger');
+    const { Logger } = require('@beakerstack/logger');
     configureGoogleSignIn({});
     expect(Logger.warn).toHaveBeenCalledWith(
       '[useAuth] Google Sign-In not configured: webClientId is missing',
@@ -543,7 +543,7 @@ describe('Google Sign-In and configureGoogleSignIn', () => {
   // Runs first: @react-native-google-signin/google-signin must not be cached yet
   // so `throwOnFactory` is honored at module evaluation (import().catch path).
   it('should log Logger.error when Google Sign-In import fails during configure', async () => {
-    const { Logger } = require('@beakerstack/shared/utils/logger');
+    const { Logger } = require('@beakerstack/logger');
     await runDeferredGoogleConfigure(() => {
       googleSignInMockControl.throwOnFactory = true;
       configureGoogleSignIn({ webClientId: 'test-web-client-id' });
@@ -592,7 +592,7 @@ describe('Google Sign-In and configureGoogleSignIn', () => {
   });
 
   it('should log Logger.error when GoogleSignin.configure throws', async () => {
-    const { Logger } = require('@beakerstack/shared/utils/logger');
+    const { Logger } = require('@beakerstack/logger');
     mockGoogleSignin.configure.mockImplementationOnce(() => {
       throw new Error('configure boom');
     });
@@ -632,7 +632,7 @@ describe('Google Sign-In and configureGoogleSignIn', () => {
   });
 
   it('should handle Google sign in when module not available', async () => {
-    const { Logger } = require('@beakerstack/shared/utils/logger');
+    const { Logger } = require('@beakerstack/logger');
     googleSignInMockControl.throwOnAccess = true;
     const { mockClient } = createMockSupabaseClient();
     const { result } = renderHook(() => useAuth(mockClient));
@@ -776,7 +776,7 @@ describe('Google Sign-In and configureGoogleSignIn', () => {
   });
 
   it('should throw when Google Sign-In not configured before signInWithGoogle', async () => {
-    const { Logger } = require('@beakerstack/shared/utils/logger');
+    const { Logger } = require('@beakerstack/logger');
     const { mockClient } = createMockSupabaseClient();
     const { result } = renderHook(() => useAuth(mockClient));
 
@@ -797,7 +797,7 @@ describe('Google Sign-In and configureGoogleSignIn', () => {
   });
 
   it('should log unknown Google error code and rethrow', async () => {
-    const { Logger } = require('@beakerstack/shared/utils/logger');
+    const { Logger } = require('@beakerstack/logger');
     mockGoogleSignin.signIn.mockRejectedValueOnce({ code: 'UNKNOWN_CODE' });
     const { mockClient } = createMockSupabaseClient();
     await runDeferredGoogleConfigure(() =>

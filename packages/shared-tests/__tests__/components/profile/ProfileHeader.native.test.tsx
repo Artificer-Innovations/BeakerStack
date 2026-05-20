@@ -17,7 +17,7 @@ jest.mock('react-native', () => {
 });
 
 // Mock Logger
-jest.mock('@beakerstack/shared/utils/logger', () => ({
+jest.mock('@beakerstack/logger', () => ({
   Logger: {
     warn: jest.fn(),
   },
@@ -159,7 +159,7 @@ describe('ProfileHeader (Native)', () => {
   });
 
   it('logs warning when website open fails', async () => {
-    const { Logger } = jest.requireMock('@beakerstack/shared/utils/logger') as {
+    const { Logger } = jest.requireMock('@beakerstack/logger') as {
       Logger: { warn: jest.Mock };
     };
     jest

@@ -10,7 +10,7 @@ import type {
   UserProfileUpdate,
 } from '../types/profile';
 import type { TablesInsert } from '../types/database';
-import { Logger } from '../utils/logger';
+import { Logger } from '@beakerstack/logger';
 
 export interface ProfileHookReturn {
   supabaseClient: SupabaseClient;

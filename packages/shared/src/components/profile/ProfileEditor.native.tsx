@@ -13,7 +13,7 @@ import { FormInput } from '../forms/FormInput.native';
 import { FormButton } from '../forms/FormButton.native';
 import { FormError } from '../forms/FormError.native';
 import { AvatarUpload } from './AvatarUpload.native';
-import { Logger } from '../../utils/logger';
+import { Logger } from '@beakerstack/logger';
 
 export interface ProfileEditorProps {
   onSuccess?: () => void;

@@ -2,7 +2,7 @@
 
 Framework-wide lifecycle event bus. Stable public API — event names follow a deprecation cycle before removal.
 
-Zero runtime dependencies. No React, no Supabase client.
+Depends on `@beakerstack/logger` for listener failure reporting. No React, no Supabase client.
 
 ## Event taxonomy
 

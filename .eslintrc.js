@@ -63,6 +63,12 @@ module.exports = {
       },
     },
     {
+      files: ['packages/logger/src/**'],
+      rules: {
+        'no-console': 'off',
+      },
+    },
+    {
       files: ['scripts/**/*.mjs'],
       rules: {
         'no-console': 'off',

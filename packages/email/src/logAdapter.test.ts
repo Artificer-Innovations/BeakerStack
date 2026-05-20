@@ -1,4 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@beakerstack/logger', () => ({
+  Logger: {
+    info: vi.fn(),
+  },
+}));
+
+import { Logger } from '@beakerstack/logger';
 import { createLogEmailAdapter } from './logAdapter.js';
 
 describe('createLogEmailAdapter', () => {
@@ -15,15 +23,13 @@ describe('createLogEmailAdapter', () => {
     expect(log.mock.calls[0]?.[0]).toContain('Hi plain');
   });
 
-  it('uses console.log when no logger is passed', async () => {
-    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  it('uses Logger.info when no logger is passed', async () => {
     const adapter = createLogEmailAdapter();
     await adapter.send({
       to: 'a@example.com',
       subject: 'Invite',
       html: '<p>Hi</p>',
     });
-    expect(spy).toHaveBeenCalled();
-    spy.mockRestore();
+    expect(Logger.info).toHaveBeenCalled();
   });
 });
