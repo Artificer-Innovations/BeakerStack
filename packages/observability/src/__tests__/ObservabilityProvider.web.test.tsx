@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, waitFor } from '@testing-library/react';
 import { ObservabilityProvider } from '../components/ObservabilityProvider.web.js';
 import { useObservability } from '../context.js';
 import * as SentryMock from '@sentry/react';
@@ -21,9 +21,11 @@ function Consumer({ action }: { action?: string }) {
   React.useEffect(() => {
     if (action === 'setUser') obs.setUser('user-123');
     if (action === 'clearUser') obs.setUser(null);
-    if (action === 'breadcrumb') obs.addBreadcrumb({ message: 'hello user@example.com' });
+    if (action === 'breadcrumb')
+      obs.addBreadcrumb({ message: 'hello user@example.com' });
     if (action === 'captureException') obs.captureException(new Error('oops'));
-    if (action === 'captureExceptionCtx') obs.captureException(new Error('oops'), { key: 'val' });
+    if (action === 'captureExceptionCtx')
+      obs.captureException(new Error('oops'), { key: 'val' });
     if (action === 'captureMessage') obs.captureMessage('hello', 'warning');
     if (action === 'withScope') obs.withScope(scope => scope);
     if (action === 'startSpan') obs.startSpan('op', () => 'done');
@@ -48,19 +50,22 @@ describe('ObservabilityProvider (web)', () => {
   it('hashes user id before setUser', async () => {
     render(
       <ObservabilityProvider config={config}>
-        <Consumer action="setUser" />
+        <Consumer action='setUser' />
       </ObservabilityProvider>
     );
-    await act(async () => {});
-    expect(SentryMock.setUser).toHaveBeenCalledWith(
-      expect.objectContaining({ id: expect.stringMatching(/^u_[0-9a-f]{64}$/) })
-    );
+    await waitFor(() => {
+      expect(SentryMock.setUser).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: expect.stringMatching(/^u_[0-9a-f]{64}$/),
+        })
+      );
+    });
   });
 
   it('passes null to setUser on clearUser', async () => {
     render(
       <ObservabilityProvider config={config}>
-        <Consumer action="clearUser" />
+        <Consumer action='clearUser' />
       </ObservabilityProvider>
     );
     await act(async () => {});
@@ -70,7 +75,7 @@ describe('ObservabilityProvider (web)', () => {
   it('scrubs email from breadcrumb message', async () => {
     render(
       <ObservabilityProvider config={config}>
-        <Consumer action="breadcrumb" />
+        <Consumer action='breadcrumb' />
       </ObservabilityProvider>
     );
     await act(async () => {});
@@ -82,17 +87,20 @@ describe('ObservabilityProvider (web)', () => {
   it('captureException without context', async () => {
     render(
       <ObservabilityProvider config={config}>
-        <Consumer action="captureException" />
+        <Consumer action='captureException' />
       </ObservabilityProvider>
     );
     await act(async () => {});
-    expect(SentryMock.captureException).toHaveBeenCalledWith(expect.any(Error), undefined);
+    expect(SentryMock.captureException).toHaveBeenCalledWith(
+      expect.any(Error),
+      undefined
+    );
   });
 
   it('captureException with context', async () => {
     render(
       <ObservabilityProvider config={config}>
-        <Consumer action="captureExceptionCtx" />
+        <Consumer action='captureExceptionCtx' />
       </ObservabilityProvider>
     );
     await act(async () => {});
@@ -105,7 +113,7 @@ describe('ObservabilityProvider (web)', () => {
   it('captureMessage with level', async () => {
     render(
       <ObservabilityProvider config={config}>
-        <Consumer action="captureMessage" />
+        <Consumer action='captureMessage' />
       </ObservabilityProvider>
     );
     await act(async () => {});
@@ -115,7 +123,7 @@ describe('ObservabilityProvider (web)', () => {
   it('withScope calls Sentry.withScope', async () => {
     render(
       <ObservabilityProvider config={config}>
-        <Consumer action="withScope" />
+        <Consumer action='withScope' />
       </ObservabilityProvider>
     );
     await act(async () => {});
@@ -125,7 +133,7 @@ describe('ObservabilityProvider (web)', () => {
   it('startSpan calls Sentry.startSpan', async () => {
     render(
       <ObservabilityProvider config={config}>
-        <Consumer action="startSpan" />
+        <Consumer action='startSpan' />
       </ObservabilityProvider>
     );
     await act(async () => {});

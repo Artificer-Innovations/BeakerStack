@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { ObservabilityProvider } from '../components/ObservabilityProvider.native.js';
 import { useObservability } from '../context.js';
 import * as SentryMock from '@sentry/react-native';
@@ -49,9 +49,12 @@ describe('ObservabilityProvider (native)', () => {
         <Consumer action='setUser' />
       </ObservabilityProvider>
     );
-    await act(async () => {});
-    expect(SentryMock.setUser).toHaveBeenCalledWith(
-      expect.objectContaining({ id: expect.stringMatching(/^u_[0-9a-f]{64}$/) })
-    );
+    await waitFor(() => {
+      expect(SentryMock.setUser).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: expect.stringMatching(/^u_[0-9a-f]{64}$/),
+        })
+      );
+    });
   });
 });
