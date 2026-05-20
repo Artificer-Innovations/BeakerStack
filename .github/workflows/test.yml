@@ -118,12 +118,18 @@ jobs:
           set -o pipefail
           npm run ${{ matrix.script }} 2>&1 | tee ci/unit-coverage-${{ matrix.shard }}.log
 
+      - name: Stage coverage for upload
+        if: always() && matrix.coverage_path != ''
+        run: |
+          mkdir -p ".coverage-artifact/${{ matrix.coverage_path }}"
+          cp -a "${{ matrix.coverage_path }}/." ".coverage-artifact/${{ matrix.coverage_path }}/"
+
       - name: Upload coverage reports
         if: always() && matrix.coverage_path != ''
         uses: actions/upload-artifact@v4
         with:
           name: unit-coverage-reports-${{ matrix.shard }}
-          path: ${{ matrix.coverage_path }}
+          path: .coverage-artifact/
           if-no-files-found: warn
 
       - name: Upload test log
@@ -306,30 +312,13 @@ jobs:
           merge-multiple: true
           path: .
 
-      # merge-multiple nests artifacts under unit-coverage-reports-*; each upload
-      # contains only the coverage/ directory contents (not apps/.../coverage).
+      # Artifacts are staged with repo-relative paths (apps/.../coverage) before upload.
       - name: Restore layout from downloaded artifacts
         run: |
           shopt -s nullglob
-          declare -A COVERAGE_PATHS=(
-            [mobile]=apps/mobile/coverage
-            [web]=apps/web/coverage
-            [shared]=packages/shared-tests/coverage
-            [billing]=packages/billing/coverage
-            [admin]=packages/admin/coverage
-            [lifecycle-events]=packages/lifecycle-events/coverage
-            [waitlist]=packages/waitlist/coverage
-            [email]=packages/email/coverage
-            [marketing-email]=packages/marketing-email/coverage
-            [observability]=packages/observability/coverage
-          )
           for dir in unit-coverage-reports-*; do
-            shard="${dir#unit-coverage-reports-}"
-            target="${COVERAGE_PATHS[$shard]:-}"
-            if [ -n "$target" ]; then
-              mkdir -p "$target"
-              cp -a "$dir"/. "$target/"
-            fi
+            [ -d "$dir" ] || continue
+            cp -a "$dir"/. .
           done
           mkdir -p ci
           for dir in unit-coverage-log-* integration-log db-tests-log; do
@@ -338,6 +327,17 @@ jobs:
               cp -a "$logfile" "ci/$(basename "$logfile")"
             done < <(find "$dir" -type f -name '*.log' -print0)
           done
+          # Fail fast if merge-coverage will have nothing to read
+          found=0
+          for f in apps/web/coverage/coverage-final.json packages/billing/coverage/coverage-final.json; do
+            [ -f "$f" ] && found=1
+          done
+          if [ "$found" -eq 0 ]; then
+            echo "::error::No coverage-final.json under expected paths after restore"
+            ls -la
+            ls -la unit-coverage-reports-* 2>/dev/null || true
+            exit 1
+          fi
 
       - name: Merge coverage and test logs
         id: build-summary
