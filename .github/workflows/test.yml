@@ -298,12 +298,23 @@ jobs:
           merge-multiple: true
           path: .
 
+      # merge-multiple extracts each artifact into a named subdirectory; flatten
+      # so merge-coverage.js finds apps/*/coverage and logs land under ci/
+      - name: Restore layout from downloaded artifacts
+        run: |
+          shopt -s nullglob
+          for dir in unit-coverage-reports-* unit-coverage-log-* integration-log db-tests-log; do
+            if [ -d "$dir" ]; then
+              cp -a "$dir"/. .
+            fi
+          done
+
       - name: Merge coverage and test logs
         id: build-summary
         run: |
-          mkdir -p coverage
+          mkdir -p coverage ci
           node scripts/merge-coverage.js
-          cat ci/unit-coverage-*.log ci/integration.log ci/db-tests.log > ci/test-output.log 2>/dev/null || true
+          cat ci/unit-coverage-*.log ci/integration.log ci/db-tests.log > ci/test-output.log 2>/dev/null || touch ci/test-output.log
           node scripts/format-ci-summary.mjs \
             --coverage coverage/coverage-summary.json \
             --test-log ci/test-output.log \
