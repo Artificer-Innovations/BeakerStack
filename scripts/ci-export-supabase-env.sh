@@ -2,9 +2,9 @@
 # Write local Supabase CLI credentials to GITHUB_ENV (no hardcoded JWTs in workflows).
 set -euo pipefail
 
-target="${1:-$GITHUB_ENV}"
+target="${1:-${GITHUB_ENV:-}}"
 if [ -z "$target" ]; then
-  echo "ci-export-supabase-env: missing GITHUB_ENV or output path" >&2
+  echo "ci-export-supabase-env: pass output path or set GITHUB_ENV (Actions only)" >&2
   exit 1
 fi
 

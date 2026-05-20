@@ -6,7 +6,6 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 SUPABASE_URL="${SUPABASE_URL:-http://127.0.0.1:54321}"
-FUNCTIONS_PROBE="${SUPABASE_URL%/}/functions/v1/waitlist-capture"
 PID_FILE="$ROOT/.supabase/integration-edge-functions.pid"
 LOG_FILE="$ROOT/.supabase/logs/functions-serve.log"
 WE_STARTED_FUNCTIONS=0
@@ -14,11 +13,17 @@ WE_STARTED_FUNCTIONS=0
 info() { echo "[integration:edge] $*"; }
 warn() { echo "[integration:edge] WARNING: $*" >&2; }
 
+functions_probe_url() {
+  echo "${SUPABASE_URL%/}/functions/v1/waitlist-capture"
+}
+
 wait_for_functions() {
+  local probe
+  probe="$(functions_probe_url)"
   local attempts="${1:-60}"
   local i=1
   while [ "$i" -le "$attempts" ]; do
-    if curl -sf -X OPTIONS "$FUNCTIONS_PROBE" >/dev/null 2>&1; then
+    if curl -sf -X OPTIONS "$probe" >/dev/null 2>&1; then
       return 0
     fi
     sleep 2
@@ -28,7 +33,7 @@ wait_for_functions() {
 }
 
 functions_running() {
-  curl -sf -X OPTIONS "$FUNCTIONS_PROBE" >/dev/null 2>&1
+  curl -sf -X OPTIONS "$(functions_probe_url)" >/dev/null 2>&1
 }
 
 load_supabase_env() {
@@ -95,7 +100,7 @@ start_functions_serve() {
 
 ensure_functions() {
   if functions_running; then
-    info "Edge functions already reachable at $FUNCTIONS_PROBE"
+    info "Edge functions already reachable at $(functions_probe_url)"
     return 0
   fi
 
@@ -149,10 +154,7 @@ export SUPABASE_URL
 
 info "Running Edge integration tests…"
 set +e
-npx jest --config tests/jest.config.js \
-  --testMatch='**/tests/integration/{billing-edge,waitlist-edge,stripe-webhook}.test.ts' \
-  --forceExit \
-  "$@"
+npx jest --config tests/jest.integration.edge.config.js --forceExit "$@"
 exit_code=$?
 set -e
 exit "$exit_code"

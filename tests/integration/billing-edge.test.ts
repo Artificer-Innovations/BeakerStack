@@ -45,27 +45,31 @@ describeEdge('billing-stripe Edge integration', () => {
     }
   });
 
-  it('returns checkoutUrl for authenticated checkout when Stripe is configured', async () => {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return;
-    }
+  const stripeCheckoutIt = process.env.STRIPE_SECRET_KEY ? it : it.skip;
 
-    await signInTestUser(supabase, email, password);
-    const { data, error } = await supabase.functions.invoke('billing-stripe', {
-      body: {
-        action: 'checkout',
-        productId: 'beakerstack',
-        planId: 'beakerstack_pro',
-        successUrl: 'http://127.0.0.1:5173/billing?success=1',
-        cancelUrl: 'http://127.0.0.1:5173/billing?cancel=1',
-      },
-    });
+  stripeCheckoutIt(
+    'returns checkoutUrl for authenticated checkout when Stripe is configured',
+    async () => {
+      await signInTestUser(supabase, email, password);
+      const { data, error } = await supabase.functions.invoke(
+        'billing-stripe',
+        {
+          body: {
+            action: 'checkout',
+            productId: 'beakerstack',
+            planId: 'beakerstack_pro',
+            successUrl: 'http://127.0.0.1:5173/billing?success=1',
+            cancelUrl: 'http://127.0.0.1:5173/billing?cancel=1',
+          },
+        }
+      );
 
-    expect(error).toBeNull();
-    const body = data as { checkoutUrl?: string; error?: string };
-    expect(body.checkoutUrl ?? body.error).toBeDefined();
-    if (body.checkoutUrl) {
-      expect(body.checkoutUrl).toMatch(/^https?:\/\//);
+      expect(error).toBeNull();
+      const body = data as { checkoutUrl?: string; error?: string };
+      expect(body.checkoutUrl ?? body.error).toBeDefined();
+      if (body.checkoutUrl) {
+        expect(body.checkoutUrl).toMatch(/^https?:\/\//);
+      }
     }
-  });
+  );
 });

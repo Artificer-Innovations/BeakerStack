@@ -9,8 +9,10 @@ import {
   signInTestUser,
   waitForUserProfile,
 } from '../utils/test-helpers';
-import { uniqueTestEmail } from '../utils/integration-fixtures';
-import { cleanupIntegrationTestUser } from '../utils/integration-fixtures';
+import {
+  uniqueTestEmail,
+  cleanupIntegrationTestUser,
+} from '../utils/integration-fixtures';
 
 describe('Auth RLS integration', () => {
   let clientA: SupabaseClient;

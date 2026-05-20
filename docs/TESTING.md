@@ -164,7 +164,7 @@ Jest integration tests live in `tests/integration/` and run against a **real loc
 | `admin-access.test.ts`            | `admin_is_admin`, `admin_list_users`, audit log, revoke            |
 | `storage-avatars.test.ts`         | Avatars bucket upload RLS, profile `avatar_url` sync               |
 
-Tier 1 runs in the main [Test workflow](.github/workflows/test.yml) after `supabase start` (Edge runtime excluded for speed).
+Tier 1 runs in the main [Test workflow](../.github/workflows/test.yml) after `supabase start` (Edge runtime excluded for speed).
 
 ### Tier 2 — Edge + Stripe (optional)
 
@@ -174,7 +174,7 @@ Tier 1 runs in the main [Test workflow](.github/workflows/test.yml) after `supab
 | `waitlist-edge.test.ts`  | `waitlist-capture` / `waitlist-ops` HTTP |
 | `stripe-webhook.test.ts` | Webhook signature rejection              |
 
-Triggered manually or on schedule via [integration-edge.yml](.github/workflows/integration-edge.yml). Optional GitHub secrets: `STRIPE_TEST_SECRET_KEY`, `STRIPE_TEST_WEBHOOK_SECRET`.
+Triggered manually or on schedule via [integration-edge.yml](../.github/workflows/integration-edge.yml). Optional GitHub secrets: `STRIPE_TEST_SECRET_KEY`, `STRIPE_TEST_WEBHOOK_SECRET`.
 
 ### Running Integration Tests
 

@@ -9,6 +9,15 @@ export type SignupMode = 'open' | 'waitlist' | 'invite_only' | 'closed';
 
 const PRODUCT_ID = 'beakerstack';
 
+function warnOnCleanupError(
+  step: string,
+  error: { message: string } | null
+): void {
+  if (error) {
+    console.warn(`cleanupIntegrationTestUser: ${step}: ${error.message}`);
+  }
+}
+
 export function uniqueTestEmail(): string {
   return generateIntegrationTestEmail();
 }
@@ -95,38 +104,71 @@ export async function cleanupIntegrationTestUser(
     // ignore storage cleanup errors
   }
 
-  await admin
-    .from('billing_demo_collections')
-    .delete()
-    .eq('user_id', userId)
-    .eq('product_id', PRODUCT_ID);
-  await admin
-    .from('billing_usage_events')
-    .delete()
-    .eq('user_id', userId)
-    .eq('product_id', PRODUCT_ID);
-  await admin
-    .from('billing_usage_aggregates')
-    .delete()
-    .eq('user_id', userId)
-    .eq('product_id', PRODUCT_ID);
-  await admin
-    .from('billing_subscriptions')
-    .delete()
-    .eq('user_id', userId)
-    .eq('product_id', PRODUCT_ID);
+  warnOnCleanupError(
+    'billing_demo_collections',
+    (
+      await admin
+        .from('billing_demo_collections')
+        .delete()
+        .eq('user_id', userId)
+        .eq('product_id', PRODUCT_ID)
+    ).error
+  );
+  warnOnCleanupError(
+    'billing_usage_events',
+    (
+      await admin
+        .from('billing_usage_events')
+        .delete()
+        .eq('user_id', userId)
+        .eq('product_id', PRODUCT_ID)
+    ).error
+  );
+  warnOnCleanupError(
+    'billing_usage_aggregates',
+    (
+      await admin
+        .from('billing_usage_aggregates')
+        .delete()
+        .eq('user_id', userId)
+        .eq('product_id', PRODUCT_ID)
+    ).error
+  );
+  warnOnCleanupError(
+    'billing_subscriptions',
+    (
+      await admin
+        .from('billing_subscriptions')
+        .delete()
+        .eq('user_id', userId)
+        .eq('product_id', PRODUCT_ID)
+    ).error
+  );
 
   if (options?.email) {
     const normalized = options.email.toLowerCase().trim();
     const entry = await findWaitlistEntryByEmail(normalized);
     if (entry) {
-      await admin.from('waitlist_invites').delete().eq('entry_id', entry.id);
-      await admin.from('waitlist_entries').delete().eq('id', entry.id);
+      warnOnCleanupError(
+        'waitlist_invites',
+        (await admin.from('waitlist_invites').delete().eq('entry_id', entry.id))
+          .error
+      );
+      warnOnCleanupError(
+        'waitlist_entries',
+        (await admin.from('waitlist_entries').delete().eq('id', entry.id)).error
+      );
     }
   }
 
-  await admin.from('admin_users').delete().eq('user_id', userId);
-  await admin.from('user_profiles').delete().eq('user_id', userId);
+  warnOnCleanupError(
+    'admin_users',
+    (await admin.from('admin_users').delete().eq('user_id', userId)).error
+  );
+  warnOnCleanupError(
+    'user_profiles',
+    (await admin.from('user_profiles').delete().eq('user_id', userId)).error
+  );
 
   const { error: deleteUserError } = await admin.auth.admin.deleteUser(userId);
   if (deleteUserError) {
