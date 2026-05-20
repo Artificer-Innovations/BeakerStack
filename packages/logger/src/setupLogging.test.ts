@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { Logger } from '@beakerstack/logger';
-import { setupLogging, type LoggingTelemetry } from './setupLogging';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { Logger } from './loggerCore.js';
+import { setupLogging, type LoggingTelemetry } from './setupLogging.js';
 
 function createTelemetry(): LoggingTelemetry {
   return {
@@ -12,7 +12,6 @@ function createTelemetry(): LoggingTelemetry {
 
 describe('setupLogging', () => {
   beforeEach(() => {
-    // Vite sets __DEV__ false in test mode; debug telemetry only forwards in dev.
     // @ts-expect-error test override
     globalThis.__DEV__ = true;
   });

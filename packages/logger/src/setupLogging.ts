@@ -1,5 +1,6 @@
-import { Logger, type LoggerLevel } from '@beakerstack/logger';
+import { Logger, type LoggerLevel } from './loggerCore.js';
 
+/** Duck-typed observability surface; apps pass their Sentry handle at startup. */
 export interface LoggingTelemetry {
   captureException(err: unknown, context?: Record<string, unknown>): void;
   captureMessage(msg: string, level?: 'info' | 'warning' | 'error'): void;
@@ -35,12 +36,6 @@ function bridgeLogLevelToTelemetry(
       telemetry.captureMessage(message, 'warning');
       break;
     case 'info':
-      telemetry.addBreadcrumb({
-        message,
-        category: 'log',
-        data: { level, args: args.slice(1) },
-      });
-      break;
     case 'debug':
       telemetry.addBreadcrumb({
         message,

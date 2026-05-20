@@ -25,7 +25,15 @@ Prefix messages with `[package-name]` so logs are easy to scan across the monore
 
 ## Observability
 
-Apps wire production telemetry once at startup via `Logger.setTelemetryHandler()` (see `apps/web/src/setupLogging.ts`). When `@beakerstack/observability` is integrated, pass the Sentry handle to `setupLogging(telemetry)` so `Logger.warn` / `Logger.error` reach Sentry automatically.
+Apps wire production telemetry once at startup via `setupLogging()` from this package:
+
+```ts
+import { setupLogging, type LoggingTelemetry } from '@beakerstack/logger';
+
+setupLogging(telemetry); // duck-typed Sentry handle from @beakerstack/observability
+```
+
+When telemetry is omitted, `setupLogging()` is a no-op until the observability handle is passed.
 
 ## API
 

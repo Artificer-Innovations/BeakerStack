@@ -5,12 +5,13 @@ import {
   ObservabilityProvider,
 } from '@beakerstack/observability/web';
 import { beakerstackObservabilityConfig } from './config/observability';
-import { setupLogging } from './setupLogging';
+import { setupLogging } from '@beakerstack/logger';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { PublicShell } from './PublicShell';
 import './index.css';
 
 void initObservability(beakerstackObservabilityConfig);
+// TODO: pass observability handle after init — setupLogging(telemetry)
 setupLogging();
 
 const rootElement = document.getElementById('root');

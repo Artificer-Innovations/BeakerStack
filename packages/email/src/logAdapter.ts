@@ -7,6 +7,7 @@ export function createLogEmailAdapter(
 ): EmailAdapter {
   return {
     async send(params: EmailMessage) {
+      // Metadata only — omit body so dev logs / telemetry breadcrumbs avoid PII.
       log(`[beakerstack/email] to=${params.to} subject=${params.subject}`);
     },
   };
