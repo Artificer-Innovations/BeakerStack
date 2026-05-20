@@ -55,7 +55,7 @@ export function AdminDetailDrawer({
       if (focusables.length === 0) return;
 
       const first = focusables[0];
-      const last = focusables[focusables.length - 1];
+      const last = focusables.at(-1);
       if (first === undefined || last === undefined) return;
 
       if (event.shiftKey && document.activeElement === first) {

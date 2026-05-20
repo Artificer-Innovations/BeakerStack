@@ -119,6 +119,24 @@ describe('AdminDetailDrawer', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it('excludes elements with negative tabindex from the Tab trap', () => {
+    render(
+      <AdminDetailDrawer open title='User' onClose={vi.fn()}>
+        <button type='button' tabIndex={-2}>
+          Skip me
+        </button>
+        <button type='button'>Save</button>
+      </AdminDetailDrawer>
+    );
+    const save = screen.getByRole('button', { name: 'Save' });
+    const close = screen.getByLabelText('Close');
+    save.focus();
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Tab', bubbles: true })
+    );
+    expect(document.activeElement).toBe(close);
+  });
+
   it('excludes disabled and aria-hidden controls from the Tab trap', () => {
     render(
       <AdminDetailDrawer open title='User' onClose={vi.fn()}>
@@ -138,6 +156,90 @@ describe('AdminDetailDrawer', () => {
       new KeyboardEvent('keydown', { key: 'Tab', bubbles: true })
     );
     expect(document.activeElement).toBe(close);
+  });
+
+  it('wraps Tab when the close button is the only focusable control', () => {
+    render(
+      <AdminDetailDrawer open title='User' onClose={vi.fn()}>
+        <p>Read-only detail</p>
+      </AdminDetailDrawer>
+    );
+    const close = screen.getByLabelText('Close');
+    close.focus();
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Tab', bubbles: true })
+    );
+    expect(document.activeElement).toBe(close);
+  });
+
+  it('no-ops Tab trap when the panel has no focusable elements', () => {
+    const original = Element.prototype.querySelectorAll;
+    const querySpy = vi
+      .spyOn(Element.prototype, 'querySelectorAll')
+      .mockImplementation(function (
+        this: Element,
+        selectors: string
+      ): NodeListOf<HTMLElement> {
+        if (
+          selectors.startsWith('button, [href]') &&
+          this.tagName === 'ASIDE'
+        ) {
+          return [] as unknown as NodeListOf<HTMLElement>;
+        }
+        return original.call(this, selectors) as NodeListOf<HTMLElement>;
+      });
+
+    try {
+      render(
+        <AdminDetailDrawer open title='User' onClose={vi.fn()}>
+          <button type='button'>Save</button>
+        </AdminDetailDrawer>
+      );
+      const close = screen.getByLabelText('Close');
+      close.focus();
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Tab', bubbles: true })
+      );
+      expect(document.activeElement).toBe(close);
+    } finally {
+      querySpy.mockRestore();
+    }
+  });
+
+  it('no-ops Tab trap when every candidate is filtered out', () => {
+    const original = Element.prototype.querySelectorAll;
+    const querySpy = vi
+      .spyOn(Element.prototype, 'querySelectorAll')
+      .mockImplementation(function (
+        this: Element,
+        selectors: string
+      ): NodeListOf<HTMLElement> {
+        if (
+          selectors.startsWith('button, [href]') &&
+          this.tagName === 'ASIDE'
+        ) {
+          const disabled = document.createElement('button');
+          disabled.setAttribute('disabled', '');
+          return [disabled] as unknown as NodeListOf<HTMLElement>;
+        }
+        return original.call(this, selectors) as NodeListOf<HTMLElement>;
+      });
+
+    try {
+      render(
+        <AdminDetailDrawer open title='User' onClose={vi.fn()}>
+          <button type='button'>Save</button>
+        </AdminDetailDrawer>
+      );
+      const close = screen.getByLabelText('Close');
+      close.focus();
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Tab', bubbles: true })
+      );
+      expect(document.activeElement).toBe(close);
+    } finally {
+      querySpy.mockRestore();
+    }
   });
 
   it('restores focus to the previously focused element on close', () => {

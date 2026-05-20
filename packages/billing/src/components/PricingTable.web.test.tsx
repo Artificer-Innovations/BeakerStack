@@ -59,7 +59,9 @@ describe('PricingTable (web)', () => {
     render(
       <PricingTable onSelectPlan={onSelectPlan} onCheckout={onCheckout} />
     );
-    fireEvent.click(screen.getAllByRole('button', { name: 'Select' })[0]!);
+    const [firstSelect] = screen.getAllByRole('button', { name: 'Select' });
+    expect(firstSelect).toBeDefined();
+    fireEvent.click(firstSelect);
     expect(onCheckout).toHaveBeenCalledWith('p1');
     expect(onSelectPlan).not.toHaveBeenCalled();
   });
