@@ -1,15 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { Logger } from '@beakerstack/logger';
 
-const url = import.meta.env?.VITE_SUPABASE_URL;
-const anonKey = import.meta.env?.VITE_SUPABASE_ANON_KEY;
-
-const shouldRun = Boolean(url && anonKey);
+const shouldRun = process.env.RUN_LIVE_SUPABASE_TEST === '1';
 
 describe('supabase client', () => {
   it('connects and can run a basic query', async () => {
     if (!shouldRun) {
-      Logger.warn('Supabase env vars not set – skipping connection test');
+      Logger.warn(
+        'RUN_LIVE_SUPABASE_TEST not set – skipping live Supabase connection test'
+      );
       expect(true).toBe(true);
       return;
     }

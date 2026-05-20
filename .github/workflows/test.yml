@@ -151,6 +151,8 @@ jobs:
       - name: Run integration tests
         id: run-tests
         continue-on-error: true
+        env:
+          RUN_LIVE_SUPABASE_TEST: '1'
         run: |
           mkdir -p ci
           set -o pipefail
