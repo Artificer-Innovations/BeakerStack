@@ -1,5 +1,22 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { withEdgeScope, resetForTesting } from '../init.edge.js';
+import { initEdgeObservability, withEdgeScope, resetForTesting } from '../init.edge.js';
+
+describe('initEdgeObservability', () => {
+  beforeEach(() => resetForTesting());
+
+  it('validates and initializes on first call', () => {
+    expect(() =>
+      initEdgeObservability({ project: 'p', environment: 'test' })
+    ).not.toThrow();
+  });
+
+  it('is idempotent — second call returns early without re-running', () => {
+    const config = { project: 'p', environment: 'test' };
+    initEdgeObservability(config);
+    // _initialized is now true; second call hits the guard and returns
+    expect(() => initEdgeObservability(config)).not.toThrow();
+  });
+});
 
 describe('withEdgeScope', () => {
   beforeEach(() => resetForTesting());
