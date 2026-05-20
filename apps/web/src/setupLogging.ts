@@ -10,6 +10,14 @@ export interface LoggingTelemetry {
   }): void;
 }
 
+function exceptionForTelemetry(args: unknown[]): unknown {
+  const err = args.find((arg): arg is Error => arg instanceof Error);
+  if (err) {
+    return err;
+  }
+  return new Error(String(args[0] ?? ''));
+}
+
 function bridgeLogLevelToTelemetry(
   telemetry: LoggingTelemetry,
   level: LoggerLevel,
@@ -19,7 +27,7 @@ function bridgeLogLevelToTelemetry(
 
   switch (level) {
     case 'error':
-      telemetry.captureException(args[0] ?? new Error(message), {
+      telemetry.captureException(exceptionForTelemetry(args), {
         extra: { args },
       });
       break;

@@ -28,12 +28,12 @@ describe('setupLogging', () => {
     setHandler.mockRestore();
   });
 
-  it('bridges error logs to captureException using the first argument', () => {
+  it('bridges error logs to captureException using the Error in args', () => {
     const telemetry = createTelemetry();
     setupLogging(telemetry);
     const err = new Error('boom');
     Logger.error('mobile failed', err);
-    expect(telemetry.captureException).toHaveBeenCalledWith('mobile failed', {
+    expect(telemetry.captureException).toHaveBeenCalledWith(err, {
       extra: { args: ['mobile failed', err] },
     });
   });

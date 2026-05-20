@@ -11,8 +11,15 @@ describe('Logger', () => {
   let consoleInfoSpy: ReturnType<typeof vi.spyOn>;
   let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+  let originalDev: boolean | undefined;
+  let originalNodeEnv: string | undefined;
+  let originalProcess: unknown;
 
   beforeEach(() => {
+    originalDev = (globalThis as { __DEV__?: boolean }).__DEV__;
+    originalNodeEnv = process.env.NODE_ENV;
+    originalProcess = (globalThis as { process?: unknown }).process;
+
     consoleDebugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
     consoleInfoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
     consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -26,6 +33,22 @@ describe('Logger', () => {
     consoleErrorSpy.mockRestore();
     Logger.setTelemetryHandler(null);
     resetGlobalRefForTests();
+
+    if (originalDev === undefined) {
+      delete (globalThis as { __DEV__?: boolean }).__DEV__;
+    } else {
+      (globalThis as { __DEV__?: boolean }).__DEV__ = originalDev;
+    }
+    if (originalNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+    if (originalProcess === undefined) {
+      delete (globalThis as { process?: unknown }).process;
+    } else {
+      (globalThis as { process?: unknown }).process = originalProcess;
+    }
   });
 
   describe('debug', () => {

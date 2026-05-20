@@ -31,7 +31,7 @@ module.exports = {
     '@typescript-eslint/no-non-null-assertion': 'warn',
     'prefer-const': 'error',
     'no-var': 'error',
-    'no-console': 'warn',
+    'no-console': 'error',
     'no-debugger': 'error',
   },
   ignorePatterns: [

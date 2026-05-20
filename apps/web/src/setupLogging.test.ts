@@ -30,12 +30,12 @@ describe('setupLogging', () => {
     setHandler.mockRestore();
   });
 
-  it('bridges error logs to captureException using the first argument', () => {
+  it('bridges error logs to captureException using the Error in args', () => {
     const telemetry = createTelemetry();
     setupLogging(telemetry);
     const err = new Error('boom');
     Logger.error('billing failed', err);
-    expect(telemetry.captureException).toHaveBeenCalledWith('billing failed', {
+    expect(telemetry.captureException).toHaveBeenCalledWith(err, {
       extra: { args: ['billing failed', err] },
     });
   });
