@@ -1,7 +1,10 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { ErrorBoundary, withErrorBoundary } from '../components/withErrorBoundary.web.js';
+import { render, screen, waitFor } from '@testing-library/react';
+import {
+  ErrorBoundary,
+  withErrorBoundary,
+} from '../components/withErrorBoundary.web.js';
 import * as SentryMock from '@sentry/react';
 
 vi.mock('@sentry/react', () => ({
@@ -23,12 +26,20 @@ describe('ErrorBoundary', () => {
   afterEach(() => consoleSpy.mockRestore());
 
   it('renders children when no error', () => {
-    render(<ErrorBoundary><div>child</div></ErrorBoundary>);
+    render(
+      <ErrorBoundary>
+        <div>child</div>
+      </ErrorBoundary>
+    );
     expect(screen.getByText('child')).toBeInTheDocument();
   });
 
   it('renders default fallback on uncaught error', () => {
-    render(<ErrorBoundary><Thrower /></ErrorBoundary>);
+    render(
+      <ErrorBoundary>
+        <Thrower />
+      </ErrorBoundary>
+    );
     expect(screen.getByRole('alert')).toBeInTheDocument();
     expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
   });
@@ -42,12 +53,20 @@ describe('ErrorBoundary', () => {
     expect(screen.getByText('custom error')).toBeInTheDocument();
   });
 
-  it('calls Sentry.captureException on error', () => {
-    render(<ErrorBoundary><Thrower /></ErrorBoundary>);
-    expect(SentryMock.captureException).toHaveBeenCalledWith(
-      expect.any(Error),
-      expect.objectContaining({ extra: expect.objectContaining({ componentStack: expect.anything() }) })
+  it('calls Sentry.captureException on error', async () => {
+    render(
+      <ErrorBoundary>
+        <Thrower />
+      </ErrorBoundary>
     );
+    await waitFor(() => {
+      expect(SentryMock.captureException).toHaveBeenCalledWith(
+        expect.any(Error),
+        expect.objectContaining({
+          extra: expect.objectContaining({ componentStack: expect.anything() }),
+        })
+      );
+    });
   });
 });
 

@@ -1,7 +1,7 @@
 import React from 'react';
 
-// Module-level Sentry reference — dynamic import is intercepted by vi.mock in tests.
-const Sentry = await import('@sentry/react').catch(() => null) as typeof import('@sentry/react') | null;
+// Module-scope load (no top-level await) — Vite can statically analyze this for chunk hashing.
+const _sentryLoad = import('@sentry/react').catch(() => null);
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -24,15 +24,21 @@ export class ErrorBoundary extends React.Component<Props, ErrorBoundaryState> {
   }
 
   override componentDidCatch(error: Error, info: React.ErrorInfo) {
-    Sentry?.captureException(error, { extra: { componentStack: info.componentStack } });
+    void _sentryLoad.then(Sentry => {
+      Sentry?.captureException(error, {
+        extra: { componentStack: info.componentStack },
+      });
+    });
   }
 
   override render() {
     if (this.state.hasError) {
-      return this.props.fallback ?? (
-        <div role="alert" style={{ padding: '1rem', textAlign: 'center' }}>
-          <p>Something went wrong.</p>
-        </div>
+      return (
+        this.props.fallback ?? (
+          <div role='alert' style={{ padding: '1rem', textAlign: 'center' }}>
+            <p>Something went wrong.</p>
+          </div>
+        )
       );
     }
     return this.props.children;
