@@ -44,6 +44,7 @@ export async function emitLifecycleEvent(
   );
   for (const result of results) {
     if (result.status === 'rejected') {
+      // eslint-disable-next-line no-console -- emit must not throw; surface listener failures for ops
       console.error('[lifecycle-events] listener failed:', result.reason);
     }
   }

@@ -2,16 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useMarketingAuthHint } from '../hooks/useMarketingAuthHint';
 
-vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost:54321');
-
 describe('useMarketingAuthHint', () => {
   beforeEach(() => {
+    vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost:54321');
     localStorage.clear();
     vi.clearAllMocks();
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   it('reflects localStorage on mount', () => {
