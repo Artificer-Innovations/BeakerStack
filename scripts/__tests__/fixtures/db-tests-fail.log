@@ -1,0 +1,16 @@
+supabase/tests/db/001_schema_tests.sql .......... ok
+supabase/tests/db/002_auth_tests.sql ........... FAILED
+supabase/tests/db/003_billing_tests.sql ........ ok
+not ok 1 - users table should have role column
+# Failed test 'users table should have role column'
+# at supabase/tests/db/002_auth_tests.sql line 23.
+not ok 2 - auth.users should have email index
+# Failed test 'auth.users should have email index'
+# at supabase/tests/db/002_auth_tests.sql line 41.
+
+Failed Test                              Stat Wstat Total Fail  List of Failed
+-------------------------------------------------------------------------------
+supabase/tests/db/002_auth_tests.sql       1   256    15    2  1 2
+
+Files=3, Tests=42,  3 wallclock secs ( 0.08 usr  0.04 sys +  0.00 cusr  0.00 csys =  0.12 CPU)
+Result: FAIL
