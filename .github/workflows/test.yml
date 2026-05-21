@@ -468,3 +468,126 @@ jobs:
       - name: Fail if upstream test jobs failed
         if: needs.unit-coverage.result == 'failure'
         run: exit 1
+
+  supabase-test-report:
+    needs: [migration-filenames, supabase-tests, integration, db-tests]
+    if: always() && !cancelled() && (github.event.action != 'edited' || github.event.changes.base)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+
+      - name: Download database test log
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p ci
+          gh run download "${GITHUB_RUN_ID}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            -n db-tests-log \
+            -D ci-dl/db-tests-log || true
+          [ -f ci-dl/db-tests-log/db-tests.log ] && cp ci-dl/db-tests-log/db-tests.log ci/db-tests.log || true
+
+      - name: Download integration test log
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p ci
+          gh run download "${GITHUB_RUN_ID}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            -n integration-log \
+            -D ci-dl/integration-log || true
+          [ -f ci-dl/integration-log/integration.log ] && cp ci-dl/integration-log/integration.log ci/integration.log || true
+
+      - name: Build supabase test summary
+        id: build-summary
+        run: |
+          mkdir -p ci
+          node scripts/format-supabase-test-summary.mjs \
+            --db-log ci/db-tests.log \
+            --integration-log ci/integration.log \
+            --migration-result "${{ needs.migration-filenames.result }}" \
+            --markdown-output ci/supabase-comment.md
+          {
+            printf 'comment<<EOF_COMMENT\n'
+            cat ci/supabase-comment.md
+            printf '\nEOF_COMMENT\n'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Post supabase test comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- supabase-tests-comment -->';
+            let body = process.env.COMMENT_BODY?.trim();
+            if (!body) {
+              core.info('No comment body provided; skipping.');
+              return;
+            }
+
+            const now = new Date();
+            const pacificTime = now.toLocaleString('en-US', {
+              timeZone: 'America/Los_Angeles',
+              dateStyle: 'long',
+              timeStyle: 'short'
+            });
+            const timezone = now.toLocaleString('en-US', {
+              timeZone: 'America/Los_Angeles',
+              timeZoneName: 'short'
+            }).split(' ').pop();
+            body = `${body}\n\n---\n\n_Updated at: ${pacificTime} ${timezone}_`;
+
+            const canWrite =
+              (context.eventName === 'pull_request' &&
+                context.payload.pull_request &&
+                context.payload.pull_request.head.repo.full_name ===
+                  context.repo.owner + '/' + context.repo.repo) ||
+              process.env.GITHUB_TOKEN_SCOPE?.includes('write');
+
+            if (!canWrite) {
+              core.warning(
+                'GITHUB_TOKEN lacks write permission (likely a fork PR); skipping comment.'
+              );
+              return;
+            }
+
+            try {
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                per_page: 100,
+              });
+
+              const existing = comments.find(c => c.body.includes(marker));
+
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existing.id,
+                  body,
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.payload.pull_request.number,
+                  body,
+                });
+              }
+            } catch (error) {
+              if (error.status === 403) {
+                core.warning(
+                  `Insufficient permissions to comment on PR: ${error.message}`
+                );
+                return;
+              }
+              throw error;
+            }
+        env:
+          COMMENT_BODY: ${{ steps.build-summary.outputs.comment }}
+
