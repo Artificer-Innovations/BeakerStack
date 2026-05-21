@@ -1,0 +1,39 @@
+FAIL tests/integration/auth.test.ts
+PASS tests/integration/billing.test.ts
+PASS tests/integration/waitlist.test.ts
+
+  ● Auth › should create session on sign in
+
+    expect(received).toBeDefined()
+    Received value: undefined
+
+      22 |   it('should create session on sign in', async () => {
+      23 |     const { data } = await supabase.auth.signInWithPassword({ email: TEST_EMAIL, password: 'test1234' });
+    > 24 |     expect(data.session).toBeDefined();
+         |                          ^
+      25 |   });
+
+    at Object.<anonymous> (tests/integration/auth.test.ts:24:26)
+
+  ● Auth › should return user on getUser
+
+    expect(received).not.toBeNull()
+    Received: null
+
+    at Object.<anonymous> (tests/integration/auth.test.ts:31:35)
+
+Test Suites: 1 failed, 2 passed, 3 total
+Tests:       2 failed, 20 passed, 22 total
+Snapshots:   0 total
+Time:        9.123 s
+
+ FAIL  apps/web/src/lib/supabase.test.ts > getUser returns authenticated user
+
+ ✗ apps/web/src/lib/supabase.test.ts (4 tests) 932ms
+ × getUser returns authenticated user (89ms)
+
+ FAIL  apps/web/src/lib/supabase.test.ts
+
+ Test Files  1 failed (1)
+ Tests       1 failed | 3 passed (4)
+ Duration    1.61s (transform 98ms, setup 215ms, collect 77ms, tests 932ms, environment 0ms, prepare 42ms)
