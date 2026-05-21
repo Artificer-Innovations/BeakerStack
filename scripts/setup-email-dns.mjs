@@ -34,6 +34,21 @@ import {
   escapeDotEnvDoubleQuotedValue,
 } from './lib/setup-dotenv.mjs';
 import { readMaskedLineIfTty } from './lib/setup-secret-input.mjs';
+import {
+  assignEmailCiToAcc,
+  pickEmailGithubPayload,
+  printResendKeyGuidance,
+  resolveSmtpPassForCi,
+} from './lib/setup-resend-keys.mjs';
+import {
+  collectGithubSecretPayload,
+  collectGithubVariablePayload,
+} from './lib/setup-manifest.mjs';
+import {
+  confirmGithubRepoSyncTarget,
+  resolveGhRepoContext,
+} from './lib/setup-github-repo.mjs';
+import { spawnSync } from 'node:child_process';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..');
@@ -57,19 +72,16 @@ export async function phaseEmailDns(flags, rl, acc) {
     : [];
 
   logInfo('Resend domain + Route 53 DNS setup');
+  printResendKeyGuidance(logInfo);
 
-  // Ensure RESEND_API_KEY
-  if (!process.env.RESEND_API_KEY) {
-    const key = await promptSecret(
-      rl,
-      'Resend API key (re_…): ',
-      flags.plainSecretPrompts ?? false
-    );
-    if (!key) {
-      logWarn('No Resend API key provided; skipping email DNS setup.');
-      return;
-    }
-    process.env.RESEND_API_KEY = key;
+  const setupKey = await ensureResendSetupKey(
+    rl,
+    flags.plainSecretPrompts ?? false,
+    false
+  );
+  if (!setupKey) {
+    logWarn('No Resend setup API key provided; skipping email DNS setup.');
+    return;
   }
 
   const defaults = await loadEmailDnsDefaults(REPO_ROOT, {
@@ -89,7 +101,7 @@ export async function phaseEmailDns(flags, rl, acc) {
   // Reuse zone ID from aws phase if available
   const hostedZoneId = acc.PR_PREVIEW_HOSTED_ZONE_ID || undefined;
 
-  const defaultAdminEmail = `noreply@${sendingDomain}`;
+  const defaultAdminEmail = `notifications@${sendingDomain}`;
   const adminEmail =
     (await rl.question(`Admin/sender email [${defaultAdminEmail}]: `)).trim() ||
     defaultAdminEmail;
@@ -110,8 +122,6 @@ export async function phaseEmailDns(flags, rl, acc) {
     sendingDomain,
     apex,
     hostedZoneId,
-    adminEmail,
-    senderName,
     dmarc: addDmarc,
     dmarcEmail: addDmarc ? adminEmail : undefined,
     awsProfileArgs,
@@ -121,9 +131,25 @@ export async function phaseEmailDns(flags, rl, acc) {
     skipEnvLocal: true, // phaseWrite handles .env.local via acc
   });
 
-  // Only merge into acc if setup completed (not aborted at confirm step)
   if (completed) {
-    Object.assign(acc, buildSmtpVars(sendingDomain, adminEmail, senderName));
+    const smtpPass = dryRun
+      ? 'dry-run-smtp-pass'
+      : await resolveSmtpPassForCi(rl, promptSecret, {
+          yes: false,
+          plainSecretPrompts: flags.plainSecretPrompts ?? false,
+          setupKey,
+          logInfo,
+          logWarn,
+          promptYesNo,
+        });
+    const smtpVars = buildSmtpVars(adminEmail, senderName, smtpPass);
+    assignEmailCiToAcc(acc, smtpVars);
+    if (!dryRun) {
+      await applyConfigToml(false);
+    }
+    logInfo(
+      'CI: RESEND_SMTP_PASS + SMTP_ADMIN_EMAIL / SMTP_SENDER_NAME sync in the github phase (send-only; never RESEND_API_KEY).'
+    );
   }
 }
 
@@ -146,24 +172,15 @@ async function main() {
 
   const rl = createInterface({ input, output });
   try {
-    // Ensure RESEND_API_KEY
-    if (!process.env.RESEND_API_KEY) {
-      if (flags.yes) {
-        console.error(
-          'RESEND_API_KEY is not set. Export it before running with --yes.'
-        );
-        process.exit(1);
-      }
-      const key = await promptSecret(
-        rl,
-        'Resend API key (re_…): ',
-        flags.plainSecretPrompts
-      );
-      if (!key) {
-        console.error('No Resend API key; exiting.');
-        process.exit(1);
-      }
-      process.env.RESEND_API_KEY = key;
+    printResendKeyGuidance(logInfo);
+    const setupKey = await ensureResendSetupKey(
+      rl,
+      flags.plainSecretPrompts,
+      flags.yes
+    );
+    if (!setupKey) {
+      console.error('No Resend setup API key; exiting.');
+      process.exit(1);
     }
 
     const envLocal = await readEnvFileIfExists(LOCAL_ENV_PATH);
@@ -183,7 +200,7 @@ async function main() {
     );
     const apex = apexFromDomain(sendingDomain);
 
-    const defaultAdminEmail = `noreply@${sendingDomain}`;
+    const defaultAdminEmail = `notifications@${sendingDomain}`;
     const adminEmail = flags.yes
       ? defaultAdminEmail
       : (
@@ -205,21 +222,46 @@ async function main() {
         : await promptYesNo(rl, 'Add DMARC TXT record? (recommended)', true));
     const dmarcEmail = flags.dmarcEmail || adminEmail;
 
-    await runEmailDns({
+    const { completed } = await runEmailDns({
       rl,
       sendingDomain,
       apex,
       hostedZoneId: flags.hostedZoneId || undefined,
-      adminEmail,
-      senderName,
       dmarc: addDmarc,
       dmarcEmail: addDmarc ? dmarcEmail : undefined,
       awsProfileArgs: flags.awsProfile ? ['--profile', flags.awsProfile] : [],
       dryRun: flags.dryRun,
       nonInteractive: flags.yes,
       yes: flags.yes,
-      skipEnvLocal: false,
+      skipEnvLocal: true,
     });
+
+    if (completed) {
+      const smtpPass = await resolveSmtpPassForCi(rl, promptSecret, {
+        yes: flags.yes,
+        plainSecretPrompts: flags.plainSecretPrompts,
+        setupKey,
+        logInfo,
+        logWarn,
+        promptYesNo,
+      });
+      const smtpVars = buildSmtpVars(adminEmail, senderName, smtpPass);
+      await finalizeEmailEnv({
+        smtpVars,
+        dryRun: flags.dryRun,
+        skipEnvLocal: false,
+      });
+      /** @type {Record<string, string>} */
+      const acc = assignEmailCiToAcc({}, smtpVars);
+      if (!flags.skipGithub) {
+        await syncEmailGithubSecrets({
+          rl,
+          acc,
+          dryRun: flags.dryRun,
+          repoOverride: flags.githubRepo,
+        });
+      }
+    }
   } finally {
     rl.close();
   }
@@ -245,8 +287,6 @@ async function runEmailDns({
   sendingDomain,
   apex,
   hostedZoneId,
-  adminEmail,
-  senderName,
   dmarc,
   dmarcEmail,
   awsProfileArgs,
@@ -314,12 +354,14 @@ async function runEmailDns({
     nonInteractive: nonInteractive || yes,
   });
 
-  // 6. Write .env.local and uncomment config.toml (skipped in setup-full; phaseWrite handles it)
-  const smtpVars = buildSmtpVars(sendingDomain, adminEmail, senderName);
+  // 6. config.toml (standalone merges .env.local after send-only key prompt)
   if (!skipEnvLocal) {
-    await mergeEnvLocal(smtpVars, dryRun);
+    logWarn(
+      'skipEnvLocal=false without smtpPass in runEmailDns; caller should use finalizeEmailEnv().'
+    );
+  } else {
+    await applyConfigToml(dryRun);
   }
-  await applyConfigToml(dryRun);
 
   // 7. Completion summary
   printCompletion({
@@ -337,15 +379,153 @@ async function runEmailDns({
 // Helpers
 // ---------------------------------------------------------------------------
 
-function buildSmtpVars(sendingDomain, adminEmail, senderName) {
+function buildSmtpVars(adminEmail, senderName, smtpPass) {
   return {
     SMTP_HOST: 'smtp.resend.com',
     SMTP_PORT: '587',
     SMTP_USER: 'resend',
-    SMTP_PASS: process.env.RESEND_API_KEY ?? '',
+    SMTP_PASS: smtpPass,
     SMTP_ADMIN_EMAIL: adminEmail,
     SMTP_SENDER_NAME: senderName,
   };
+}
+
+async function finalizeEmailEnv({ smtpVars, dryRun, skipEnvLocal }) {
+  if (!skipEnvLocal) {
+    await mergeEnvLocal(smtpVars, dryRun);
+  }
+  await applyConfigToml(dryRun);
+}
+
+/**
+ * Full-access Resend key for domain/DNS API (local RESEND_API_KEY only).
+ * @returns {Promise<string>}
+ */
+async function ensureResendSetupKey(rl, plainSecretPrompts, yes) {
+  if (process.env.RESEND_API_KEY?.trim()) {
+    return process.env.RESEND_API_KEY.trim();
+  }
+  if (yes) {
+    console.error(
+      'RESEND_API_KEY is not set. Export a full-access Resend API key before running with --yes.'
+    );
+    process.exit(1);
+  }
+  const key = await promptSecret(
+    rl,
+    'Resend API key — full access for domain setup (re_…): ',
+    plainSecretPrompts
+  );
+  if (key) process.env.RESEND_API_KEY = key;
+  return key;
+}
+
+function which(cmd) {
+  if (!/^[a-zA-Z0-9_.-]+$/.test(cmd)) return '';
+  const r = spawnSync('sh', ['-c', `command -v "${cmd}" 2>/dev/null`], {
+    encoding: 'utf8',
+  });
+  return r.status === 0 ? (r.stdout || '').trim().split('\n')[0] : '';
+}
+
+function ghAuthOk() {
+  const r = spawnSync('gh', ['auth', 'status'], { encoding: 'utf8' });
+  return r.status === 0;
+}
+
+function ghSecretSetSync(repo, name, value, dryRun) {
+  if (dryRun) {
+    logInfo(`[dry-run] gh secret set ${name} --repo ${repo}`);
+    return 0;
+  }
+  const r = spawnSync('gh', ['secret', 'set', name, '--repo', repo], {
+    input: value,
+    encoding: 'utf8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  if (r.status !== 0) {
+    logWarn(`gh secret set ${name} failed.`);
+  }
+  return r.status ?? 1;
+}
+
+function ghVariableSetSync(repo, name, value, dryRun) {
+  if (dryRun) {
+    logInfo(`[dry-run] gh variable set ${name} --repo ${repo}`);
+    return 0;
+  }
+  const r = spawnSync(
+    'gh',
+    ['variable', 'set', name, '--repo', repo, '--body', value],
+    { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }
+  );
+  if (r.status !== 0) {
+    logWarn(`gh variable set ${name} failed.`);
+  }
+  return r.status ?? 1;
+}
+
+/**
+ * @param {{ rl: import('node:readline/promises').Interface; acc: Record<string, string>; dryRun: boolean; repoOverride?: string }} opts
+ */
+async function syncEmailGithubSecrets({ rl, acc, dryRun, repoOverride = '' }) {
+  if (!which('gh')) {
+    logWarn(
+      'GitHub CLI not found; skip secret sync. Run setup-full github phase or: gh secret set RESEND_SMTP_PASS …'
+    );
+    return;
+  }
+  if (!dryRun && !ghAuthOk()) {
+    logWarn('gh auth login required to sync email secrets.');
+    return;
+  }
+
+  const ghCtx = resolveGhRepoContext(REPO_ROOT, repoOverride);
+  const repo = ghCtx.repo;
+  if (!repo) {
+    logWarn('Could not resolve GitHub repo for secret sync.');
+    return;
+  }
+
+  const allSecrets = collectGithubSecretPayload(acc);
+  const allVariables = collectGithubVariablePayload(acc);
+  const { secrets, variables } = pickEmailGithubPayload(
+    allSecrets,
+    allVariables
+  );
+  const count = Object.keys(secrets).length + Object.keys(variables).length;
+  if (count === 0) {
+    logWarn('No email CI values to sync to GitHub.');
+    return;
+  }
+
+  const proceed = await confirmGithubRepoSyncTarget(
+    rl,
+    { logInfo, logWarn },
+    ghCtx,
+    { dryRun, interactive: true, githubRepoOverride: Boolean(repoOverride) }
+  );
+  if (!proceed) {
+    logInfo('Skipped GitHub email secret sync.');
+    return;
+  }
+
+  for (const [name, value] of Object.entries(secrets)) {
+    ghSecretSetSync(repo, name, value, dryRun);
+    logInfo(
+      dryRun
+        ? `[dry-run] would set secret ${name}`
+        : `GitHub secret set: ${name}`
+    );
+  }
+  for (const [name, value] of Object.entries(variables)) {
+    ghVariableSetSync(repo, name, value, dryRun);
+    logInfo(
+      dryRun
+        ? `[dry-run] would set variable ${name}`
+        : `GitHub variable set: ${name}`
+    );
+  }
 }
 
 async function readEnvFileIfExists(filePath) {
@@ -611,9 +791,12 @@ function printCompletion({
     );
   }
   console.log(
-    '\n  ⚠  Hosted Supabase: enable Custom SMTP in Dashboard → Auth → Settings.'
+    '\n  Hosted Supabase: deploy workflows run scripts/sync-supabase-auth-config.sh'
   );
-  console.log('     (This step must be done manually in the Supabase web UI.)');
+  console.log('     when RESEND_SMTP_PASS is set on GitHub (send-only key).');
+  console.log(
+    '     Full-access RESEND_API_KEY stays local — do not add it to GitHub Actions.'
+  );
   console.log('─'.repeat(60) + '\n');
 }
 
@@ -636,6 +819,8 @@ function parseArgv(argv) {
     dryRun: false,
     skipEmailDns: false,
     plainSecretPrompts: false,
+    skipGithub: false,
+    githubRepo: '',
   };
   for (const a of argv) {
     if (a === '--dry-run') flags.dryRun = true;
@@ -643,7 +828,10 @@ function parseArgv(argv) {
     else if (a === '--dmarc') flags.dmarc = true;
     else if (a === '--no-dmarc') flags.dmarc = false;
     else if (a === '--skip-email-dns') flags.skipEmailDns = true;
+    else if (a === '--skip-github') flags.skipGithub = true;
     else if (a === '--plain-secret-prompts') flags.plainSecretPrompts = true;
+    else if (a.startsWith('--github-repo='))
+      flags.githubRepo = a.slice('--github-repo='.length);
     else if (a.startsWith('--domain='))
       flags.domain = a.slice('--domain='.length);
     else if (a.startsWith('--hosted-zone-id='))
@@ -669,10 +857,16 @@ Options:
   --yes                    Non-interactive; use defaults and skip verification poll
   --dry-run                Print planned actions without making any changes
   --plain-secret-prompts   Echo API key prompt in plain text (default: masked on TTY)
+  --skip-github            Do not run gh secret/variable sync after setup
+  --github-repo=OWNER/NAME Override repo for gh sync (default: gh repo view)
   --help                   Show this message
 
 Environment:
-  RESEND_API_KEY           Resend API key — prompted interactively if not set
+  RESEND_API_KEY           Full-access Resend key (setup only — not synced to GitHub)
+
+Keys:
+  Setup     Full-access Resend API key — domains/DNS (RESEND_API_KEY, local only).
+  SMTP/CI   Send-only Resend API key — SMTP_PASS (.env.local) + RESEND_SMTP_PASS (GitHub, all environments).
 
 Note: re-running merges SMTP_* keys into .env.local. User-written comments
 in .env.local are removed on each merge.

@@ -129,6 +129,9 @@ additional_redirect_urls = [
   # For multi-device testing, set SUPABASE_ADDITIONAL_REDIRECT_URL in your .env.local
   # Example: SUPABASE_ADDITIONAL_REDIRECT_URL=https://beaker-stack-192-168-0-196.nip.io:5173
   "env(SUPABASE_ADDITIONAL_REDIRECT_URL)",
+  "https://deploy.beakerstack.com/**",
+  "https://staging.beakerstack.com/**",
+  "https://app.beakerstack.com/**",
   "beaker-stack://auth/callback",
   "exp://127.0.0.1:8081/--/auth/callback",
   "exp://localhost:8081/--/auth/callback"
@@ -194,34 +197,34 @@ otp_length = 6
 otp_expiry = 3600
 
 [auth.email.template.confirmation]
-subject = "Confirm your __PRODUCT_NAME__ account"
+subject = "Confirm your Beaker Stack account"
 content_path = "./supabase/templates/signup_confirmation.html"
 
 [auth.email.template.recovery]
-subject = "Reset your __PRODUCT_NAME__ password"
+subject = "Reset your Beaker Stack password"
 content_path = "./supabase/templates/password_reset.html"
 
 [auth.email.template.magic_link]
-subject = "Your __PRODUCT_NAME__ sign-in link"
+subject = "Your Beaker Stack sign-in link"
 content_path = "./supabase/templates/magic_link.html"
 
 [auth.email.template.email_change]
-subject = "Confirm your new __PRODUCT_NAME__ email address"
+subject = "Confirm your new Beaker Stack email address"
 content_path = "./supabase/templates/email_change.html"
 
 [auth.email.template.invite]
-subject = "You've been invited to __PRODUCT_NAME__"
+subject = "You've been invited to Beaker Stack"
 content_path = "./supabase/templates/invite.html"
 
-# Optional: custom SMTP (Resend recommended — see docs/EMAIL_TEMPLATES.md)
-# [auth.email.smtp]
-# enabled = true
-# host = "env(SMTP_HOST)"
-# port = 587
-# user = "env(SMTP_USER)"
-# pass = "env(SMTP_PASS)"
-# admin_email = "env(SMTP_ADMIN_EMAIL)"
-# sender_name = "env(SMTP_SENDER_NAME)"
+# SMTP (Resend): set SMTP_* env for local `supabase start` or CI `scripts/sync-supabase-auth-config.sh`
+[auth.email.smtp]
+enabled = true
+host = "env(SMTP_HOST)"
+port = 587
+user = "env(SMTP_USER)"
+pass = "env(SMTP_PASS)"
+admin_email = "env(SMTP_ADMIN_EMAIL)"
+sender_name = "env(SMTP_SENDER_NAME)"
 
 
 

@@ -3,10 +3,12 @@
 // Run: node scripts/personalize-email-templates.mjs
 // Or:  npm run email:personalize
 
-import { readFileSync, writeFileSync, readdirSync } from 'fs';
+import { readFileSync, writeFileSync, readdirSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { createInterface } from 'readline';
+import { parseDotEnv } from './lib/setup-dotenv.mjs';
+import { resolveApexHint } from './setup-email-dns.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -96,6 +98,38 @@ function readPrimaryColor(file) {
 }
 const defaultBrandColor = readPrimaryColor(colorsFile);
 
+const legalFile = join(ROOT, 'packages', 'shared', 'src', 'config', 'legal.ts');
+
+/** @returns {Promise<string>} */
+async function resolveDefaultApexDomain() {
+  for (const rel of ['.env.local', '.env.cloud.generated.local']) {
+    const path = join(ROOT, rel);
+    if (!existsSync(path)) continue;
+    try {
+      const env = parseDotEnv(readFileSync(path, 'utf8'));
+      if (env.PR_PREVIEW_DOMAIN?.trim()) {
+        return resolveApexHint(ROOT, env.PR_PREVIEW_DOMAIN.trim());
+      }
+    } catch {
+      /* try next file */
+    }
+  }
+  return resolveApexHint(ROOT, '');
+}
+
+/** @returns {Promise<string>} */
+async function defaultSupportEmail() {
+  const apex = await resolveDefaultApexDomain();
+  return apex ? `support@${apex}` : 'support@example.com';
+}
+
+function defaultCompanyAddress() {
+  return (
+    readBrandingValue(legalFile, 'legalEntityName') ??
+    '123 Main St, City, State 00000, Country'
+  );
+}
+
 // --- Prompt helper ---
 async function prompt(question, defaultVal) {
   if (NON_INTERACTIVE) return defaultVal;
@@ -184,23 +218,20 @@ async function main() {
   const brandColor = await prompt('Brand color (hex)', defaultBrandColor);
   const senderName = await prompt('Sender name', `${productName} Team`);
 
-  // CAN-SPAM fields: in non-interactive mode, skip unless provided via CLI flags.
-  // Leaving placeholders is intentional — they must be filled before sending email.
+  const suggestedSupportEmail = await defaultSupportEmail();
+  const suggestedCompanyAddress = defaultCompanyAddress();
+
+  // CAN-SPAM fields — default support@<apex> from PR_PREVIEW_DOMAIN or branding flatName.com
   let supportEmail;
   let companyAddress;
   if (NON_INTERACTIVE) {
-    supportEmail = flagSupportEmail ?? null;
-    companyAddress = flagCompanyAddress ?? null;
-    if (!supportEmail || !companyAddress) {
-      console.log(
-        'i  Run without --non-interactive to personalize CAN-SPAM fields (required before sending email).'
-      );
-    }
+    supportEmail = flagSupportEmail ?? suggestedSupportEmail;
+    companyAddress = flagCompanyAddress ?? suggestedCompanyAddress;
   } else {
-    supportEmail = await prompt('Support email', 'support@example.com');
+    supportEmail = await prompt('Support email', suggestedSupportEmail);
     companyAddress = await prompt(
       'Company address (CAN-SPAM required)',
-      '123 Main St, City, State 00000, Country'
+      suggestedCompanyAddress
     );
   }
 
