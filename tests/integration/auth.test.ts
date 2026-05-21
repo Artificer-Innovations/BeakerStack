@@ -5,6 +5,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { createWebTestClient } from '../utils/test-clients';
 import {
+  confirmTestUserEmail,
   createTestUser,
   signInTestUser,
   signOutUser,
@@ -32,7 +33,9 @@ describe('Authentication Integration Tests', () => {
   describe('User Signup', () => {
     it('should create a new user with email and password', async () => {
       testEmail = uniqueTestEmail();
-      const result = await createTestUser(supabase, testEmail);
+      const result = await createTestUser(supabase, testEmail, undefined, {
+        viaSignUp: true,
+      });
       testUserId = result.userId;
       testPassword = result.password;
 
@@ -71,6 +74,10 @@ describe('Authentication Integration Tests', () => {
   });
 
   describe('User Sign In', () => {
+    beforeAll(async () => {
+      await confirmTestUserEmail(testUserId);
+    });
+
     it('should sign in with correct credentials', async () => {
       await signInTestUser(supabase, testEmail, testPassword);
 

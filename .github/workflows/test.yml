@@ -209,6 +209,7 @@ jobs:
         env:
           RUN_LIVE_SUPABASE_TEST: '1'
         run: |
+          set -o pipefail
           mkdir -p ci
           failed=0
           ( npm run test:db:pgtap ) 2>&1 | tee ci/db-tests.log || failed=1
