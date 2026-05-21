@@ -473,7 +473,7 @@ describe('SignupPage', () => {
     expect(raw).toContain('/billing/plans');
   });
 
-  it('navigates to dashboard after signup when no session and no paid plan intent', async () => {
+  it('shows pending email confirmation UI after plain signup without billing copy or redirect stash', async () => {
     const user = userEvent.setup();
     renderWithProviders(<SignupPage />, { initialEntries: ['/signup'] });
 
@@ -489,10 +489,12 @@ describe('SignupPage', () => {
     await user.click(screen.getByRole('button', { name: /create account/i }));
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', {
-        replace: true,
-      });
+      expect(screen.getByText('Check your email')).toBeInTheDocument();
+      expect(screen.getByText(/confirm@example\.com/)).toBeInTheDocument();
     });
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.queryByText(/billing/i)).not.toBeInTheDocument();
+    expect(window.localStorage.getItem(POST_AUTH_REDIRECT_KEY)).toBeNull();
   });
 
   it('shows generic message when email signup throws non-Error', async () => {

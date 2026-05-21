@@ -101,6 +101,18 @@ jest.mock('../../src/screens/ResetPasswordScreen', () => {
   };
 });
 
+jest.mock('../../src/screens/SignupPendingScreen', () => {
+  const { View, Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => (
+      <View testID='signup-pending-screen'>
+        <Text>Check your email</Text>
+      </View>
+    ),
+  };
+});
+
 describe('AppNavigator', () => {
   beforeEach(() => {
     jest.clearAllMocks();

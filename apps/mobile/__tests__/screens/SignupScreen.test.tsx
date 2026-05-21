@@ -22,8 +22,13 @@ jest.mock('expo-constants', () => ({
 }));
 
 // Mock supabase
+const mockGetSession = jest.fn();
 jest.mock('../../src/lib/supabase', () => ({
-  supabase: {} as SupabaseClient,
+  supabase: {
+    auth: {
+      getSession: (...args: unknown[]) => mockGetSession(...args),
+    },
+  } as unknown as SupabaseClient,
 }));
 
 // Mock AppHeader
@@ -129,6 +134,7 @@ const renderWithProviders = (
 describe('SignupScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
     jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   });
 
@@ -221,7 +227,17 @@ describe('SignupScreen', () => {
     });
   });
 
-  it('handles successful signup', async () => {
+  it('navigates to Dashboard when signup returns a session', async () => {
+    const mockSession = {
+      access_token: 'mock-token',
+      refresh_token: 'mock-refresh',
+      expires_in: 3600,
+      expires_at: Date.now() + 3600000,
+      token_type: 'bearer',
+      user: { id: 'test-user-id', email: 'test@example.com' } as any,
+    };
+    mockGetSession.mockResolvedValueOnce({ data: { session: mockSession }, error: null });
+
     const mockClient = createMockSupabaseClient();
     const { getByPlaceholderText, getByText } = renderWithProviders(
       <SignupScreen navigation={mockNavigation} />,
@@ -234,7 +250,6 @@ describe('SignupScreen', () => {
 
     await waitFor(() => {
       const submitButton = getByText('Create Account');
-
       fireEvent.changeText(emailInput, 'test@example.com');
       fireEvent.changeText(passwordInput, 'password123');
       fireEvent.changeText(confirmPasswordInput, 'password123');
@@ -250,6 +265,34 @@ describe('SignupScreen', () => {
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('Dashboard');
+    });
+  });
+
+  it('navigates to SignupPending when signup returns no session', async () => {
+    mockGetSession.mockResolvedValueOnce({ data: { session: null }, error: null });
+
+    const mockClient = createMockSupabaseClient();
+    const { getByPlaceholderText, getByText } = renderWithProviders(
+      <SignupScreen navigation={mockNavigation} />,
+      mockClient
+    );
+
+    const emailInput = getByPlaceholderText('Email address');
+    const passwordInput = getByPlaceholderText('Password');
+    const confirmPasswordInput = getByPlaceholderText('Confirm password');
+
+    await waitFor(() => {
+      const submitButton = getByText('Create Account');
+      fireEvent.changeText(emailInput, 'test@example.com');
+      fireEvent.changeText(passwordInput, 'password123');
+      fireEvent.changeText(confirmPasswordInput, 'password123');
+      fireEvent.press(submitButton);
+    });
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('SignupPending', {
+        email: 'test@example.com',
+      });
     });
   });
 

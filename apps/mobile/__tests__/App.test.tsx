@@ -237,6 +237,18 @@ jest.mock('../src/screens/ResetPasswordScreen', () => {
   };
 });
 
+jest.mock('../src/screens/SignupPendingScreen', () => {
+  const { View, Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => (
+      <View testID='signup-pending-screen'>
+        <Text>Check your email</Text>
+      </View>
+    ),
+  };
+});
+
 import { render } from '@testing-library/react-native';
 import { describe, it, expect } from '@jest/globals';
 import App from '../App';

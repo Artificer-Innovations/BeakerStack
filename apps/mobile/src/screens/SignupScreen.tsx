@@ -18,13 +18,7 @@ import { MIN_PASSWORD_LENGTH } from '@beakerstack/shared/constants/auth';
 import { supabase } from '../lib/supabase';
 import { SocialLoginButton } from '../components/SocialLoginButton';
 import { useFeatureFlags } from '../config/featureFlags';
-
-type RootStackParamList = {
-  Home: undefined;
-  Login: undefined;
-  Signup: undefined;
-  Dashboard: undefined;
-};
+import type { RootStackParamList } from '../navigation/types';
 
 type SignupScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -75,7 +69,12 @@ export default function SignupScreen({ navigation }: Props) {
 
     try {
       await auth.signUp(email, password);
-      navigation.navigate('Dashboard');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigation.navigate('Dashboard');
+      } else {
+        navigation.navigate('SignupPending', { email });
+      }
     } catch (error) {
       Alert.alert(
         'Sign Up Failed',
