@@ -9,6 +9,7 @@ This file lists repository **secrets** and **variables** the setup wizard can sy
 | Name                                       | Optional | Group      |
 | ------------------------------------------ | -------- | ---------- |
 | `SUPABASE_ACCESS_TOKEN`                    | no       | core       |
+| `RESEND_SMTP_PASS`                         | yes      | core       |
 | `AWS_ACCESS_KEY_ID`                        | no       | aws        |
 | `AWS_SECRET_ACCESS_KEY`                    | no       | aws        |
 | `AWS_SESSION_TOKEN`                        | yes      | aws        |
@@ -48,6 +49,7 @@ This file lists repository **secrets** and **variables** the setup wizard can sy
 | `GOOGLE_SERVICES_WEB_CLIENT_ID`            | yes      | google     |
 | `GOOGLE_SERVICES_IOS_CLIENT_ID`            | yes      | google     |
 | `GOOGLE_SERVICES_API_KEY`                  | yes      | google     |
+| `LHCI_GITHUB_APP_TOKEN`                    | yes      | preview    |
 
 ## Variables
 
@@ -58,4 +60,7 @@ This file lists repository **secrets** and **variables** the setup wizard can sy
 | `PR_PREVIEW_STACK_NAME`     | no       | preview |
 | `PR_PREVIEW_PREFIX`         | yes      | preview |
 | `PR_PREVIEW_AWS_REGION`     | yes      | aws     |
+| `SMTP_ADMIN_EMAIL`          | yes      | core    |
+| `SMTP_SENDER_NAME`          | yes      | core    |
 | `EXPO_ACCOUNT`              | no       | expo    |
+| `MOBILE_ENABLED`            | yes      | core    |

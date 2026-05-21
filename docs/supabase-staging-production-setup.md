@@ -215,19 +215,11 @@ https://<production-project-ref>.supabase.co/auth/v1/callback
    https://beakerstack.com/**
    ```
 
-### 4.4 Configure Email Confirmation
+### 4.4 Signup email confirmation
 
-**For Staging:**
+Committed `supabase/config.toml` sets `enable_confirmations = true` under `[auth.email]`. Staging and production deploy workflows push that setting (with SMTP and templates) when `RESEND_SMTP_PASS` is configured — see [EMAIL_TEMPLATES.md](./EMAIL_TEMPLATES.md#hosted-environments-cicd).
 
-- **Recommended**: Disable email confirmation for easier testing
-- Navigate to: **Authentication** → **Email Auth**
-- Toggle "Confirm email" to **Disable**
-
-**For Production:**
-
-- **Recommended**: Enable email confirmation for security
-- Navigate to: **Authentication** → **Email Auth**
-- Toggle "Confirm email" to **Enable**
+You do not need separate dashboard toggles per environment unless you are not using CI config push yet. Until the first successful sync, configure **Authentication** → **Email Auth** → **Confirm email** to match whether you want verification on that project.
 
 ## Step 5: Set Up GitHub Secrets
 

@@ -337,7 +337,7 @@ Before deploying PR previews, you must configure your Supabase preview project f
 
 - Google OAuth provider setup
 - Site URL and redirect URL configuration for preview domains
-- Email confirmation settings (recommended: disabled for previews)
+- Auth email (signup confirmation) via CI when `RESEND_SMTP_PASS` is set — see [Supabase Preview Setup](./supabase-preview-setup.md)
 
 See [Supabase Preview Setup Guide](./supabase-preview-setup.md) for complete step-by-step instructions.
 

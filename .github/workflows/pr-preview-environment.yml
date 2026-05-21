@@ -1,3 +1,4 @@
+# PR previews only (deploy.<domain>/pr-N). Staging/production deploys are deploy-staging.yml (develop) and deploy-production.yml (main).
 name: PR Preview Environments
 
 on:
@@ -138,6 +139,33 @@ jobs:
             --db-password "${SUPABASE_PREVIEW_DB_PASSWORD}" \
             --baseline-ref "${{ github.base_ref }}" \
             --skip-if-unchanged
+
+      # Opt-in: skipped in-script when RESEND_SMTP_PASS unset (secrets cannot be used in if:)
+      - name: Sync Supabase auth email config (preview)
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PREVIEW_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
+          SUPABASE_PREVIEW_DB_PASSWORD: ${{ secrets.SUPABASE_PREVIEW_DB_PASSWORD }}
+          SUPABASE_AUTH_SITE_URL: ${{ format('https://deploy.{0}', vars.PR_PREVIEW_DOMAIN) }}
+          SUPABASE_ADDITIONAL_REDIRECT_URL: ${{ format('https://deploy.{0}/pr-{1}/auth/confirm', vars.PR_PREVIEW_DOMAIN, github.event.pull_request.number) }}
+          SMTP_HOST: smtp.resend.com
+          SMTP_PORT: "587"
+          SMTP_USER: resend
+          SMTP_PASS: ${{ secrets.RESEND_SMTP_PASS }}
+          SMTP_ADMIN_EMAIL: ${{ vars.SMTP_ADMIN_EMAIL }}
+          SMTP_SENDER_NAME: ${{ vars.SMTP_SENDER_NAME }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SMTP_PASS:-}" ]; then
+            echo "Skipping Supabase auth email config: RESEND_SMTP_PASS is not set."
+            exit 0
+          fi
+          ./scripts/sync-supabase-auth-config.sh \
+            --project-ref "${SUPABASE_PREVIEW_PROJECT_REF}" \
+            --db-password "${SUPABASE_PREVIEW_DB_PASSWORD}" \
+            --site-url "${SUPABASE_AUTH_SITE_URL}" \
+            --additional-redirect-url "${SUPABASE_ADDITIONAL_REDIRECT_URL}"
 
       - name: Sync Stripe prices to preview billing_plans
         id: stripe-sync

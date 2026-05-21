@@ -22,11 +22,15 @@ Plain-text versions (`.txt` files) are provided alongside each HTML template for
 
 ### 1. Personalize templates
 
-Run the personalization script to replace brand placeholders with your actual values:
+Run the personalization script to replace brand placeholders with your product values (support email defaults to `support@<apex>` from `PR_PREVIEW_DOMAIN` or branding):
 
 ```bash
 npm run email:personalize
 ```
+
+Commit the updated `supabase/templates/` and subject lines in `supabase/config.toml` so hosted CI can push them on deploy.
+
+Re-running is safe and **idempotent**. If you edit templates by hand, the script skips files that contain the marker `beakerstack-email:customized` so fork-specific copy is not overwritten.
 
 The script will prompt for:
 
@@ -38,9 +42,9 @@ The script will prompt for:
 
 The script is **idempotent** — re-running it restores the previous placeholders before applying new values, so you can safely update your branding at any time.
 
-### 2. Configure SMTP (optional)
+### 2. Configure SMTP
 
-Uncomment and fill in the SMTP block in `supabase/config.toml` (see [SMTP setup](#smtp-setup-resend) below), then set `SMTP_*` vars in your `.env.local`.
+`[auth.email.smtp]` in `supabase/config.toml` is enabled and reads `SMTP_*` from the environment (see [SMTP setup](#smtp-setup-resend)). Set those vars in `.env.local` for local Supabase, or run `npm run setup:email` to provision Resend + Route 53 and merge values automatically.
 
 ### 3. Apply configuration
 
@@ -52,18 +56,19 @@ supabase stop && supabase start
 
 Open [http://localhost:54324](http://localhost:54324) to view emails sent during local development.
 
-## Enabling signup confirmations
+## Signup email confirmation
 
-By default, `enable_confirmations = false` in `supabase/config.toml`. This means users can sign up and sign in immediately without verifying their email address.
+`enable_confirmations = true` under `[auth.email]` in `supabase/config.toml` is the template default. New email/password signups receive the signup confirmation template and must verify before signing in.
 
-To require email verification:
+| Context      | Behavior                                                                                                                                                                                                                                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Hosted**   | Confirmation + SMTP apply together when deploy workflows run `scripts/sync-supabase-auth-config.sh` (requires `RESEND_SMTP_PASS`). Until that secret exists, config push is skipped and the Supabase project keeps its dashboard settings.                                                 |
+| **Local**    | Run `npm run setup:email` to merge `SMTP_*` into `.env.local`, then `supabase stop && supabase start`. Without SMTP, confirmation emails do not send and users cannot finish signup — configure mail first, or temporarily set `enable_confirmations = false` for auth-only local testing. |
+| **Inbucket** | After SMTP is configured locally, open [http://localhost:54324](http://localhost:54324) to read signup confirmation messages.                                                                                                                                                              |
 
-1. Open `supabase/config.toml`
-2. Find the `[auth.email]` section
-3. Set `enable_confirmations = true`
-4. Restart Supabase: `supabase stop && supabase start`
+`npm run setup:email` also ensures `enable_confirmations = true` when it updates `config.toml` (idempotent).
 
-**UX tradeoff:** Requiring confirmation reduces fake/mistyped registrations and verifies ownership, but adds friction to the signup flow. Consider your audience before enabling it.
+To disable verification (not recommended for production demos): set `enable_confirmations = false` under `[auth.email]` and restart Supabase.
 
 ## Customizing templates
 
@@ -102,6 +107,15 @@ The script will skip any file containing this marker and log a warning.
 ## SMTP setup (Resend)
 
 Resend is the recommended SMTP provider for transactional email. It offers a generous free tier and excellent deliverability.
+
+### Resend API keys (two roles)
+
+| Role          | When                                                 | Permissions                              | Stored where                                                                                                |
+| ------------- | ---------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Setup**     | `npm run setup:email` / `setup:full` email-dns phase | **Full access** (domains, DNS, send)     | `RESEND_API_KEY` in `.env.local` only — **not** GitHub                                                      |
+| **SMTP + CI** | Local Supabase + deploy workflows                    | **Send email** (send-only key is enough) | `SMTP_PASS` in `.env.local`; `RESEND_SMTP_PASS` on GitHub (one secret for preview, staging, and production) |
+
+`setup:email` prompts for the full-access key first, then (recommended) a separate send-only key for SMTP and GitHub. CI does **not** need full access — only the ability to send via `smtp.resend.com`.
 
 ### Step-by-step
 
@@ -167,7 +181,7 @@ v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@yourdomain.com; pct=100
 
 Transactional auth emails (this feature) and marketing/promotional emails should use **separate sending domains** or subdomains. For example:
 
-- Auth: `noreply@app.yourdomain.com`
+- Auth: `notifications@app.yourdomain.com` (avoid `noreply@` — poor deliverability per Resend)
 - Marketing: `hello@yourdomain.com`
 
 This prevents deliverability issues on your marketing domain if a transactional email triggers a spam complaint, and vice versa.
@@ -176,12 +190,42 @@ This prevents deliverability issues on your marketing domain if a transactional 
 
 Password reset and magic link emails link to the web `/auth/confirm` page. On mobile, these open in the device browser. Universal link support (routing directly into the app) is out of scope for v1.
 
+## Hosted environments (CI/CD)
+
+Deploy workflows **optionally** push auth email settings after `supabase db push`. The sync step runs **only when** `RESEND_SMTP_PASS` is set (typically after `npm run setup:email` and the **github** phase syncs the send-only key from `.env.local`).
+
+| Environment | Workflow                     | `SUPABASE_AUTH_SITE_URL` (derived)                       |
+| ----------- | ---------------------------- | -------------------------------------------------------- |
+| PR preview  | `pr-preview-environment.yml` | `https://deploy.{PR_PREVIEW_DOMAIN}` (+ per-PR redirect) |
+| Staging     | `deploy-staging.yml`         | `https://staging.{PR_PREVIEW_DOMAIN}`                    |
+| Production  | `deploy-production.yml`      | `https://{PR_PREVIEW_DOMAIN}` (apex)                     |
+
+Site URLs use the same `PR_PREVIEW_DOMAIN` repository variable as web deploy (`deploy-web.sh` / deploy workflows). No sync runs for forks that skip `setup:email`.
+
+The script runs `supabase link` + `supabase config push`, applying `site_url`, redirect allow-list, HTML templates, subjects, `enable_confirmations`, and SMTP from committed `supabase/config.toml`.
+
+**GitHub configuration** (after `npm run setup:email` or manual Resend setup):
+
+| Kind     | Name                | Purpose                                                                                      |
+| -------- | ------------------- | -------------------------------------------------------------------------------------------- |
+| Secret   | `RESEND_SMTP_PASS`  | **Gate +** send-only Resend API key (SMTP password) for all environments — unset = skip sync |
+| Variable | `PR_PREVIEW_DOMAIN` | Apex domain (e.g. `beakerstack.com`) — used to build auth site URLs                          |
+| Variable | `SMTP_ADMIN_EMAIL`  | From address (verified in Resend)                                                            |
+| Variable | `SMTP_SENDER_NAME`  | Display name                                                                                 |
+
+Workflows set `SMTP_HOST=smtp.resend.com`, `SMTP_USER=resend`, port `587`. Preview deploys also set `SUPABASE_ADDITIONAL_REDIRECT_URL` to `https://deploy.<domain>/pr-N/auth/confirm`.
+
+Names are listed in [reference/github-actions-secrets.md](reference/github-actions-secrets.md). The setup wizard can sync SMTP secrets/variables during the **github** phase when values exist in `.env.local`.
+
+**Forks:** Set `PR_PREVIEW_DOMAIN`, run `npm run email:personalize`, run `setup:email`, then sync secrets. Until `RESEND_SMTP_PASS` exists, deploys skip email config push entirely.
+
 ## Switching SMTP providers
 
 To switch from Resend to another SMTP provider (SendGrid, Postmark, AWS SES, etc.):
 
 1. Update `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` in your `.env.local`
 2. Update `SMTP_ADMIN_EMAIL` and `SMTP_SENDER_NAME` if needed
-3. Restart Supabase: `supabase stop && supabase start`
+3. Restart Supabase locally: `supabase stop && supabase start`
+4. Update `RESEND_SMTP_PASS` and SMTP variables on GitHub
 
 No template changes required — the SMTP block in `supabase/config.toml` uses `env()` substitution for all connection details.

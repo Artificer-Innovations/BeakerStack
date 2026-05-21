@@ -3,7 +3,10 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
-import { createWebTestClient } from '../utils/test-clients';
+import {
+  createServiceRoleClient,
+  createWebTestClient,
+} from '../utils/test-clients';
 import {
   createTestUser,
   signInTestUser,
@@ -39,6 +42,26 @@ describe('Authentication Integration Tests', () => {
       expect(testUserId).toBeDefined();
       expect(testEmail).toBeDefined();
     });
+
+    const smtpConfigured =
+      Boolean(process.env.SMTP_PASS?.trim()) &&
+      Boolean(process.env.SMTP_HOST?.trim());
+
+    (smtpConfigured ? it : it.skip)(
+      'should register via public signUp when SMTP is configured',
+      async () => {
+        const email = uniqueTestEmail();
+        const password = `E2e_${Date.now()}_signUp_Aa1`;
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        expect(error).toBeNull();
+        expect(data.user?.id).toBeDefined();
+        const admin = createServiceRoleClient();
+        await admin.auth.admin.deleteUser(data.user!.id);
+      }
+    );
 
     it('should automatically create user profile on signup', async () => {
       await waitForUserProfile(supabase, testUserId);

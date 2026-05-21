@@ -5,6 +5,7 @@
 
 import { randomBytes } from 'crypto';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { createServiceRoleClient } from './test-clients';
 
 /** Random password for disposable test users (avoids fixed strings in the repo). */
 export function generateTestPassword(): string {
@@ -18,21 +19,64 @@ export function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+export type CreateTestUserOptions = {
+  /** Use public signUp (sends confirmation email; for auth signup tests only). */
+  viaSignUp?: boolean;
+};
+
 /**
- * Create a test user with email and password
- * Returns the user ID and email
+ * Confirm a test user's email via service role (needed after viaSignUp when
+ * enable_confirmations is true).
+ */
+export async function confirmTestUserEmail(userId: string): Promise<void> {
+  const admin = createServiceRoleClient();
+  const { error } = await admin.auth.admin.updateUserById(userId, {
+    email_confirm: true,
+  });
+  if (error) {
+    throw new Error(`confirmTestUserEmail failed: ${error.message}`);
+  }
+}
+
+/**
+ * Create a test user with email and password.
+ * Default: service-role createUser (confirmed, no auth email) to avoid CI rate
+ * limits when enable_confirmations sends signup mail. Pass viaSignUp: true to
+ * exercise the public signUp path.
  */
 export async function createTestUser(
   supabase: SupabaseClient,
   email?: string,
-  password?: string
+  password?: string,
+  options?: CreateTestUserOptions
 ): Promise<{ userId: string; email: string; password: string }> {
   const testEmail = email || `test-${Date.now()}@example.com`;
   const resolvedPassword = password ?? generateTestPassword();
 
-  const { data, error } = await supabase.auth.signUp({
+  if (options?.viaSignUp) {
+    const { data, error } = await supabase.auth.signUp({
+      email: testEmail,
+      password: resolvedPassword,
+    });
+
+    if (error || !data.user) {
+      throw new Error(
+        `Failed to create test user: ${error?.message || 'Unknown error'}`
+      );
+    }
+
+    return {
+      userId: data.user.id,
+      email: testEmail,
+      password: resolvedPassword,
+    };
+  }
+
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin.auth.admin.createUser({
     email: testEmail,
     password: resolvedPassword,
+    email_confirm: true,
   });
 
   if (error || !data.user) {

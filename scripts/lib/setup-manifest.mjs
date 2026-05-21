@@ -21,6 +21,13 @@ export const GITHUB_SECRETS = [
   },
   {
     type: 'secret',
+    name: 'RESEND_SMTP_PASS',
+    envKeys: ['RESEND_SMTP_PASS', 'SMTP_PASS'],
+    optional: true,
+    group: 'core',
+  },
+  {
+    type: 'secret',
     name: 'AWS_ACCESS_KEY_ID',
     envKeys: ['AWS_ACCESS_KEY_ID'],
     group: 'aws',
@@ -327,6 +334,20 @@ export const GITHUB_VARIABLES = [
     envKeys: ['PR_PREVIEW_AWS_REGION', 'AWS_REGION'],
     optional: true,
     group: 'aws',
+  },
+  {
+    type: 'variable',
+    name: 'SMTP_ADMIN_EMAIL',
+    envKeys: ['SMTP_ADMIN_EMAIL'],
+    optional: true,
+    group: 'core',
+  },
+  {
+    type: 'variable',
+    name: 'SMTP_SENDER_NAME',
+    envKeys: ['SMTP_SENDER_NAME'],
+    optional: true,
+    group: 'core',
   },
   {
     type: 'variable',

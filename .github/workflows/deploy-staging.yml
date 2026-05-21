@@ -1,3 +1,5 @@
+# Deploys staging (staging.<domain>) when commits land on develop — typically after a PR into develop is merged.
+# Does not run on feature branches or on pull_request synchronize; use pr-preview-environment.yml for PR previews.
 name: Deploy Staging
 
 on:
@@ -16,6 +18,7 @@ concurrency:
 
 jobs:
   deploy-staging:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     env:
       DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
@@ -65,6 +68,30 @@ jobs:
           
           # Apply only new migrations (does not reset existing data)
           supabase db push --linked
+
+      # Opt-in: skipped in-script when RESEND_SMTP_PASS unset (secrets cannot be used in if:)
+      - name: Sync Supabase auth email config (staging)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_SUPABASE_PROJECT_REF: ${{ secrets.STAGING_SUPABASE_PROJECT_REF }}
+          STAGING_SUPABASE_DB_PASSWORD: ${{ secrets.STAGING_SUPABASE_DB_PASSWORD }}
+          SUPABASE_AUTH_SITE_URL: ${{ format('https://staging.{0}', vars.PR_PREVIEW_DOMAIN) }}
+          SMTP_HOST: smtp.resend.com
+          SMTP_PORT: "587"
+          SMTP_USER: resend
+          SMTP_PASS: ${{ secrets.RESEND_SMTP_PASS }}
+          SMTP_ADMIN_EMAIL: ${{ vars.SMTP_ADMIN_EMAIL }}
+          SMTP_SENDER_NAME: ${{ vars.SMTP_SENDER_NAME }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SMTP_PASS:-}" ]; then
+            echo "Skipping Supabase auth email config: RESEND_SMTP_PASS is not set."
+            exit 0
+          fi
+          ./scripts/sync-supabase-auth-config.sh \
+            --project-ref "${STAGING_SUPABASE_PROJECT_REF}" \
+            --db-password "${STAGING_SUPABASE_DB_PASSWORD}" \
+            --site-url "${SUPABASE_AUTH_SITE_URL}"
 
       - name: Sync Stripe prices to billing_plans
         env:

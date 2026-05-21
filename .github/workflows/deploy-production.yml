@@ -1,3 +1,5 @@
+# Deploys production (apex <domain>) when commits land on main — typically after develop→main promotion is merged.
+# Does not run on feature branches or on pull_request events.
 name: Deploy Production
 
 on:
@@ -16,6 +18,7 @@ concurrency:
 
 jobs:
   deploy-production:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
       DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
@@ -65,6 +68,30 @@ jobs:
           
           # Apply only new migrations (does not reset existing data)
           supabase db push --linked
+
+      # Opt-in: skipped in-script when RESEND_SMTP_PASS unset (secrets cannot be used in if:)
+      - name: Sync Supabase auth email config (production)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PRODUCTION_SUPABASE_PROJECT_REF: ${{ secrets.PRODUCTION_SUPABASE_PROJECT_REF }}
+          PRODUCTION_SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_SUPABASE_DB_PASSWORD }}
+          SUPABASE_AUTH_SITE_URL: ${{ format('https://{0}', vars.PR_PREVIEW_DOMAIN) }}
+          SMTP_HOST: smtp.resend.com
+          SMTP_PORT: "587"
+          SMTP_USER: resend
+          SMTP_PASS: ${{ secrets.RESEND_SMTP_PASS }}
+          SMTP_ADMIN_EMAIL: ${{ vars.SMTP_ADMIN_EMAIL }}
+          SMTP_SENDER_NAME: ${{ vars.SMTP_SENDER_NAME }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SMTP_PASS:-}" ]; then
+            echo "Skipping Supabase auth email config: RESEND_SMTP_PASS is not set."
+            exit 0
+          fi
+          ./scripts/sync-supabase-auth-config.sh \
+            --project-ref "${PRODUCTION_SUPABASE_PROJECT_REF}" \
+            --db-password "${PRODUCTION_SUPABASE_DB_PASSWORD}" \
+            --site-url "${SUPABASE_AUTH_SITE_URL}"
 
       - name: Sync Stripe prices to billing_plans
         env:
