@@ -69,7 +69,11 @@ export const AppNavigator = () => {
           component={BillingNavigator}
           options={{ headerShown: false }}
         />
-        <Stack.Screen name='SignupPending' component={SignupPendingScreen} />
+        <Stack.Screen
+          name='SignupPending'
+          component={SignupPendingScreen}
+          options={{ title: 'Confirm your email' }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -18,14 +18,7 @@ import { MIN_PASSWORD_LENGTH } from '@beakerstack/shared/constants/auth';
 import { supabase } from '../lib/supabase';
 import { SocialLoginButton } from '../components/SocialLoginButton';
 import { useFeatureFlags } from '../config/featureFlags';
-
-type RootStackParamList = {
-  Home: undefined;
-  Login: undefined;
-  Signup: undefined;
-  Dashboard: undefined;
-  SignupPending: { email: string };
-};
+import type { RootStackParamList } from '../navigation/types';
 
 type SignupScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,

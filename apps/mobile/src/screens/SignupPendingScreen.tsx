@@ -8,15 +8,18 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors } from '@beakerstack/shared/theme/colors';
+import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.native';
+import { supabase } from '../lib/supabase';
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SignupPending'>;
 
 export default function SignupPendingScreen({ route, navigation }: Props) {
-  const email = route?.params?.email ?? '';
+  const { email } = route.params;
 
   return (
     <SafeAreaView style={styles.container}>
+      <AppHeader supabaseClient={supabase} />
       <View style={styles.content}>
         <Text style={styles.heading}>Check your email</Text>
         <Text style={styles.body}>

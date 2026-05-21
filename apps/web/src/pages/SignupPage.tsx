@@ -148,12 +148,14 @@ function SignupPageContent() {
             </h2>
             <p className='mt-3 text-sm text-gray-600 dark:text-gray-300'>
               We sent a confirmation link to <strong>{email}</strong>. Click the
-              link in that email to finish creating your account
-              {paidIntent && postAuthPath !== '/dashboard'
-                ? " — we’ll take you to billing to complete your plan when you’re signed in"
-                : ''}
-              .
+              link in that email to finish creating your account.
             </p>
+            {paidIntent && postAuthPath !== '/dashboard' && (
+              <p className='mt-2 text-sm text-gray-600 dark:text-gray-300'>
+                We&apos;ll take you to billing to complete your plan when
+                you&apos;re signed in.
+              </p>
+            )}
             <p className='mt-4 text-sm text-gray-500 dark:text-gray-400'>
               <Link to={loginTo} className='font-medium text-primary-600'>
                 Already confirmed? Sign in
