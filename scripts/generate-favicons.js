@@ -32,13 +32,13 @@ async function generateFavicons() {
 
     console.log(`Generating favicons from ${sourceSvgPath}...\n`);
 
-    // Generate PNG favicons
+    // Generate PNG favicons and email logo
     for (const { size, name } of faviconSizes) {
       const outputPath = path.join(publicDir, name);
       await sharp(sourceSvgPath)
         .resize(size, size, {
           fit: 'contain',
-          background: { r: 255, g: 255, b: 255, alpha: 1 }, // White background for email clients
+          background: { r: 255, g: 255, b: 255, alpha: 1 },
         })
         .png()
         .toFile(outputPath);

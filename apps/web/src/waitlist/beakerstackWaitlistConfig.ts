@@ -57,7 +57,7 @@ export const beakerstackWaitlistConfig = defineWaitlistConfig({
         <!-- Header -->
         <tr>
           <td style="background:#ffffff;padding:20px 40px;border-bottom:1px solid #e4e4e7;">
-            <img src="${appOrigin}/email-logo.png" width="36" height="36" alt="${BRANDING.displayName}" style="display:block;">
+            <img src="{{logoUrl}}" width="36" height="36" alt="${BRANDING.displayName}" style="display:block;">
           </td>
         </tr>
         <!-- Body -->
@@ -97,10 +97,7 @@ export const beakerstackWaitlistConfig = defineWaitlistConfig({
   </table>
 </body>
 </html>`,
-    inviteText: `You're in — complete your signup for ${BRANDING.displayName}: {{inviteUrl}}
-
-Sent by ${BRANDING.displayName}. ${LEGAL_CONFIG.mailingAddress}
-Questions? ${LEGAL_CONFIG.contactEmail}`,
+    inviteText: 'Complete your signup: {{inviteUrl}}',
   },
   identityMatch: 'lenient',
 });

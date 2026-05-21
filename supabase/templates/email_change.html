@@ -33,6 +33,7 @@
               Or copy this link into your browser:<br>
               <span style="word-break:break-all;color:#71717a;">{{ if .RedirectTo }}{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=email_change{{ else }}{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email_change{{ end }}</span>
             </p>
+            <p style="margin:20px 0 0;font-size:13px;color:#a1a1aa;">If you didn't request this change, contact <a href="mailto:{{SUPPORT_EMAIL}}" style="color:#a1a1aa;text-decoration:underline;">{{SUPPORT_EMAIL}}</a> immediately.</p>
           </td>
         </tr>
         <!-- Footer (CAN-SPAM) -->

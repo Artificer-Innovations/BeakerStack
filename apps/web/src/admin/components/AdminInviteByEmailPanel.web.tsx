@@ -41,13 +41,16 @@ export function AdminInviteByEmailPanel({
   }, []);
 
   const sendInviteEmail = async (inviteUrl: string, to: string) => {
+    const logoUrl = `${beakerstackWaitlistConfig.appOrigin}/email-logo.png`;
+    const html = beakerstackWaitlistConfig.emailTemplates.inviteHtml
+      .replaceAll('{{logoUrl}}', logoUrl);
     await supabase.functions.invoke(beakerstackWaitlistConfig.opsFunctionName, {
       body: {
         action: 'send_invite_email',
         email: to,
         inviteUrl,
         subject: beakerstackWaitlistConfig.emailTemplates.inviteSubject,
-        html: beakerstackWaitlistConfig.emailTemplates.inviteHtml,
+        html,
       },
     });
   };
