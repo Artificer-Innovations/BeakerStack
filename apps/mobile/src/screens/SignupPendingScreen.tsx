@@ -38,7 +38,7 @@ export default function SignupPendingScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.pageBg,
   },
   content: {
     flex: 1,
@@ -48,25 +48,25 @@ const styles = StyleSheet.create({
   heading: {
     fontSize: 24,
     fontWeight: '600',
-    color: colors.text,
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   body: {
     fontSize: 15,
-    color: colors.textSecondary,
+    color: colors.textSubtle,
     lineHeight: 22,
     marginBottom: 24,
   },
   emailHighlight: {
     fontWeight: '600',
-    color: colors.text,
+    color: colors.textPrimary,
   },
   linkButton: {
     alignSelf: 'flex-start',
   },
   linkText: {
     fontSize: 15,
-    color: colors.primary,
+    color: colors.brand,
     fontWeight: '500',
   },
 });
