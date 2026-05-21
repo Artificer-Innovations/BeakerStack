@@ -215,7 +215,8 @@ Deno.serve(async req => {
     if (entryErr) {
       console.error('admin_get_waitlist_entry error', entryErr.message);
     }
-    const entryEmail = (entryData as { email?: string } | null)?.email;
+    const entryEmail = (entryData as { email?: string; metadata?: Record<string, unknown> } | null)?.email;
+    const entryPlanId = (entryData as { metadata?: { plan_id?: string } } | null)?.metadata?.plan_id;
 
     const { data, error } = await authClient.rpc(
       'admin_approve_waitlist_entry',
@@ -228,12 +229,14 @@ Deno.serve(async req => {
     }
 
     if (entryEmail) {
+      const approvePayload: Record<string, unknown> = { entry_id: body.entryId };
+      if (entryPlanId) approvePayload.plan_id = entryPlanId;
       await enqueueMarketingEmail(
         admin,
         marketingProductId,
         'waitlist.approved',
         entryEmail,
-        { entry_id: body.entryId },
+        approvePayload,
         `waitlist.approved:${body.entryId}`
       );
     }
