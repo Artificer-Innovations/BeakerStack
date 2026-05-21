@@ -3,6 +3,7 @@ import {
   corsHeadersForWaitlist,
   jsonResponse,
 } from '../_shared/waitlist-origins.ts';
+import { enqueueMarketingEmail } from '../_shared/marketingEmailQueue.ts';
 
 type Body = {
   action:
@@ -88,6 +89,13 @@ Deno.serve(async req => {
 
   const admin = createClient(supabaseUrl, serviceKey);
 
+  // Marketing email product is always server-controlled — never caller-supplied.
+  const envProductId = Deno.env.get('WAITLIST_PRODUCT_ID');
+  if (!envProductId) {
+    console.warn('WAITLIST_PRODUCT_ID is not set; defaulting to "beakerstack"');
+  }
+  const marketingProductId = envProductId || 'beakerstack';
+
   if (body.action === 'validate') {
     const token = body.token?.trim();
     if (!token) {
@@ -147,26 +155,39 @@ Deno.serve(async req => {
       return jsonResponse({ error: consumeResult.error }, 400, req);
     }
 
-    if (
-      consumeResult.ok &&
-      !consumeResult.already_converted &&
-      consumeResult.default_plan_id
-    ) {
-      const productId =
-        body.productId?.trim() ||
-        Deno.env.get('WAITLIST_PRODUCT_ID') ||
-        'beakerstack';
-      const { error: planErr } = await admin.rpc(
-        'billing_ensure_subscription_plan',
-        {
-          p_product_id: productId,
-          p_plan_id: consumeResult.default_plan_id,
-          p_user_id: userId,
+    if (consumeResult.ok && !consumeResult.already_converted) {
+      if (consumeResult.default_plan_id) {
+        // Billing productId may be caller-supplied (admin choosing product for billing).
+        const billingProductId =
+          body.productId?.trim() ||
+          Deno.env.get('WAITLIST_PRODUCT_ID') ||
+          'beakerstack';
+        const { error: planErr } = await admin.rpc(
+          'billing_ensure_subscription_plan',
+          {
+            p_product_id: billingProductId,
+            p_plan_id: consumeResult.default_plan_id,
+            p_user_id: userId,
+          }
+        );
+        if (planErr) {
+          console.error('billing_ensure_subscription_plan', planErr.message);
+          return jsonResponse({ error: 'plan_provision_failed' }, 500, req);
         }
-      );
-      if (planErr) {
-        console.error('billing_ensure_subscription_plan', planErr.message);
-        return jsonResponse({ error: 'plan_provision_failed' }, 500, req);
+      }
+
+      // Use the JWT-verified email only — never the caller-supplied userEmail,
+      // which could route the Kit event to an arbitrary address.
+      const consumeEmail = user.email?.toLowerCase().trim() ?? null;
+      if (consumeEmail) {
+        await enqueueMarketingEmail(
+          admin,
+          marketingProductId,
+          'waitlist.converted',
+          consumeEmail,
+          { user_id: userId },
+          `waitlist.converted:${userId}`
+        );
       }
     }
 
@@ -183,6 +204,19 @@ Deno.serve(async req => {
     if (!body.entryId) {
       return jsonResponse({ error: 'invalid_request' }, 400, req);
     }
+
+    // Use authClient (carries admin JWT) — admin_get_waitlist_entry checks
+    // auth.uid() + admin_is_admin() internally, so the service-role client
+    // would return { error: 'not_found' } because auth.uid() is NULL.
+    const { data: entryData, error: entryErr } = await authClient.rpc(
+      'admin_get_waitlist_entry',
+      { p_id: body.entryId }
+    );
+    if (entryErr) {
+      console.error('admin_get_waitlist_entry error', entryErr.message);
+    }
+    const entryEmail = (entryData as { email?: string } | null)?.email;
+
     const { data, error } = await authClient.rpc(
       'admin_approve_waitlist_entry',
       {
@@ -192,6 +226,18 @@ Deno.serve(async req => {
     if (error) {
       return jsonResponse({ error: error.message }, 400, req);
     }
+
+    if (entryEmail) {
+      await enqueueMarketingEmail(
+        admin,
+        marketingProductId,
+        'waitlist.approved',
+        entryEmail,
+        { entry_id: body.entryId },
+        `waitlist.approved:${body.entryId}`
+      );
+    }
+
     return jsonResponse(data, 200, req);
   }
 

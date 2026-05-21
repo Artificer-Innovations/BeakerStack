@@ -3,6 +3,7 @@ import {
   corsHeadersForWaitlist,
   jsonResponse,
 } from '../_shared/waitlist-origins.ts';
+import { enqueueMarketingEmail } from '../_shared/marketingEmailQueue.ts';
 
 type Body = {
   email?: string;
@@ -54,7 +55,7 @@ Deno.serve(async req => {
     );
   }
 
-  const email = body.email?.trim();
+  const email = body.email?.trim().toLowerCase();
   if (!email) {
     return jsonResponse({ error: 'invalid_email' }, 400, req);
   }
@@ -74,6 +75,21 @@ Deno.serve(async req => {
       req
     );
   }
+
+  const envProductId = Deno.env.get('WAITLIST_PRODUCT_ID');
+  if (!envProductId) {
+    console.warn('WAITLIST_PRODUCT_ID is not set; defaulting to "beakerstack"');
+  }
+  const productId = envProductId || 'beakerstack';
+
+  await enqueueMarketingEmail(
+    admin,
+    productId,
+    'waitlist.joined',
+    email,
+    { metadata: body.metadata ?? {} },
+    `waitlist.joined:${email}`
+  );
 
   return jsonResponse(data ?? { ok: true }, 200, req);
 });
