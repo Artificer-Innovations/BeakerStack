@@ -1,3 +1,5 @@
+# Deploys staging (staging.<domain>) when commits land on develop — typically after a PR into develop is merged.
+# Does not run on feature branches or on pull_request synchronize; use pr-preview-environment.yml for PR previews.
 name: Deploy Staging
 
 on:
@@ -16,6 +18,7 @@ concurrency:
 
 jobs:
   deploy-staging:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     env:
       DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}

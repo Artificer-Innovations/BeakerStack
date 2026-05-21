@@ -1,3 +1,4 @@
+# PR previews only (deploy.<domain>/pr-N). Staging/production deploys are deploy-staging.yml (develop) and deploy-production.yml (main).
 name: PR Preview Environments
 
 on:

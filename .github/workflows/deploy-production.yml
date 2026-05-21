@@ -1,3 +1,5 @@
+# Deploys production (apex <domain>) when commits land on main — typically after develop→main promotion is merged.
+# Does not run on feature branches or on pull_request events.
 name: Deploy Production
 
 on:
@@ -16,6 +18,7 @@ concurrency:
 
 jobs:
   deploy-production:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
       DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
