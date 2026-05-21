@@ -2,11 +2,12 @@
 // Scheduled every 5 min via pg_cron + pg_net (see kit_sync_cron migration).
 // Auth: Bearer token matching KIT_CRON_SECRET env var.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2.45.0';
 import {
   KitClient,
   KitClientError,
   isPermanentKitError,
+  isRateLimitError,
   waitlistTag,
   waitlistApprovedTag,
   convertedTag,
@@ -38,6 +39,11 @@ interface SettingsConfig {
   tierTagNames?: string[];
   onChurn?: 'tag_only' | 'unsubscribe';
   tagScheme?: { separator?: string; tierPrefix?: string };
+}
+
+interface SettingsRow {
+  enabled: boolean;
+  config: SettingsConfig;
 }
 
 Deno.serve(async (req: Request): Promise<Response> => {
@@ -75,27 +81,41 @@ async function handleWorker(
   }
 
   const kit = new KitClient(KIT_API_KEY);
-  const settingsCache = new Map<string, SettingsConfig | null>();
+  // Cache settings per product_id; null = no row exists for this product.
+  const settingsCache = new Map<string, SettingsRow | null>();
 
   for (const row of (rows as QueueRow[]) ?? []) {
     try {
-      // Cache settings per product_id to avoid repeated lookups within a batch
+      // Cache settings per product_id to avoid repeated lookups within a batch.
       if (!settingsCache.has(row.product_id)) {
         const { data } = await admin
           .from('marketing_email_settings')
-          .select('config')
+          .select('enabled, config')
           .eq('product_id', row.product_id)
-          .eq('enabled', true)
           .maybeSingle();
-        settingsCache.set(row.product_id, (data?.config as SettingsConfig) ?? null);
+        settingsCache.set(row.product_id, (data as SettingsRow) ?? null);
       }
-      const config = settingsCache.get(row.product_id) ?? null;
+      const settings = settingsCache.get(row.product_id) ?? null;
 
-      if (!config) {
+      if (!settings) {
+        // No marketing config for this product — drop the event.
         await markDone(admin, row.id);
         skipped++;
         continue;
       }
+
+      if (!settings.enabled) {
+        // Config exists but disabled — keep pending so it's processed if re-enabled.
+        const { error: resetErr } = await admin
+          .from('marketing_email_sync_queue')
+          .update({ status: 'pending' })
+          .eq('id', row.id);
+        if (resetErr) console.error('Failed to reset disabled-product row', row.id, resetErr.message);
+        skipped++;
+        continue;
+      }
+
+      const config = settings.config;
 
       // Suppression check
       const { data: suppressed } = await admin
@@ -117,10 +137,21 @@ async function handleWorker(
     } catch (err) {
       failed++;
       const code = err instanceof KitClientError ? err.code : 'unknown';
+
+      if (isRateLimitError(code)) {
+        // 429 — rate limited; reset to pending without burning an attempt.
+        const { error: updateErr } = await admin
+          .from('marketing_email_sync_queue')
+          .update({ status: 'pending', last_attempted_at: new Date().toISOString() })
+          .eq('id', row.id);
+        if (updateErr) console.error('Failed to reset rate-limited row', row.id, updateErr.message);
+        continue;
+      }
+
       const newAttempts = row.attempts + 1;
       const deadLetter = isPermanentKitError(code) || newAttempts >= 5;
 
-      await admin
+      const { error: updateErr } = await admin
         .from('marketing_email_sync_queue')
         .update({
           status: deadLetter ? 'failed' : 'pending',
@@ -129,10 +160,21 @@ async function handleWorker(
           error: (err instanceof Error ? err.message : String(err)).slice(0, 500),
         })
         .eq('id', row.id);
+      if (updateErr) console.error('Failed to update error status for row', row.id, updateErr.message);
     }
   }
 
   return Response.json({ processed, skipped, failed });
+}
+
+// Maps Stripe/billing plan_id to a tag slug.
+// Stripe plan IDs often carry a product prefix (e.g. "bhg_pro"); strip the
+// prefix when a matching slug exists in tierTagNames (e.g. "pro").
+function planIdToSlug(planId: string, tierTagNames: string[]): string {
+  if (tierTagNames.includes(planId)) return planId;
+  const suffix = planId.split('_').pop() ?? planId;
+  if (tierTagNames.includes(suffix)) return suffix;
+  return planId;
 }
 
 async function processEvent(
@@ -144,14 +186,16 @@ async function processEvent(
   const ns = config.namespace;
   const opts = config.tagScheme;
   const formId = config.kitFormId;
+  const tierTagNames = config.tierTagNames ?? [];
 
   switch (event_type) {
     case 'user.signed_up': {
       if (formId) await kit.subscribeToForm(email, formId);
       await kit.applyTag(email, signupTag(ns, opts));
-      const planId = payload.plan_id as string | undefined;
-      if (planId) {
-        await kit.applyTag(email, interestTag(ns, planId, opts));
+      const rawPlanId = payload.plan_id as string | undefined;
+      if (rawPlanId) {
+        const slug = planIdToSlug(rawPlanId, tierTagNames);
+        await kit.applyTag(email, interestTag(ns, slug, opts));
       }
       break;
     }
@@ -171,16 +215,21 @@ async function processEvent(
       break;
     }
     case 'user.tier_changed': {
-      const newPlanId = payload.new_plan_id as string | undefined;
-      if (!newPlanId) throw new Error('user.tier_changed payload missing new_plan_id');
-      for (const t of config.tierTagNames ?? []) {
+      // stripe-webhook enqueues with { user_id, plan_id, status }.
+      const rawPlanId = payload.plan_id as string | undefined;
+      if (!rawPlanId) throw new KitClientError(
+        'user.tier_changed payload missing plan_id',
+        'kit_api_400'
+      );
+      const slug = planIdToSlug(rawPlanId, tierTagNames);
+      for (const t of tierTagNames) {
         await kit.removeTag(email, tierTag(ns, t, opts));
       }
-      await kit.applyTag(email, tierTag(ns, newPlanId, opts));
+      await kit.applyTag(email, tierTag(ns, slug, opts));
       break;
     }
     case 'user.churned': {
-      for (const t of config.tierTagNames ?? []) {
+      for (const t of tierTagNames) {
         await kit.removeTag(email, tierTag(ns, t, opts));
       }
       await kit.applyTag(email, churnedTag(ns, opts));
@@ -190,7 +239,9 @@ async function processEvent(
       break;
     }
     default:
-      throw new Error(`Unknown event_type: ${event_type}`);
+      // Unknown events will never succeed — dead-letter immediately via
+      // unknown_event_type being in PERMANENT_ERROR_CODES.
+      throw new KitClientError(`Unknown event_type: ${event_type}`, 'unknown_event_type');
   }
 }
 
@@ -198,15 +249,19 @@ async function markDone(
   admin: ReturnType<typeof createClient>,
   id: number
 ): Promise<void> {
-  await admin
+  const { error } = await admin
     .from('marketing_email_sync_queue')
-    .update({ status: 'done', processed_at: new Date().toISOString() })
+    .update({ status: 'done', processed_at: new Date().toISOString(), error: null })
     .eq('id', id);
+  if (error) console.error('Failed to mark row done', id, error.message);
 }
 
 // Enqueues user.signed_up for all auth.users and waitlist.joined for all
 // waitlist_entries where settings are enabled, using idempotency keys so
 // re-runs are safe. Processes one product_id at a time.
+//
+// Note: does not backfill user.tier_changed from billing_subscriptions —
+// that is deferred to Phase 5 admin backfill UI.
 async function handleBulkSync(
   admin: ReturnType<typeof createClient>
 ): Promise<Response> {
@@ -232,16 +287,17 @@ async function handleBulkSync(
         if (!user.email) continue;
         const { error: insErr } = await admin
           .from('marketing_email_sync_queue')
-          .insert({
-            product_id,
-            event_type: 'user.signed_up',
-            email: user.email,
-            payload: { user_id: user.id, created_at: user.created_at },
-            idempotency_key: `bulk:user.signed_up:${product_id}:${user.id}`,
-            status: 'pending',
-          })
-          .onConflict('idempotency_key')
-          .ignore();
+          .insert(
+            {
+              product_id,
+              event_type: 'user.signed_up',
+              email: user.email,
+              payload: { user_id: user.id, created_at: user.created_at },
+              idempotency_key: `bulk:user.signed_up:${product_id}:${user.id}`,
+              status: 'pending',
+            },
+            { onConflict: 'idempotency_key', ignoreDuplicates: true }
+          );
         if (!insErr) enqueued++;
       }
 
@@ -249,25 +305,35 @@ async function handleBulkSync(
       page++;
     }
 
-    // Backfill waitlist_entries as waitlist.joined
-    const { data: entries } = await admin
-      .from('waitlist_entries')
-      .select('id, email, metadata');
-    for (const entry of entries ?? []) {
-      if (!entry.email) continue;
-      const { error: insErr } = await admin
-        .from('marketing_email_sync_queue')
-        .insert({
-          product_id,
-          event_type: 'waitlist.joined',
-          email: entry.email,
-          payload: { entry_id: entry.id },
-          idempotency_key: `bulk:waitlist.joined:${product_id}:${entry.id}`,
-          status: 'pending',
-        })
-        .onConflict('idempotency_key')
-        .ignore();
-      if (!insErr) enqueued++;
+    // Backfill waitlist_entries as waitlist.joined — paginated to avoid OOM.
+    let ePage = 0;
+    while (true) {
+      const { data: entries } = await admin
+        .from('waitlist_entries')
+        .select('id, email, metadata')
+        .range(ePage * 100, (ePage + 1) * 100 - 1);
+      if (!entries?.length) break;
+
+      for (const entry of entries) {
+        if (!entry.email) continue;
+        const { error: insErr } = await admin
+          .from('marketing_email_sync_queue')
+          .insert(
+            {
+              product_id,
+              event_type: 'waitlist.joined',
+              email: entry.email,
+              payload: { entry_id: entry.id },
+              idempotency_key: `bulk:waitlist.joined:${product_id}:${entry.id}`,
+              status: 'pending',
+            },
+            { onConflict: 'idempotency_key', ignoreDuplicates: true }
+          );
+        if (!insErr) enqueued++;
+      }
+
+      if (entries.length < 100) break;
+      ePage++;
     }
   }
 

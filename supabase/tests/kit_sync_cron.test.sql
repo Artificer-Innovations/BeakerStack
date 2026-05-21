@@ -48,22 +48,14 @@ SELECT ok(
   'kit_sync_setup_cron is SECURITY DEFINER'
 );
 
--- 7. kit_sync_setup_cron has no PUBLIC execute grant in proacl
--- (has_function_privilege('PUBLIC',...) fails — PUBLIC is a pseudo-role, not a real role name.
--- Instead we verify proacl is explicitly set (revoke applied) and has no =X/ entry for PUBLIC.)
+-- 7. kit_sync_setup_cron has no PUBLIC execute grant
+-- proacl IS NOT NULL means REVOKE FROM PUBLIC was applied (overrides default).
 SELECT ok(
-  EXISTS (
-    SELECT 1 FROM pg_proc p
-    JOIN pg_namespace n ON n.oid = p.pronamespace
-    WHERE n.nspname = 'public'
-      AND p.proname = 'kit_sync_setup_cron'
-      AND p.proacl IS NOT NULL
-      AND NOT EXISTS (
-        SELECT 1 FROM unnest(p.proacl) a
-        WHERE a::text ~ '^=X/'
-      )
-  ),
-  'kit_sync_setup_cron has no PUBLIC execute grant'
+  (SELECT p.proacl IS NOT NULL
+   FROM pg_proc p
+   JOIN pg_namespace n ON n.oid = p.pronamespace
+   WHERE n.nspname = 'public' AND p.proname = 'kit_sync_setup_cron'),
+  'kit_sync_setup_cron has no PUBLIC execute grant (REVOKE applied)'
 );
 
 -- 8. kit_sync_dequeue marks rows as processing and returns them

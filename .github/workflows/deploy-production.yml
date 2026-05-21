@@ -122,7 +122,10 @@ jobs:
           SUPABASE_URL: ${{ secrets.PRODUCTION_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PRODUCTION_SUPABASE_SERVICE_ROLE_KEY }}
           KIT_CRON_SECRET: ${{ secrets.PRODUCTION_KIT_CRON_SECRET }}
-        run: node scripts/ensure-kit-sync-cron.mjs
+        run: |
+          # secrets.* is not allowed in step `if:` — gate here.
+          [[ -z "${KIT_CRON_SECRET:-}" ]] && { echo "PRODUCTION_KIT_CRON_SECRET not set — skipping cron registration"; exit 0; }
+          node scripts/ensure-kit-sync-cron.mjs
 
       - name: Resolve infrastructure outputs
         id: infra

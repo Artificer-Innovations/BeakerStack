@@ -6,10 +6,21 @@ const KIT_API_BASE = 'https://api.kit.com/v4';
 
 // Status codes that signal a permanent failure — the worker dead-letters these
 // immediately rather than retrying (per #286 Phase 3 spec).
-const PERMANENT_ERROR_CODES = new Set(['kit_api_400', 'kit_api_404', 'kit_api_422']);
+const PERMANENT_ERROR_CODES = new Set([
+  'kit_api_400',
+  'kit_api_404',
+  'kit_api_422',
+  'unknown_event_type', // unknown events will never succeed — skip retry cycle
+]);
 
 export function isPermanentKitError(code: string): boolean {
   return PERMANENT_ERROR_CODES.has(code) || code === 'kit_tag_not_found';
+}
+
+// 429 is transient (rate limit) — worker should reset to pending without
+// incrementing attempts so the row is retried on the next cron tick.
+export function isRateLimitError(code: string): boolean {
+  return code === 'kit_api_429';
 }
 
 // ── Tag helpers (mirrors packages/marketing-email/src/adapters/kit/kitTagScheme.ts) ──
@@ -88,7 +99,10 @@ export class KitClient {
   async removeTag(email: string, tagName: string): Promise<void> {
     const tagId = await this.findTag(tagName);
     if (!tagId) return; // tag doesn't exist — idempotent
-    await this.delete(`/subscribers/${encodeURIComponent(email)}/tags/${tagId}`);
+    // Kit API DELETE /v4/subscribers/{subscriber_id}/tags/{tag_id} requires numeric ID, not email.
+    const subId = await this.findSubscriberId(email);
+    if (!subId) return; // subscriber not in Kit — idempotent
+    await this.delete(`/subscribers/${subId}/tags/${tagId}`);
   }
 
   // Marks subscriber as unsubscribed in Kit (subscriber remains; tags retained).
@@ -107,7 +121,8 @@ export class KitClient {
   }
 
   private async findTag(name: string): Promise<string | null> {
-    const res = await this.get(`/tags?name=${encodeURIComponent(name)}`);
+    // per_page=1: tag names are unique in Kit; single result avoids pagination.
+    const res = await this.get(`/tags?name=${encodeURIComponent(name)}&per_page=1`);
     const tags = (res['tags'] as Array<{ id: string; name: string }> | undefined) ?? [];
     return tags.find(t => t.name === name)?.id ?? null;
   }

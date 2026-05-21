@@ -22,6 +22,7 @@ const res = await fetch(`${supabaseUrl}/rest/v1/rpc/kit_sync_setup_cron`, {
     'apikey': serviceRoleKey,
   },
   body: JSON.stringify({ p_url: workerUrl, p_secret: kitCronSecret }),
+  signal: AbortSignal.timeout(15_000),
 });
 
 if (!res.ok) {

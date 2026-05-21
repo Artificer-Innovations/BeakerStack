@@ -154,9 +154,10 @@ describeEdge('waitlist Edge → marketing email queue', () => {
     expect(rows).toHaveLength(1);
   });
 
-  it('waitlist-ops approve enqueues waitlist.approved', async () => {
-    // Seed entry directly via DB (approve requires admin JWT — testing queue
-    // production at the DB level given admin auth complexity in CI).
+  it('waitlist.approved queue row has correct shape (DB-level; Edge auth complexity deferred)', async () => {
+    // Seeding the queue row directly — calling the waitlist-ops HTTP approve
+    // path requires an admin JWT which is impractical in CI. This test verifies
+    // that a correctly-shaped waitlist.approved row is accepted by the queue.
     const email = uniqueTestEmail();
     const { data: entry } = await sr
       .from('waitlist_entries')
