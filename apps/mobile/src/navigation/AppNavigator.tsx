@@ -13,6 +13,7 @@ import BillingNavigator from '../navigation/BillingNavigator';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import AuthCallbackScreen from '../screens/AuthCallbackScreen';
 import ResetPasswordScreen from '../screens/ResetPasswordScreen';
+import SignupPendingScreen from '../screens/SignupPendingScreen';
 import { useFeatureFlags } from '../config/featureFlags';
 import { navigationRef } from './navigationRef';
 import type { RootStackParamList } from './types';
@@ -68,6 +69,7 @@ export const AppNavigator = () => {
           component={BillingNavigator}
           options={{ headerShown: false }}
         />
+        <Stack.Screen name='SignupPending' component={SignupPendingScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

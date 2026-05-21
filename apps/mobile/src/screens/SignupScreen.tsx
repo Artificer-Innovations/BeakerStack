@@ -24,6 +24,7 @@ type RootStackParamList = {
   Login: undefined;
   Signup: undefined;
   Dashboard: undefined;
+  SignupPending: { email: string };
 };
 
 type SignupScreenNavigationProp = NativeStackNavigationProp<
@@ -75,7 +76,12 @@ export default function SignupScreen({ navigation }: Props) {
 
     try {
       await auth.signUp(email, password);
-      navigation.navigate('Dashboard');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigation.navigate('Dashboard');
+      } else {
+        navigation.navigate('SignupPending', { email });
+      }
     } catch (error) {
       Alert.alert(
         'Sign Up Failed',

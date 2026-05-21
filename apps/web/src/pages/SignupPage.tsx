@@ -84,14 +84,14 @@ function SignupPageContent() {
       if (session) {
         clearPostAuthRedirectKeys();
         navigate(postAuthPath, { replace: true });
-      } else if (paidIntent && postAuthPath !== '/dashboard') {
-        localStorage.setItem(
-          POST_AUTH_REDIRECT_KEY,
-          serializePostAuthRedirectPayload(postAuthPath)
-        );
-        setAwaitingEmail(true);
       } else {
-        navigate('/dashboard', { replace: true });
+        if (paidIntent && postAuthPath !== '/dashboard') {
+          localStorage.setItem(
+            POST_AUTH_REDIRECT_KEY,
+            serializePostAuthRedirectPayload(postAuthPath)
+          );
+        }
+        setAwaitingEmail(true);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account');
@@ -148,9 +148,11 @@ function SignupPageContent() {
             </h2>
             <p className='mt-3 text-sm text-gray-600 dark:text-gray-300'>
               We sent a confirmation link to <strong>{email}</strong>. Click the
-              link in that email to finish creating your account — we&apos;ll
-              take you to billing to complete your plan when you&apos;re signed
-              in.
+              link in that email to finish creating your account
+              {paidIntent && postAuthPath !== '/dashboard'
+                ? " — we’ll take you to billing to complete your plan when you’re signed in"
+                : ''}
+              .
             </p>
             <p className='mt-4 text-sm text-gray-500 dark:text-gray-400'>
               <Link to={loginTo} className='font-medium text-primary-600'>

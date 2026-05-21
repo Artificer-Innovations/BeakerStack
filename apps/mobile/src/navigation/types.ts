@@ -8,4 +8,5 @@ export type RootStackParamList = {
   ForgotPassword: undefined;
   AuthCallback: undefined;
   ResetPassword: undefined;
+  SignupPending: { email: string };
 };
