@@ -1,13 +1,16 @@
 import { defineWaitlistConfig } from '@beakerstack/waitlist';
 import { BRANDING } from '@beakerstack/shared/config/branding';
+import { LEGAL_CONFIG } from '@beakerstack/shared/config/legal';
 import { appBasePath } from '../lib/appBasePath';
+
+const appOrigin =
+  typeof window !== 'undefined' ? appBasePath() : 'http://localhost:5173';
 
 export const beakerstackWaitlistConfig = defineWaitlistConfig({
   productId: 'beakerstack',
   captureFunctionName: 'waitlist-capture',
   opsFunctionName: 'waitlist-ops',
-  appOrigin:
-    typeof window !== 'undefined' ? appBasePath() : 'http://localhost:5173',
+  appOrigin,
   copy: {
     waitlist: {
       headline: 'Join the waitlist',
@@ -40,9 +43,64 @@ export const beakerstackWaitlistConfig = defineWaitlistConfig({
   ],
   emailTemplates: {
     inviteSubject: `You're invited to ${BRANDING.displayName}`,
-    inviteHtml:
-      '<p>You have been approved. <a href="{{inviteUrl}}">Complete your signup</a>.</p>',
-    inviteText: 'Complete your signup: {{inviteUrl}}',
+    inviteHtml: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>You're invited to ${BRANDING.displayName}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f4f4f5;padding:40px 0;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="max-width:560px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <!-- Header -->
+        <tr>
+          <td style="background:#ffffff;padding:20px 40px;border-bottom:1px solid #e4e4e7;">
+            <img src="${appOrigin}/email-logo.png" width="36" height="36" alt="${BRANDING.displayName}" style="display:block;">
+          </td>
+        </tr>
+        <!-- Body -->
+        <tr>
+          <td style="padding:40px;">
+            <h1 style="margin:0 0 16px;font-size:22px;font-weight:600;color:#18181b;letter-spacing:-0.02em;">You're in — complete your signup</h1>
+            <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#52525b;">Your spot on the ${BRANDING.displayName} waitlist has been approved. Click the button below to create your account.</p>
+            <!-- CTA button -->
+            <table cellpadding="0" cellspacing="0" role="presentation">
+              <tr>
+                <td style="border-radius:6px;background:#4f46e5;">
+                  <a href="{{inviteUrl}}"
+                     style="display:inline-block;padding:12px 28px;color:#ffffff;font-size:15px;font-weight:500;text-decoration:none;border-radius:6px;">Complete signup</a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:24px 0 0;font-size:13px;color:#a1a1aa;">
+              Or copy this link into your browser:<br>
+              <span style="word-break:break-all;color:#71717a;">{{inviteUrl}}</span>
+            </p>
+          </td>
+        </tr>
+        <!-- Footer (CAN-SPAM) -->
+        <tr>
+          <td style="padding:20px 40px 28px;border-top:1px solid #f4f4f5;">
+            <p style="margin:0 0 6px;font-size:12px;color:#a1a1aa;line-height:1.5;">
+              Sent by ${BRANDING.displayName}.<br>
+              ${LEGAL_CONFIG.mailingAddress}
+            </p>
+            <p style="margin:0;font-size:12px;color:#a1a1aa;">
+              Questions? Email <a href="mailto:${LEGAL_CONFIG.contactEmail}" style="color:#a1a1aa;text-decoration:underline;">${LEGAL_CONFIG.contactEmail}</a>.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+    inviteText: `You're in — complete your signup for ${BRANDING.displayName}: {{inviteUrl}}
+
+Sent by ${BRANDING.displayName}. ${LEGAL_CONFIG.mailingAddress}
+Questions? ${LEGAL_CONFIG.contactEmail}`,
   },
   identityMatch: 'lenient',
 });

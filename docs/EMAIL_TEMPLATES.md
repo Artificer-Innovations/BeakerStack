@@ -85,6 +85,7 @@ Templates live in `supabase/templates/`. Each is a self-contained HTML file with
 | `{{SENDER_NAME}}`     | Sender display name (e.g. "Acme Team")       |
 | `{{SUPPORT_EMAIL}}`   | Support email address                        |
 | `{{COMPANY_ADDRESS}}` | Physical mailing address (CAN-SPAM required) |
+| `{{LOGO_URL}}`          | Absolute URL to the product logo PNG (defaults to `{{ .SiteURL }}/email-logo.png`; override for CDN hosting) |
 
 **Supabase Go template variables** (never modify these — Supabase substitutes them at send time):
 

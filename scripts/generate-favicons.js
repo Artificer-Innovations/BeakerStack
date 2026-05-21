@@ -10,6 +10,7 @@ const publicDir = path.join(__dirname, '../apps/web/public');
 const faviconSizes = [
   { size: 16, name: 'favicon-16x16.png' },
   { size: 32, name: 'favicon-32x32.png' },
+  { size: 48, name: 'email-logo.png' },
   { size: 180, name: 'apple-touch-icon.png' },
   { size: 192, name: 'android-chrome-192x192.png' },
   { size: 512, name: 'android-chrome-512x512.png' },
@@ -37,7 +38,7 @@ async function generateFavicons() {
       await sharp(sourceSvgPath)
         .resize(size, size, {
           fit: 'contain',
-          background: { r: 255, g: 255, b: 255, alpha: 1 }, // White background for favicons
+          background: { r: 255, g: 255, b: 255, alpha: 1 }, // White background for email clients
         })
         .png()
         .toFile(outputPath);
