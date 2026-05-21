@@ -381,19 +381,28 @@ async function processStripeEvent(
         .eq('stripe_subscription_id', stripeSub.id);
       if (error) throw asErrorFromSupabase(error);
 
-      const { data: authUser } = await supabase.auth.admin.getUserById(
-        row.user_id
-      );
-      const userEmail = authUser.user?.email;
-      if (userEmail) {
-        const lifecycleEvent = isCanceled ? 'user.churned' : 'user.tier_changed';
-        await enqueueMarketingEmail(
-          supabase,
-          lifecycleEvent,
-          userEmail,
-          { user_id: row.user_id, plan_id: finalPlanId, status: finalStatus },
-          `${lifecycleEvent}:${event.id}`
+      const { data: authUser, error: authUserErr } =
+        await supabase.auth.admin.getUserById(row.user_id);
+      if (authUserErr) {
+        console.error(
+          'getUserById failed for marketing email enqueue',
+          authUserErr.message
         );
+      } else {
+        const userEmail = authUser.user?.email;
+        if (userEmail) {
+          const lifecycleEvent = isCanceled
+            ? 'user.churned'
+            : 'user.tier_changed';
+          await enqueueMarketingEmail(
+            supabase,
+            row.product_id,
+            lifecycleEvent,
+            userEmail,
+            { user_id: row.user_id, plan_id: finalPlanId, status: finalStatus },
+            `${lifecycleEvent}:${event.id}`
+          );
+        }
       }
 
       return {

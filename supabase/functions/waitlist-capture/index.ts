@@ -55,7 +55,7 @@ Deno.serve(async req => {
     );
   }
 
-  const email = body.email?.trim();
+  const email = body.email?.trim().toLowerCase();
   if (!email) {
     return jsonResponse({ error: 'invalid_email' }, 400, req);
   }
@@ -76,8 +76,12 @@ Deno.serve(async req => {
     );
   }
 
+  const productId =
+    Deno.env.get('WAITLIST_PRODUCT_ID') || 'beakerstack';
+
   await enqueueMarketingEmail(
     admin,
+    productId,
     'waitlist.joined',
     email,
     { metadata: body.metadata ?? {} },

@@ -1,4 +1,4 @@
-import { createClient } from 'npm:@supabase/supabase-js@2.45.0';
+import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.45.0';
 
 export type LifecycleEventType =
   | 'user.signed_up'
@@ -9,22 +9,28 @@ export type LifecycleEventType =
   | 'user.churned';
 
 export async function enqueueMarketingEmail(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
+  productId: string,
   eventType: LifecycleEventType,
   email: string,
   payload: Record<string, unknown>,
   idempotencyKey?: string
 ): Promise<void> {
-  const { data: settings } = await supabase
+  const { data: settings, error: settingsErr } = await supabase
     .from('marketing_email_settings')
     .select('enabled')
+    .eq('product_id', productId)
     .eq('enabled', true)
-    .limit(1)
     .maybeSingle();
 
+  if (settingsErr) {
+    console.error('enqueueMarketingEmail: settings lookup failed', settingsErr.message);
+    return;
+  }
   if (!settings) return;
 
   const { error } = await supabase.from('marketing_email_sync_queue').insert({
+    product_id: productId,
     event_type: eventType,
     email,
     payload,

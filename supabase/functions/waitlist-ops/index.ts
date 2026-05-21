@@ -88,6 +88,10 @@ Deno.serve(async req => {
   }
 
   const admin = createClient(supabaseUrl, serviceKey);
+  const productId =
+    body.productId?.trim() ||
+    Deno.env.get('WAITLIST_PRODUCT_ID') ||
+    'beakerstack';
 
   if (body.action === 'validate') {
     const token = body.token?.trim();
@@ -150,10 +154,6 @@ Deno.serve(async req => {
 
     if (consumeResult.ok && !consumeResult.already_converted) {
       if (consumeResult.default_plan_id) {
-        const productId =
-          body.productId?.trim() ||
-          Deno.env.get('WAITLIST_PRODUCT_ID') ||
-          'beakerstack';
         const { error: planErr } = await admin.rpc(
           'billing_ensure_subscription_plan',
           {
@@ -172,6 +172,7 @@ Deno.serve(async req => {
       if (consumeEmail) {
         await enqueueMarketingEmail(
           admin,
+          productId,
           'waitlist.converted',
           consumeEmail,
           { user_id: userId },
@@ -194,9 +195,13 @@ Deno.serve(async req => {
       return jsonResponse({ error: 'invalid_request' }, 400, req);
     }
 
-    const { data: entryData } = await admin.rpc('admin_get_waitlist_entry', {
-      p_id: body.entryId,
-    });
+    const { data: entryData, error: entryErr } = await admin.rpc(
+      'admin_get_waitlist_entry',
+      { p_id: body.entryId }
+    );
+    if (entryErr) {
+      console.error('admin_get_waitlist_entry error', entryErr.message);
+    }
     const entryEmail = (entryData as { email?: string } | null)?.email;
 
     const { data, error } = await authClient.rpc(
@@ -212,6 +217,7 @@ Deno.serve(async req => {
     if (entryEmail) {
       await enqueueMarketingEmail(
         admin,
+        productId,
         'waitlist.approved',
         entryEmail,
         { entry_id: body.entryId },
