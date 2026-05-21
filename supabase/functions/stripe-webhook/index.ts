@@ -381,27 +381,33 @@ async function processStripeEvent(
         .eq('stripe_subscription_id', stripeSub.id);
       if (error) throw asErrorFromSupabase(error);
 
-      const { data: authUser, error: authUserErr } =
-        await supabase.auth.admin.getUserById(row.user_id);
-      if (authUserErr) {
-        console.error(
-          'getUserById failed for marketing email enqueue',
-          authUserErr.message
-        );
-      } else {
-        const userEmail = authUser.user?.email;
-        if (userEmail) {
-          const lifecycleEvent = isCanceled
-            ? 'user.churned'
-            : 'user.tier_changed';
-          await enqueueMarketingEmail(
-            supabase,
-            row.product_id,
-            lifecycleEvent,
-            userEmail,
-            { user_id: row.user_id, plan_id: finalPlanId, status: finalStatus },
-            `${lifecycleEvent}:${event.id}`
+      // Emit lifecycle event only when the plan meaningfully changed (churn always qualifies).
+      // Metadata-only updates, cancel_at_period_end toggles with no plan change, etc. are skipped
+      // to avoid noisy no-op syncs in the Phase 3 worker.
+      const planChanged = finalPlanId !== row.plan_id;
+      if (isCanceled || planChanged) {
+        const { data: authUser, error: authUserErr } =
+          await supabase.auth.admin.getUserById(row.user_id);
+        if (authUserErr) {
+          console.error(
+            'getUserById failed for marketing email enqueue',
+            authUserErr.message
           );
+        } else {
+          const userEmail = authUser.user?.email;
+          if (userEmail) {
+            const lifecycleEvent = isCanceled
+              ? 'user.churned'
+              : 'user.tier_changed';
+            await enqueueMarketingEmail(
+              supabase,
+              row.product_id,
+              lifecycleEvent,
+              userEmail,
+              { user_id: row.user_id, plan_id: finalPlanId, status: finalStatus },
+              `${lifecycleEvent}:${event.id}`
+            );
+          }
         }
       }
 

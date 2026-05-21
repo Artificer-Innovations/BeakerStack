@@ -76,8 +76,11 @@ Deno.serve(async req => {
     );
   }
 
-  const productId =
-    Deno.env.get('WAITLIST_PRODUCT_ID') || 'beakerstack';
+  const envProductId = Deno.env.get('WAITLIST_PRODUCT_ID');
+  if (!envProductId) {
+    console.warn('WAITLIST_PRODUCT_ID is not set; defaulting to "beakerstack"');
+  }
+  const productId = envProductId || 'beakerstack';
 
   await enqueueMarketingEmail(
     admin,

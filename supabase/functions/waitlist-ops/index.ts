@@ -88,10 +88,13 @@ Deno.serve(async req => {
   }
 
   const admin = createClient(supabaseUrl, serviceKey);
-  const productId =
-    body.productId?.trim() ||
-    Deno.env.get('WAITLIST_PRODUCT_ID') ||
-    'beakerstack';
+
+  // Marketing email product is always server-controlled — never caller-supplied.
+  const envProductId = Deno.env.get('WAITLIST_PRODUCT_ID');
+  if (!envProductId) {
+    console.warn('WAITLIST_PRODUCT_ID is not set; defaulting to "beakerstack"');
+  }
+  const marketingProductId = envProductId || 'beakerstack';
 
   if (body.action === 'validate') {
     const token = body.token?.trim();
@@ -154,10 +157,15 @@ Deno.serve(async req => {
 
     if (consumeResult.ok && !consumeResult.already_converted) {
       if (consumeResult.default_plan_id) {
+        // Billing productId may be caller-supplied (admin choosing product for billing).
+        const billingProductId =
+          body.productId?.trim() ||
+          Deno.env.get('WAITLIST_PRODUCT_ID') ||
+          'beakerstack';
         const { error: planErr } = await admin.rpc(
           'billing_ensure_subscription_plan',
           {
-            p_product_id: productId,
+            p_product_id: billingProductId,
             p_plan_id: consumeResult.default_plan_id,
             p_user_id: userId,
           }
@@ -168,11 +176,13 @@ Deno.serve(async req => {
         }
       }
 
-      const consumeEmail = body.userEmail ?? user.email ?? null;
+      // Use the JWT-verified email only — never the caller-supplied userEmail,
+      // which could route the Kit event to an arbitrary address.
+      const consumeEmail = user.email?.toLowerCase().trim() ?? null;
       if (consumeEmail) {
         await enqueueMarketingEmail(
           admin,
-          productId,
+          marketingProductId,
           'waitlist.converted',
           consumeEmail,
           { user_id: userId },
@@ -195,7 +205,10 @@ Deno.serve(async req => {
       return jsonResponse({ error: 'invalid_request' }, 400, req);
     }
 
-    const { data: entryData, error: entryErr } = await admin.rpc(
+    // Use authClient (carries admin JWT) — admin_get_waitlist_entry checks
+    // auth.uid() + admin_is_admin() internally, so the service-role client
+    // would return { error: 'not_found' } because auth.uid() is NULL.
+    const { data: entryData, error: entryErr } = await authClient.rpc(
       'admin_get_waitlist_entry',
       { p_id: body.entryId }
     );
@@ -217,7 +230,7 @@ Deno.serve(async req => {
     if (entryEmail) {
       await enqueueMarketingEmail(
         admin,
-        productId,
+        marketingProductId,
         'waitlist.approved',
         entryEmail,
         { entry_id: body.entryId },
