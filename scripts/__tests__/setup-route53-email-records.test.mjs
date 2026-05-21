@@ -1,14 +1,122 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { formatTxtValue } from '../lib/setup-route53-email-records.mjs';
-import { uncommentSmtpSection } from '../setup-email-dns.mjs';
+import {
+  formatTxtValue,
+  qualifyRecordNameForZone,
+  resolveRoute53Ttl,
+} from '../lib/setup-route53-email-records.mjs';
+import {
+  defaultSendingDomain,
+  resolveApexHint,
+  senderDisplayNameFromBranding,
+  uncommentSmtpSection,
+} from '../setup-email-dns.mjs';
+
+// --- qualifyRecordNameForZone ---
+
+describe('qualifyRecordNameForZone', () => {
+  const apex = 'beakerstack.com';
+  const sending = 'auth.beakerstack.com';
+
+  it('appends apex for Resend auth-relative DKIM host', () => {
+    assert.equal(
+      qualifyRecordNameForZone('resend._domainkey.auth', apex, sending),
+      'resend._domainkey.auth.beakerstack.com.'
+    );
+  });
+
+  it('appends apex for Resend send.auth MX/SPF hosts', () => {
+    assert.equal(
+      qualifyRecordNameForZone('send.auth', apex, sending),
+      'send.auth.beakerstack.com.'
+    );
+  });
+
+  it('keeps already-qualified names', () => {
+    assert.equal(
+      qualifyRecordNameForZone(
+        'resend._domainkey.auth.beakerstack.com',
+        apex,
+        sending
+      ),
+      'resend._domainkey.auth.beakerstack.com.'
+    );
+  });
+});
+
+// --- resolveRoute53Ttl ---
+
+describe('resolveRoute53Ttl', () => {
+  it('maps Resend "Auto" to default 300', () => {
+    assert.equal(resolveRoute53Ttl('Auto'), 300);
+    assert.equal(resolveRoute53Ttl('auto'), 300);
+  });
+
+  it('passes through positive integers', () => {
+    assert.equal(resolveRoute53Ttl(600), 600);
+    assert.equal(resolveRoute53Ttl('3600'), 3600);
+  });
+
+  it('defaults when ttl is missing', () => {
+    assert.equal(resolveRoute53Ttl(undefined), 300);
+  });
+});
+
+// --- email-dns defaults ---
+
+describe('defaultSendingDomain', () => {
+  it('prefixes auth. for apex domain', () => {
+    assert.equal(
+      defaultSendingDomain('beakerstack.com'),
+      'auth.beakerstack.com'
+    );
+  });
+
+  it('leaves auth subdomain unchanged', () => {
+    assert.equal(
+      defaultSendingDomain('auth.beakerstack.com'),
+      'auth.beakerstack.com'
+    );
+  });
+
+  it('normalizes casing and trailing dot', () => {
+    assert.equal(
+      defaultSendingDomain('BeakerStack.COM.'),
+      'auth.beakerstack.com'
+    );
+  });
+});
+
+describe('senderDisplayNameFromBranding', () => {
+  it('appends Notifications to display name', () => {
+    assert.equal(
+      senderDisplayNameFromBranding('Beaker Stack'),
+      'Beaker Stack Notifications'
+    );
+  });
+});
+
+describe('resolveApexHint', () => {
+  it('prefers explicit PR_PREVIEW_DOMAIN', async () => {
+    const apex = await resolveApexHint(process.cwd(), 'custom.example');
+    assert.equal(apex, 'custom.example');
+  });
+
+  it('falls back to branding flatName.com when no env hint', async () => {
+    const apex = await resolveApexHint(process.cwd(), '');
+    assert.equal(apex, 'beakerstack.com');
+  });
+});
 
 // --- formatTxtValue ---
 
 describe('formatTxtValue', () => {
   it('wraps a short value in double-quotes', () => {
-    assert.equal(formatTxtValue('v=spf1 include:amazonses.com ~all'), '"v=spf1 include:amazonses.com ~all"');
+    assert.equal(
+      formatTxtValue('v=spf1 include:amazonses.com ~all'),
+      '"v=spf1 include:amazonses.com ~all"'
+    );
   });
 
   it('returns a single quoted chunk for a value exactly 255 chars', () => {
@@ -68,19 +176,43 @@ describe('uncommentSmtpSection', () => {
 
   it('uncomments the smtp block and replaces values with Resend env-var refs', () => {
     const result = uncommentSmtpSection(commentedBlock);
-    assert.ok(result.includes('[auth.email.smtp]'), 'section header should be uncommented');
-    assert.ok(result.includes('host = "env(SMTP_HOST)"'), 'host should use env var');
-    assert.ok(result.includes('user = "env(SMTP_USER)"'), 'user should use env var');
+    assert.ok(
+      result.includes('[auth.email.smtp]'),
+      'section header should be uncommented'
+    );
+    assert.ok(
+      result.includes('host = "env(SMTP_HOST)"'),
+      'host should use env var'
+    );
+    assert.ok(
+      result.includes('user = "env(SMTP_USER)"'),
+      'user should use env var'
+    );
     assert.ok(result.includes('port = 587'), 'port should be 587');
-    assert.ok(result.includes('pass = "env(SMTP_PASS)"'), 'pass should use env var');
-    assert.ok(!result.includes('# [auth.email.smtp]'), 'commented header should be gone');
-    assert.ok(!result.includes('smtp.sendgrid.net'), 'sendgrid placeholder should be gone');
-    assert.ok(!result.includes('# Use a production-ready SMTP server'), 'prose comment should be removed');
+    assert.ok(
+      result.includes('pass = "env(SMTP_PASS)"'),
+      'pass should use env var'
+    );
+    assert.ok(
+      !result.includes('# [auth.email.smtp]'),
+      'commented header should be gone'
+    );
+    assert.ok(
+      !result.includes('smtp.sendgrid.net'),
+      'sendgrid placeholder should be gone'
+    );
+    assert.ok(
+      !result.includes('# Use a production-ready SMTP server'),
+      'prose comment should be removed'
+    );
   });
 
   it('does not bleed into adjacent sections', () => {
     const result = uncommentSmtpSection(commentedBlock);
-    assert.ok(result.includes('[auth.sms]'), 'adjacent [auth.sms] section must remain');
+    assert.ok(
+      result.includes('[auth.sms]'),
+      'adjacent [auth.sms] section must remain'
+    );
   });
 
   it('is idempotent — no-op if block already uncommented', () => {

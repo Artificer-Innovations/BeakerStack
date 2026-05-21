@@ -61,7 +61,12 @@ export async function upsertEmailDnsRecords(records, opts) {
   );
   const zoneId = route53ResourceIdToZoneId(hostedZoneId);
 
-  const changes = buildChanges(records, { sendingDomain, dmarc, dmarcEmail });
+  const changes = buildChanges(records, {
+    sendingDomain,
+    apexDomain,
+    dmarc,
+    dmarcEmail,
+  });
 
   if (dryRun) {
     console.log(
@@ -71,7 +76,11 @@ export async function upsertEmailDnsRecords(records, opts) {
       const rrs = c.ResourceRecordSet;
       console.log(`  ${rrs.Type.padEnd(5)} ${rrs.Name}`);
     }
-    return { changeId: 'dry-run', records: changes, resolvedZoneId: hostedZoneId };
+    return {
+      changeId: 'dry-run',
+      records: changes,
+      resolvedZoneId: hostedZoneId,
+    };
   }
 
   await checkExistingSpf(zoneId, sendingDomain, awsProfileArgs);
@@ -154,17 +163,91 @@ async function resolveHostedZone(hostedZoneId, apexDomain, awsProfileArgs) {
 }
 
 function normalizeRecordName(name) {
-  return name.replace(/\.$/, '');
+  return String(name).trim().toLowerCase().replace(/\.+$/, '');
 }
 
-function buildChanges(records, { sendingDomain, dmarc, dmarcEmail }) {
+/**
+ * Resend returns names relative to the sending subdomain (e.g. resend._domainkey.auth).
+ * Route 53 needs an FQDN inside the apex zone (resend._domainkey.auth.beakerstack.com.).
+ *
+ * @param {string} recordName from Resend records[].name
+ * @param {string} apexDomain e.g. beakerstack.com
+ * @param {string} sendingDomain e.g. auth.beakerstack.com
+ * @returns {string} FQDN with trailing dot for ChangeResourceRecordSets
+ */
+export function qualifyRecordNameForZone(
+  recordName,
+  apexDomain,
+  sendingDomain
+) {
+  const apex = normalizeRecordName(apexDomain);
+  const sending = normalizeRecordName(sendingDomain);
+  const n = normalizeRecordName(recordName);
+  if (!n) return `${apex}.`;
+
+  if (n === apex || n.endsWith(`.${apex}`)) {
+    return toRoute53Fqdn(n);
+  }
+  if (n === sending || n.endsWith(`.${sending}`)) {
+    return toRoute53Fqdn(n);
+  }
+
+  // e.g. resend._domainkey.auth or send.auth → append apex
+  const subLabel = sending.endsWith(`.${apex}`)
+    ? sending.slice(0, -(apex.length + 1))
+    : '';
+  if (subLabel && (n === subLabel || n.endsWith(`.${subLabel}`))) {
+    return toRoute53Fqdn(`${n}.${apex}`);
+  }
+
+  if (!n.endsWith(`.${apex}`) && !n.includes(sending)) {
+    return toRoute53Fqdn(`${n}.${sending}`);
+  }
+
+  return toRoute53Fqdn(`${n}.${apex}`);
+}
+
+/** @param {string} name */
+function toRoute53Fqdn(name) {
+  const n = normalizeRecordName(name);
+  return `${n}.`;
+}
+
+/** Route 53 requires a positive integer TTL; Resend often returns "Auto". */
+const DEFAULT_ROUTE53_TTL = 300;
+
+/**
+ * @param {number | string | undefined} ttl from Resend records[]
+ * @returns {number}
+ */
+export function resolveRoute53Ttl(ttl) {
+  if (typeof ttl === 'number' && Number.isFinite(ttl) && ttl > 0) {
+    return Math.trunc(ttl);
+  }
+  if (typeof ttl === 'string') {
+    const t = ttl.trim().toLowerCase();
+    if (t === 'auto' || t === '') return DEFAULT_ROUTE53_TTL;
+    const n = Number.parseInt(t, 10);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return DEFAULT_ROUTE53_TTL;
+}
+
+function buildChanges(
+  records,
+  { sendingDomain, apexDomain, dmarc, dmarcEmail }
+) {
   const changes = [];
 
   for (const rec of records) {
     const type = (rec.type ?? '').toUpperCase();
-    const name = normalizeRecordName(rec.name ?? '');
+    const name = qualifyRecordNameForZone(
+      rec.name ?? '',
+      apexDomain,
+      sendingDomain
+    );
     const value = rec.value ?? '';
-    const ttl = rec.ttl ?? 300;
+    const ttl = resolveRoute53Ttl(rec.ttl);
 
     if (type === 'TXT') {
       changes.push(
@@ -177,7 +260,9 @@ function buildChanges(records, { sendingDomain, dmarc, dmarcEmail }) {
     } else if (type === 'MX') {
       changes.push(upsertRecord(name, 'MX', ttl, [{ Value: value }]));
     } else if (type) {
-      console.warn(`[setup:email-dns] Skipping unrecognized Resend record type "${rec.type}" for ${name}`);
+      console.warn(
+        `[setup:email-dns] Skipping unrecognized Resend record type "${rec.type}" for ${name}`
+      );
     }
   }
 
@@ -185,9 +270,16 @@ function buildChanges(records, { sendingDomain, dmarc, dmarcEmail }) {
     const rua = dmarcEmail ? `mailto:${dmarcEmail}` : '';
     const dmarcValue = `v=DMARC1; p=none${rua ? `; rua=${rua}` : ''}`;
     changes.push(
-      upsertRecord(`_dmarc.${sendingDomain}`, 'TXT', 300, [
-        { Value: formatTxtValue(dmarcValue) },
-      ])
+      upsertRecord(
+        qualifyRecordNameForZone(
+          `_dmarc.${sendingDomain}`,
+          apexDomain,
+          sendingDomain
+        ),
+        'TXT',
+        300,
+        [{ Value: formatTxtValue(dmarcValue) }]
+      )
     );
   }
 
@@ -218,7 +310,7 @@ async function checkExistingSpf(zoneId, sendingDomain, awsProfileArgs) {
       '--hosted-zone-id',
       zoneId,
       '--query',
-      `ResourceRecordSets[?Name=='${sendingDomain}.' && Type=='TXT']`,
+      `ResourceRecordSets[?Name=='${toRoute53Fqdn(sendingDomain)}' && Type=='TXT']`,
       ...awsProfileArgs,
     ],
     { encoding: 'utf8' }

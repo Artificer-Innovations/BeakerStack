@@ -13,7 +13,10 @@ const RESEND_BASE = 'https://api.resend.com';
  * @param {{ dryRun?: boolean }} opts
  * @returns {Promise<{ domainId: string; records: ResendRecord[] }>}
  */
-export async function createOrGetResendDomain(sendingDomain, { dryRun = false } = {}) {
+export async function createOrGetResendDomain(
+  sendingDomain,
+  { dryRun = false } = {}
+) {
   if (dryRun) {
     console.log(`[dry-run] would create/reuse Resend domain: ${sendingDomain}`);
     console.log('[dry-run] would disable click_tracking and open_tracking');
@@ -24,7 +27,10 @@ export async function createOrGetResendDomain(sendingDomain, { dryRun = false } 
   let domain = await _createOrGetDomain(sendingDomain, apiKey);
 
   if (domain.click_tracking || domain.open_tracking) {
-    await _patchDomain(domain.id, apiKey, { click_tracking: false, open_tracking: false });
+    await _patchDomain(domain.id, apiKey, {
+      click_tracking: false,
+      open_tracking: false,
+    });
     domain = await _getDomain(domain.id, apiKey);
   }
 
@@ -40,7 +46,10 @@ export async function createOrGetResendDomain(sendingDomain, { dryRun = false } 
  *   nonInteractive: skip polling entirely (--yes / setup-full non-interactive); print pending message instead.
  * @returns {Promise<{ verified: boolean }>}
  */
-export async function verifyResendDomain(domainId, { dryRun = false, nonInteractive = false } = {}) {
+export async function verifyResendDomain(
+  domainId,
+  { dryRun = false, nonInteractive = false } = {}
+) {
   if (dryRun) {
     console.log('[dry-run] would POST /verify and poll for verification');
     return { verified: false };
@@ -66,7 +75,9 @@ function requireApiKey() {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) throw new Error('RESEND_API_KEY is not set in the environment.');
   if (!apiKey.startsWith('re_')) {
-    console.warn('⚠  RESEND_API_KEY does not start with "re_" — verify the key is correct.');
+    console.warn(
+      '⚠  RESEND_API_KEY does not start with "re_" — verify the key is correct.'
+    );
   }
   return apiKey;
 }
@@ -82,33 +93,85 @@ async function resendFetch(path, apiKey, opts = {}) {
   });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    const err = new Error(`Resend ${opts.method ?? 'GET'} ${path} → ${res.status}: ${body}`);
+    const err = new Error(
+      `Resend ${opts.method ?? 'GET'} ${path} → ${res.status}: ${body}`
+    );
     err.status = res.status;
     throw err;
   }
   return res.json();
 }
 
+/**
+ * Resend returns 409 or 403 validation_error when the domain is already registered.
+ * @param {{ status?: number; message?: string }} err
+ */
+export function isDomainAlreadyRegisteredError(err) {
+  if (!err || typeof err.status !== 'number') return false;
+  if (err.status === 409) return true;
+  if (err.status !== 403) return false;
+
+  const msg = String(err.message || '');
+  if (/registered already|already been registered/i.test(msg)) return true;
+
+  const jsonStart = msg.indexOf('{');
+  if (jsonStart === -1) return false;
+  try {
+    const parsed = JSON.parse(msg.slice(jsonStart));
+    return (
+      parsed.name === 'validation_error' &&
+      /registered already|already been registered/i.test(
+        String(parsed.message || '')
+      )
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * @param {string} name
+ * @param {string} apiKey
+ * @returns {Promise<object | null>}
+ */
+async function _findDomainByName(name, apiKey) {
+  let cursor;
+  do {
+    const url = cursor
+      ? `/domains?cursor=${encodeURIComponent(cursor)}`
+      : '/domains';
+    const list = await resendFetch(url, apiKey);
+    const data = list.data ?? list;
+    const existing = Array.isArray(data)
+      ? data.find(d => d.name === name)
+      : undefined;
+    if (existing) return _getDomain(existing.id, apiKey);
+    cursor = list.has_more ? list.next : null;
+  } while (cursor);
+  return null;
+}
+
 async function _createOrGetDomain(name, apiKey) {
   try {
     return await resendFetch('/domains', apiKey, {
       method: 'POST',
-      body: JSON.stringify({ name, click_tracking: false, open_tracking: false }),
+      body: JSON.stringify({
+        name,
+        click_tracking: false,
+        open_tracking: false,
+      }),
     });
   } catch (err) {
-    if (err.status === 409) {
-      // Paginate through all pages to find the existing domain
-      let cursor;
-      do {
-        const url = cursor ? `/domains?cursor=${encodeURIComponent(cursor)}` : '/domains';
-        const list = await resendFetch(url, apiKey);
-        const data = list.data ?? list;
-        const existing = Array.isArray(data) ? data.find(d => d.name === name) : undefined;
-        if (existing) return _getDomain(existing.id, apiKey);
-        cursor = list.has_more ? list.next : null;
-      } while (cursor);
+    if (isDomainAlreadyRegisteredError(err)) {
+      const existing = await _findDomainByName(name, apiKey);
+      if (existing) {
+        console.log(
+          `[setup:email-dns] Reusing existing Resend domain: ${name}`
+        );
+        return existing;
+      }
       throw new Error(
-        `Resend domain "${name}" already exists (409) but was not found in any page of the domain list. ` +
+        `Resend domain "${name}" is already registered but was not found in the domain list. ` +
           'Check your Resend account or use a different API key.'
       );
     }
@@ -128,7 +191,10 @@ async function _patchDomain(id, apiKey, updates) {
 }
 
 async function _verifyDomain(id, apiKey) {
-  return resendFetch(`/domains/${id}/verify`, apiKey, { method: 'POST', body: '{}' });
+  return resendFetch(`/domains/${id}/verify`, apiKey, {
+    method: 'POST',
+    body: '{}',
+  });
 }
 
 async function _pollVerification(domainId, apiKey) {
@@ -137,7 +203,9 @@ async function _pollVerification(domainId, apiKey) {
   let elapsedSec = 0;
   let siginted = false;
 
-  const sigintHandler = () => { siginted = true; };
+  const sigintHandler = () => {
+    siginted = true;
+  };
   process.once('SIGINT', sigintHandler);
 
   process.stdout.write(
@@ -175,5 +243,5 @@ async function _pollVerification(domainId, apiKey) {
 }
 
 /**
- * @typedef {{ type: string; name: string; value: string; ttl?: number }} ResendRecord
+ * @typedef {{ type: string; name: string; value: string; ttl?: number | string }} ResendRecord
  */

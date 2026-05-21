@@ -23,14 +23,22 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
 
-import { createOrGetResendDomain, verifyResendDomain } from './lib/setup-resend-api.mjs';
+import {
+  createOrGetResendDomain,
+  verifyResendDomain,
+} from './lib/setup-resend-api.mjs';
 import { upsertEmailDnsRecords } from './lib/setup-route53-email-records.mjs';
-import { parseDotEnv, escapeDotEnvDoubleQuotedValue } from './lib/setup-dotenv.mjs';
+import { detectRepoIdentity } from './lib/detect-repo-identity.mjs';
+import {
+  parseDotEnv,
+  escapeDotEnvDoubleQuotedValue,
+} from './lib/setup-dotenv.mjs';
 import { readMaskedLineIfTty } from './lib/setup-secret-input.mjs';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..');
 const LOCAL_ENV_PATH = path.join(REPO_ROOT, '.env.local');
+const CLOUD_ENV_PATH = path.join(REPO_ROOT, '.env.cloud.generated.local');
 const CONFIG_TOML_PATH = path.join(REPO_ROOT, 'supabase', 'config.toml');
 
 // ---------------------------------------------------------------------------
@@ -44,7 +52,9 @@ const CONFIG_TOML_PATH = path.join(REPO_ROOT, 'supabase', 'config.toml');
  */
 export async function phaseEmailDns(flags, rl, acc) {
   const dryRun = flags.dryRun ?? false;
-  const awsProfileArgs = flags.awsProfile ? ['--profile', flags.awsProfile] : [];
+  const awsProfileArgs = flags.awsProfile
+    ? ['--profile', flags.awsProfile]
+    : [];
 
   logInfo('Resend domain + Route 53 DNS setup');
 
@@ -62,15 +72,12 @@ export async function phaseEmailDns(flags, rl, acc) {
     process.env.RESEND_API_KEY = key;
   }
 
-  // Default sending domain to apex from aws phase if available
-  const defaultDomain = acc.PR_PREVIEW_DOMAIN || '';
-  const sendingDomain = (
-    (await rl.question(
-      defaultDomain
-        ? `Sending domain [${defaultDomain}]: `
-        : 'Sending domain (e.g. auth.myapp.com): '
-    )).trim()
-  ) || defaultDomain;
+  const defaults = await loadEmailDnsDefaults(REPO_ROOT, {
+    apexHint: await resolveApexHint(REPO_ROOT, acc.PR_PREVIEW_DOMAIN || ''),
+  });
+  for (const w of defaults.warnings) logWarn(w);
+
+  const sendingDomain = await resolveSendingDomain(rl, defaults, '');
 
   if (!sendingDomain) {
     logWarn('No sending domain provided; skipping email DNS setup.');
@@ -84,13 +91,19 @@ export async function phaseEmailDns(flags, rl, acc) {
 
   const defaultAdminEmail = `noreply@${sendingDomain}`;
   const adminEmail =
-    (await rl.question(`Admin/sender email [${defaultAdminEmail}]: `)).trim() || defaultAdminEmail;
+    (await rl.question(`Admin/sender email [${defaultAdminEmail}]: `)).trim() ||
+    defaultAdminEmail;
 
-  const defaultSenderName = 'Notifications';
   const senderName =
-    (await rl.question(`Sender display name [${defaultSenderName}]: `)).trim() || defaultSenderName;
+    (
+      await rl.question(`Sender display name [${defaults.defaultSenderName}]: `)
+    ).trim() || defaults.defaultSenderName;
 
-  const addDmarc = await promptYesNo(rl, 'Add DMARC TXT record? (recommended)', true);
+  const addDmarc = await promptYesNo(
+    rl,
+    'Add DMARC TXT record? (recommended)',
+    true
+  );
 
   const { completed } = await runEmailDns({
     rl,
@@ -136,10 +149,16 @@ async function main() {
     // Ensure RESEND_API_KEY
     if (!process.env.RESEND_API_KEY) {
       if (flags.yes) {
-        console.error('RESEND_API_KEY is not set. Export it before running with --yes.');
+        console.error(
+          'RESEND_API_KEY is not set. Export it before running with --yes.'
+        );
         process.exit(1);
       }
-      const key = await promptSecret(rl, 'Resend API key (re_…): ', flags.plainSecretPrompts);
+      const key = await promptSecret(
+        rl,
+        'Resend API key (re_…): ',
+        flags.plainSecretPrompts
+      );
       if (!key) {
         console.error('No Resend API key; exiting.');
         process.exit(1);
@@ -147,22 +166,43 @@ async function main() {
       process.env.RESEND_API_KEY = key;
     }
 
-    const sendingDomain = await resolveDomain(rl, flags);
+    const envLocal = await readEnvFileIfExists(LOCAL_ENV_PATH);
+    const cloudEnv = await readEnvFileIfExists(CLOUD_ENV_PATH);
+    const defaults = await loadEmailDnsDefaults(REPO_ROOT, {
+      apexHint: await resolveApexHint(
+        REPO_ROOT,
+        envLocal.PR_PREVIEW_DOMAIN || cloudEnv.PR_PREVIEW_DOMAIN || ''
+      ),
+    });
+    for (const w of defaults.warnings) logWarn(w);
+
+    const sendingDomain = await resolveSendingDomain(
+      rl,
+      defaults,
+      flags.domain
+    );
     const apex = apexFromDomain(sendingDomain);
 
     const defaultAdminEmail = `noreply@${sendingDomain}`;
     const adminEmail = flags.yes
       ? defaultAdminEmail
-      : (await rl.question(`Admin/sender email [${defaultAdminEmail}]: `)).trim() || defaultAdminEmail;
+      : (
+          await rl.question(`Admin/sender email [${defaultAdminEmail}]: `)
+        ).trim() || defaultAdminEmail;
 
-    const defaultSenderName = 'Notifications';
     const senderName = flags.yes
-      ? defaultSenderName
-      : (await rl.question(`Sender display name [${defaultSenderName}]: `)).trim() || defaultSenderName;
+      ? defaults.defaultSenderName
+      : (
+          await rl.question(
+            `Sender display name [${defaults.defaultSenderName}]: `
+          )
+        ).trim() || defaults.defaultSenderName;
 
     const addDmarc =
       flags.dmarc ??
-      (flags.yes ? true : await promptYesNo(rl, 'Add DMARC TXT record? (recommended)', true));
+      (flags.yes
+        ? true
+        : await promptYesNo(rl, 'Add DMARC TXT record? (recommended)', true));
     const dmarcEmail = flags.dmarcEmail || adminEmail;
 
     await runEmailDns({
@@ -230,7 +270,9 @@ async function runEmailDns({
 
   // 2. Create/reuse Resend domain — get DNS records (no verify yet)
   logInfo(`Creating/reusing Resend domain: ${sendingDomain}`);
-  const { domainId, records } = await createOrGetResendDomain(sendingDomain, { dryRun });
+  const { domainId, records } = await createOrGetResendDomain(sendingDomain, {
+    dryRun,
+  });
 
   // 3. Plan Route 53 changes — zone is resolved once here and reused for the real UPSERT
   logInfo(`Planning Route 53 UPSERT for zone apex: ${apex}`);
@@ -280,7 +322,14 @@ async function runEmailDns({
   await applyConfigToml(dryRun);
 
   // 7. Completion summary
-  printCompletion({ sendingDomain, verified, changeId, changes, dmarc, dryRun });
+  printCompletion({
+    sendingDomain,
+    verified,
+    changeId,
+    changes,
+    dmarc,
+    dryRun,
+  });
   return { completed: true };
 }
 
@@ -314,7 +363,11 @@ function stringifyDotEnv(record) {
     const v = record[k];
     if (v === undefined || v === null) continue;
     const needsQuote = /[\s#]/.test(String(v)) || v === '';
-    lines.push(needsQuote ? `${k}="${escapeDotEnvDoubleQuotedValue(String(v))}"` : `${k}=${v}`);
+    lines.push(
+      needsQuote
+        ? `${k}="${escapeDotEnvDoubleQuotedValue(String(v))}"`
+        : `${k}=${v}`
+    );
   }
   lines.push('');
   return lines.join('\n');
@@ -322,14 +375,18 @@ function stringifyDotEnv(record) {
 
 async function mergeEnvLocal(smtpVars, dryRun) {
   if (dryRun) {
-    logInfo('[dry-run] would merge SMTP_* keys into .env.local (preserving all other keys; note: user-written comments are stripped)');
+    logInfo(
+      '[dry-run] would merge SMTP_* keys into .env.local (preserving all other keys; note: user-written comments are stripped)'
+    );
     return;
   }
   const existing = await readEnvFileIfExists(LOCAL_ENV_PATH);
   const merged = { ...existing, ...smtpVars };
   try {
     await fs.writeFile(LOCAL_ENV_PATH, stringifyDotEnv(merged), 'utf8');
-    logInfo('.env.local: SMTP_* keys merged (other keys preserved; user-written comments stripped)');
+    logInfo(
+      '.env.local: SMTP_* keys merged (other keys preserved; user-written comments stripped)'
+    );
   } catch (err) {
     throw new Error(
       `Failed to write .env.local: ${err.message}\n` +
@@ -348,13 +405,17 @@ async function applyConfigToml(dryRun) {
   }
 
   if (dryRun) {
-    logInfo('[dry-run] would uncomment [auth.email.smtp] block in supabase/config.toml');
+    logInfo(
+      '[dry-run] would uncomment [auth.email.smtp] block in supabase/config.toml'
+    );
     return;
   }
 
   const updated = uncommentSmtpSection(toml);
   if (updated === toml) {
-    logInfo('supabase/config.toml: [auth.email.smtp] already enabled (no change)');
+    logInfo(
+      'supabase/config.toml: [auth.email.smtp] already enabled (no change)'
+    );
     return;
   }
   try {
@@ -406,14 +467,91 @@ function apexFromDomain(domain) {
   return parts.slice(-2).join('.');
 }
 
-async function resolveDomain(rl, flags) {
-  if (flags.domain) return flags.domain;
-  const d = (await rl.question('Sending domain (e.g. auth.myapp.com): ')).trim();
-  if (!d) {
+/**
+ * Normalize apex or sending domain input (lowercase, no trailing dot).
+ * @param {string} raw
+ */
+function normalizeDomainInput(raw) {
+  return String(raw).trim().toLowerCase().replace(/\.+$/, '');
+}
+
+/**
+ * Default transactional sending subdomain: auth.<apex> (matches setup-full / #284 guidance).
+ * @param {string} apexOrDomain e.g. "beakerstack.com" or "auth.beakerstack.com"
+ * @returns {string}
+ */
+export function defaultSendingDomain(apexOrDomain) {
+  const d = normalizeDomainInput(apexOrDomain);
+  if (!d) return '';
+  if (d.startsWith('auth.')) return d;
+  return `auth.${d}`;
+}
+
+/**
+ * @param {string} displayName from packages/shared branding
+ * @returns {string}
+ */
+export function senderDisplayNameFromBranding(displayName) {
+  const name = String(displayName || 'Beaker Stack').trim() || 'Beaker Stack';
+  return `${name} Notifications`;
+}
+
+/**
+ * Apex for auth.<apex> defaults: PR_PREVIEW_DOMAIN from setup, else branding flatName + ".com".
+ * @param {string} repoRoot
+ * @param {string} explicitHint from acc / .env.local / .env.cloud.generated.local
+ * @returns {Promise<string>}
+ */
+export async function resolveApexHint(repoRoot, explicitHint = '') {
+  const fromSetup = normalizeDomainInput(explicitHint);
+  if (fromSetup) return fromSetup;
+
+  try {
+    const text = await fs.readFile(
+      path.join(repoRoot, 'packages', 'shared', 'src', 'config', 'branding.ts'),
+      'utf8'
+    );
+    const m = text.match(/flatName:\s*['"]([^'"]+)['"]/);
+    const flat = m?.[1]?.trim();
+    if (flat) return `${flat}.com`;
+  } catch {
+    // fall through
+  }
+  return '';
+}
+
+/**
+ * @param {string} repoRoot
+ * @param {{ apexHint?: string }} opts
+ */
+async function loadEmailDnsDefaults(repoRoot, { apexHint = '' } = {}) {
+  const identity = await detectRepoIdentity(repoRoot);
+  const apex = await resolveApexHint(repoRoot, apexHint);
+  return {
+    defaultSendingDomain: defaultSendingDomain(apex),
+    defaultSenderName: senderDisplayNameFromBranding(identity.displayName),
+    warnings: identity.warnings,
+  };
+}
+
+/**
+ * @param {import('node:readline/promises').Interface} rl
+ * @param {{ defaultSendingDomain: string; defaultSenderName: string }} defaults
+ * @param {string} domainFlag from --domain=
+ */
+async function resolveSendingDomain(rl, defaults, domainFlag) {
+  if (domainFlag) return defaultSendingDomain(domainFlag);
+
+  const prompt = defaults.defaultSendingDomain
+    ? `Sending domain [${defaults.defaultSendingDomain}]: `
+    : 'Sending domain (e.g. auth.myapp.com): ';
+  const answer = (await rl.question(prompt)).trim();
+  const sendingDomain = answer || defaults.defaultSendingDomain;
+  if (!sendingDomain) {
     console.error('No sending domain provided; exiting.');
     process.exit(1);
   }
-  return d;
+  return sendingDomain;
 }
 
 async function promptSecret(rl, prompt, plain) {
@@ -426,15 +564,30 @@ async function promptSecret(rl, prompt, plain) {
 
 async function promptYesNo(rl, prompt, defaultYes) {
   const suffix = defaultYes ? '[Y/n]' : '[y/N]';
-  const answer = (await rl.question(`${prompt} ${suffix}: `)).trim().toLowerCase();
+  const answer = (await rl.question(`${prompt} ${suffix}: `))
+    .trim()
+    .toLowerCase();
   if (!answer) return defaultYes;
   return answer === 'y' || answer === 'yes';
 }
 
-function printCompletion({ sendingDomain, verified, changeId, changes, dmarc, dryRun }) {
+function printCompletion({
+  sendingDomain,
+  verified,
+  changeId,
+  changes,
+  dmarc,
+  dryRun,
+}) {
   console.log('\n' + '─'.repeat(60));
-  console.log(dryRun ? '[dry-run] Email DNS setup — planned actions:' : 'Email DNS setup complete:');
-  console.log(`  Resend domain: ${sendingDomain} — ${verified ? '✓ verified' : '⏳ verification pending'}`);
+  console.log(
+    dryRun
+      ? '[dry-run] Email DNS setup — planned actions:'
+      : 'Email DNS setup complete:'
+  );
+  console.log(
+    `  Resend domain: ${sendingDomain} — ${verified ? '✓ verified' : '⏳ verification pending'}`
+  );
   if (!dryRun) {
     if (changeId !== 'dry-run') {
       console.log(`  Route 53 change batch: ${changeId}`);
@@ -448,12 +601,18 @@ function printCompletion({ sendingDomain, verified, changeId, changes, dmarc, dr
   }
   if (!verified && !dryRun) {
     console.log('\n  ⏳ DNS propagation takes 10–60+ minutes.');
-    console.log('     Re-run `node scripts/setup-email-dns.mjs` to check verification status.');
+    console.log(
+      '     Re-run `node scripts/setup-email-dns.mjs` to check verification status.'
+    );
   }
   if (dmarc) {
-    console.log(`\n  ⚠  DMARC record at _dmarc.${sendingDomain} — propagation up to 48h.`);
+    console.log(
+      `\n  ⚠  DMARC record at _dmarc.${sendingDomain} — propagation up to 48h.`
+    );
   }
-  console.log('\n  ⚠  Hosted Supabase: enable Custom SMTP in Dashboard → Auth → Settings.');
+  console.log(
+    '\n  ⚠  Hosted Supabase: enable Custom SMTP in Dashboard → Auth → Settings.'
+  );
   console.log('     (This step must be done manually in the Supabase web UI.)');
   console.log('─'.repeat(60) + '\n');
 }
@@ -485,10 +644,14 @@ function parseArgv(argv) {
     else if (a === '--no-dmarc') flags.dmarc = false;
     else if (a === '--skip-email-dns') flags.skipEmailDns = true;
     else if (a === '--plain-secret-prompts') flags.plainSecretPrompts = true;
-    else if (a.startsWith('--domain=')) flags.domain = a.slice('--domain='.length);
-    else if (a.startsWith('--hosted-zone-id=')) flags.hostedZoneId = a.slice('--hosted-zone-id='.length);
-    else if (a.startsWith('--aws-profile=')) flags.awsProfile = a.slice('--aws-profile='.length);
-    else if (a.startsWith('--dmarc-email=')) flags.dmarcEmail = a.slice('--dmarc-email='.length);
+    else if (a.startsWith('--domain='))
+      flags.domain = a.slice('--domain='.length);
+    else if (a.startsWith('--hosted-zone-id='))
+      flags.hostedZoneId = a.slice('--hosted-zone-id='.length);
+    else if (a.startsWith('--aws-profile='))
+      flags.awsProfile = a.slice('--aws-profile='.length);
+    else if (a.startsWith('--dmarc-email='))
+      flags.dmarcEmail = a.slice('--dmarc-email='.length);
   }
   return flags;
 }
