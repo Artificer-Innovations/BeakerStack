@@ -48,32 +48,36 @@ SELECT ok(
   'kit_sync_setup_cron is SECURITY DEFINER'
 );
 
--- 7. kit_sync_setup_cron is not callable by PUBLIC
+-- 7. kit_sync_setup_cron has no PUBLIC execute grant in proacl
+-- (has_function_privilege('PUBLIC',...) fails — PUBLIC is a pseudo-role, not a real role name.
+-- Instead we verify proacl is explicitly set (revoke applied) and has no =X/ entry for PUBLIC.)
 SELECT ok(
-  NOT has_function_privilege('PUBLIC', 'public.kit_sync_setup_cron(text, text)', 'EXECUTE'),
-  'kit_sync_setup_cron is not PUBLIC-executable'
+  EXISTS (
+    SELECT 1 FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname = 'kit_sync_setup_cron'
+      AND p.proacl IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM unnest(p.proacl) a
+        WHERE a::text ~ '^=X/'
+      )
+  ),
+  'kit_sync_setup_cron has no PUBLIC execute grant'
 );
 
 -- 8. kit_sync_dequeue marks rows as processing and returns them
-DO $$
-BEGIN
-  -- Ensure a product + settings row exists for this test
-  INSERT INTO public.marketing_email_settings (product_id, enabled, config)
-  VALUES ('__test__', true, '{"namespace":"test"}')
-  ON CONFLICT (product_id) DO NOTHING;
-END;
-$$;
-
+-- kit_sync_dequeue operates on the queue directly — no settings lookup needed.
 INSERT INTO public.marketing_email_sync_queue
   (product_id, event_type, email, payload, idempotency_key, status)
 VALUES
-  ('__test__', 'user.signed_up', 'cron-test@example.com',
+  ('__cron_test__', 'user.signed_up', 'cron-test@example.com',
    '{"user_id":"00000000-0000-0000-0000-000000000001"}',
    'cron-test:signed_up:1', 'pending');
 
 SELECT ok(
   (SELECT COUNT(*) FROM public.kit_sync_dequeue(5)
-   WHERE email = 'cron-test@example.com' AND status = 'processing') = 1,
+   WHERE email = 'cron-test@example.com' AND status = 'processing')::int = 1,
   'kit_sync_dequeue returns pending row as processing'
 );
 
