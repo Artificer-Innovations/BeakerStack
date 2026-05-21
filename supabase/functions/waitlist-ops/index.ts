@@ -3,6 +3,7 @@ import {
   corsHeadersForWaitlist,
   jsonResponse,
 } from '../_shared/waitlist-origins.ts';
+import { enqueueMarketingEmail } from '../_shared/marketingEmailQueue.ts';
 
 type Body = {
   action:
@@ -147,26 +148,35 @@ Deno.serve(async req => {
       return jsonResponse({ error: consumeResult.error }, 400, req);
     }
 
-    if (
-      consumeResult.ok &&
-      !consumeResult.already_converted &&
-      consumeResult.default_plan_id
-    ) {
-      const productId =
-        body.productId?.trim() ||
-        Deno.env.get('WAITLIST_PRODUCT_ID') ||
-        'beakerstack';
-      const { error: planErr } = await admin.rpc(
-        'billing_ensure_subscription_plan',
-        {
-          p_product_id: productId,
-          p_plan_id: consumeResult.default_plan_id,
-          p_user_id: userId,
+    if (consumeResult.ok && !consumeResult.already_converted) {
+      if (consumeResult.default_plan_id) {
+        const productId =
+          body.productId?.trim() ||
+          Deno.env.get('WAITLIST_PRODUCT_ID') ||
+          'beakerstack';
+        const { error: planErr } = await admin.rpc(
+          'billing_ensure_subscription_plan',
+          {
+            p_product_id: productId,
+            p_plan_id: consumeResult.default_plan_id,
+            p_user_id: userId,
+          }
+        );
+        if (planErr) {
+          console.error('billing_ensure_subscription_plan', planErr.message);
+          return jsonResponse({ error: 'plan_provision_failed' }, 500, req);
         }
-      );
-      if (planErr) {
-        console.error('billing_ensure_subscription_plan', planErr.message);
-        return jsonResponse({ error: 'plan_provision_failed' }, 500, req);
+      }
+
+      const consumeEmail = body.userEmail ?? user.email ?? null;
+      if (consumeEmail) {
+        await enqueueMarketingEmail(
+          admin,
+          'waitlist.converted',
+          consumeEmail,
+          { user_id: userId },
+          `waitlist.converted:${userId}`
+        );
       }
     }
 
@@ -183,6 +193,12 @@ Deno.serve(async req => {
     if (!body.entryId) {
       return jsonResponse({ error: 'invalid_request' }, 400, req);
     }
+
+    const { data: entryData } = await admin.rpc('admin_get_waitlist_entry', {
+      p_id: body.entryId,
+    });
+    const entryEmail = (entryData as { email?: string } | null)?.email;
+
     const { data, error } = await authClient.rpc(
       'admin_approve_waitlist_entry',
       {
@@ -192,6 +208,17 @@ Deno.serve(async req => {
     if (error) {
       return jsonResponse({ error: error.message }, 400, req);
     }
+
+    if (entryEmail) {
+      await enqueueMarketingEmail(
+        admin,
+        'waitlist.approved',
+        entryEmail,
+        { entry_id: body.entryId },
+        `waitlist.approved:${body.entryId}`
+      );
+    }
+
     return jsonResponse(data, 200, req);
   }
 

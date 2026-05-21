@@ -3,6 +3,7 @@ import {
   corsHeadersForWaitlist,
   jsonResponse,
 } from '../_shared/waitlist-origins.ts';
+import { enqueueMarketingEmail } from '../_shared/marketingEmailQueue.ts';
 
 type Body = {
   email?: string;
@@ -74,6 +75,14 @@ Deno.serve(async req => {
       req
     );
   }
+
+  await enqueueMarketingEmail(
+    admin,
+    'waitlist.joined',
+    email,
+    { metadata: body.metadata ?? {} },
+    `waitlist.joined:${email}`
+  );
 
   return jsonResponse(data ?? { ok: true }, 200, req);
 });

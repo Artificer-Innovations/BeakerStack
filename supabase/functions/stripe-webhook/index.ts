@@ -10,6 +10,7 @@ import {
   type ClassifyDecision,
   type OwnedSubscriptionRow,
 } from '../_shared/billing-webhook-guards.ts';
+import { enqueueMarketingEmail } from '../_shared/marketingEmailQueue.ts';
 
 type ProcessResult =
   | {
@@ -379,6 +380,22 @@ async function processStripeEvent(
         })
         .eq('stripe_subscription_id', stripeSub.id);
       if (error) throw asErrorFromSupabase(error);
+
+      const { data: authUser } = await supabase.auth.admin.getUserById(
+        row.user_id
+      );
+      const userEmail = authUser.user?.email;
+      if (userEmail) {
+        const lifecycleEvent = isCanceled ? 'user.churned' : 'user.tier_changed';
+        await enqueueMarketingEmail(
+          supabase,
+          lifecycleEvent,
+          userEmail,
+          { user_id: row.user_id, plan_id: finalPlanId, status: finalStatus },
+          `${lifecycleEvent}:${event.id}`
+        );
+      }
+
       return {
         status: 'processed',
         clearStripeIdsFor: isCanceled
