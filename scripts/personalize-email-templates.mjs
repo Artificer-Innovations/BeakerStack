@@ -145,18 +145,29 @@ async function prompt(question, defaultVal) {
   });
 }
 
-// --- Check enable_confirmations ---
+// --- Signup confirmation note ---
 function checkConfirmations() {
   try {
     const toml = readFileSync(CONFIG_TOML, 'utf8');
-    if (/^\s*enable_confirmations\s*=\s*false/m.test(toml)) {
+    const emailSection =
+      toml.match(/\[auth\.email\][\s\S]*?(?=\n\[|$)/)?.[0] ?? '';
+    if (/enable_confirmations\s*=\s*true/.test(emailSection)) {
       console.log(
-        '\ni  Note: enable_confirmations = false in supabase/config.toml.'
+        '\ni  Signup email confirmation is enabled (enable_confirmations = true).'
       );
       console.log(
-        '   Signup confirmation emails are dormant until you set it to true.'
+        '   New users must verify email before sign-in. Deliver mail with npm run setup:email'
       );
-      console.log('   See docs/EMAIL_TEMPLATES.md for details.\n');
+      console.log(
+        '   (or SMTP_* in .env.local); local testing: Inbucket at http://localhost:54324.\n'
+      );
+    } else if (/enable_confirmations\s*=\s*false/.test(emailSection)) {
+      console.log(
+        '\ni  Note: enable_confirmations is false under [auth.email] in supabase/config.toml.'
+      );
+      console.log(
+        '   The template default is true; run npm run setup:email or see docs/EMAIL_TEMPLATES.md.\n'
+      );
     }
   } catch {
     /* no-op */
@@ -325,13 +336,14 @@ async function main() {
   if (!NON_INTERACTIVE) {
     console.log('\nNext steps:');
     console.log(
-      '  1. Enable SMTP in supabase/config.toml if sending via custom domain'
+      '  1. Run: npm run setup:email (merges SMTP_* into .env.local and enables auth SMTP in config.toml)'
     );
-    console.log('  2. Set SMTP_* vars in .env.local');
     console.log(
-      '  3. Run: supabase stop && supabase start to apply config changes'
+      '  2. Run: supabase stop && supabase start to apply config changes'
     );
-    console.log('  4. Test with Inbucket at http://localhost:54324');
+    console.log(
+      '  3. Test signup confirmation in Inbucket at http://localhost:54324'
+    );
   }
 }
 

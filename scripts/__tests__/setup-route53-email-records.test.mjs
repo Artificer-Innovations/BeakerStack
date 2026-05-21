@@ -11,6 +11,7 @@ import {
   resolveApexHint,
   senderDisplayNameFromBranding,
   uncommentSmtpSection,
+  enableSignupConfirmationsInToml,
 } from '../setup-email-dns.mjs';
 
 // --- qualifyRecordNameForZone ---
@@ -234,5 +235,43 @@ describe('uncommentSmtpSection', () => {
     const result = uncommentSmtpSection(eof);
     assert.ok(result.includes('[auth.email.smtp]'));
     assert.ok(!result.includes('# [auth.email.smtp]'));
+  });
+});
+
+// --- enableSignupConfirmationsInToml ---
+
+describe('enableSignupConfirmationsInToml', () => {
+  const emailSection = `[auth.email]
+enable_signup = true
+enable_confirmations = false  # set to true to require email verification on signup
+
+[auth.sms]
+enable_confirmations = false
+`;
+
+  it('flips [auth.email] enable_confirmations to true', () => {
+    const result = enableSignupConfirmationsInToml(emailSection);
+    assert.match(result, /\[auth\.email\][\s\S]*enable_confirmations = true/);
+    assert.match(result, /\[auth\.sms\][\s\S]*enable_confirmations = false/);
+  });
+
+  it('is idempotent when already true', () => {
+    const already = enableSignupConfirmationsInToml(emailSection);
+    assert.equal(enableSignupConfirmationsInToml(already), already);
+  });
+
+  it('handles enable_confirmations = false without the long comment', () => {
+    const minimal = `[auth.email]
+enable_confirmations = false
+
+[auth.sms]
+enable_confirmations = false
+`;
+    const result = enableSignupConfirmationsInToml(minimal);
+    assert.ok(
+      result.includes('[auth.email]') &&
+        /\[auth\.email\][\s\S]*enable_confirmations = true/.test(result)
+    );
+    assert.match(result, /\[auth\.sms\]\s*\nenable_confirmations = false/);
   });
 });

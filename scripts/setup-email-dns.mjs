@@ -586,21 +586,29 @@ async function applyConfigToml(dryRun) {
 
   if (dryRun) {
     logInfo(
-      '[dry-run] would uncomment [auth.email.smtp] block in supabase/config.toml'
+      '[dry-run] would enable [auth.email.smtp] and enable_confirmations in supabase/config.toml'
     );
     return;
   }
 
-  const updated = uncommentSmtpSection(toml);
+  const smtpUpdated = uncommentSmtpSection(toml);
+  const updated = enableSignupConfirmationsInToml(smtpUpdated);
   if (updated === toml) {
     logInfo(
-      'supabase/config.toml: [auth.email.smtp] already enabled (no change)'
+      'supabase/config.toml: SMTP + signup confirmations already configured (no change)'
     );
     return;
   }
   try {
     await fs.writeFile(CONFIG_TOML_PATH, updated, 'utf8');
-    logInfo('supabase/config.toml: [auth.email.smtp] block enabled');
+    if (smtpUpdated !== toml) {
+      logInfo('supabase/config.toml: [auth.email.smtp] block enabled');
+    }
+    if (enableSignupConfirmationsInToml(smtpUpdated) !== smtpUpdated) {
+      logInfo(
+        'supabase/config.toml: enable_confirmations = true ([auth.email])'
+      );
+    }
   } catch (err) {
     throw new Error(
       `Failed to write supabase/config.toml: ${err.message}\n` +
@@ -638,6 +646,37 @@ export function uncommentSmtpSection(toml) {
     'sender_name = "env(SMTP_SENDER_NAME)"\n';
 
   return toml.replace(pattern, smtpBlock);
+}
+
+const EMAIL_CONFIRMATIONS_FALSE_SIG =
+  'enable_confirmations = false  # set to true to require email verification on signup';
+const EMAIL_CONFIRMATIONS_TRUE_LINE =
+  'enable_confirmations = true  # requires SMTP; see docs/EMAIL_TEMPLATES.md and npm run setup:email';
+
+/**
+ * Set [auth.email] enable_confirmations = true (idempotent; does not touch [auth.sms]).
+ *
+ * @param {string} toml
+ * @returns {string}
+ */
+export function enableSignupConfirmationsInToml(toml) {
+  if (toml.includes(EMAIL_CONFIRMATIONS_TRUE_LINE)) {
+    return toml;
+  }
+  if (toml.includes(EMAIL_CONFIRMATIONS_FALSE_SIG)) {
+    return toml.replace(
+      EMAIL_CONFIRMATIONS_FALSE_SIG,
+      EMAIL_CONFIRMATIONS_TRUE_LINE
+    );
+  }
+  const section = toml.match(
+    /\[auth\.email\][\s\S]*?^\s*enable_confirmations\s*=\s*false\b/m
+  );
+  if (!section) return toml;
+  return toml.replace(
+    /(\[auth\.email\][\s\S]*?^\s*)enable_confirmations\s*=\s*false[^\n]*/m,
+    `$1${EMAIL_CONFIRMATIONS_TRUE_LINE}`
+  );
 }
 
 function apexFromDomain(domain) {

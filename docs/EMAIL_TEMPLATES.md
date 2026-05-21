@@ -56,18 +56,19 @@ supabase stop && supabase start
 
 Open [http://localhost:54324](http://localhost:54324) to view emails sent during local development.
 
-## Enabling signup confirmations
+## Signup email confirmation
 
-By default, `enable_confirmations = false` in `supabase/config.toml`. This means users can sign up and sign in immediately without verifying their email address.
+`enable_confirmations = true` under `[auth.email]` in `supabase/config.toml` is the template default. New email/password signups receive the signup confirmation template and must verify before signing in.
 
-To require email verification:
+| Context      | Behavior                                                                                                                                                                                                                                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Hosted**   | Confirmation + SMTP apply together when deploy workflows run `scripts/sync-supabase-auth-config.sh` (requires `RESEND_SMTP_PASS`). Until that secret exists, config push is skipped and the Supabase project keeps its dashboard settings.                                                 |
+| **Local**    | Run `npm run setup:email` to merge `SMTP_*` into `.env.local`, then `supabase stop && supabase start`. Without SMTP, confirmation emails do not send and users cannot finish signup — configure mail first, or temporarily set `enable_confirmations = false` for auth-only local testing. |
+| **Inbucket** | After SMTP is configured locally, open [http://localhost:54324](http://localhost:54324) to read signup confirmation messages.                                                                                                                                                              |
 
-1. Open `supabase/config.toml`
-2. Find the `[auth.email]` section
-3. Set `enable_confirmations = true`
-4. Restart Supabase: `supabase stop && supabase start`
+`npm run setup:email` also ensures `enable_confirmations = true` when it updates `config.toml` (idempotent).
 
-**UX tradeoff:** Requiring confirmation reduces fake/mistyped registrations and verifies ownership, but adds friction to the signup flow. Consider your audience before enabling it.
+To disable verification (not recommended for production demos): set `enable_confirmations = false` under `[auth.email]` and restart Supabase.
 
 ## Customizing templates
 
@@ -201,7 +202,7 @@ Deploy workflows **optionally** push auth email settings after `supabase db push
 
 Site URLs use the same `PR_PREVIEW_DOMAIN` repository variable as web deploy (`deploy-web.sh` / deploy workflows). No sync runs for forks that skip `setup:email`.
 
-The script runs `supabase link` + `supabase config push`, applying `site_url`, redirect allow-list, HTML templates, subjects, and SMTP from committed `supabase/config.toml`.
+The script runs `supabase link` + `supabase config push`, applying `site_url`, redirect allow-list, HTML templates, subjects, `enable_confirmations`, and SMTP from committed `supabase/config.toml`.
 
 **GitHub configuration** (after `npm run setup:email` or manual Resend setup):
 
