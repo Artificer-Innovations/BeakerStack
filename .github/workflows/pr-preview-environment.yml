@@ -139,9 +139,8 @@ jobs:
             --baseline-ref "${{ github.base_ref }}" \
             --skip-if-unchanged
 
-      # Opt-in: only after `npm run setup:email` (or manual Resend) and github secret sync
+      # Opt-in: skipped in-script when RESEND_SMTP_PASS unset (secrets cannot be used in if:)
       - name: Sync Supabase auth email config (preview)
-        if: ${{ secrets.RESEND_SMTP_PASS != '' }}
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -157,6 +156,10 @@ jobs:
           SMTP_SENDER_NAME: ${{ vars.SMTP_SENDER_NAME }}
         run: |
           set -euo pipefail
+          if [ -z "${SMTP_PASS:-}" ]; then
+            echo "Skipping Supabase auth email config: RESEND_SMTP_PASS is not set."
+            exit 0
+          fi
           ./scripts/sync-supabase-auth-config.sh \
             --project-ref "${SUPABASE_PREVIEW_PROJECT_REF}" \
             --db-password "${SUPABASE_PREVIEW_DB_PASSWORD}" \
