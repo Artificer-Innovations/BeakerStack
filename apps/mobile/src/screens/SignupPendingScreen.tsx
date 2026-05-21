@@ -13,7 +13,7 @@ import type { RootStackParamList } from '../navigation/types';
 type Props = NativeStackScreenProps<RootStackParamList, 'SignupPending'>;
 
 export default function SignupPendingScreen({ route, navigation }: Props) {
-  const email = route.params?.email ?? '';
+  const email = route?.params?.email ?? '';
 
   return (
     <SafeAreaView style={styles.container}>
