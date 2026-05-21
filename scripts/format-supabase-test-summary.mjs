@@ -35,8 +35,9 @@ export const MARKER = '<!-- supabase-tests-comment -->';
 const MAX_EXCERPT_LINES = 25;
 const MAX_EXCERPT_CHARS = 8000;
 
-// eslint-disable-next-line no-control-regex
-export const stripAnsi = text => text.replace(/\[[0-9;]*m/g, '');
+export const stripAnsi = text =>
+  // eslint-disable-next-line no-control-regex
+  text.replace(/\u001b\[[0-9;]*m/g, '');
 
 export const readText = filePath => {
   if (!filePath) return '';
@@ -133,7 +134,7 @@ export function parseJest(lines) {
 
   const parseSummaryLine = (line, label) => {
     const cleaned = stripAnsi(line).replace(`${label}:`, '').trim();
-    const out = { failed: 0, passed: 0, skipped: 0, total: 0 };
+    const out = { failed: 0, passed: 0, total: 0 };
     cleaned.split(',').forEach(token => {
       const m = token.trim().match(/(\d+)\s+([a-zA-Z]+)/);
       if (!m) return;
@@ -141,11 +142,10 @@ export function parseJest(lines) {
       const desc = m[2].toLowerCase();
       if (desc.startsWith('fail')) out.failed = count;
       else if (desc.startsWith('pass')) out.passed = count;
-      else if (desc.startsWith('skip') || desc.startsWith('todo')) {
-        /* intentionally ignored */
-      } else if (desc.startsWith('total')) out.total = count;
+      else if (desc.startsWith('total')) out.total = count;
+      // skip and todo counts are not surfaced in the summary
     });
-    if (!out.total) out.total = out.failed + out.passed + out.skipped;
+    if (!out.total) out.total = out.failed + out.passed;
     return out;
   };
 
@@ -247,92 +247,92 @@ export function parseVitest(lines) {
   return result;
 }
 
-export function buildComment({ pgtap, jest, vitest, migrationResult: migResult }) {
+function detailsCell(ok, counts, failingItems) {
+  if (ok) return counts || '—';
+  if (!failingItems.length) return counts || '—';
+  const first = `\`${failingItems[0]}\``;
+  const more =
+    failingItems.length > 1 ? ` (+${failingItems.length - 1} more)` : '';
+  return first + more;
+}
+
+export function buildComment({
+  pgtap,
+  jest,
+  vitest,
+  migrationResult: migResult,
+}) {
   const lines = [MARKER, '### DB & Integration Test Summary', ''];
 
+  lines.push('| Check | Status | Details |');
+  lines.push('| --- | --- | --- |');
+
+  // Migration row
   const migStatus =
     migResult === 'success'
       ? '✅ Pass'
       : migResult === 'failure'
         ? '❌ Fail'
-        : '— (skipped)';
+        : '—';
+  lines.push(`| Migration filename format | ${migStatus} | — |`);
 
-  lines.push('| Check | Status |');
-  lines.push('| --- | --- |');
-  lines.push(`| Migration filename format | ${migStatus} |`);
+  // pgTAP row
+  if (pgtap.available) {
+    const status = pgtap.ok ? '✅ Pass' : '❌ Fail';
+    const countParts = [];
+    if (pgtap.filesTotal > 0)
+      countParts.push(`${pgtap.filesPassed}/${pgtap.filesTotal} files`);
+    if (pgtap.testsTotal > 0)
+      countParts.push(`${pgtap.testsPassed}/${pgtap.testsTotal} assertions`);
+    const counts = countParts.join(' · ');
+    lines.push(
+      `| Database tests (pgTAP) | ${status} | ${detailsCell(pgtap.ok, counts, pgtap.failingFiles)} |`
+    );
+  } else {
+    lines.push('| Database tests (pgTAP) | — | Log not available |');
+  }
+
+  // Jest row
+  if (jest.available) {
+    const status = jest.ok ? '✅ Pass' : '❌ Fail';
+    const countParts = [];
+    if (jest.suitesTotal > 0)
+      countParts.push(`${jest.suitesPassed}/${jest.suitesTotal} suites`);
+    if (jest.testsTotal > 0)
+      countParts.push(`${jest.testsPassed}/${jest.testsTotal} tests`);
+    const counts = countParts.join(' · ');
+    lines.push(
+      `| Integration tests (Jest) | ${status} | ${detailsCell(jest.ok, counts, jest.failingSuites)} |`
+    );
+  } else {
+    lines.push('| Integration tests (Jest) | — | Log not available |');
+  }
+
+  // Vitest row
+  if (vitest.available) {
+    const status = vitest.ok ? '✅ Pass' : '❌ Fail';
+    const countParts = [];
+    if (vitest.filesTotal > 0)
+      countParts.push(`${vitest.filesPassed}/${vitest.filesTotal} files`);
+    if (vitest.testsTotal > 0)
+      countParts.push(`${vitest.testsPassed}/${vitest.testsTotal} tests`);
+    const counts = countParts.join(' · ');
+    lines.push(
+      `| Live Supabase client (Vitest) | ${status} | ${detailsCell(vitest.ok, counts, vitest.failingFiles)} |`
+    );
+  } else {
+    lines.push('| Live Supabase client (Vitest) | — | Log not available |');
+  }
+
   lines.push('');
 
-  // pgTAP section
-  if (pgtap.available) {
-    const dbStatus = pgtap.ok ? '✅ Pass' : '❌ Fail';
-    lines.push(`#### Database tests (pgTAP) — ${dbStatus}`, '');
-
-    const parts = [];
-    if (pgtap.filesTotal > 0) {
-      parts.push(`${pgtap.filesPassed}/${pgtap.filesTotal} files passed`);
-    }
-    if (pgtap.testsTotal > 0) {
-      parts.push(`${pgtap.testsPassed}/${pgtap.testsTotal} assertions passed`);
-    }
-    if (parts.length > 0) lines.push(parts.join(' · '), '');
-
-    if (pgtap.failingFiles.length > 0) {
-      lines.push('**Failing files:**', '');
-      pgtap.failingFiles.forEach(f => lines.push(`- \`${f}\``));
-      lines.push('');
-      if (pgtap.excerpt) {
-        lines.push('<details><summary>Failure details</summary>', '');
-        lines.push('```');
-        lines.push(pgtap.excerpt);
-        lines.push('```');
-        lines.push('</details>', '');
-      }
-    }
-  } else {
-    lines.push('#### Database tests (pgTAP)', '');
-    lines.push('_Log not available._', '');
-  }
-
-  // Jest section
-  if (jest.available) {
-    const jestStatus = jest.ok ? '✅ Pass' : '❌ Fail';
-    lines.push(`#### Integration tests (Jest) — ${jestStatus}`, '');
-
-    const parts = [];
-    if (jest.suitesTotal > 0) {
-      parts.push(`${jest.suitesPassed}/${jest.suitesTotal} suites passed`);
-    }
-    if (jest.testsTotal > 0) {
-      parts.push(`${jest.testsPassed}/${jest.testsTotal} tests passed`);
-    }
-    if (parts.length > 0) lines.push(parts.join(' · '), '');
-
-    if (jest.failingSuites.length > 0) {
-      lines.push('**Failing suites:**', '');
-      jest.failingSuites.forEach(s => lines.push(`- \`${s}\``));
-      lines.push('');
-    }
-  }
-
-  // Vitest section
-  if (vitest.available) {
-    const vitestStatus = vitest.ok ? '✅ Pass' : '❌ Fail';
-    lines.push(`#### Live Supabase client (Vitest) — ${vitestStatus}`, '');
-
-    const parts = [];
-    if (vitest.filesTotal > 0) {
-      parts.push(`${vitest.filesPassed}/${vitest.filesTotal} files passed`);
-    }
-    if (vitest.testsTotal > 0) {
-      parts.push(`${vitest.testsPassed}/${vitest.testsTotal} tests passed`);
-    }
-    if (parts.length > 0) lines.push(parts.join(' · '), '');
-
-    if (vitest.failingFiles.length > 0) {
-      lines.push('**Failing files:**', '');
-      vitest.failingFiles.forEach(f => lines.push(`- \`${f}\``));
-      lines.push('');
-    }
+  // pgTAP failure excerpt as collapsible block below the table
+  if (pgtap.available && !pgtap.ok && pgtap.excerpt) {
+    lines.push('<details><summary>pgTAP failure details</summary>', '');
+    lines.push('```');
+    lines.push(pgtap.excerpt);
+    lines.push('```');
+    lines.push('</details>', '');
   }
 
   lines.push('_Full logs: `db-tests-log`, `integration-log` artifacts._');
@@ -342,7 +342,8 @@ export function buildComment({ pgtap, jest, vitest, migrationResult: migResult }
 
 // Run CLI logic only when invoked directly
 const isMain =
-  process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+  process.argv[1] &&
+  fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
 
 if (isMain) {
   const dbLog = readText(dbLogPath);
@@ -356,7 +357,9 @@ if (isMain) {
   const comment = buildComment({ pgtap, jest, vitest, migrationResult });
 
   if (markdownOutputPath) {
-    fs.mkdirSync(path.dirname(path.resolve(markdownOutputPath)), { recursive: true });
+    fs.mkdirSync(path.dirname(path.resolve(markdownOutputPath)), {
+      recursive: true,
+    });
     fs.writeFileSync(markdownOutputPath, comment, 'utf8');
   } else {
     process.stdout.write(`${comment}\n`);

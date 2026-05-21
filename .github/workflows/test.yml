@@ -488,7 +488,7 @@ jobs:
             --repo "${GITHUB_REPOSITORY}" \
             -n db-tests-log \
             -D ci-dl/db-tests-log || true
-          [ -f ci-dl/db-tests-log/db-tests.log ] && cp ci-dl/db-tests-log/db-tests.log ci/db-tests.log || true
+          find ci-dl/db-tests-log -name 'db-tests.log' -print -quit | xargs -I{} cp {} ci/db-tests.log || true
 
       - name: Download integration test log
         env:
@@ -499,7 +499,7 @@ jobs:
             --repo "${GITHUB_REPOSITORY}" \
             -n integration-log \
             -D ci-dl/integration-log || true
-          [ -f ci-dl/integration-log/integration.log ] && cp ci-dl/integration-log/integration.log ci/integration.log || true
+          find ci-dl/integration-log -name 'integration.log' -print -quit | xargs -I{} cp {} ci/integration.log || true
 
       - name: Build supabase test summary
         id: build-summary
@@ -591,3 +591,10 @@ jobs:
         env:
           COMMENT_BODY: ${{ steps.build-summary.outputs.comment }}
 
+
+      - name: Fail if upstream supabase tests failed
+        if: |
+          needs.supabase-tests.result == 'failure' ||
+          needs.integration.result == 'failure' ||
+          needs.db-tests.result == 'failure'
+        run: exit 1

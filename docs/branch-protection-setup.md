@@ -72,14 +72,15 @@ Branch protection prevents accidental squash merges into `main`, which can cause
 
 The [`Test` workflow](../.github/workflows/test.yml) runs parallel jobs. Each job reports an independent status check. Require these on `main` and `develop`:
 
-| Status check             | Job                                                                                        | Blocks merge?      |
-| ------------------------ | ------------------------------------------------------------------------------------------ | ------------------ |
-| `Test / lint`            | ESLint across all workspaces                                                               | Yes                |
-| `Test / type-check`      | TypeScript `--noEmit`                                                                      | Yes                |
-| `Test / unit-coverage`   | Gate: all `unit-coverage-shard` matrix legs passed (unit tests with coverage, no Supabase) | Yes                |
-| `Test / integration`     | Gate: `supabase-tests` job (integration + web Supabase smoke)                              | Yes                |
-| `Test / db-tests`        | Gate: `migration-filenames` + `supabase-tests` (pgTAP)                                     | Yes                |
-| `Test / coverage-report` | Merges coverage and posts PR comment                                                       | No (informational) |
+| Status check                  | Job                                                                                        | Blocks merge?      |
+| ----------------------------- | ------------------------------------------------------------------------------------------ | ------------------ |
+| `Test / lint`                 | ESLint across all workspaces                                                               | Yes                |
+| `Test / type-check`           | TypeScript `--noEmit`                                                                      | Yes                |
+| `Test / unit-coverage`        | Gate: all `unit-coverage-shard` matrix legs passed (unit tests with coverage, no Supabase) | Yes                |
+| `Test / integration`          | Gate: `supabase-tests` job (integration + web Supabase smoke)                              | Yes                |
+| `Test / db-tests`             | Gate: `migration-filenames` + `supabase-tests` (pgTAP)                                     | Yes                |
+| `Test / coverage-report`      | Merges coverage and posts PR comment                                                       | No (informational) |
+| `Test / supabase-test-report` | Posts DB + integration test summary PR comment                                             | No (informational) |
 
 After migrating from the old monolithic `Test / tests` check, remove `Test / tests` from branch protection and add the five required checks above.
 
@@ -151,25 +152,6 @@ This usually means:
 
 - A PR was squash-merged to both `main` and `develop`
 - Solution: Rebase `develop` onto `main` (as we did in this fix)
-
-## Required vs. informational checks
-
-The following checks are **required** (must pass before merge):
-
-| Check name | Job |
-| --- | --- |
-| `Test / lint` | `lint` |
-| `Test / type-check` | `type-check` |
-| `Test / unit-coverage` | `unit-coverage` |
-| `Test / integration` | `integration` (gate) |
-| `Test / db-tests` | `db-tests` (gate) |
-
-The following checks are **informational only** (never add to required checks):
-
-| Check name | Job | Purpose |
-| --- | --- | --- |
-| `Test / coverage-report` | `coverage-report` | Posts unit test coverage PR comment |
-| `Test / supabase-test-report` | `supabase-test-report` | Posts DB + integration test summary PR comment |
 
 ## Summary
 

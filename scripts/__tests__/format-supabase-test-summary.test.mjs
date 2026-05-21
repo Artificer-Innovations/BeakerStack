@@ -44,9 +44,17 @@ test('parsePgTap — failing log', () => {
   assert.equal(result.testsTotal, 42);
   assert.equal(result.testsFailed, 2);
   assert.equal(result.testsPassed, 40);
-  assert.deepEqual(result.failingFiles, ['supabase/tests/db/002_auth_tests.sql']);
-  assert.ok(result.excerpt.includes('not ok 1'), 'excerpt should include first not-ok line');
-  assert.ok(result.excerpt.includes('not ok 2'), 'excerpt should include second not-ok line');
+  assert.deepEqual(result.failingFiles, [
+    'supabase/tests/db/002_auth_tests.sql',
+  ]);
+  assert.ok(
+    result.excerpt.includes('not ok 1'),
+    'excerpt should include first not-ok line'
+  );
+  assert.ok(
+    result.excerpt.includes('not ok 2'),
+    'excerpt should include second not-ok line'
+  );
 });
 
 test('parsePgTap — empty log returns unavailable', () => {
@@ -56,11 +64,17 @@ test('parsePgTap — empty log returns unavailable', () => {
 });
 
 test('parsePgTap — excerpt capped at MAX_EXCERPT_LINES', () => {
-  const manyNotOk = Array.from({ length: 50 }, (_, i) => `not ok ${i + 1} - test ${i + 1}`).join('\n');
+  const manyNotOk = Array.from(
+    { length: 50 },
+    (_, i) => `not ok ${i + 1} - test ${i + 1}`
+  ).join('\n');
   const log = `supabase/tests/db/001.sql .. FAILED\n${manyNotOk}\nFiles=1, Tests=50,  1 wallclock secs\nResult: FAIL\n`;
   const result = parsePgTap(log);
   const excerptLines = result.excerpt.split('\n').filter(Boolean);
-  assert.ok(excerptLines.length <= 25, `excerpt should be capped at 25 lines, got ${excerptLines.length}`);
+  assert.ok(
+    excerptLines.length <= 25,
+    `excerpt should be capped at 25 lines, got ${excerptLines.length}`
+  );
 });
 
 // ── Jest ───────────────────────────────────────────────────────────────────
@@ -146,13 +160,21 @@ test('buildComment — all passing includes marker and success indicators', () =
   const jest = parseJest(lines);
   const vitest = parseVitest(lines);
 
-  const comment = buildComment({ pgtap, jest, vitest, migrationResult: 'success' });
+  const comment = buildComment({
+    pgtap,
+    jest,
+    vitest,
+    migrationResult: 'success',
+  });
 
   assert.ok(comment.includes(MARKER), 'must include marker');
   assert.ok(comment.includes('✅ Pass'), 'must show pass status');
   assert.ok(!comment.includes('❌'), 'must not show failures');
   assert.ok(comment.includes('db-tests-log'), 'must reference artifact names');
-  assert.ok(comment.includes('integration-log'), 'must reference artifact names');
+  assert.ok(
+    comment.includes('integration-log'),
+    'must reference artifact names'
+  );
 });
 
 test('buildComment — failures show failing file names', () => {
@@ -162,11 +184,25 @@ test('buildComment — failures show failing file names', () => {
   const jest = parseJest(lines);
   const vitest = parseVitest(lines);
 
-  const comment = buildComment({ pgtap, jest, vitest, migrationResult: 'success' });
+  const comment = buildComment({
+    pgtap,
+    jest,
+    vitest,
+    migrationResult: 'success',
+  });
 
-  assert.ok(comment.includes('002_auth_tests.sql'), 'must list failing pgTAP file');
-  assert.ok(comment.includes('tests/integration/auth.test.ts'), 'must list failing Jest suite');
-  assert.ok(comment.includes('apps/web/src/lib/supabase.test.ts'), 'must list failing Vitest file');
+  assert.ok(
+    comment.includes('002_auth_tests.sql'),
+    'must list failing pgTAP file'
+  );
+  assert.ok(
+    comment.includes('tests/integration/auth.test.ts'),
+    'must list failing Jest suite'
+  );
+  assert.ok(
+    comment.includes('apps/web/src/lib/supabase.test.ts'),
+    'must list failing Vitest file'
+  );
   assert.ok(comment.includes('❌'), 'must show failure status');
 });
 
@@ -175,9 +211,17 @@ test('buildComment — migration failure shown in table', () => {
   const jest = parseJest([]);
   const vitest = parseVitest([]);
 
-  const comment = buildComment({ pgtap, jest, vitest, migrationResult: 'failure' });
+  const comment = buildComment({
+    pgtap,
+    jest,
+    vitest,
+    migrationResult: 'failure',
+  });
 
-  assert.ok(comment.includes('Migration filename format'), 'must include migration row');
+  assert.ok(
+    comment.includes('Migration filename format'),
+    'must include migration row'
+  );
   assert.ok(comment.includes('❌ Fail'), 'must show migration failure');
 });
 
@@ -186,9 +230,17 @@ test('buildComment — pgTAP failure excerpt wrapped in details block', () => {
   const jest = parseJest([]);
   const vitest = parseVitest([]);
 
-  const comment = buildComment({ pgtap, jest, vitest, migrationResult: 'success' });
+  const comment = buildComment({
+    pgtap,
+    jest,
+    vitest,
+    migrationResult: 'success',
+  });
 
-  assert.ok(comment.includes('<details>'), 'must have details block for excerpt');
+  assert.ok(
+    comment.includes('<details>'),
+    'must have details block for excerpt'
+  );
   assert.ok(comment.includes('not ok 1'), 'excerpt must appear in comment');
 });
 
@@ -197,7 +249,15 @@ test('buildComment — unavailable logs show placeholder text', () => {
   const jest = parseJest([]);
   const vitest = parseVitest([]);
 
-  const comment = buildComment({ pgtap, jest, vitest, migrationResult: 'skipped' });
+  const comment = buildComment({
+    pgtap,
+    jest,
+    vitest,
+    migrationResult: 'skipped',
+  });
 
-  assert.ok(comment.includes('_Log not available._'), 'must show placeholder for missing pgTAP log');
+  assert.ok(
+    comment.includes('Log not available'),
+    'must show placeholder for missing logs'
+  );
 });
