@@ -95,6 +95,8 @@ jobs:
           PRODUCTION_STRIPE_SECRET_KEY: ${{ secrets.PRODUCTION_STRIPE_SECRET_KEY }}
           PRODUCTION_STRIPE_WEBHOOK_SECRET: ${{ steps.stripe_webhook_production.outputs.resolved_webhook_secret }}
           PRODUCTION_BILLING_ALLOWED_ORIGINS: ${{ secrets.PRODUCTION_BILLING_ALLOWED_ORIGINS }}
+          PRODUCTION_KIT_API_KEY: ${{ secrets.PRODUCTION_KIT_API_KEY }}
+          PRODUCTION_KIT_CRON_SECRET: ${{ secrets.PRODUCTION_KIT_CRON_SECRET }}
         run: |
           set -euo pipefail
           cd supabase
@@ -108,9 +110,19 @@ jobs:
             BILLING_SUPABASE_URL="${PRODUCTION_SUPABASE_URL}" \
             BILLING_SUPABASE_ANON_KEY="${PRODUCTION_SUPABASE_ANON_KEY}" \
             BILLING_SUPABASE_SERVICE_ROLE_KEY="${PRODUCTION_SUPABASE_SERVICE_ROLE_KEY}" \
-            BILLING_ALLOWED_ORIGINS="${PRODUCTION_BILLING_ALLOWED_ORIGINS}"
-          supabase functions deploy stripe-webhook billing-stripe \
+            BILLING_ALLOWED_ORIGINS="${PRODUCTION_BILLING_ALLOWED_ORIGINS}" \
+            KIT_API_KEY="${PRODUCTION_KIT_API_KEY}" \
+            KIT_CRON_SECRET="${PRODUCTION_KIT_CRON_SECRET}"
+          supabase functions deploy stripe-webhook billing-stripe waitlist-capture waitlist-ops kit-sync \
             --project-ref "${PRODUCTION_SUPABASE_PROJECT_REF}"
+
+
+      - name: Ensure kit-sync cron job (production)
+        env:
+          SUPABASE_URL: ${{ secrets.PRODUCTION_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PRODUCTION_SUPABASE_SERVICE_ROLE_KEY }}
+          KIT_CRON_SECRET: ${{ secrets.PRODUCTION_KIT_CRON_SECRET }}
+        run: node scripts/ensure-kit-sync-cron.mjs
 
       - name: Resolve infrastructure outputs
         id: infra

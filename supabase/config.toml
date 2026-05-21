@@ -384,6 +384,9 @@ verify_jwt = false
 [functions.waitlist-ops]
 verify_jwt = false
 
+[functions.kit-sync]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 55327
