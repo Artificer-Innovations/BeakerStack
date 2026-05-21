@@ -152,6 +152,25 @@ This usually means:
 - A PR was squash-merged to both `main` and `develop`
 - Solution: Rebase `develop` onto `main` (as we did in this fix)
 
+## Required vs. informational checks
+
+The following checks are **required** (must pass before merge):
+
+| Check name | Job |
+| --- | --- |
+| `Test / lint` | `lint` |
+| `Test / type-check` | `type-check` |
+| `Test / unit-coverage` | `unit-coverage` |
+| `Test / integration` | `integration` (gate) |
+| `Test / db-tests` | `db-tests` (gate) |
+
+The following checks are **informational only** (never add to required checks):
+
+| Check name | Job | Purpose |
+| --- | --- | --- |
+| `Test / coverage-report` | `coverage-report` | Posts unit test coverage PR comment |
+| `Test / supabase-test-report` | `supabase-test-report` | Posts DB + integration test summary PR comment |
+
 ## Summary
 
 - **`main`**: Only merge commits allowed (prevents squash merge conflicts)
