@@ -16,43 +16,73 @@ All templates use the **token-hash strategy** — links resolve to `/auth/confir
 
 Links prefer `{{ .RedirectTo }}` (from `resetPasswordForEmail`, `signUp` `emailRedirectTo`, etc.) and fall back to `{{ .SiteURL }}/auth/confirm` when no redirect is passed. On PR preview deploys, the web app passes `https://deploy.example.com/pr-N/auth/confirm` so email links stay on the preview path instead of the root Site URL.
 
-Plain-text versions (`.txt` files) are provided alongside each HTML template for email clients that prefer or require plain text. **Note:** The `.txt` files in `supabase/templates/` are reference copies for human review only. Supabase derives plain-text email from the HTML template automatically — these files are not wired to Supabase via `config.toml` and do not affect sent emails.
+Plain-text versions (`.txt` files) are provided alongside each HTML template for email clients that prefer or require plain text. **Note:** The `.txt` files are reference copies for human review only. Supabase derives plain-text email from the HTML template automatically — these files are not wired to Supabase via `config.toml` and do not affect sent emails.
+
+## Template layout (pure source vs generated deploy)
+
+BeakerStack separates **adopter source templates** from **deploy artifacts**:
+
+| Path                                       | Purpose                                                                                                                   |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `supabase/templates/*.html` and `*.txt`    | **Pure source** — placeholders only (`{{PRODUCT_NAME}}`, etc.). Never commit literal product names here.                  |
+| `supabase/templates/generated/`            | **Deploy output** — personalized HTML and `.txt` copies that Supabase and CI use. Commit these after running personalize. |
+| `supabase/templates/.personalization.json` | Branding record used by `npm run email:personalize` (and CI `--non-interactive`).                                         |
+
+`supabase/config.toml` points `content_path` at `supabase/templates/generated/*.html`. Email **subjects** in `config.toml` use `__PRODUCT_NAME__` tokens in the committed file; the personalize script substitutes them when you run it locally or in CI.
+
+Deploy workflows regenerate `generated/` and substitute subject tokens immediately before `scripts/sync-supabase-auth-config.sh`. CI also fails PRs when `generated/` is stale relative to the pure templates and branding config.
 
 ## Quick start
 
-### 1. Personalize templates
+### 1. Generate logo asset
 
-Run the personalization script to replace brand placeholders with your product values (support email defaults to `support@<apex>` from `PR_PREVIEW_DOMAIN` or branding):
+The default logo URL is `{{ .SiteURL }}/email-logo.png`. Regenerate the PNG from your favicon source:
+
+```bash
+npm run generate:favicons
+```
+
+This writes `apps/web/public/email-logo.png`, served at `/email-logo.png` on your site.
+
+### 2. Personalize templates
+
+Run the personalization script to read pure placeholders from `supabase/templates/` and write deploy artifacts to `supabase/templates/generated/` (support email defaults to `support@<apex>` from `PR_PREVIEW_DOMAIN` or branding):
 
 ```bash
 npm run email:personalize
 ```
 
-Commit the updated `supabase/templates/` and subject lines in `supabase/config.toml` so hosted CI can push them on deploy.
+For CI or scripted runs:
 
-Re-running is safe and **idempotent**. If you edit templates by hand, the script skips files that contain the marker `beakerstack-email:customized` so fork-specific copy is not overwritten.
+```bash
+npm run email:personalize -- --non-interactive
+```
 
-The script will prompt for:
+**Commit `supabase/templates/generated/`** (not the pure `supabase/templates/*.html` files). Re-running personalize is safe — it rebuilds `generated/` from the pure source without mutating placeholders.
+
+The script will prompt for (or read from `.personalization.json` when non-interactive):
 
 - Product name (reads from `packages/shared/src/config/branding.ts` as default)
 - Brand color (hex, reads from `packages/shared/src/theme/colors.ts` as default)
 - Sender name
 - Support email address
-- Company address (required by CAN-SPAM)
+- Company address (required by CAN-SPAM — set `LEGAL_CONFIG.mailingAddress` in `packages/shared/src/config/legal.ts`; `legalEntityName` alone is not a valid physical address)
 
-The script is **idempotent** — re-running it restores the previous placeholders before applying new values, so you can safely update your branding at any time.
+**Logo CDN override:** set `LOGO_URL` in `supabase/templates/.personalization.json`, or pass `--logo-url=https://cdn.example.com/logo.png`. The value persists across runs unless overridden by the flag.
 
-### 2. Configure SMTP
+**Subject lines:** after personalize, `supabase/config.toml` subject lines are substituted in your working tree for local Supabase. Do not commit literal subjects — the committed file keeps `__PRODUCT_NAME__` tokens.
+
+### 3. Configure SMTP
 
 `[auth.email.smtp]` in `supabase/config.toml` is enabled and reads `SMTP_*` from the environment (see [SMTP setup](#smtp-setup-resend)). Set those vars in `.env.local` for local Supabase, or run `npm run setup:email` to provision Resend + Route 53 and merge values automatically.
 
-### 3. Apply configuration
+### 4. Apply configuration
 
 ```bash
 supabase stop && supabase start
 ```
 
-### 4. Test with Inbucket
+### 5. Test with Inbucket
 
 Open [http://localhost:54324](http://localhost:54324) to view emails sent during local development.
 
@@ -74,18 +104,20 @@ To disable verification (not recommended for production demos): set `enable_conf
 
 ### Editing HTML
 
-Templates live in `supabase/templates/`. Each is a self-contained HTML file with inline CSS for maximum email client compatibility.
+Pure templates live in `supabase/templates/`. Deployed copies are written to `supabase/templates/generated/`. Each HTML file is self-contained with inline CSS for maximum email client compatibility.
+
+Edit the **pure** templates when changing layout or copy structure, then re-run `npm run email:personalize` and commit `generated/`.
 
 **Brand placeholders** (replaced by the personalization script):
 
-| Placeholder           | Description                                  |
-| --------------------- | -------------------------------------------- |
-| `{{PRODUCT_NAME}}`    | Your product/app name                        |
-| `{{BRAND_COLOR}}`     | Primary brand color (hex, e.g. `#6366f1`)    |
-| `{{SENDER_NAME}}`     | Sender display name (e.g. "Acme Team")       |
-| `{{SUPPORT_EMAIL}}`   | Support email address                        |
-| `{{COMPANY_ADDRESS}}` | Physical mailing address (CAN-SPAM required) |
-| `{{LOGO_URL}}`          | Absolute URL to the product logo PNG (defaults to `{{ .SiteURL }}/email-logo.png`; override for CDN hosting) |
+| Placeholder           | Description                                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `{{PRODUCT_NAME}}`    | Your product/app name                                                                                        |
+| `{{BRAND_COLOR}}`     | Primary brand color (hex, e.g. `#6366f1`)                                                                    |
+| `{{SENDER_NAME}}`     | Sender display name (e.g. "Acme Team")                                                                       |
+| `{{SUPPORT_EMAIL}}`   | Support email address                                                                                        |
+| `{{COMPANY_ADDRESS}}` | Physical mailing address (CAN-SPAM required)                                                                 |
+| `{{LOGO_URL}}`        | Absolute URL to the product logo PNG (defaults to `{{ .SiteURL }}/email-logo.png`; override for CDN hosting) |
 
 **Supabase Go template variables** (never modify these — Supabase substitutes them at send time):
 
@@ -94,16 +126,6 @@ Templates live in `supabase/templates/`. Each is a self-contained HTML file with
 | `{{ .SiteURL }}`    | Your configured site URL                                                  |
 | `{{ .RedirectTo }}` | Redirect URL from the auth API call (PR preview paths, mobile deep links) |
 | `{{ .TokenHash }}`  | The OTP token hash                                                        |
-
-### Ejection marker
-
-If you heavily customize a template and want to prevent the personalization script from overwriting your changes, add this comment anywhere in the file:
-
-```html
-<!-- beakerstack-email:customized -->
-```
-
-The script will skip any file containing this marker and log a warning.
 
 ## SMTP setup (Resend)
 
@@ -193,7 +215,7 @@ Password reset and magic link emails link to the web `/auth/confirm` page. On mo
 
 ## Hosted environments (CI/CD)
 
-Deploy workflows **optionally** push auth email settings after `supabase db push`. The sync step runs **only when** `RESEND_SMTP_PASS` **and** `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` / `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` are set (typically after `npm run setup:full` google + github phases). If either gate is missing, deploys skip config push and keep existing Supabase dashboard settings.
+Deploy workflows **optionally** push auth email settings after `supabase db push`. Before sync, workflows run `npm run email:personalize --non-interactive` so `generated/` and subject tokens reflect the latest branding and legal config. The sync step runs **only when** `RESEND_SMTP_PASS` **and** `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` / `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` are set (typically after `npm run setup:full` google + github phases). If either gate is missing, deploys skip config push and keep existing Supabase dashboard settings.
 
 | Environment | Workflow                     | `SUPABASE_AUTH_SITE_URL` (derived)                       |
 | ----------- | ---------------------------- | -------------------------------------------------------- |
@@ -203,7 +225,9 @@ Deploy workflows **optionally** push auth email settings after `supabase db push
 
 Site URLs use the same `PR_PREVIEW_DOMAIN` repository variable as web deploy (`deploy-web.sh` / deploy workflows). No sync runs for forks that skip `setup:email`.
 
-The script runs `supabase link` + `supabase config push`, applying `site_url`, redirect allow-list, HTML templates, subjects, `enable_confirmations`, SMTP, and **Google OAuth** from committed `supabase/config.toml`. Unset Google env vars during push would wipe hosted OAuth — the script and workflows refuse to run without them.
+The script runs `supabase link` + `supabase config push`, applying `site_url`, redirect allow-list, HTML templates from `supabase/templates/generated/`, subjects, `enable_confirmations`, SMTP, and **Google OAuth** from `supabase/config.toml`. Unset Google env vars during push would wipe hosted OAuth — the script and workflows refuse to run without them.
+
+PR CI (`test.yml`) regenerates templates and fails if `supabase/templates/generated/` is out of date vs the pure source and `.personalization.json`.
 
 **GitHub configuration** (after `npm run setup:full` or manual setup):
 
@@ -220,7 +244,7 @@ Workflows set `SMTP_HOST=smtp.resend.com`, `SMTP_USER=resend`, port `587`. Previ
 
 Names are listed in [reference/github-actions-secrets.md](reference/github-actions-secrets.md). The setup wizard can sync SMTP secrets/variables during the **github** phase when values exist in `.env.local`.
 
-**Forks:** Set `PR_PREVIEW_DOMAIN`, run `npm run email:personalize`, run `setup:email`, then sync secrets. Until `RESEND_SMTP_PASS` exists, deploys skip email config push entirely.
+**Forks:** Set `PR_PREVIEW_DOMAIN`, edit branding in `packages/shared/src/config/` and `.personalization.json`, run `npm run email:personalize`, commit `supabase/templates/generated/`, run `setup:email`, then sync secrets. Until `RESEND_SMTP_PASS` exists, deploys skip email config push entirely.
 
 ## Switching SMTP providers
 

@@ -197,24 +197,24 @@ otp_length = 6
 otp_expiry = 3600
 
 [auth.email.template.confirmation]
-subject = "Confirm your Beaker Stack account"
-content_path = "./supabase/templates/signup_confirmation.html"
+subject = "Confirm your __PRODUCT_NAME__ account"
+content_path = "./supabase/templates/generated/signup_confirmation.html"
 
 [auth.email.template.recovery]
-subject = "Reset your Beaker Stack password"
-content_path = "./supabase/templates/password_reset.html"
+subject = "Reset your __PRODUCT_NAME__ password"
+content_path = "./supabase/templates/generated/password_reset.html"
 
 [auth.email.template.magic_link]
-subject = "Your Beaker Stack sign-in link"
-content_path = "./supabase/templates/magic_link.html"
+subject = "Your __PRODUCT_NAME__ sign-in link"
+content_path = "./supabase/templates/generated/magic_link.html"
 
 [auth.email.template.email_change]
-subject = "Confirm your new Beaker Stack email address"
-content_path = "./supabase/templates/email_change.html"
+subject = "Confirm your new __PRODUCT_NAME__ email address"
+content_path = "./supabase/templates/generated/email_change.html"
 
 [auth.email.template.invite]
-subject = "You've been invited to Beaker Stack"
-content_path = "./supabase/templates/invite.html"
+subject = "You've been invited to __PRODUCT_NAME__"
+content_path = "./supabase/templates/generated/invite.html"
 
 # SMTP (Resend): set SMTP_* env for local `supabase start` or CI `scripts/sync-supabase-auth-config.sh`
 [auth.email.smtp]

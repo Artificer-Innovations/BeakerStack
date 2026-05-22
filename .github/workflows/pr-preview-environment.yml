@@ -141,6 +141,9 @@ jobs:
             --skip-if-unchanged
 
       # Opt-in: skipped in-script when RESEND_SMTP_PASS unset (secrets cannot be used in if:)
+      - name: Regenerate email templates
+        run: npm run email:personalize --non-interactive
+
       - name: Sync Supabase auth email config (preview)
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
