@@ -293,7 +293,6 @@ export function useProfile(
           : /* v8 ignore next */ new Error(String(err));
       setError(errorObj);
       throw errorObj;
-      /* v8 ignore next */
     } finally {
       /* v8 ignore next */
       setLoading(false);
@@ -358,7 +357,6 @@ export function useProfile(
           : /* v8 ignore next */ new Error(String(err));
       setError(errorObj);
       throw errorObj;
-      /* v8 ignore next */
     } finally {
       /* v8 ignore next */
       setLoading(false);

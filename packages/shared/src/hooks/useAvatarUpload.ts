@@ -197,7 +197,6 @@ export function useAvatarUpload(
             : /* v8 ignore next */ new Error(String(err));
         setError(error);
         throw error;
-        /* v8 ignore next */
       } finally {
         setUploading(false);
         setProgress(0);

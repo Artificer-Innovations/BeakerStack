@@ -87,7 +87,7 @@ is_package_runtime_source() {
   case "${f}" in
     packages/shared/src/* | packages/billing/src/* | packages/logger/src/* | \
     packages/observability/src/* | packages/admin/src/* | packages/email/src/* | \
-    packages/waitlist/src/*)
+    packages/waitlist/src/* | packages/lifecycle-events/src/*)
       return 0
       ;;
   esac
@@ -98,7 +98,8 @@ is_package_runtime_source() {
 is_package_web_only_runtime_source() {
   local f="$1"
   case "${f}" in
-    packages/admin/src/* | packages/email/src/* | packages/waitlist/src/*)
+    packages/admin/src/* | packages/email/src/* | packages/waitlist/src/* | \
+    packages/lifecycle-events/src/*)
       return 0
       ;;
   esac
@@ -377,6 +378,8 @@ self_test() {
   assert_classify packages/shared-tests/__tests__/AppHeader.native.test.tsx app_code true
   assert_classify packages/admin/src/adminClient.ts web_deploy true
   assert_classify packages/admin/src/adminClient.ts mobile_deploy false
+  assert_classify packages/lifecycle-events/src/index.ts web_deploy true
+  assert_classify packages/lifecycle-events/src/index.ts mobile_deploy false
 
   return "${failed}"
 }
