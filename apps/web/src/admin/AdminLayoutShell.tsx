@@ -6,10 +6,17 @@ import { adminNavItems } from './adminNav';
 import { LayoutDashboard, LogOut } from 'lucide-react';
 
 function breadcrumbsForPath(pathname: string) {
-  if (pathname.endsWith('/users')) {
-    return [{ label: 'Admin Dashboard', to: '/admin' }, { label: 'Users' }];
+  const root = { label: 'Overview', to: '/admin' };
+  if (pathname.includes('/waitlist/settings')) {
+    return [root, { label: 'Waitlist Settings' }];
   }
-  return [{ label: 'Admin Dashboard' }];
+  if (pathname.includes('/waitlist')) {
+    return [root, { label: 'Waitlist' }];
+  }
+  if (pathname.includes('/users')) {
+    return [root, { label: 'Users' }];
+  }
+  return [{ label: 'Overview' }];
 }
 
 export function AdminLayoutShell() {
