@@ -52,13 +52,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${{ github.event.action }}" == "synchronize" \
-            && -n "${{ github.event.before }}" \
-            && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
-            ./scripts/ci/classify-pr-push-changes.sh "${{ github.event.before }}" "${{ github.event.pull_request.head.sha }}"
-          else
-            ./scripts/ci/classify-pr-push-changes.sh "origin/${{ github.base_ref }}" "HEAD"
-          fi
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          ./scripts/ci/classify-pr-event.sh \
+            "${{ github.event.action }}" \
+            "${{ github.event.before }}" \
+            "${HEAD_SHA}" \
+            "${{ github.base_ref }}"
 
       - name: Log when preview deploy is skipped
         if: steps.classify.outputs.run_deploy != 'true'
