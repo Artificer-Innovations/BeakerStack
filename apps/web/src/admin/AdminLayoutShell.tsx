@@ -33,6 +33,7 @@ export function AdminLayoutShell() {
         Dashboard
       </Link>
       <button
+        type='button'
         onClick={handleSignOut}
         className={`w-full text-left ${footerLinkClass}`}
       >
@@ -51,6 +52,7 @@ export function AdminLayoutShell() {
         Dashboard
       </Link>
       <button
+        type='button'
         onClick={handleSignOut}
         className='text-sm text-gray-600 hover:text-gray-900'
       >

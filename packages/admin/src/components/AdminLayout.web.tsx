@@ -50,8 +50,11 @@ export function AdminLayout({
             </NavLink>
           ))}
         </nav>
-        {sidebarFooter && (
-          <div className='px-2 py-4 border-t border-gray-200'>
+        {sidebarFooter != null && (
+          <div
+            className='px-2 py-4 border-t border-gray-200 space-y-1'
+            data-testid='sidebar-footer'
+          >
             {sidebarFooter}
           </div>
         )}

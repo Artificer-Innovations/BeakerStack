@@ -57,4 +57,43 @@ describe('AdminLayout', () => {
     expect(screen.getByRole('button', { name: 'Action' })).toBeInTheDocument();
     expect(screen.getByText('Page content')).toBeInTheDocument();
   });
+
+  it('renders sidebarFooter content when provided', () => {
+    render(
+      <MemoryRouter initialEntries={['/admin']}>
+        <Routes>
+          <Route
+            path='/admin/*'
+            element={
+              <AdminLayout
+                title='Ops'
+                navItems={navItems}
+                sidebarFooter={<button type='button'>Sign out</button>}
+              />
+            }
+          >
+            <Route index element={<p>Home</p>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+    expect(screen.getByTestId('sidebar-footer')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
+  });
+
+  it('renders no footer section when sidebarFooter is omitted', () => {
+    render(
+      <MemoryRouter initialEntries={['/admin']}>
+        <Routes>
+          <Route
+            path='/admin/*'
+            element={<AdminLayout title='Ops' navItems={navItems} />}
+          >
+            <Route index element={<p>Home</p>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    );
+    expect(screen.queryByTestId('sidebar-footer')).not.toBeInTheDocument();
+  });
 });
