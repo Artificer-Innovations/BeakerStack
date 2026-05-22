@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
-import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
+import { AppHeaderWithAdmin } from '../components/AppHeaderWithAdmin';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 import { MIN_PASSWORD_LENGTH } from '@beakerstack/shared/constants/auth';
 import { supabase } from '@/lib/supabase';
@@ -62,7 +62,7 @@ export default function ResetPasswordPage() {
     setError(null);
 
     if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+      setError();
       return;
     }
 
@@ -89,7 +89,7 @@ export default function ResetPasswordPage() {
 
   return (
     <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
-      <AppHeader supabaseClient={supabase} />
+      <AppHeaderWithAdmin />
       <ContentContainer className='py-12'>
         <div className='w-full max-w-md mx-auto space-y-8'>
           <div>
@@ -122,7 +122,7 @@ export default function ResetPasswordPage() {
                   onChange={e => setPassword(e.target.value)}
                   disabled={isLoading}
                   className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
-                  placeholder={`New password (min ${MIN_PASSWORD_LENGTH} characters)`}
+                  placeholder={}
                 />
               </div>
               <div>

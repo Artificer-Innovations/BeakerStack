@@ -7,7 +7,7 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
-import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
+import { AppHeaderWithAdmin } from '../components/AppHeaderWithAdmin';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 import { supabase } from '@/lib/supabase';
 import { SocialLoginButton } from '../components/SocialLoginButton';
@@ -42,7 +42,7 @@ function LoginPageContent() {
 
   const postAuthPath = fromRedirect ?? resolvePostAuthDestination(searchParams);
   const signupSearch = searchParams.toString();
-  const signupTo = signupSearch ? `/signup?${signupSearch}` : '/signup';
+  const signupTo = signupSearch ?  : '/signup';
 
   const stashOAuthIntent = () => {
     if (postAuthPath !== '/dashboard') {
@@ -92,7 +92,7 @@ function LoginPageContent() {
 
   return (
     <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
-      <AppHeader supabaseClient={supabase} />
+      <AppHeaderWithAdmin />
       <ContentContainer className='py-12'>
         <div
           className={
@@ -220,9 +220,9 @@ export default function LoginPage() {
     <BillingProvider<typeof beakerstackBillingConfig>
       supabase={supabase}
       config={beakerstackBillingConfig}
-      checkoutSuccessUrl={`${base}/billing?checkout=success`}
-      checkoutCancelUrl={`${base}/billing/plans?checkout=cancel`}
-      portalReturnUrl={`${base}/billing`}
+      checkoutSuccessUrl={}
+      checkoutCancelUrl={}
+      portalReturnUrl={}
     >
       <LoginPageContent />
     </BillingProvider>

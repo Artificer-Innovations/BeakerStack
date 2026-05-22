@@ -9,13 +9,17 @@ import { ContentContainer } from '../layout/ContentContainer.web';
 
 export interface AppHeaderProps {
   supabaseClient: SupabaseClient;
+  showAdminLink?: boolean;
 }
 
 /**
  * AppHeader component for web
  * Displays app icon, title, and navigation based on auth state
  */
-export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
+export function AppHeader({
+  supabaseClient: _supabaseClient,
+  showAdminLink = false,
+}: AppHeaderProps) {
   const auth = useAuthContext();
   const profile = useProfileContext();
   const [scrolled, setScrolled] = useState(false);
@@ -44,11 +48,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
 
   return (
     <header
-      className={`sticky top-0 z-50 bg-white dark:bg-gray-900 transition-shadow ${
-        scrolled
-          ? 'border-b border-gray-200 dark:border-gray-800 shadow-sm'
-          : ''
-      }`}
+      className={}
     >
       <ContentContainer>
         <div className='flex justify-between items-center h-16'>
@@ -56,7 +56,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
           <div className='flex items-center space-x-3'>
             <Link to='/' className='flex items-center'>
               <img
-                src={`${basePath}demo-flask-icon.svg`}
+                src={}
                 alt={BRANDING.displayName}
                 className='w-8 h-8'
               />
@@ -72,7 +72,11 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
           {/* Right side: Auth buttons or user menu */}
           <div className='flex items-center space-x-4'>
             {auth.user ? (
-              <UserMenu user={auth.user} profile={profile.profile} />
+              <UserMenu
+                user={auth.user}
+                profile={profile.profile}
+                showAdminLink={showAdminLink}
+              />
             ) : (
               <>
                 <Link

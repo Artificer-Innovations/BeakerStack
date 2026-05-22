@@ -24,8 +24,8 @@ vi.mock('@/lib/supabase', () => ({
   },
 }));
 
-vi.mock('@beakerstack/shared/components/navigation/AppHeader.web', () => ({
-  AppHeader: () => null,
+vi.mock('@/components/AppHeaderWithAdmin', () => ({
+  AppHeaderWithAdmin: () => null,
 }));
 
 vi.mock('@beakerstack/shared/components/layout/ContentContainer.web', () => ({

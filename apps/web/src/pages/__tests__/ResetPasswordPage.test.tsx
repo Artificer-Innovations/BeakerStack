@@ -30,8 +30,8 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-vi.mock('@beakerstack/shared/components/navigation/AppHeader.web', () => ({
-  AppHeader: () => null,
+vi.mock('@/components/AppHeaderWithAdmin', () => ({
+  AppHeaderWithAdmin: () => null,
 }));
 
 vi.mock('@beakerstack/shared/components/layout/ContentContainer.web', () => ({
@@ -142,7 +142,7 @@ describe('ResetPasswordPage', () => {
 
     expect(
       screen.getByText(
-        `Password must be at least ${MIN_PASSWORD_LENGTH} characters`
+        
       )
     ).toBeInTheDocument();
     expect(mockUpdateUser).not.toHaveBeenCalled();

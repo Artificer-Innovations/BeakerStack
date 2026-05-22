@@ -2,7 +2,7 @@ import { BillingProvider } from '@beakerstack/billing';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
-import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
+import { AppHeaderWithAdmin } from '../components/AppHeaderWithAdmin';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 import { MIN_PASSWORD_LENGTH } from '@beakerstack/shared/constants/auth';
 import { supabase } from '@/lib/supabase';
@@ -53,7 +53,7 @@ function SignupPageContent() {
   const paidIntent = hasPaidPlanIntent(searchParams);
   const postAuthPath = resolvePostAuthDestination(searchParams);
   const loginSearch = searchParams.toString();
-  const loginTo = loginSearch ? `/login?${loginSearch}` : '/login';
+  const loginTo = loginSearch ?  : '/login';
 
   const stashOAuthIntent = () => {
     if (postAuthPath !== '/dashboard') {
@@ -73,7 +73,7 @@ function SignupPageContent() {
     }
 
     if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+      setError();
       return;
     }
 
@@ -134,7 +134,7 @@ function SignupPageContent() {
   const submitLabel = isLoading
     ? 'Creating account...'
     : paidIntent && postAuthPath !== '/dashboard'
-      ? `Continue with ${displayName}`
+      ? 
       : 'Create account';
 
   const showPlanAside =
@@ -157,7 +157,7 @@ function SignupPageContent() {
   if (awaitingEmail) {
     return (
       <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
-        <AppHeader supabaseClient={supabase} />
+        <AppHeaderWithAdmin />
         <ContentContainer className='py-12'>
           <div className='mx-auto max-w-md rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-sm'>
             <h2 className='text-xl font-semibold text-gray-900 dark:text-white'>
@@ -186,7 +186,7 @@ function SignupPageContent() {
 
   return (
     <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
-      <AppHeader supabaseClient={supabase} />
+      <AppHeaderWithAdmin />
       <ContentContainer className='py-12'>
         <div
           className={
@@ -204,7 +204,7 @@ function SignupPageContent() {
               <div>
                 <h2 className='mt-0 text-center text-3xl font-extrabold text-gray-900 dark:text-white md:text-left'>
                   {paidIntent && postAuthPath !== '/dashboard'
-                    ? `Create your account to continue with ${displayName}`
+                    ? 
                     : 'Create your account'}
                 </h2>
                 {paidIntent && postAuthPath !== '/dashboard' ? (
@@ -337,9 +337,9 @@ export default function SignupPage() {
     <BillingProvider<typeof beakerstackBillingConfig>
       supabase={supabase}
       config={beakerstackBillingConfig}
-      checkoutSuccessUrl={`${base}/billing?checkout=success`}
-      checkoutCancelUrl={`${base}/billing/plans?checkout=cancel`}
-      portalReturnUrl={`${base}/billing`}
+      checkoutSuccessUrl={}
+      checkoutCancelUrl={}
+      portalReturnUrl={}
     >
       <SignupPageContent />
     </BillingProvider>

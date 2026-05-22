@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { useProfileContext } from '@beakerstack/shared/contexts/ProfileContext';
-import { supabase } from '@/lib/supabase';
-import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
+import { AppHeaderWithAdmin } from '../components/AppHeaderWithAdmin';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 // Import Profile Display Components - Vite will automatically resolve .web.tsx files
 import { ProfileHeader } from '@beakerstack/shared/components/profile/ProfileHeader.web';
@@ -18,7 +17,7 @@ export default function ProfilePage() {
 
   return (
     <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
-      <AppHeader supabaseClient={supabase} />
+      <AppHeaderWithAdmin />
 
       {/* Main Content */}
       <ContentContainer className='py-6'>

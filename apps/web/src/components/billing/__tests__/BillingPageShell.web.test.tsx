@@ -2,12 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { BillingPageShell } from '../BillingPageShell.web';
 
-vi.mock('@beakerstack/shared/components/navigation/AppHeader.web', () => ({
-  AppHeader: () => <header data-testid='app-header' />,
-}));
-
-vi.mock('../../../lib/supabase', () => ({
-  supabase: {},
+vi.mock('../../AppHeaderWithAdmin', () => ({
+  AppHeaderWithAdmin: () => <header data-testid='app-header' />,
 }));
 
 describe('BillingPageShell', () => {

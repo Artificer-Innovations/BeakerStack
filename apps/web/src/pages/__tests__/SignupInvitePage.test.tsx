@@ -34,8 +34,8 @@ vi.mock('@beakerstack/shared/contexts/AuthContext', () => ({
   }),
 }));
 
-vi.mock('@beakerstack/shared/components/navigation/AppHeader.web', () => ({
-  AppHeader: () => <header data-testid='app-header' />,
+vi.mock('@/components/AppHeaderWithAdmin', () => ({
+  AppHeaderWithAdmin: () => <header data-testid='app-header' />,
 }));
 
 vi.mock('@beakerstack/waitlist', async importOriginal => {
