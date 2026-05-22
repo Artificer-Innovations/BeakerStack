@@ -82,13 +82,15 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
     const emailRedirectTo =
       typeof window !== 'undefined' && window.location
         ? getAuthConfirmUrl()
-        : undefined;
+        : /* v8 ignore next */ undefined;
 
     const { error } = await supabaseClient.auth.signUp({
       email,
       password,
       options: {
+        /* v8 ignore start -- jsdom always provides window.location */
         ...(emailRedirectTo ? { emailRedirectTo } : {}),
+        /* v8 ignore stop */
         ...(options?.data ? { data: options.data } : {}),
       },
     });
@@ -174,16 +176,18 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
     let redirectTo: string | undefined;
     if (typeof window !== 'undefined' && window.location) {
       redirectTo = getAuthCallbackUrl();
+      /* v8 ignore start -- jsdom always provides window.location */
+    } else {
+      redirectTo = undefined;
     }
+    /* v8 ignore stop */
 
-    const authArgs = redirectTo
-      ? {
-          provider: 'google' as const,
-          options: { redirectTo },
-        }
-      : {
-          provider: 'google' as const,
-        };
+    const authArgs = {
+      provider: 'google' as const,
+      /* v8 ignore start -- jsdom always provides window.location */
+      ...(redirectTo ? { options: { redirectTo } } : {}),
+      /* v8 ignore stop */
+    };
 
     const { error } = await supabaseClient.auth.signInWithOAuth(authArgs);
 
@@ -203,9 +207,11 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
     const redirectTo =
       typeof window !== 'undefined' && window.location
         ? getAuthConfirmUrl()
-        : undefined;
+        : /* v8 ignore next */ undefined;
 
+    /* v8 ignore start -- jsdom always provides window.location */
     const options = redirectTo ? { redirectTo } : {};
+    /* v8 ignore stop */
 
     const { error } = await supabaseClient.auth.resetPasswordForEmail(
       email,

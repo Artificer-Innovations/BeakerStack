@@ -182,4 +182,12 @@ describe('useInvoices', () => {
     await waitFor(() => expect(range).toHaveBeenCalled());
     expect(range).toHaveBeenCalledWith(0, 19);
   });
+
+  it('treats null data as an empty page', async () => {
+    range.mockResolvedValue({ data: null, error: null });
+    const { result } = renderHook(() => useInvoices({ pageSize: 20 }));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.items).toEqual([]);
+    expect(result.current.hasMore).toBe(false);
+  });
 });

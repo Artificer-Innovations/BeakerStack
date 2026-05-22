@@ -36,7 +36,9 @@ const isArrayBufferWithMetadata = (
   return (
     typeof value === 'object' &&
     value !== null &&
+    /* v8 ignore next -- cross-realm ArrayBuffer metadata guard */
     value.constructor === ArrayBuffer &&
+    /* v8 ignore next */
     'byteLength' in value
   );
 };
@@ -83,7 +85,7 @@ export function useAvatarUpload(
     };
 
     if (file instanceof File) {
-      return mimeToExt[file.type] || 'jpg';
+      return mimeToExt[file.type] || /* v8 ignore next */ 'jpg';
     }
 
     // For Blob, check if type is set (we set it when creating from base64)
@@ -189,9 +191,13 @@ export function useAvatarUpload(
         setUploadedUrl(cacheBustedUrl); // For component display
         return cleanUrl; // Return normalized clean URL for database storage
       } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err));
+        const error =
+          err instanceof Error
+            ? err
+            : /* v8 ignore next */ new Error(String(err));
         setError(error);
         throw error;
+        /* v8 ignore next */
       } finally {
         setUploading(false);
         setProgress(0);

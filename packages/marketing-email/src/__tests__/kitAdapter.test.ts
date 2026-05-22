@@ -132,6 +132,15 @@ describe('KitAdapter.deleteUser', () => {
     expect(vi.mocked(fetch).mock.calls).toHaveLength(1);
   });
 
+  it('treats non-array subscribers payload as empty', async () => {
+    mockFetch({ status: 200, body: { subscribers: null } });
+    const adapter = makeAdapter();
+    await expect(
+      adapter.deleteUser('gone@example.com')
+    ).resolves.toBeUndefined();
+    expect(vi.mocked(fetch).mock.calls).toHaveLength(1);
+  });
+
   it('resolves to undefined on successful 204 delete', async () => {
     mockFetch(
       { status: 200, body: { subscribers: [{ id: 'sub-1' }] } },

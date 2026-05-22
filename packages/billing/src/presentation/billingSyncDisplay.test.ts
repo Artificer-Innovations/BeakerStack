@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Plan } from '../types.js';
 import {
+  aggregateAnnualPercentSavings,
   annualListCentsFromSync,
   annualSavingsPercentForPlan,
   cadenceAnnualSavingsFromPlans,
@@ -143,5 +144,21 @@ describe('billingSyncDisplay', () => {
     ];
     const agg = cadenceAnnualSavingsFromPlans(plans);
     expect(agg.kind).not.toBe('none');
+  });
+
+  it('aggregateAnnualPercentSavings covers fallback percent aggregation branches', () => {
+    expect(aggregateAnnualPercentSavings([])).toEqual({ kind: 'none' });
+    expect(aggregateAnnualPercentSavings([12])).toEqual({
+      kind: 'percent',
+      pct: 12,
+    });
+    expect(aggregateAnnualPercentSavings([10, 11])).toEqual({
+      kind: 'percent',
+      pct: 11,
+    });
+    expect(aggregateAnnualPercentSavings([10, 20])).toEqual({
+      kind: 'percent_range',
+      max: 20,
+    });
   });
 });

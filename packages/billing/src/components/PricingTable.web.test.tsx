@@ -66,6 +66,25 @@ describe('PricingTable (web)', () => {
     expect(onSelectPlan).not.toHaveBeenCalled();
   });
 
+  it('highlights current plan when highlightCurrent is enabled', () => {
+    const { container } = render(
+      <PricingTable highlightCurrent onSelectPlan={vi.fn()} />
+    );
+    const items = container.querySelectorAll('li');
+    expect(items[0]?.getAttribute('style')).toContain('2px solid');
+    expect(items[1]?.getAttribute('style')).not.toContain('2px solid');
+  });
+
+  it('ignores empty highlightPlanId', () => {
+    const { container } = render(
+      <PricingTable highlightPlanId='' onSelectPlan={vi.fn()} />
+    );
+    const items = container.querySelectorAll('li');
+    items.forEach(li => {
+      expect(li.getAttribute('style')).not.toContain('2px solid');
+    });
+  });
+
   it('highlights plan by highlightPlanId', () => {
     const { container } = render(
       <PricingTable highlightPlanId='p2' onSelectPlan={vi.fn()} />

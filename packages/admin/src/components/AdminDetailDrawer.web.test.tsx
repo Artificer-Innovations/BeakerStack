@@ -206,6 +206,40 @@ describe('AdminDetailDrawer', () => {
     }
   });
 
+  it('no-ops Tab trap when focusable list has undefined endpoints', () => {
+    const originalFilter = Array.prototype.filter;
+    let interceptTabTrapFilter = false;
+    const filterSpy = vi
+      .spyOn(Array.prototype, 'filter')
+      .mockImplementation(function (
+        this: HTMLElement[],
+        predicate: (value: HTMLElement) => boolean
+      ) {
+        if (interceptTabTrapFilter && this.length >= 2) {
+          interceptTabTrapFilter = false;
+          return [undefined, this[this.length - 1]] as unknown as HTMLElement[];
+        }
+        return originalFilter.call(this, predicate);
+      });
+
+    try {
+      render(
+        <AdminDetailDrawer open title='User' onClose={vi.fn()}>
+          <button type='button'>Save</button>
+        </AdminDetailDrawer>
+      );
+      const close = screen.getByLabelText('Close');
+      close.focus();
+      interceptTabTrapFilter = true;
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Tab', bubbles: true })
+      );
+      expect(document.activeElement).toBe(close);
+    } finally {
+      filterSpy.mockRestore();
+    }
+  });
+
   it('no-ops Tab trap when every candidate is filtered out', () => {
     const original = Element.prototype.querySelectorAll;
     const querySpy = vi

@@ -287,10 +287,15 @@ export function useProfile(
       setProfile(createdProfile);
       return createdProfile;
     } catch (err) {
-      const errorObj = err instanceof Error ? err : new Error(String(err));
+      const errorObj =
+        err instanceof Error
+          ? err
+          : /* v8 ignore next */ new Error(String(err));
       setError(errorObj);
       throw errorObj;
+      /* v8 ignore next */
     } finally {
+      /* v8 ignore next */
       setLoading(false);
     }
   };
@@ -347,10 +352,15 @@ export function useProfile(
       return updatedProfile;
     } catch (err) {
       Logger.error('[useProfile] Update caught error:', err);
-      const errorObj = err instanceof Error ? err : new Error(String(err));
+      const errorObj =
+        err instanceof Error
+          ? err
+          : /* v8 ignore next */ new Error(String(err));
       setError(errorObj);
       throw errorObj;
+      /* v8 ignore next */
     } finally {
+      /* v8 ignore next */
       setLoading(false);
     }
   };

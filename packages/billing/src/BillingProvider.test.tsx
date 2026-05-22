@@ -419,6 +419,46 @@ describe('BillingProvider', () => {
     expect(db.maybeSingle).not.toHaveBeenCalled();
   });
 
+  it('reloads subscription when realtime payload only includes old row', async () => {
+    auth.state.session = { user: { id: 'u-99' } };
+    const row = { ...testSubscription(), user_id: 'u-99' };
+    db.maybeSingle.mockResolvedValue({ data: row, error: null });
+    render(
+      <BillingProvider config={testBillingConfig} {...providerProps}>
+        <Reader />
+      </BillingProvider>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('subid').textContent).toBe('sub_1');
+    });
+    db.maybeSingle.mockClear();
+    db.subscriptionRealtime.handler?.({
+      new: undefined,
+      old: { ...row, product_id: 'test_product' },
+    });
+    await waitFor(() => {
+      expect(db.maybeSingle).toHaveBeenCalled();
+    });
+  });
+
+  it('ignores realtime payload when row is missing', async () => {
+    auth.state.session = { user: { id: 'u-99' } };
+    const row = { ...testSubscription(), user_id: 'u-99' };
+    db.maybeSingle.mockResolvedValue({ data: row, error: null });
+    render(
+      <BillingProvider config={testBillingConfig} {...providerProps}>
+        <Reader />
+      </BillingProvider>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('subid').textContent).toBe('sub_1');
+    });
+    db.maybeSingle.mockClear();
+    db.subscriptionRealtime.handler?.({ new: undefined, old: undefined });
+    await Promise.resolve();
+    expect(db.maybeSingle).not.toHaveBeenCalled();
+  });
+
   it('polls subscription refresh after checkout success', async () => {
     vi.useFakeTimers();
     const realLocation = window.location;
@@ -455,5 +495,93 @@ describe('BillingProvider', () => {
         value: realLocation,
       });
     }
+  });
+
+  it('ignores checkout polling when query param is not success', async () => {
+    const realLocation = window.location;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...realLocation, search: '?checkout=cancelled' },
+    });
+    auth.state.session = { user: { id: 'u-no-poll' } };
+    db.maybeSingle.mockResolvedValue({
+      data: { ...testSubscription(), user_id: 'u-no-poll' },
+      error: null,
+    });
+    try {
+      render(
+        <BillingProvider config={testBillingConfig} {...providerProps}>
+          <Reader />
+        </BillingProvider>
+      );
+      await waitFor(() => {
+        expect(screen.getByTestId('uid').textContent).toBe('u-no-poll');
+      });
+      const callsAfterMount = db.maybeSingle.mock.calls.length;
+      await new Promise(resolve => setTimeout(resolve, 50));
+      expect(db.maybeSingle.mock.calls.length).toBe(callsAfterMount);
+    } finally {
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: realLocation,
+      });
+    }
+  });
+
+  it('stops checkout polling after max attempts', async () => {
+    vi.useFakeTimers();
+    const realLocation = window.location;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...realLocation, search: '?checkout=success' },
+    });
+    auth.state.session = { user: { id: 'u-max-poll' } };
+    db.maybeSingle.mockResolvedValue({
+      data: { ...testSubscription(), user_id: 'u-max-poll' },
+      error: null,
+    });
+    try {
+      await act(async () => {
+        render(
+          <BillingProvider config={testBillingConfig} {...providerProps}>
+            <Reader />
+          </BillingProvider>
+        );
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2000 * 21);
+      });
+      const callCount = db.maybeSingle.mock.calls.length;
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000);
+      });
+      expect(db.maybeSingle.mock.calls.length).toBe(callCount);
+    } finally {
+      vi.useRealTimers();
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: realLocation,
+      });
+    }
+  });
+
+  it('ignores auth session result after unmount', async () => {
+    let resolveSession: (value: {
+      data: { session: { user: { id: string } } | null };
+    }) => void = () => {};
+    auth.getSession.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          resolveSession = resolve;
+        })
+    );
+    const { unmount } = render(
+      <BillingProvider config={testBillingConfig} {...providerProps}>
+        <Reader />
+      </BillingProvider>
+    );
+    unmount();
+    resolveSession({ data: { session: { user: { id: 'late-user' } } } });
+    await Promise.resolve();
   });
 });

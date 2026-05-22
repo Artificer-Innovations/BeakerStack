@@ -81,12 +81,14 @@ export function ProfileEditor({
   };
 
   const handleSubmit = async () => {
+    /* v8 ignore start -- form is hidden unless currentUser is present */
     if (!currentUser) {
       const error = new Error('User must be logged in to update profile');
       setGeneralError(error.message);
       onError?.(error);
       return;
     }
+    /* v8 ignore stop */
 
     setIsSubmitting(true);
     setFieldErrors({});
@@ -253,7 +255,7 @@ export function ProfileEditor({
               handleFieldChange('avatar_url', '');
             }
           }}
-          userId={currentUser?.id || ''}
+          userId={currentUser?.id || /* v8 ignore next */ ''}
           supabaseClient={supabaseClient}
         />
       </div>

@@ -60,6 +60,10 @@ describe('mapUnknownError', () => {
     expect(e.message).toContain('function does not exist');
   });
 
+  it('maps null via JSON.stringify', () => {
+    expect(mapUnknownError(null).message).toBe('null');
+  });
+
   it('maps undefined without throwing (JSON.stringify(undefined) is not a string)', () => {
     const e = mapUnknownError(undefined);
     expect(e.kind).toBe('unknown');

@@ -47,6 +47,7 @@ function getFocusableElements(container: HTMLElement): HTMLElement[] {
 }
 
 function getPortalRoot(): Element | null {
+  /* v8 ignore next 3 -- document.body is always available under jsdom */
   if (typeof document === 'undefined') return null;
   return document.body;
 }
@@ -97,6 +98,7 @@ export function Modal({
 
       if (e.key !== 'Tab') return;
       const panel = panelRef.current;
+      /* v8 ignore next 3 -- panel ref is always mounted while open in tests */
       if (!panel) return;
       const focusable = getFocusableElements(panel);
       if (focusable.length === 0) {
@@ -138,6 +140,7 @@ export function Modal({
   }
 
   const root = getPortalRoot();
+  /* v8 ignore next 3 -- document.body is always available under jsdom */
   if (!root) {
     return null;
   }

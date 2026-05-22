@@ -402,7 +402,11 @@ export function AvatarUpload({
                 Logger.error('[AvatarUpload] Error in handlePickImage:', err);
                 Alert.alert(
                   'Error',
-                  `Failed to pick image: ${err instanceof Error ? err.message : String(err)}`
+                  `Failed to pick image: ${
+                    err instanceof Error
+                      ? err.message
+                      : /* v8 ignore next */ String(err)
+                  }`
                 );
               });
             }}

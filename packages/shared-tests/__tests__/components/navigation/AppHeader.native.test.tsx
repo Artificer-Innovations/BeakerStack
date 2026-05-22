@@ -21,6 +21,9 @@ jest.mock('@react-navigation/native', () => ({
 const APP_HEADER_PLATFORM_OS_KEY =
   '__BeakerStack_AppHeaderNativeTest_platformOs';
 
+const APP_HEADER_STATUS_BAR_HEIGHT_KEY =
+  '__BeakerStack_AppHeaderNativeTest_statusBarHeight';
+
 function appHeaderPlatformOsRef(): { current: string } {
   const g = globalThis as Record<string, { current: string } | undefined>;
   if (!g[APP_HEADER_PLATFORM_OS_KEY]) {
@@ -29,16 +32,38 @@ function appHeaderPlatformOsRef(): { current: string } {
   return g[APP_HEADER_PLATFORM_OS_KEY]!;
 }
 
+function appHeaderStatusBarHeightRef(): { current: number | null } {
+  const g = globalThis as Record<
+    string,
+    { current: number | null } | undefined
+  >;
+  if (!g[APP_HEADER_STATUS_BAR_HEIGHT_KEY]) {
+    g[APP_HEADER_STATUS_BAR_HEIGHT_KEY] = { current: 24 };
+  }
+  return g[APP_HEADER_STATUS_BAR_HEIGHT_KEY]!;
+}
+
 // Mock Platform (toggle OS via appHeaderPlatformOsRef in tests)
 jest.mock('react-native', () => {
   const RN = jest.requireActual('react-native');
   const key = APP_HEADER_PLATFORM_OS_KEY;
+  const statusBarKey = '__BeakerStack_AppHeaderNativeTest_statusBarHeight';
   const platformOsRef = (): { current: string } => {
     const g = globalThis as Record<string, { current: string } | undefined>;
     if (!g[key]) {
       g[key] = { current: 'ios' };
     }
     return g[key]!;
+  };
+  const statusBarHeightRef = (): { current: number | null } => {
+    const g = globalThis as Record<
+      string,
+      { current: number | null } | undefined
+    >;
+    if (!g[statusBarKey]) {
+      g[statusBarKey] = { current: 24 };
+    }
+    return g[statusBarKey]!;
   };
   return {
     ...RN,
@@ -50,7 +75,9 @@ jest.mock('react-native', () => {
     },
     StatusBar: {
       get currentHeight() {
-        return platformOsRef().current === 'android' ? null : 0;
+        return platformOsRef().current === 'android'
+          ? statusBarHeightRef().current
+          : 0;
       },
     },
   };
@@ -123,6 +150,7 @@ describe('AppHeader (Native)', () => {
     jest.restoreAllMocks();
     jest.clearAllMocks();
     appHeaderPlatformOsRef().current = 'ios';
+    appHeaderStatusBarHeightRef().current = 24;
   });
 
   it('renders app title', () => {
@@ -239,6 +267,7 @@ describe('AppHeader (Native)', () => {
 
   it('renders on Android with null status bar height fallback', async () => {
     appHeaderPlatformOsRef().current = 'android';
+    appHeaderStatusBarHeightRef().current = null;
     renderWithProviders(
       <AppHeader supabaseClient={createMockSupabaseClient()} />
     );
