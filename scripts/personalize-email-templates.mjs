@@ -125,6 +125,7 @@ async function defaultSupportEmail() {
 
 function defaultCompanyAddress() {
   return (
+    readBrandingValue(legalFile, 'mailingAddress') ??
     readBrandingValue(legalFile, 'legalEntityName') ??
     '123 Main St, City, State 00000, Country'
   );
@@ -192,6 +193,7 @@ function reversePersonalization(content, prev) {
     SENDER_NAME: '{{SENDER_NAME}}',
     SUPPORT_EMAIL: '{{SUPPORT_EMAIL}}',
     COMPANY_ADDRESS: '{{COMPANY_ADDRESS}}',
+    LOGO_URL: '{{LOGO_URL}}',
   };
   for (const [key, token] of Object.entries(tokenMap)) {
     if (prev[key]) {
@@ -252,6 +254,7 @@ async function main() {
     '{{SENDER_NAME}}': senderName,
     ...(supportEmail ? { '{{SUPPORT_EMAIL}}': supportEmail } : {}),
     ...(companyAddress ? { '{{COMPANY_ADDRESS}}': companyAddress } : {}),
+    '{{LOGO_URL}}': `{{ .SiteURL }}/email-logo.png`,
   };
 
   // config.toml uses __PRODUCT_NAME__ (double underscores) to avoid Go template conflicts
@@ -325,6 +328,7 @@ async function main() {
     SENDER_NAME: senderName,
     ...(supportEmail ? { SUPPORT_EMAIL: supportEmail } : {}),
     ...(companyAddress ? { COMPANY_ADDRESS: companyAddress } : {}),
+    LOGO_URL: `{{ .SiteURL }}/email-logo.png`,
   };
   writeFileSync(
     PERSONALIZATION_FILE,

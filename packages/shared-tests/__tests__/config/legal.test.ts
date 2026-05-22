@@ -21,4 +21,9 @@ describe('LEGAL_CONFIG', () => {
     expect(LEGAL_CONFIG.contactEmail).toContain('@');
     expect(LEGAL_CONFIG.contactEmail.length).toBeGreaterThan(0);
   });
+
+  it('has a non-empty mailingAddress (CAN-SPAM physical address)', () => {
+    expect(typeof LEGAL_CONFIG.mailingAddress).toBe('string');
+    expect(LEGAL_CONFIG.mailingAddress.length).toBeGreaterThan(0);
+  });
 });
