@@ -491,6 +491,52 @@ wait_for_build() {
   return 1
 }
 
+# Parse EAS CLI build output; sets PARSED_BUILD_ID, PARSED_BUILD_STATUS, PARSED_BUILD_OBJ.
+parse_eas_build_output() {
+  local build_output="$1"
+  PARSED_BUILD_ID=""
+  PARSED_BUILD_STATUS=""
+  PARSED_BUILD_OBJ="{}"
+
+  local json_start_line
+  json_start_line="$(echo "${build_output}" | grep -n '^\[' | tail -1 | cut -d: -f1 2>/dev/null || true)"
+
+  local build_json=""
+  if [[ -n "${json_start_line}" ]]; then
+    build_json="$(echo "${build_output}" | sed -n "${json_start_line},\$p" 2>/dev/null || true)"
+    if ! echo "${build_json}" | jq empty 2>/dev/null; then
+      build_json=""
+    fi
+  fi
+
+  if [[ -n "${build_json}" ]]; then
+    PARSED_BUILD_OBJ="$(echo "${build_json}" | jq -c 'if type=="array" and length>0 then .[0] else . end' 2>/dev/null || echo "{}")"
+    PARSED_BUILD_ID="$(echo "${PARSED_BUILD_OBJ}" | jq -r '.id // empty' 2>/dev/null || true)"
+    PARSED_BUILD_STATUS="$(echo "${PARSED_BUILD_OBJ}" | jq -r '.status // empty' 2>/dev/null || true)"
+  fi
+}
+
+submit_eas_build() {
+  local platform="$1"
+  local build_message="$2"
+  local build_output
+  build_output="$(run_eas build \
+    --platform "${platform}" \
+    --profile preview \
+    --non-interactive \
+    --json \
+    --message "${build_message}" 2>&1 || true)"
+  parse_eas_build_output "${build_output}"
+  if [[ -z "${PARSED_BUILD_ID}" || "${PARSED_BUILD_ID}" == "null" ]]; then
+    log "ERROR" "Failed to start ${platform} build or extract build ID"
+    log_eas_build_failure_hints "${build_output}"
+    log "ERROR" "Build output: ${build_output}"
+    return 1
+  fi
+  log "INFO" "${platform} build submitted: ${PARSED_BUILD_ID} (status: ${PARSED_BUILD_STATUS})"
+  return 0
+}
+
 ensure_eas_secrets() {
   log "INFO" "Ensuring EAS secrets are set for preview environment..."
   
@@ -689,80 +735,26 @@ build_native_app() {
     fi
   fi
   
-  # Build iOS (only if we don't have a reusable build)
-  if [[ -z "${ios_build_id}" ]]; then
-    log "INFO" "Starting iOS build..."
-    local ios_build_output
-    ios_build_output="$(run_eas build \
-      --platform ios \
-      --profile preview \
-      --non-interactive \
-      --json \
-      --message "${build_message}" 2>&1 || true)"
-    
-    # Extract JSON from output (EAS CLI outputs progress messages, then JSON array at the end)
-    # The JSON is an array like [{...}] and appears after all progress messages
-    # Must be initialized: with set -u, a bare `local ios_json` is unset until assigned; if no JSON
-    # line is found we still test -n "${ios_json}" below.
-    local ios_json=""
-    # Find the line number where JSON array starts (last occurrence of [)
-    local json_start_line
-    json_start_line="$(echo "${ios_build_output}" | grep -n '^\[' | tail -1 | cut -d: -f1 2>/dev/null || true)"
-    
-    if [[ -n "${json_start_line}" ]]; then
-      # Extract everything from the [ to the end
-      ios_json="$(echo "${ios_build_output}" | sed -n "${json_start_line},\$p" 2>/dev/null || true)"
-      # Validate it's valid JSON
-      if ! echo "${ios_json}" | jq empty 2>/dev/null; then
-        ios_json=""
-      fi
-    fi
-    
-    if [[ -n "${ios_json}" ]]; then
-      # Extract the first build object from the array (or use the object directly)
-      local ios_build_obj
-      ios_build_obj="$(echo "${ios_json}" | jq -r 'if type=="array" and length>0 then .[0] else . end' 2>/dev/null || echo "{}")"
-      ios_build_id="$(echo "${ios_build_obj}" | jq -r '.id // empty' 2>/dev/null || true)"
-      ios_build_status="$(echo "${ios_build_obj}" | jq -r '.status // empty' 2>/dev/null || true)"
-      # Store build info for later URL extraction
-      ios_build_info="${ios_build_obj}"
-    fi
-    
-    if [[ -z "${ios_build_id}" || "${ios_build_id}" == "null" ]]; then
-      log "ERROR" "Failed to start iOS build or extract build ID"
-      log_eas_build_failure_hints "${ios_build_output}"
-      log "ERROR" "Build output: ${ios_build_output}"
-      log "WARN" "Continuing with Android build even though iOS failed..."
-      ios_build_id=""
-    else
-      if [[ "${ios_build_status}" == "FINISHED" ]]; then
-        log "INFO" "iOS build completed successfully: ${ios_build_id}"
-        ios_success=true
-      else
-        log "INFO" "iOS build started: ${ios_build_id} (status: ${ios_build_status})"
-      fi
-    fi
-  fi
-  
-  # Check for existing Android build
+  # Resolve existing Android build before starting either platform (enables parallel submits).
   local existing_android_build
   existing_android_build="$(find_existing_build "android" "${PR_NUMBER}" "${current_commit}" || true)"
-  
+
   local android_build_id=""
   local android_build_status=""
   local android_success=false
-  
+  local android_build_info=""
+
   if [[ -n "${existing_android_build}" && "${existing_android_build}" != "null" ]]; then
     android_build_id="$(echo "${existing_android_build}" | jq -r '.id // empty' 2>/dev/null || true)"
     android_build_status="$(echo "${existing_android_build}" | jq -r '.status // empty' 2>/dev/null || true)"
-    local existing_commit="$(echo "${existing_android_build}" | jq -r '.gitCommitHash // empty' 2>/dev/null || true)"
-    
+    local existing_android_commit
+    existing_android_commit="$(echo "${existing_android_build}" | jq -r '.gitCommitHash // empty' 2>/dev/null || true)"
+
     if [[ "${android_build_status}" == "FINISHED" ]]; then
-      log "INFO" "Found existing Android build ${android_build_id} for PR #${PR_NUMBER} (commit: ${existing_commit})"
-      if [[ -z "${current_commit}" || "${existing_commit}" == "${current_commit}" ]]; then
+      log "INFO" "Found existing Android build ${android_build_id} for PR #${PR_NUMBER} (commit: ${existing_android_commit})"
+      if [[ -z "${current_commit}" || "${existing_android_commit}" == "${current_commit}" ]]; then
         log "INFO" "Reusing existing Android build (no rebuild needed)"
         android_success=true
-        # Store the existing build JSON for later URL extraction
         android_build_info="${existing_android_build}"
       else
         log "INFO" "Existing Android build is for different commit, will create new build"
@@ -770,92 +762,117 @@ build_native_app() {
       fi
     fi
   fi
-  
-  # Build Android (only if we don't have a reusable build)
+
+  # Submit iOS and Android builds in parallel when both need new cloud builds.
+  local ios_submit_pid=""
+  local android_submit_pid=""
+  local submit_tmp
+  submit_tmp="$(mktemp -d)"
+
+  if [[ -z "${ios_build_id}" ]]; then
+    (
+      if submit_eas_build "ios" "${build_message}"; then
+        printf '%s' "${PARSED_BUILD_ID}" >"${submit_tmp}/ios.id"
+        printf '%s' "${PARSED_BUILD_STATUS}" >"${submit_tmp}/ios.status"
+        printf '%s' "${PARSED_BUILD_OBJ}" >"${submit_tmp}/ios.info"
+      fi
+    ) &
+    ios_submit_pid=$!
+  fi
+
   if [[ -z "${android_build_id}" ]]; then
-    log "INFO" "Starting Android build..."
-    local android_build_output
-    android_build_output="$(run_eas build \
-      --platform android \
-      --profile preview \
-      --non-interactive \
-      --json \
-      --message "${build_message}" 2>&1 || true)"
-    
-    # Extract JSON from output (EAS CLI outputs progress messages, then JSON array at the end)
-    # The JSON is an array like [{...}] and appears after all progress messages
-    local android_json=""
-    # Find the line number where JSON array starts (last occurrence of [)
-    local json_start_line
-    json_start_line="$(echo "${android_build_output}" | grep -n '^\[' | tail -1 | cut -d: -f1 2>/dev/null || true)"
-    
-    if [[ -n "${json_start_line}" ]]; then
-      # Extract everything from the [ to the end
-      android_json="$(echo "${android_build_output}" | sed -n "${json_start_line},\$p" 2>/dev/null || true)"
-      # Validate it's valid JSON
-      if ! echo "${android_json}" | jq empty 2>/dev/null; then
-        android_json=""
+    (
+      if submit_eas_build "android" "${build_message}"; then
+        printf '%s' "${PARSED_BUILD_ID}" >"${submit_tmp}/android.id"
+        printf '%s' "${PARSED_BUILD_STATUS}" >"${submit_tmp}/android.status"
+        printf '%s' "${PARSED_BUILD_OBJ}" >"${submit_tmp}/android.info"
       fi
-    fi
-    
-    if [[ -n "${android_json}" ]]; then
-      # Extract the first build object from the array (or use the object directly)
-      local android_build_obj
-      android_build_obj="$(echo "${android_json}" | jq -r 'if type=="array" and length>0 then .[0] else . end' 2>/dev/null || echo "{}")"
-      android_build_id="$(echo "${android_build_obj}" | jq -r '.id // empty' 2>/dev/null || true)"
-      android_build_status="$(echo "${android_build_obj}" | jq -r '.status // empty' 2>/dev/null || true)"
-      # Store build info for later URL extraction
-      android_build_info="${android_build_obj}"
-    fi
-    
-    if [[ -z "${android_build_id}" || "${android_build_id}" == "null" ]]; then
-      log "ERROR" "Failed to start Android build or extract build ID"
-      log_eas_build_failure_hints "${android_build_output}"
-      log "ERROR" "Build output: ${android_build_output}"
-      android_build_id=""
-    else
-      if [[ "${android_build_status}" == "FINISHED" ]]; then
-        log "INFO" "Android build completed successfully: ${android_build_id}"
-        android_success=true
-      else
-        log "INFO" "Android build started: ${android_build_id} (status: ${android_build_status})"
-      fi
-    fi
+    ) &
+    android_submit_pid=$!
   fi
-  
-  # If both builds failed, return error
-  if [[ -z "${ios_build_id}" && -z "${android_build_id}" ]]; then
-    log "ERROR" "Both iOS and Android builds failed to start"
-    return 1
-  fi
-  
-  # Wait for builds to complete (only if they were started and not already finished)
-  if [[ -n "${ios_build_id}" && "${ios_success}" != true ]]; then
-    if [[ "${ios_build_status}" == "FINISHED" ]]; then
-      # Build already completed, mark as success
-      ios_success=true
-      log "INFO" "iOS build already completed, skipping wait"
-    else
-      # Build is in progress, wait for it
-      if wait_for_build "${ios_build_id}" "iOS"; then
+
+  if [[ -n "${ios_submit_pid}" ]]; then
+    wait "${ios_submit_pid}" || true
+    if [[ -f "${submit_tmp}/ios.id" ]]; then
+      ios_build_id="$(cat "${submit_tmp}/ios.id")"
+      ios_build_status="$(cat "${submit_tmp}/ios.status" 2>/dev/null || true)"
+      ios_build_info="$(cat "${submit_tmp}/ios.info" 2>/dev/null || echo "{}")"
+      if [[ -n "${ios_build_id}" && "${ios_build_status}" == "FINISHED" ]]; then
         ios_success=true
       fi
     fi
   fi
-  
-  if [[ -n "${android_build_id}" && "${android_success}" != true ]]; then
-    if [[ "${android_build_status}" == "FINISHED" ]]; then
-      # Build already completed, mark as success
-      android_success=true
-      log "INFO" "Android build already completed, skipping wait"
-    else
-      # Build is in progress, wait for it
-      if wait_for_build "${android_build_id}" "Android"; then
+
+  if [[ -n "${android_submit_pid}" ]]; then
+    wait "${android_submit_pid}" || true
+    if [[ -f "${submit_tmp}/android.id" ]]; then
+      android_build_id="$(cat "${submit_tmp}/android.id")"
+      android_build_status="$(cat "${submit_tmp}/android.status" 2>/dev/null || true)"
+      android_build_info="$(cat "${submit_tmp}/android.info" 2>/dev/null || echo "{}")"
+      if [[ -n "${android_build_id}" && "${android_build_status}" == "FINISHED" ]]; then
         android_success=true
       fi
     fi
   fi
-  
+
+  rm -rf "${submit_tmp}"
+
+  # If both builds failed to start, return error
+  if [[ -z "${ios_build_id}" && -z "${android_build_id}" ]]; then
+    log "ERROR" "Both iOS and Android builds failed to start"
+    return 1
+  fi
+
+  # Wait for in-progress builds in parallel
+  local ios_wait_pid=""
+  local android_wait_pid=""
+  local wait_tmp
+  wait_tmp="$(mktemp -d)"
+
+  if [[ -n "${ios_build_id}" && "${ios_success}" != true ]]; then
+    if [[ "${ios_build_status}" == "FINISHED" ]]; then
+      ios_success=true
+      log "INFO" "iOS build already completed, skipping wait"
+    else
+      (
+        if wait_for_build "${ios_build_id}" "iOS"; then
+          echo ok >"${wait_tmp}/ios.wait"
+        fi
+      ) &
+      ios_wait_pid=$!
+    fi
+  fi
+
+  if [[ -n "${android_build_id}" && "${android_success}" != true ]]; then
+    if [[ "${android_build_status}" == "FINISHED" ]]; then
+      android_success=true
+      log "INFO" "Android build already completed, skipping wait"
+    else
+      (
+        if wait_for_build "${android_build_id}" "Android"; then
+          echo ok >"${wait_tmp}/android.wait"
+        fi
+      ) &
+      android_wait_pid=$!
+    fi
+  fi
+
+  if [[ -n "${ios_wait_pid}" ]]; then
+    wait "${ios_wait_pid}" || true
+    if [[ -f "${wait_tmp}/ios.wait" ]]; then
+      ios_success=true
+    fi
+  fi
+
+  if [[ -n "${android_wait_pid}" ]]; then
+    wait "${android_wait_pid}" || true
+    if [[ -f "${wait_tmp}/android.wait" ]]; then
+      android_success=true
+    fi
+  fi
+
+  rm -rf "${wait_tmp}"
+
   # Get download URLs for completed builds
   if [[ -n "${ios_build_id}" ]]; then
     if [[ "${ios_success}" == true ]]; then

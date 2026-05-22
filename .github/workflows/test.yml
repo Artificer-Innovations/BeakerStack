@@ -40,8 +40,52 @@ permissions:
   pull-requests: write
 
 jobs:
-  lint:
+  test-scope:
     if: github.event.action != 'edited' || github.event.changes.base
+    runs-on: ubuntu-latest
+    outputs:
+      run_lint: ${{ steps.scope.outputs.run_lint }}
+      run_typecheck: ${{ steps.scope.outputs.run_typecheck }}
+      run_unit: ${{ steps.scope.outputs.run_unit }}
+      run_tested_scripts: ${{ steps.scope.outputs.run_tested_scripts }}
+      run_supabase: ${{ steps.scope.outputs.run_supabase }}
+      run_email_templates: ${{ steps.scope.outputs.run_email_templates }}
+      run_migration_filenames: ${{ steps.scope.outputs.run_migration_filenames }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Classify changed paths for this push
+        id: scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_all_flags() {
+            for flag in run_lint run_typecheck run_unit run_tested_scripts run_supabase \
+              run_email_templates run_migration_filenames; do
+              echo "${flag}=true" >> "${GITHUB_OUTPUT}"
+            done
+          }
+
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            run_all_flags
+            exit 0
+          fi
+
+          if [[ "${{ github.event.action }}" == "synchronize" \
+            && -n "${{ github.event.before }}" \
+            && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
+            ./scripts/ci/classify-pr-push-changes.sh "${{ github.event.before }}" "${{ github.sha }}"
+          else
+            ./scripts/ci/classify-pr-push-changes.sh "origin/${{ github.base_ref }}" "HEAD"
+          fi
+
+  lint:
+    needs: test-scope
+    if: >-
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.test-scope.outputs.run_lint == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -52,7 +96,10 @@ jobs:
         run: npm run lint
 
   type-check:
-    if: github.event.action != 'edited' || github.event.changes.base
+    needs: test-scope
+    if: >-
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.test-scope.outputs.run_typecheck == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -63,7 +110,10 @@ jobs:
         run: npm run type-check
 
   email-templates:
-    if: github.event.action != 'edited' || github.event.changes.base
+    needs: test-scope
+    if: >-
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.test-scope.outputs.run_email_templates == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -78,7 +128,11 @@ jobs:
           test -z "$(git status --porcelain supabase/templates/generated/)"
 
   unit-coverage-shard:
-    if: github.event.action != 'edited' || github.event.changes.base
+    needs: test-scope
+    if: >-
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      (needs.test-scope.outputs.run_unit == 'true' ||
+       (needs.test-scope.outputs.run_tested_scripts == 'true' && matrix.shard == 'scripts'))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -162,8 +216,11 @@ jobs:
         run: exit 1
 
   unit-coverage:
-    needs: unit-coverage-shard
-    if: always() && !cancelled() && (github.event.action != 'edited' || github.event.changes.base)
+    needs: [test-scope, unit-coverage-shard]
+    if: >-
+      always() && !cancelled() &&
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.test-scope.outputs.run_unit == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 2
 
@@ -176,7 +233,10 @@ jobs:
           fi
 
   migration-filenames:
-    if: github.event.action != 'edited' || github.event.changes.base
+    needs: test-scope
+    if: >-
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.test-scope.outputs.run_migration_filenames == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -187,7 +247,10 @@ jobs:
         run: node --test scripts/__tests__/db-migration-filenames.test.mjs
 
   supabase-tests:
-    if: github.event.action != 'edited' || github.event.changes.base
+    needs: test-scope
+    if: >-
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.test-scope.outputs.run_supabase == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 18
 
@@ -267,8 +330,11 @@ jobs:
         run: supabase stop || true
 
   integration:
-    needs: supabase-tests
-    if: always() && !cancelled() && (github.event.action != 'edited' || github.event.changes.base)
+    needs: [test-scope, supabase-tests]
+    if: >-
+      always() && !cancelled() &&
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.test-scope.outputs.run_supabase == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 2
 
@@ -281,8 +347,11 @@ jobs:
           fi
 
   db-tests:
-    needs: [migration-filenames, supabase-tests]
-    if: always() && !cancelled() && (github.event.action != 'edited' || github.event.changes.base)
+    needs: [test-scope, migration-filenames, supabase-tests]
+    if: >-
+      always() && !cancelled() &&
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.test-scope.outputs.run_supabase == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 2
 
@@ -299,8 +368,11 @@ jobs:
           fi
 
   coverage-report:
-    needs: [unit-coverage-shard, unit-coverage]
-    if: always() && !cancelled() && (github.event.action != 'edited' || github.event.changes.base)
+    needs: [test-scope, unit-coverage-shard, unit-coverage]
+    if: >-
+      always() && !cancelled() &&
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.test-scope.outputs.run_unit == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -486,8 +558,11 @@ jobs:
         run: exit 1
 
   supabase-test-report:
-    needs: [migration-filenames, supabase-tests, integration, db-tests]
-    if: always() && !cancelled() && (github.event.action != 'edited' || github.event.changes.base)
+    needs: [test-scope, migration-filenames, supabase-tests, integration, db-tests]
+    if: >-
+      always() && !cancelled() &&
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.test-scope.outputs.run_supabase == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 

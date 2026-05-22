@@ -237,11 +237,20 @@ build_web_app() {
   log "INFO" "Preparing static assets..."
   # Ensure public directory exists and has required assets
   # These scripts sync icons from assets/ to apps/web/public/ and generate favicons
-  log "INFO" "Syncing icon assets to web public directory..."
-  run_cmd npm run sync-icons
-  
-  log "INFO" "Generating favicon files..."
-  run_cmd npm run generate-favicons
+  # sync-icons and generate-favicons are independent — run in parallel
+  local icons_pid=""
+  local favicons_pid=""
+  (
+    log "INFO" "Syncing icon assets to web public directory..."
+    run_cmd npm run sync-icons
+  ) &
+  icons_pid=$!
+  (
+    log "INFO" "Generating favicon files..."
+    run_cmd npm run generate-favicons
+  ) &
+  favicons_pid=$!
+  wait "${icons_pid}" "${favicons_pid}"
   
   log "INFO" "Building web application for environment: ${ENVIRONMENT}"
   log "INFO" "Using VITE_BASE_PATH=${base_path}"

@@ -17,14 +17,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy-production:
+  deploy-backend-production:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    env:
-      DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
-      STACK_NAME: ${{ vars.PR_PREVIEW_STACK_NAME }}
-      VITE_SUPABASE_URL: ${{ secrets.PRODUCTION_SUPABASE_URL }}
-      VITE_SUPABASE_ANON_KEY: ${{ secrets.PRODUCTION_SUPABASE_ANON_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -42,14 +37,6 @@ jobs:
         uses: supabase/setup-cli@v1
         with:
           version: 2.54.11
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: ${{ vars.PR_PREVIEW_AWS_REGION != '' && vars.PR_PREVIEW_AWS_REGION || 'us-east-1' }}
 
       - name: Apply database migrations
         env:
@@ -165,6 +152,36 @@ jobs:
           [[ -z "${KIT_CRON_SECRET:-}" ]] && { echo "PRODUCTION_KIT_CRON_SECRET not set — skipping cron registration"; exit 0; }
           node scripts/ensure-kit-sync-cron.mjs
 
+  deploy-web-production:
+    needs: [deploy-backend-production]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
+      STACK_NAME: ${{ vars.PR_PREVIEW_STACK_NAME }}
+      VITE_SUPABASE_URL: ${{ secrets.PRODUCTION_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.PRODUCTION_SUPABASE_ANON_KEY }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ vars.PR_PREVIEW_AWS_REGION != '' && vars.PR_PREVIEW_AWS_REGION || 'us-east-1' }}
+
       - name: Resolve infrastructure outputs
         id: infra
         shell: bash
@@ -200,6 +217,13 @@ jobs:
             --environment prod \
             --region "${AWS_REGION_VALUE}"
 
+  deploy-finalize-production:
+    needs: [deploy-web-production]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
+    steps:
       - name: Create GitHub Deployment (production)
         uses: actions/github-script@v7
         env:
@@ -245,7 +269,7 @@ jobs:
 
   deploy-mobile-production:
     if: vars.MOBILE_ENABLED != 'false'
-    needs: [deploy-production]
+    needs: [deploy-backend-production]
     runs-on: ubuntu-latest
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
