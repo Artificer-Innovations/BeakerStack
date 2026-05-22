@@ -7,6 +7,28 @@ BEGIN;
 
 SELECT plan(17);
 
+-- ── Admin user seeding ───────────────────────────────────────────────────────
+-- All RPCs are admin_is_admin()-gated; seed a test admin user and set JWT claims
+-- so that authenticated calls pass the gate. Pattern from admin.test.sql.
+
+DO $$ BEGIN
+  INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at,
+      raw_app_meta_data, raw_user_meta_data, created_at, updated_at, aud, role)
+  VALUES ('a5000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000',
+      'phase5a-admin@example.com', crypt('pw', gen_salt('bf')), now(),
+      '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb,
+      now(), now(), 'authenticated', 'authenticated')
+  ON CONFLICT (id) DO NOTHING;
+END; $$;
+
+INSERT INTO public.admin_users (user_id)
+VALUES ('a5000000-0000-0000-0000-000000000001')
+ON CONFLICT (user_id) DO UPDATE SET revoked_at = NULL;
+
+SELECT set_config('request.jwt.claims',
+    '{"sub":"a5000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+SET LOCAL ROLE authenticated;
+
 -- ── 1  admin_get_marketing_email_settings function exists ────────────────────
 
 SELECT ok(
@@ -182,10 +204,10 @@ SELECT ok(
 INSERT INTO public.marketing_email_sync_queue
   (product_id, email, event_type, status, idempotency_key, payload)
 VALUES
-  ('phase5a-test', 'a@example.com', 'signup',       'pending',    'phase5a:pending',    '{}'::jsonb),
-  ('phase5a-test', 'b@example.com', 'signup',       'processing', 'phase5a:processing', '{}'::jsonb),
-  ('phase5a-test', 'c@example.com', 'signup',       'done',       'phase5a:done',       '{}'::jsonb),
-  ('phase5a-test', 'd@example.com', 'signup',       'failed',     'phase5a:failed',     '{}'::jsonb);
+  ('phase5a-test', 'a@example.com', 'user.signed_up', 'pending',    'phase5a:pending',    '{}'::jsonb),
+  ('phase5a-test', 'b@example.com', 'user.signed_up', 'processing', 'phase5a:processing', '{}'::jsonb),
+  ('phase5a-test', 'c@example.com', 'user.signed_up', 'done',       'phase5a:done',       '{}'::jsonb),
+  ('phase5a-test', 'd@example.com', 'user.signed_up', 'failed',     'phase5a:failed',     '{}'::jsonb);
 
 SELECT is(
     (SELECT jsonb_build_object(

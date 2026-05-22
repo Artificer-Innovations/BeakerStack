@@ -54,7 +54,9 @@ export default function AdminMarketingEmailSettingsPage() {
       .map(s => s.trim())
       .filter(Boolean);
 
-    const config = { ...settings.config, tierTagNames };
+    const namespace = settings.config.namespace.trim();
+    const kitFormId = settings.config.kitFormId.trim();
+    const config = { ...settings.config, namespace, kitFormId, tierTagNames };
 
     if (!config.namespace || !NAMESPACE_RE.test(config.namespace)) {
       setError(
@@ -62,7 +64,7 @@ export default function AdminMarketingEmailSettingsPage() {
       );
       return;
     }
-    if (!config.kitFormId.trim()) {
+    if (!config.kitFormId) {
       setError('Kit form ID is required.');
       return;
     }
@@ -156,9 +158,9 @@ export default function AdminMarketingEmailSettingsPage() {
           </label>
           {!settings.enabled ? (
             <p className='text-xs text-amber-700'>
-              When disabled, new events are enqueued but not synced to Kit.
-              Pending queue rows are not dropped — they will be processed when
-              re-enabled.
+              When disabled, new events are not enqueued.
+              Existing pending queue rows are not dropped — they will be
+              processed when re-enabled.
             </p>
           ) : null}
         </fieldset>

@@ -87,6 +87,9 @@ BEGIN
     RETURN jsonb_build_object('error', 'invalid_kit_form_id');
   END IF;
 
+  -- Normalize config so stored values reflect trimmed namespace and kitFormId.
+  p_config := p_config || jsonb_build_object('namespace', v_namespace, 'kitFormId', v_form_id);
+
   -- Enforce at-most-one-enabled: disable all other rows before enabling.
   IF p_enabled THEN
     UPDATE public.marketing_email_settings

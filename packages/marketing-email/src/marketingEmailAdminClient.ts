@@ -54,7 +54,9 @@ export function normalizeMarketingEmailAdminSettings(
       kitFormId:
         typeof config['kitFormId'] === 'string' ? config['kitFormId'] : '',
       tierTagNames: Array.isArray(config['tierTagNames'])
-        ? (config['tierTagNames'] as string[])
+        ? (config['tierTagNames'] as unknown[]).filter(
+            (item): item is string => typeof item === 'string'
+          )
         : [],
     },
     updated_at:
