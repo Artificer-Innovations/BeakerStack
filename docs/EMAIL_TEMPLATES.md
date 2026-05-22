@@ -70,6 +70,8 @@ The script will prompt for (or read from `.personalization.json` when non-intera
 
 **Logo CDN override:** set `LOGO_URL` in `supabase/templates/.personalization.json`, or pass `--logo-url=https://cdn.example.com/logo.png`. The value persists across runs unless overridden by the flag.
 
+**PR preview:** the shared preview Supabase project uses one auth email config for all open PRs. The preview deploy workflow passes `--logo-url=https://deploy.<domain>/pr-N/email-logo.png` so the logo resolves on the path-based preview URL (not `https://deploy.<domain>/email-logo.png`). Each preview deploy overwrites the hosted config; the most recently deployed PR’s logo URL wins, which is acceptable because the asset rarely changes.
+
 **Subject lines:** for local Supabase, run `npm run email:materialize-config` after personalize to substitute `__PRODUCT_NAME__` in your working copy of `config.toml`, then `supabase stop && supabase start`. Do not commit materialized subjects — run `git restore supabase/config.toml` to restore tokens. Hosted deploys materialize automatically during config push.
 
 ### 3. Configure SMTP
