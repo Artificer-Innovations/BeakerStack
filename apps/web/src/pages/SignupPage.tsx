@@ -24,6 +24,14 @@ import {
 } from '@beakerstack/waitlist/web';
 import { beakerstackWaitlistConfig } from '../waitlist/beakerstackWaitlistConfig';
 
+function signupPlanMetadata(sp: URLSearchParams): { plan_id: string } | undefined {
+  const planId = sp.get('plan');
+  if (!planId) return undefined;
+  const cfg = beakerstackBillingConfig.plans.find(p => p.id === planId);
+  if (!cfg || cfg.priceCents === 0) return undefined;
+  return { plan_id: planId };
+}
+
 function SignupPageContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -76,7 +84,8 @@ function SignupPageContent() {
     setError(null);
 
     try {
-      await auth.signUp(email, password);
+      const planMeta = signupPlanMetadata(searchParams);
+      await auth.signUp(email, password, planMeta ? { data: planMeta } : undefined);
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -134,7 +143,9 @@ function SignupPageContent() {
     if (!planId) return undefined;
     const cfg = beakerstackBillingConfig.plans.find(p => p.id === planId);
     if (!cfg || cfg.priceCents === 0) return undefined;
-    return { [PLAN_INTEREST_METADATA_KEY]: cfg.displayName };
+    // Include both stable plan_id (for kit-sync interest tagging and waitlist-ops approve)
+    // and the display name (for human-readable metadata in the waitlist dashboard).
+    return { [PLAN_INTEREST_METADATA_KEY]: cfg.displayName, plan_id: planId };
   }, [isWaitlist, paidIntent, searchParams]);
 
   if (awaitingEmail) {

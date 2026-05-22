@@ -82,12 +82,21 @@ Deno.serve(async req => {
   }
   const productId = envProductId || 'beakerstack';
 
+  const metadata = body.metadata ?? {};
+  // Hoist plan_id to the top level of the queue payload so the kit-sync worker
+  // can apply the interest tag without digging into the metadata envelope.
+  // Validate it's a non-empty string so a malformed client can't poison the queue.
+  const rawPlanId = metadata.plan_id;
+  const planId = typeof rawPlanId === 'string' && rawPlanId.trim() ? rawPlanId.trim() : null;
   await enqueueMarketingEmail(
     admin,
     productId,
     'waitlist.joined',
     email,
-    { metadata: body.metadata ?? {} },
+    {
+      metadata,
+      ...(planId ? { plan_id: planId } : {}),
+    },
     `waitlist.joined:${email}`
   );
 

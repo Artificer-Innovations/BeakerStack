@@ -117,6 +117,22 @@ async function handleWorker(
 
       const config = settings.config;
 
+      // Guard: namespace is required for all Kit tag operations. Dead-letter with a
+      // clear message so the operator knows exactly what to fix, rather than letting
+      // the row reach Kit API and fail with a confusing tag-not-found error.
+      if (!config.namespace) {
+        const { error: upErr } = await admin
+          .from('marketing_email_sync_queue')
+          .update({
+            status: 'failed',
+            error: `marketing_email_settings.config missing required field "namespace" for product "${row.product_id}" — insert or update the row in marketing_email_settings with a non-empty namespace`,
+          })
+          .eq('id', row.id);
+        if (upErr) console.error('Failed to dead-letter config-invalid row', row.id, upErr.message);
+        failed++;
+        continue;
+      }
+
       // Suppression check
       const { data: suppressed } = await admin
         .from('marketing_email_unsubscribes')
@@ -192,7 +208,7 @@ async function processEvent(
     case 'user.signed_up': {
       if (formId) await kit.subscribeToForm(email, formId);
       await kit.applyTag(email, signupTag(ns, opts));
-      const rawPlanId = payload.plan_id as string | undefined;
+      const rawPlanId = typeof payload.plan_id === 'string' && payload.plan_id ? payload.plan_id : undefined;
       if (rawPlanId) {
         const slug = planIdToSlug(rawPlanId, tierTagNames);
         await kit.applyTag(email, interestTag(ns, slug, opts));
@@ -202,11 +218,21 @@ async function processEvent(
     case 'waitlist.joined': {
       if (formId) await kit.subscribeToForm(email, formId);
       await kit.applyTag(email, waitlistTag(ns, opts));
+      const rawPlanId = typeof payload.plan_id === 'string' && payload.plan_id ? payload.plan_id : undefined;
+      if (rawPlanId) {
+        const slug = planIdToSlug(rawPlanId, tierTagNames);
+        await kit.applyTag(email, interestTag(ns, slug, opts));
+      }
       break;
     }
     case 'waitlist.approved': {
       if (formId) await kit.subscribeToForm(email, formId);
       await kit.applyTag(email, waitlistApprovedTag(ns, opts));
+      const rawPlanId = typeof payload.plan_id === 'string' && payload.plan_id ? payload.plan_id : undefined;
+      if (rawPlanId) {
+        const slug = planIdToSlug(rawPlanId, tierTagNames);
+        await kit.applyTag(email, interestTag(ns, slug, opts));
+      }
       break;
     }
     case 'waitlist.converted': {
@@ -216,7 +242,11 @@ async function processEvent(
     }
     case 'user.tier_changed': {
       // stripe-webhook enqueues with { user_id, plan_id, status }.
-      const rawPlanId = payload.plan_id as string | undefined;
+      if (tierTagNames.length === 0) throw new KitClientError(
+        `user.tier_changed requires tierTagNames in marketing_email_settings.config for product "${row.product_id}" — add tier slugs (e.g. ["pro","max"]) to config`,
+        'kit_api_400'
+      );
+      const rawPlanId = typeof payload.plan_id === 'string' && payload.plan_id ? payload.plan_id : undefined;
       if (!rawPlanId) throw new KitClientError(
         'user.tier_changed payload missing plan_id',
         'kit_api_400'

@@ -137,9 +137,11 @@ jobs:
             BILLING_SUPABASE_URL="${PRODUCTION_SUPABASE_URL}" \
             BILLING_SUPABASE_ANON_KEY="${PRODUCTION_SUPABASE_ANON_KEY}" \
             BILLING_SUPABASE_SERVICE_ROLE_KEY="${PRODUCTION_SUPABASE_SERVICE_ROLE_KEY}" \
-            BILLING_ALLOWED_ORIGINS="${PRODUCTION_BILLING_ALLOWED_ORIGINS}" \
-            KIT_API_KEY="${PRODUCTION_KIT_API_KEY}" \
-            KIT_CRON_SECRET="${PRODUCTION_KIT_CRON_SECRET}"
+            BILLING_ALLOWED_ORIGINS="${PRODUCTION_BILLING_ALLOWED_ORIGINS}"
+          # Only set Kit secrets when the GitHub secrets are configured; passing empty
+          # strings would clobber any manually-configured Supabase project secrets.
+          [[ -n "${PRODUCTION_KIT_API_KEY:-}" ]] && supabase secrets set KIT_API_KEY="${PRODUCTION_KIT_API_KEY}"
+          [[ -n "${PRODUCTION_KIT_CRON_SECRET:-}" ]] && supabase secrets set KIT_CRON_SECRET="${PRODUCTION_KIT_CRON_SECRET}"
           supabase functions deploy stripe-webhook billing-stripe waitlist-capture waitlist-ops kit-sync \
             --project-ref "${PRODUCTION_SUPABASE_PROJECT_REF}"
 

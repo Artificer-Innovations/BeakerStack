@@ -71,7 +71,11 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
     setLoading(false);
   };
 
-  const signUp = async (email: string, password: string): Promise<void> => {
+  const signUp = async (
+    email: string,
+    password: string,
+    options?: { data?: Record<string, unknown> }
+  ): Promise<void> => {
     setLoading(true);
     setError(null);
 
@@ -83,7 +87,10 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
     const { error } = await supabaseClient.auth.signUp({
       email,
       password,
-      ...(emailRedirectTo ? { options: { emailRedirectTo } } : {}),
+      options: {
+        ...(emailRedirectTo ? { emailRedirectTo } : {}),
+        ...(options?.data ? { data: options.data } : {}),
+      },
     });
 
     setLoading(false);
