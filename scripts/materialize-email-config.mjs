@@ -19,9 +19,20 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 
 function parseFlag(name) {
-  const prefix = `--${name}=`;
-  const arg = process.argv.find(a => a.startsWith(prefix));
-  return arg ? arg.slice(prefix.length) : null;
+  const eqPrefix = `--${name}=`;
+  const eqArg = process.argv.find(a => a.startsWith(eqPrefix));
+  if (eqArg) return eqArg.slice(eqPrefix.length);
+
+  const flag = `--${name}`;
+  const idx = process.argv.indexOf(flag);
+  if (
+    idx !== -1 &&
+    process.argv[idx + 1] &&
+    !process.argv[idx + 1].startsWith('-')
+  ) {
+    return process.argv[idx + 1];
+  }
+  return null;
 }
 
 const configPath = parseFlag('config') ?? join(ROOT, 'supabase', 'config.toml');
@@ -45,5 +56,6 @@ if (inPlace) {
 } else if (outputPath) {
   writeFileSync(outputPath, materialized, 'utf8');
 } else {
-  process.stdout.write(materialized);
+  console.error('Error: pass --in-place or --output <path>.');
+  process.exit(1);
 }

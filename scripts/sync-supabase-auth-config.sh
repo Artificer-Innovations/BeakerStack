@@ -108,9 +108,9 @@ load_email_config_for_push() {
 
   cp "${config_file}" "${backup}"
   node "${SCRIPT_DIR}/materialize-email-config.mjs" \
-    --config "${config_file}" \
-    --personalization "${pers_file}" \
-    --output "${push_config}"
+    --config="${config_file}" \
+    --personalization="${pers_file}" \
+    --output="${push_config}"
   cp "${push_config}" "${config_file}"
 }
 
