@@ -18,7 +18,7 @@ Compare git refs and write boolean flags to GITHUB_OUTPUT (when set) or stdout.
 
 Flags:
   app_code              apps/**, packages/**, tests/**, lint/tsconfig deps
-  supabase_schema       supabase migrations, functions, config (not templates)
+  supabase_schema       supabase migrations, functions, config (excludes templates)
   email_templates       supabase/templates/** and email personalization scripts
   auth_deploy_scripts   scripts/sync-supabase-auth-config.sh
   billing_deploy        stripe webhook / billing deploy scripts
@@ -89,7 +89,6 @@ classify_path() {
       ;;
     supabase/templates/*)
       match_email_templates=true
-      match_supabase_schema=true
       ;;
     supabase/*)
       match_supabase_schema=true
@@ -135,6 +134,7 @@ classify_path() {
     docs/* | README.md | LICENSE | *.md)
       ;;
     scripts/ci/* | scripts/ci-* | scripts/format-ci-summary.mjs | scripts/check-csp-hash.mjs)
+      match_tested_scripts=true
       ;;
     scripts/*)
       # Unknown scripts: conservative — do not treat as app_code (avoids full Test on deploy-only fixes)
@@ -173,7 +173,11 @@ classify_range() {
   local tested_scripts=false
   local dependencies=false
 
-  local file
+  local file diff_files
+  if ! diff_files="$(git diff --name-only "${base_ref}" "${head_ref}")"; then
+    printf '[ERROR] git diff failed for %s..%s\n' "${base_ref}" "${head_ref}" >&2
+    exit 1
+  fi
   while IFS= read -r file; do
     [[ -z "${file}" ]] && continue
     classify_path "${file}"
@@ -187,7 +191,13 @@ classify_range() {
     [[ "${match_deploy_infra}" == true ]] && deploy_infra=true
     [[ "${match_tested_scripts}" == true ]] && tested_scripts=true
     [[ "${match_dependencies}" == true ]] && dependencies=true
-  done < <(git diff --name-only "${base_ref}" "${head_ref}" 2>/dev/null || true)
+  done <<<"${diff_files}"
+
+  # Lockfile-only changes need web + mobile preview deploys (not just run_deploy=true).
+  if [[ "${dependencies}" == true ]]; then
+    web_deploy=true
+    mobile_deploy=true
+  fi
 
   # Derived Test flags
   local run_lint="${app_code}"
@@ -287,6 +297,8 @@ self_test() {
   assert_classify apps/mobile/app/index.tsx mobile_deploy true
   assert_classify supabase/migrations/001.sql supabase_schema true
   assert_classify supabase/templates/generated/foo.html email_templates true
+  assert_classify supabase/templates/generated/foo.html supabase_schema false
+  assert_classify scripts/ci/classify-pr-push-changes.sh tested_scripts true
   assert_classify scripts/pr-preview/deploy-web.sh deploy_infra true
   assert_classify infra/aws/pr-preview-stack.yml deploy_infra true
   assert_classify package.json dependencies true

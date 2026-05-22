@@ -76,7 +76,7 @@ jobs:
           if [[ "${{ github.event.action }}" == "synchronize" \
             && -n "${{ github.event.before }}" \
             && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
-            ./scripts/ci/classify-pr-push-changes.sh "${{ github.event.before }}" "${{ github.sha }}"
+            ./scripts/ci/classify-pr-push-changes.sh "${{ github.event.before }}" "${{ github.event.pull_request.head.sha }}"
           else
             ./scripts/ci/classify-pr-push-changes.sh "origin/${{ github.base_ref }}" "HEAD"
           fi

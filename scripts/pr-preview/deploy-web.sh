@@ -250,7 +250,13 @@ build_web_app() {
     run_cmd npm run generate-favicons
   ) &
   favicons_pid=$!
-  wait "${icons_pid}" "${favicons_pid}"
+  local icons_status=0 favicons_status=0
+  wait "${icons_pid}" || icons_status=$?
+  wait "${favicons_pid}" || favicons_status=$?
+  if [[ "${icons_status}" -ne 0 || "${favicons_status}" -ne 0 ]]; then
+    log "ERROR" "Asset preparation failed (sync-icons=${icons_status}, generate-favicons=${favicons_status})"
+    exit 1
+  fi
   
   log "INFO" "Building web application for environment: ${ENVIRONMENT}"
   log "INFO" "Using VITE_BASE_PATH=${base_path}"
