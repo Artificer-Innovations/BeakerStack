@@ -59,13 +59,13 @@ jobs:
     needs: preview-scope
     runs-on: ubuntu-latest
     outputs:
-      bootstrap-url:             ${{ steps.signed_cookies.outputs.BOOTSTRAP_URL }}
-      access-mode:               ${{ steps.signed_cookies.outputs.ACCESS_MODE }}
-      supabase-outcome:          ${{ steps.supabase.outcome }}
-      stripe-sync-outcome:       ${{ steps.stripe-sync.outcome }}
-      stripe-webhook-outcome:    ${{ steps.stripe_webhook_preview.outcome }}
+      bootstrap-url: ${{ steps.signed_cookies.outputs.BOOTSTRAP_URL }}
+      access-mode: ${{ steps.signed_cookies.outputs.ACCESS_MODE }}
+      supabase-outcome: ${{ steps.supabase.outcome }}
+      stripe-sync-outcome: ${{ steps.stripe-sync.outcome }}
+      stripe-webhook-outcome: ${{ steps.stripe_webhook_preview.outcome }}
       billing-functions-outcome: ${{ steps.billing-functions.outcome }}
-      web-outcome:               ${{ steps.web.outcome }}
+      web-outcome: ${{ steps.web.outcome }}
     env:
       PREVIEW_DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
       PREVIEW_HOSTED_ZONE_ID: ${{ vars.PR_PREVIEW_HOSTED_ZONE_ID }}
@@ -150,15 +150,22 @@ jobs:
           SUPABASE_AUTH_SITE_URL: ${{ format('https://deploy.{0}', vars.PR_PREVIEW_DOMAIN) }}
           SUPABASE_ADDITIONAL_REDIRECT_URL: ${{ format('https://deploy.{0}/pr-{1}/auth/confirm', vars.PR_PREVIEW_DOMAIN, github.event.pull_request.number) }}
           SMTP_HOST: smtp.resend.com
-          SMTP_PORT: "587"
+          SMTP_PORT: '587'
           SMTP_USER: resend
           SMTP_PASS: ${{ secrets.RESEND_SMTP_PASS }}
           SMTP_ADMIN_EMAIL: ${{ vars.SMTP_ADMIN_EMAIL }}
           SMTP_SENDER_NAME: ${{ vars.SMTP_SENDER_NAME }}
+          SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ${{ secrets.SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID }}
+          SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ${{ secrets.SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET }}
         run: |
           set -euo pipefail
           if [ -z "${SMTP_PASS:-}" ]; then
             echo "Skipping Supabase auth email config: RESEND_SMTP_PASS is not set."
+            exit 0
+          fi
+          if [ -z "${SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID:-}" ] || [ -z "${SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET:-}" ]; then
+            echo "Skipping Supabase auth email config: SUPABASE_AUTH_EXTERNAL_GOOGLE_* secrets are not set."
+            echo "  Run npm run setup:full (google phase) or: gh secret set SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID"
             exit 0
           fi
           ./scripts/sync-supabase-auth-config.sh \
@@ -841,4 +848,3 @@ jobs:
                 core.warning(`Could not delete environment ${environment}: ${err.message}`);
               }
             }
-

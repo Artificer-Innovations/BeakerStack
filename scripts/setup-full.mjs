@@ -46,6 +46,7 @@ import {
   clearGoogleKeysFromAcc,
   envVarsFromGoogleServicesJson,
 } from './lib/setup-google-services.mjs';
+import { collectSupabaseGoogleOAuthIntoAcc } from './lib/setup-google-oauth.mjs';
 import {
   printIntroBanner,
   printPhaseIntro,
@@ -2243,9 +2244,10 @@ async function phaseStripe(flags, rl, promptInput, acc) {
 /**
  * @param {CliFlags} flags
  * @param {import('node:readline/promises').ReadLine} rl
+ * @param {import('stream').Readable & { isTTY?: boolean; setRawMode?: (flag: boolean) => void }} promptInput
  * @param {Record<string, string>} acc
  */
-async function phaseGoogle(flags, rl, acc) {
+async function phaseGoogle(flags, rl, promptInput, acc) {
   logInfo('');
   logInfo(
     'Paste the path to your downloaded google-services.json (absolute or relative to repo root).'
@@ -2281,6 +2283,13 @@ async function phaseGoogle(flags, rl, acc) {
   } catch (e) {
     logWarn(`Could not parse google-services.json: ${(e && e.message) || e}`);
   }
+
+  await collectSupabaseGoogleOAuthIntoAcc(
+    prompt => readSecretLineMaskedOrVisible(rl, promptInput, flags, prompt),
+    q => rlQuestion(rl, q),
+    acc,
+    { logInfo, logWarn, dryRun: flags.dryRun }
+  );
 }
 
 /**
@@ -2742,7 +2751,7 @@ async function main() {
           await phaseExpo(flags, rl, acc, promptInput);
           break;
         case 'google':
-          await phaseGoogle(flags, rl, acc);
+          await phaseGoogle(flags, rl, promptInput, acc);
           break;
         case 'stripe':
           await phaseStripe(flags, rl, promptInput, acc);
@@ -2760,12 +2769,17 @@ async function main() {
       logInfo('Personalizing email templates...');
       try {
         const { execSync } = await import('node:child_process');
-        execSync('node scripts/personalize-email-templates.mjs --non-interactive', {
-          stdio: 'inherit',
-          cwd: REPO_ROOT,
-        });
+        execSync(
+          'node scripts/personalize-email-templates.mjs --non-interactive',
+          {
+            stdio: 'inherit',
+            cwd: REPO_ROOT,
+          }
+        );
       } catch {
-        logInfo('Email template personalization skipped (run manually: npm run email:personalize)');
+        logInfo(
+          'Email template personalization skipped (run manually: npm run email:personalize)'
+        );
       }
     }
 

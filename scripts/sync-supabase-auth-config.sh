@@ -33,6 +33,8 @@ Environment (required for SMTP when [auth.email.smtp] is enabled in config.toml)
   SUPABASE_ACCESS_TOKEN
   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS
   SMTP_ADMIN_EMAIL, SMTP_SENDER_NAME
+  SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID, SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET
+    (required — config push includes [auth.external.google]; unset values wipe hosted OAuth)
 EOF
 }
 
@@ -67,6 +69,16 @@ fi
 for key in SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS SMTP_ADMIN_EMAIL SMTP_SENDER_NAME; do
   if [[ -z "${!key:-}" ]]; then
     echo "Error: ${key} must be set for config push (Resend SMTP)." >&2
+    exit 1
+  fi
+done
+
+for key in SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET; do
+  if [[ -z "${!key:-}" ]]; then
+    echo "Error: ${key} must be set for config push." >&2
+    echo "  Hosted deploys push supabase/config.toml including [auth.external.google]." >&2
+    echo "  Without these env vars, config push would wipe Google OAuth (invalid_client)." >&2
+    echo "  Run: npm run setup:full -- --from=google  (or add secrets via gh secret set)" >&2
     exit 1
   fi
 done
