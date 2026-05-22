@@ -59,6 +59,8 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public._marketing_email_on_user_deleted() FROM PUBLIC;
+
 CREATE OR REPLACE TRIGGER marketing_email_on_user_deleted
   AFTER DELETE ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public._marketing_email_on_user_deleted();

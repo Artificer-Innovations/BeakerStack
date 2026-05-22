@@ -41,7 +41,7 @@ async function verifyKitSignature(
   secret: string
 ): Promise<boolean> {
   if (!sigHeader?.startsWith('sha256=')) return false;
-  const expected = sigHeader.slice(7);
+  const expected = sigHeader.slice(7).toLowerCase();
   const key = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(secret),
@@ -68,12 +68,11 @@ async function checkRateLimit(
   bucketKey: string,
   limit: number
 ): Promise<boolean> {
-  const windowStart = new Date();
-  windowStart.setMinutes(0, 0, 0); // hour-truncated window
-
+  // Pass raw timestamp — the RPC applies date_trunc('hour', ...) server-side in UTC,
+  // avoiding any TZ skew from the Edge runtime's local clock.
   const { data, error } = await admin.rpc('kit_webhook_check_rate_limit', {
     p_bucket_key: bucketKey,
-    p_window_start: windowStart.toISOString(),
+    p_window_start: new Date().toISOString(),
     p_limit: limit,
   });
 
@@ -101,7 +100,9 @@ Deno.serve(async req => {
     return jsonResponse({ error: 'webhook_not_configured' }, 503);
   }
 
-  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false },
+  });
   const ip = clientIp(req);
 
   // Pre-HMAC rate limit — caps request flood before spending CPU on signature verification.

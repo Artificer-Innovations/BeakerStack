@@ -123,10 +123,10 @@ async function handleWorker(
 
       const config = settings.config;
 
-      // Guard: namespace is required for all Kit tag operations. Dead-letter with a
-      // clear message so the operator knows exactly what to fix, rather than letting
-      // the row reach Kit API and fail with a confusing tag-not-found error.
-      if (!config.namespace) {
+      // Guard: namespace is required for tag operations, but not for GDPR erasure
+      // (deleteUser only needs API key + email). Carve out user.deleted so it is
+      // never dead-lettered by a missing namespace.
+      if (!config.namespace && row.event_type !== 'user.deleted') {
         const { error: upErr } = await admin
           .from('marketing_email_sync_queue')
           .update({
