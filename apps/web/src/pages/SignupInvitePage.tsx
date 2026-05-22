@@ -102,7 +102,7 @@ export default function SignupInvitePage() {
       return;
     }
     if (password.length < MIN_PASSWORD_LENGTH) {
-      setError();
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
       return;
     }
     setSubmitting(true);

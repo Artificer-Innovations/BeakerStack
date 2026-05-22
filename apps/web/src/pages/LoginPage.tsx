@@ -42,7 +42,7 @@ function LoginPageContent() {
 
   const postAuthPath = fromRedirect ?? resolvePostAuthDestination(searchParams);
   const signupSearch = searchParams.toString();
-  const signupTo = signupSearch ?  : '/signup';
+  const signupTo = signupSearch ? `/signup?${signupSearch}` : '/signup';
 
   const stashOAuthIntent = () => {
     if (postAuthPath !== '/dashboard') {
@@ -220,9 +220,9 @@ export default function LoginPage() {
     <BillingProvider<typeof beakerstackBillingConfig>
       supabase={supabase}
       config={beakerstackBillingConfig}
-      checkoutSuccessUrl={}
-      checkoutCancelUrl={}
-      portalReturnUrl={}
+      checkoutSuccessUrl={`${base}/billing?checkout=success`}
+      checkoutCancelUrl={`${base}/billing/plans?checkout=cancel`}
+      portalReturnUrl={`${base}/billing`}
     >
       <LoginPageContent />
     </BillingProvider>

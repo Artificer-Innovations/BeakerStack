@@ -48,7 +48,11 @@ export function AppHeader({
 
   return (
     <header
-      className={}
+      className={`sticky top-0 z-50 bg-white dark:bg-gray-900 transition-shadow ${
+        scrolled
+          ? 'border-b border-gray-200 dark:border-gray-800 shadow-sm'
+          : ''
+      }`}
     >
       <ContentContainer>
         <div className='flex justify-between items-center h-16'>
@@ -56,7 +60,7 @@ export function AppHeader({
           <div className='flex items-center space-x-3'>
             <Link to='/' className='flex items-center'>
               <img
-                src={}
+                src={`${basePath}demo-flask-icon.svg`}
                 alt={BRANDING.displayName}
                 className='w-8 h-8'
               />

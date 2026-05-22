@@ -53,7 +53,7 @@ function SignupPageContent() {
   const paidIntent = hasPaidPlanIntent(searchParams);
   const postAuthPath = resolvePostAuthDestination(searchParams);
   const loginSearch = searchParams.toString();
-  const loginTo = loginSearch ?  : '/login';
+  const loginTo = loginSearch ? `/login?${loginSearch}` : '/login';
 
   const stashOAuthIntent = () => {
     if (postAuthPath !== '/dashboard') {
@@ -73,7 +73,7 @@ function SignupPageContent() {
     }
 
     if (password.length < MIN_PASSWORD_LENGTH) {
-      setError();
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
       return;
     }
 
@@ -134,7 +134,7 @@ function SignupPageContent() {
   const submitLabel = isLoading
     ? 'Creating account...'
     : paidIntent && postAuthPath !== '/dashboard'
-      ? 
+      ? `Continue with ${displayName}`
       : 'Create account';
 
   const showPlanAside =
@@ -204,7 +204,7 @@ function SignupPageContent() {
               <div>
                 <h2 className='mt-0 text-center text-3xl font-extrabold text-gray-900 dark:text-white md:text-left'>
                   {paidIntent && postAuthPath !== '/dashboard'
-                    ? 
+                    ? `Create your account to continue with ${displayName}`
                     : 'Create your account'}
                 </h2>
                 {paidIntent && postAuthPath !== '/dashboard' ? (
@@ -337,9 +337,9 @@ export default function SignupPage() {
     <BillingProvider<typeof beakerstackBillingConfig>
       supabase={supabase}
       config={beakerstackBillingConfig}
-      checkoutSuccessUrl={}
-      checkoutCancelUrl={}
-      portalReturnUrl={}
+      checkoutSuccessUrl={`${base}/billing?checkout=success`}
+      checkoutCancelUrl={`${base}/billing/plans?checkout=cancel`}
+      portalReturnUrl={`${base}/billing`}
     >
       <SignupPageContent />
     </BillingProvider>

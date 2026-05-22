@@ -14,7 +14,7 @@ export interface UserMenuProps {
 
 /**
  * UserMenu component for web
- * Displays user avatar with dropdown menu containing Profile, Dashboard, and Sign Out options
+ * Displays user avatar with dropdown menu containing Profile, Billing, Dashboard, Admin (when showAdminLink=true), and Sign Out options
  */
 export function UserMenu({
   user,

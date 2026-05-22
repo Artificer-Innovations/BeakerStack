@@ -142,7 +142,7 @@ describe('ResetPasswordPage', () => {
 
     expect(
       screen.getByText(
-        
+        `Password must be at least ${MIN_PASSWORD_LENGTH} characters`
       )
     ).toBeInTheDocument();
     expect(mockUpdateUser).not.toHaveBeenCalled();

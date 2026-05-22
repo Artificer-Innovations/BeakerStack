@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { BillingPageShell } from '../BillingPageShell.web';
 
-vi.mock('../../AppHeaderWithAdmin', () => ({
+vi.mock('@/components/AppHeaderWithAdmin', () => ({
   AppHeaderWithAdmin: () => <header data-testid='app-header' />,
 }));
 

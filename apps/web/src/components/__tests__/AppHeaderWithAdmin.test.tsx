@@ -143,6 +143,30 @@ describe('AppHeaderWithAdmin', () => {
     expect(mockRefresh).toHaveBeenCalled();
   });
 
+  it('does not call refresh on visibilitychange when document is hidden', async () => {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'hidden',
+    });
+
+    render(
+      <MemoryRouter>
+        <AppHeaderWithAdmin />
+      </MemoryRouter>
+    );
+
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    expect(mockRefresh).not.toHaveBeenCalled();
+
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'visible',
+    });
+  });
+
   it('does not call refresh on focus when no user is logged in', async () => {
     vi.mocked(useAuthContext).mockReturnValue({ user: null } as never);
 
