@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { BRANDING } from '@beakerstack/shared/config/branding';
 import { ThemeProvider } from '../../contexts/ThemeContext';
 import { AppFooter } from '../AppFooter';
 
@@ -27,6 +28,13 @@ describe('AppFooter', () => {
       'href',
       '/refunds'
     );
+  });
+
+  it('renders product name link to site root', () => {
+    renderFooter();
+    expect(
+      screen.getByRole('link', { name: BRANDING.displayName })
+    ).toHaveAttribute('href', '/');
   });
 
   it('renders copyright text', () => {
