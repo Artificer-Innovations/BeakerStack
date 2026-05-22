@@ -19,7 +19,9 @@ describe('hashUserId', () => {
 
 describe('scrubEmail', () => {
   it('redacts email addresses', () => {
-    expect(scrubEmail('contact user@example.com please')).toBe('contact [email] please');
+    expect(scrubEmail('contact user@example.com please')).toBe(
+      'contact [email] please'
+    );
   });
   it('leaves non-email strings unchanged', () => {
     expect(scrubEmail('hello world')).toBe('hello world');

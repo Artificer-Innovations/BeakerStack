@@ -16,20 +16,20 @@ describe('defineKitConfig', () => {
   });
 
   it('throws when formId is empty', () => {
-    expect(() =>
-      defineKitConfig({ formId: '', namespace: 'acme' })
-    ).toThrow('formId is required');
+    expect(() => defineKitConfig({ formId: '', namespace: 'acme' })).toThrow(
+      'formId is required'
+    );
   });
 
   it('throws when formId is whitespace-only', () => {
-    expect(() =>
-      defineKitConfig({ formId: '   ', namespace: 'acme' })
-    ).toThrow('formId is required');
+    expect(() => defineKitConfig({ formId: '   ', namespace: 'acme' })).toThrow(
+      'formId is required'
+    );
   });
 
   it('throws when namespace is empty', () => {
-    expect(() =>
-      defineKitConfig({ formId: 'form-1', namespace: '' })
-    ).toThrow('namespace is required');
+    expect(() => defineKitConfig({ formId: 'form-1', namespace: '' })).toThrow(
+      'namespace is required'
+    );
   });
 });

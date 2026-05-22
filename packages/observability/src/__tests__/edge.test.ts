@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { initEdgeObservability, withEdgeScope, resetForTesting } from '../init.edge.js';
+import {
+  initEdgeObservability,
+  withEdgeScope,
+  resetForTesting,
+} from '../init.edge.js';
 
 describe('initEdgeObservability', () => {
   beforeEach(() => resetForTesting());

@@ -21,7 +21,8 @@ const BATCH_SIZE = parseInt(Deno.env.get('KIT_SYNC_BATCH_SIZE') ?? '10', 10);
 const KIT_CRON_SECRET = Deno.env.get('KIT_CRON_SECRET') ?? '';
 const KIT_API_KEY = Deno.env.get('KIT_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const SUPABASE_SERVICE_ROLE_KEY =
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
 interface QueueRow {
   id: number;
@@ -110,7 +111,12 @@ async function handleWorker(
           .from('marketing_email_sync_queue')
           .update({ status: 'pending' })
           .eq('id', row.id);
-        if (resetErr) console.error('Failed to reset disabled-product row', row.id, resetErr.message);
+        if (resetErr)
+          console.error(
+            'Failed to reset disabled-product row',
+            row.id,
+            resetErr.message
+          );
         skipped++;
         continue;
       }
@@ -128,7 +134,12 @@ async function handleWorker(
             error: `marketing_email_settings.config missing required field "namespace" for product "${row.product_id}" — insert or update the row in marketing_email_settings with a non-empty namespace`,
           })
           .eq('id', row.id);
-        if (upErr) console.error('Failed to dead-letter config-invalid row', row.id, upErr.message);
+        if (upErr)
+          console.error(
+            'Failed to dead-letter config-invalid row',
+            row.id,
+            upErr.message
+          );
         failed++;
         continue;
       }
@@ -158,9 +169,17 @@ async function handleWorker(
         // 429 — rate limited; reset to pending without burning an attempt.
         const { error: updateErr } = await admin
           .from('marketing_email_sync_queue')
-          .update({ status: 'pending', last_attempted_at: new Date().toISOString() })
+          .update({
+            status: 'pending',
+            last_attempted_at: new Date().toISOString(),
+          })
           .eq('id', row.id);
-        if (updateErr) console.error('Failed to reset rate-limited row', row.id, updateErr.message);
+        if (updateErr)
+          console.error(
+            'Failed to reset rate-limited row',
+            row.id,
+            updateErr.message
+          );
         continue;
       }
 
@@ -173,10 +192,18 @@ async function handleWorker(
           status: deadLetter ? 'failed' : 'pending',
           attempts: newAttempts,
           last_attempted_at: new Date().toISOString(),
-          error: (err instanceof Error ? err.message : String(err)).slice(0, 500),
+          error: (err instanceof Error ? err.message : String(err)).slice(
+            0,
+            500
+          ),
         })
         .eq('id', row.id);
-      if (updateErr) console.error('Failed to update error status for row', row.id, updateErr.message);
+      if (updateErr)
+        console.error(
+          'Failed to update error status for row',
+          row.id,
+          updateErr.message
+        );
     }
   }
 
@@ -208,7 +235,10 @@ async function processEvent(
     case 'user.signed_up': {
       if (formId) await kit.subscribeToForm(email, formId);
       await kit.applyTag(email, signupTag(ns, opts));
-      const rawPlanId = typeof payload.plan_id === 'string' && payload.plan_id ? payload.plan_id : undefined;
+      const rawPlanId =
+        typeof payload.plan_id === 'string' && payload.plan_id
+          ? payload.plan_id
+          : undefined;
       if (rawPlanId) {
         const slug = planIdToSlug(rawPlanId, tierTagNames);
         await kit.applyTag(email, interestTag(ns, slug, opts));
@@ -218,7 +248,10 @@ async function processEvent(
     case 'waitlist.joined': {
       if (formId) await kit.subscribeToForm(email, formId);
       await kit.applyTag(email, waitlistTag(ns, opts));
-      const rawPlanId = typeof payload.plan_id === 'string' && payload.plan_id ? payload.plan_id : undefined;
+      const rawPlanId =
+        typeof payload.plan_id === 'string' && payload.plan_id
+          ? payload.plan_id
+          : undefined;
       if (rawPlanId) {
         const slug = planIdToSlug(rawPlanId, tierTagNames);
         await kit.applyTag(email, interestTag(ns, slug, opts));
@@ -228,7 +261,10 @@ async function processEvent(
     case 'waitlist.approved': {
       if (formId) await kit.subscribeToForm(email, formId);
       await kit.applyTag(email, waitlistApprovedTag(ns, opts));
-      const rawPlanId = typeof payload.plan_id === 'string' && payload.plan_id ? payload.plan_id : undefined;
+      const rawPlanId =
+        typeof payload.plan_id === 'string' && payload.plan_id
+          ? payload.plan_id
+          : undefined;
       if (rawPlanId) {
         const slug = planIdToSlug(rawPlanId, tierTagNames);
         await kit.applyTag(email, interestTag(ns, slug, opts));
@@ -242,15 +278,20 @@ async function processEvent(
     }
     case 'user.tier_changed': {
       // stripe-webhook enqueues with { user_id, plan_id, status }.
-      if (tierTagNames.length === 0) throw new KitClientError(
-        `user.tier_changed requires tierTagNames in marketing_email_settings.config for product "${row.product_id}" — add tier slugs (e.g. ["pro","max"]) to config`,
-        'kit_api_400'
-      );
-      const rawPlanId = typeof payload.plan_id === 'string' && payload.plan_id ? payload.plan_id : undefined;
-      if (!rawPlanId) throw new KitClientError(
-        'user.tier_changed payload missing plan_id',
-        'kit_api_400'
-      );
+      if (tierTagNames.length === 0)
+        throw new KitClientError(
+          `user.tier_changed requires tierTagNames in marketing_email_settings.config for product "${row.product_id}" — add tier slugs (e.g. ["pro","max"]) to config`,
+          'kit_api_400'
+        );
+      const rawPlanId =
+        typeof payload.plan_id === 'string' && payload.plan_id
+          ? payload.plan_id
+          : undefined;
+      if (!rawPlanId)
+        throw new KitClientError(
+          'user.tier_changed payload missing plan_id',
+          'kit_api_400'
+        );
       const slug = planIdToSlug(rawPlanId, tierTagNames);
       for (const t of tierTagNames) {
         await kit.removeTag(email, tierTag(ns, t, opts));
@@ -271,7 +312,10 @@ async function processEvent(
     default:
       // Unknown events will never succeed — dead-letter immediately via
       // unknown_event_type being in PERMANENT_ERROR_CODES.
-      throw new KitClientError(`Unknown event_type: ${event_type}`, 'unknown_event_type');
+      throw new KitClientError(
+        `Unknown event_type: ${event_type}`,
+        'unknown_event_type'
+      );
   }
 }
 
@@ -281,7 +325,11 @@ async function markDone(
 ): Promise<void> {
   const { error } = await admin
     .from('marketing_email_sync_queue')
-    .update({ status: 'done', processed_at: new Date().toISOString(), error: null })
+    .update({
+      status: 'done',
+      processed_at: new Date().toISOString(),
+      error: null,
+    })
     .eq('id', id);
   if (error) console.error('Failed to mark row done', id, error.message);
 }
@@ -307,8 +355,9 @@ async function handleBulkSync(
     // Backfill auth.users as user.signed_up
     let page = 1;
     while (true) {
-      const { data: usersPage, error: uErr } =
-        await admin.auth.admin.listUsers({ page, perPage: 100 });
+      const { data: usersPage, error: uErr } = await admin.auth.admin.listUsers(
+        { page, perPage: 100 }
+      );
       if (uErr) break;
       const users = usersPage?.users ?? [];
       if (users.length === 0) break;

@@ -11,7 +11,10 @@ export function waitlistTag(namespace: string, opts?: TagSchemeOpts): string {
   return `${namespace}${sep}waitlist`;
 }
 
-export function waitlistApprovedTag(namespace: string, opts?: TagSchemeOpts): string {
+export function waitlistApprovedTag(
+  namespace: string,
+  opts?: TagSchemeOpts
+): string {
   const sep = opts?.separator ?? DEFAULT_SEP;
   return `${namespace}${sep}waitlist-approved`;
 }
@@ -21,7 +24,11 @@ export function signupTag(namespace: string, opts?: TagSchemeOpts): string {
   return `${namespace}${sep}signup`;
 }
 
-export function tierTag(namespace: string, tier: string, opts?: TagSchemeOpts): string {
+export function tierTag(
+  namespace: string,
+  tier: string,
+  opts?: TagSchemeOpts
+): string {
   const sep = opts?.separator ?? DEFAULT_SEP;
   const prefix = opts?.tierPrefix ?? DEFAULT_TIER_PREFIX;
   return `${namespace}${sep}${prefix}${sep}${tier}`;

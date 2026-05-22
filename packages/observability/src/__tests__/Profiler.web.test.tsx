@@ -6,7 +6,7 @@ import { Profiler } from '../components/Profiler.web.js';
 describe('Profiler', () => {
   it('renders children', () => {
     render(
-      <Profiler name="test">
+      <Profiler name='test'>
         <div>child</div>
       </Profiler>
     );
@@ -16,7 +16,7 @@ describe('Profiler', () => {
   it('calls onRender after mount', () => {
     const onRender = vi.fn();
     render(
-      <Profiler name="test" onRender={onRender}>
+      <Profiler name='test' onRender={onRender}>
         <div>content</div>
       </Profiler>
     );
@@ -26,7 +26,7 @@ describe('Profiler', () => {
   it('uses noop when onRender is omitted', () => {
     expect(() =>
       render(
-        <Profiler name="noop-test">
+        <Profiler name='noop-test'>
           <div>content</div>
         </Profiler>
       )

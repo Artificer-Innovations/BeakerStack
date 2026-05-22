@@ -126,7 +126,9 @@ describe('KitAdapter.deleteUser', () => {
   it('is idempotent — returns without deleting when subscriber not found', async () => {
     mockFetch({ status: 200, body: { subscribers: [] } });
     const adapter = makeAdapter();
-    await expect(adapter.deleteUser('gone@example.com')).resolves.toBeUndefined();
+    await expect(
+      adapter.deleteUser('gone@example.com')
+    ).resolves.toBeUndefined();
     expect(vi.mocked(fetch).mock.calls).toHaveLength(1);
   });
 
@@ -136,7 +138,9 @@ describe('KitAdapter.deleteUser', () => {
       { status: 204 }
     );
     const adapter = makeAdapter();
-    await expect(adapter.deleteUser('user@example.com')).resolves.toBeUndefined();
+    await expect(
+      adapter.deleteUser('user@example.com')
+    ).resolves.toBeUndefined();
   });
 });
 
@@ -144,9 +148,9 @@ describe('KitAdapter error handling', () => {
   it('throws MarketingEmailError on non-2xx response', async () => {
     mockFetch({ status: 422, body: { message: 'Unprocessable' } });
     const adapter = makeAdapter();
-    await expect(
-      adapter.deleteUser('bad@example.com')
-    ).rejects.toBeInstanceOf(MarketingEmailError);
+    await expect(adapter.deleteUser('bad@example.com')).rejects.toBeInstanceOf(
+      MarketingEmailError
+    );
   });
 
   it('error code includes the HTTP status', async () => {
@@ -202,7 +206,8 @@ describe('KitAdapter error message formatting', () => {
     mockFetch({ status: 500, text: '' });
     const adapter = makeAdapter();
     await expect(adapter.deleteUser('x@x.com')).rejects.toMatchObject({
-      message: 'Kit API GET /subscribers?email_address=x%40x.com failed: 500 Error',
+      message:
+        'Kit API GET /subscribers?email_address=x%40x.com failed: 500 Error',
     });
   });
 
@@ -215,7 +220,8 @@ describe('KitAdapter error message formatting', () => {
     });
     const adapter = makeAdapter();
     await expect(adapter.deleteUser('x@x.com')).rejects.toMatchObject({
-      message: 'Kit API GET /subscribers?email_address=x%40x.com failed: 502 Error',
+      message:
+        'Kit API GET /subscribers?email_address=x%40x.com failed: 502 Error',
     });
   });
 });

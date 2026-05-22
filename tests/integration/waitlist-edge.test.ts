@@ -67,16 +67,14 @@ describeEdge('waitlist Edge → marketing email queue', () => {
   const base = getFunctionsBaseUrl();
 
   beforeAll(async () => {
-    await sr
-      .from('marketing_email_settings')
-      .upsert(
-        {
-          product_id: TEST_MKTG_PRODUCT_ID,
-          enabled: true,
-          config: { namespace: 'bsedge', kitFormId: null },
-        },
-        { onConflict: 'product_id' }
-      );
+    await sr.from('marketing_email_settings').upsert(
+      {
+        product_id: TEST_MKTG_PRODUCT_ID,
+        enabled: true,
+        config: { namespace: 'bsedge', kitFormId: null },
+      },
+      { onConflict: 'product_id' }
+    );
   });
 
   afterAll(async () => {

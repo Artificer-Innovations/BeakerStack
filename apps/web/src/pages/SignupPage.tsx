@@ -24,7 +24,9 @@ import {
 } from '@beakerstack/waitlist/web';
 import { beakerstackWaitlistConfig } from '../waitlist/beakerstackWaitlistConfig';
 
-function signupPlanMetadata(sp: URLSearchParams): { plan_id: string } | undefined {
+function signupPlanMetadata(
+  sp: URLSearchParams
+): { plan_id: string } | undefined {
   const planId = sp.get('plan');
   if (!planId) return undefined;
   const cfg = beakerstackBillingConfig.plans.find(p => p.id === planId);
@@ -85,7 +87,11 @@ function SignupPageContent() {
 
     try {
       const planMeta = signupPlanMetadata(searchParams);
-      await auth.signUp(email, password, planMeta ? { data: planMeta } : undefined);
+      await auth.signUp(
+        email,
+        password,
+        planMeta ? { data: planMeta } : undefined
+      );
       const {
         data: { session },
       } = await supabase.auth.getSession();

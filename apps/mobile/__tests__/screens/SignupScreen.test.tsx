@@ -236,7 +236,10 @@ describe('SignupScreen', () => {
       token_type: 'bearer',
       user: { id: 'test-user-id', email: 'test@example.com' } as any,
     };
-    mockGetSession.mockResolvedValueOnce({ data: { session: mockSession }, error: null });
+    mockGetSession.mockResolvedValueOnce({
+      data: { session: mockSession },
+      error: null,
+    });
 
     const mockClient = createMockSupabaseClient();
     const { getByPlaceholderText, getByText } = renderWithProviders(
@@ -269,7 +272,10 @@ describe('SignupScreen', () => {
   });
 
   it('navigates to SignupPending when signup returns no session', async () => {
-    mockGetSession.mockResolvedValueOnce({ data: { session: null }, error: null });
+    mockGetSession.mockResolvedValueOnce({
+      data: { session: null },
+      error: null,
+    });
 
     const mockClient = createMockSupabaseClient();
     const { getByPlaceholderText, getByText } = renderWithProviders(

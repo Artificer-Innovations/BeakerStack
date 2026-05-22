@@ -63,6 +63,15 @@ module.exports = {
       },
     },
     {
+      files: ['supabase/functions/**'],
+      rules: {
+        // Deno edge functions log to stdout; no shared logger package in this runtime.
+        'no-console': 'off',
+        // Pagination/backfill loops commonly use while (true) with break.
+        'no-constant-condition': 'off',
+      },
+    },
+    {
       files: ['packages/logger/src/**'],
       rules: {
         'no-console': 'off',

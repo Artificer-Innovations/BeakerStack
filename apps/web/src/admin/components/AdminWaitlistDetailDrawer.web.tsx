@@ -57,8 +57,10 @@ export function AdminWaitlistDetailDrawer({
     );
     setInviteLink(inviteUrl);
     const logoUrl = `${beakerstackWaitlistConfig.appOrigin}/email-logo.png`;
-    const html = beakerstackWaitlistConfig.emailTemplates.inviteHtml
-      .replace(/{{logoUrl}}/g, logoUrl);
+    const html = beakerstackWaitlistConfig.emailTemplates.inviteHtml.replace(
+      /{{logoUrl}}/g,
+      logoUrl
+    );
     const { data, error: fnErr } = await supabase.functions.invoke(
       beakerstackWaitlistConfig.opsFunctionName,
       {

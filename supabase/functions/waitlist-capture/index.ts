@@ -87,7 +87,8 @@ Deno.serve(async req => {
   // can apply the interest tag without digging into the metadata envelope.
   // Validate it's a non-empty string so a malformed client can't poison the queue.
   const rawPlanId = metadata.plan_id;
-  const planId = typeof rawPlanId === 'string' && rawPlanId.trim() ? rawPlanId.trim() : null;
+  const planId =
+    typeof rawPlanId === 'string' && rawPlanId.trim() ? rawPlanId.trim() : null;
   await enqueueMarketingEmail(
     admin,
     productId,
