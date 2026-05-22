@@ -70,6 +70,9 @@ jobs:
           supabase db push --linked
 
       # Opt-in: skipped in-script when RESEND_SMTP_PASS unset (secrets cannot be used in if:)
+      - name: Regenerate email templates
+        run: npm run email:personalize -- --non-interactive
+
       - name: Sync Supabase auth email config (staging)
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

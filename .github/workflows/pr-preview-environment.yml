@@ -141,6 +141,18 @@ jobs:
             --skip-if-unchanged
 
       # Opt-in: skipped in-script when RESEND_SMTP_PASS unset (secrets cannot be used in if:)
+      - name: Regenerate email templates
+        env:
+          PREVIEW_DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
+          PREVIEW_PREFIX: ${{ vars.PR_PREVIEW_PREFIX }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          PREFIX="${PREVIEW_PREFIX:-pr-}"
+          LOGO_URL="https://deploy.${PREVIEW_DOMAIN}/${PREFIX}${PR_NUMBER}/email-logo.png"
+          echo "Using preview logo URL: ${LOGO_URL}"
+          npm run email:personalize -- --non-interactive --logo-url="${LOGO_URL}"
+
       - name: Sync Supabase auth email config (preview)
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}

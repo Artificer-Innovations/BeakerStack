@@ -1,9 +1,17 @@
 #!/usr/bin/env node
 // Personalizes BeakerStack email templates with project branding.
+// Reads pure placeholders from supabase/templates/ and writes deploy artifacts
+// to supabase/templates/generated/. Never mutates the pure source tree.
 // Run: node scripts/personalize-email-templates.mjs
 // Or:  npm run email:personalize
 
-import { readFileSync, writeFileSync, readdirSync, existsSync } from 'fs';
+import {
+  readFileSync,
+  writeFileSync,
+  readdirSync,
+  existsSync,
+  mkdirSync,
+} from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { createInterface } from 'readline';
@@ -13,12 +21,12 @@ import { resolveApexHint } from './setup-email-dns.mjs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const TEMPLATES_DIR = join(ROOT, 'supabase', 'templates');
+const GENERATED_DIR = join(TEMPLATES_DIR, 'generated');
 const CONFIG_TOML = join(ROOT, 'supabase', 'config.toml');
 const PERSONALIZATION_FILE = join(TEMPLATES_DIR, '.personalization.json');
-const EJECTION_MARKER = 'beakerstack-email:customized';
 const NON_INTERACTIVE = process.argv.includes('--non-interactive');
 
-// Parse CLI flags for non-interactive CAN-SPAM overrides
+// Parse CLI flags for non-interactive overrides
 function parseFlag(name) {
   const prefix = `--${name}=`;
   const arg = process.argv.find(a => a.startsWith(prefix));
@@ -26,6 +34,7 @@ function parseFlag(name) {
 }
 const flagSupportEmail = parseFlag('support-email');
 const flagCompanyAddress = parseFlag('company-address');
+const flagLogoUrl = parseFlag('logo-url');
 
 // --- Read branding from source ---
 function readBrandingValue(file, key) {
@@ -76,8 +85,6 @@ function readPrimaryColor(file) {
     );
     if (tokenMatch) {
       const [, colorName, shade] = tokenMatch;
-      // Match `const indigo = { ... }` — avoid false positives from comments or
-      // other objects that mention `indigo[600]` before the palette definition.
       const paletteMatch = src.match(
         new RegExp(
           `const\\s+${colorName}\\s*=\\s*\\{([\\s\\S]*?)\\}\\s*as const`,
@@ -131,6 +138,20 @@ function defaultCompanyAddress() {
   );
 }
 
+function loadPersonalizationRecord() {
+  try {
+    return JSON.parse(readFileSync(PERSONALIZATION_FILE, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function resolveLogoUrl(personalization) {
+  if (flagLogoUrl) return flagLogoUrl;
+  if (personalization?.LOGO_URL) return personalization.LOGO_URL;
+  return '{{ .SiteURL }}/email-logo.png';
+}
+
 // --- Prompt helper ---
 async function prompt(question, defaultVal) {
   if (NON_INTERACTIVE) return defaultVal;
@@ -175,44 +196,20 @@ function checkConfirmations() {
   }
 }
 
-// --- Load previous personalization state ---
-function loadPreviousPersonalization() {
-  try {
-    return JSON.parse(readFileSync(PERSONALIZATION_FILE, 'utf8'));
-  } catch {
-    return null;
+function applyReplacements(content, replacements) {
+  let updated = content;
+  for (const [token, value] of Object.entries(replacements)) {
+    updated = updated.replaceAll(token, value);
   }
+  return updated;
 }
 
-// --- Reverse previous personalization in content ---
-function reversePersonalization(content, prev) {
-  let reversed = content;
-  const tokenMap = {
-    PRODUCT_NAME: '{{PRODUCT_NAME}}',
-    BRAND_COLOR: '{{BRAND_COLOR}}',
-    SENDER_NAME: '{{SENDER_NAME}}',
-    SUPPORT_EMAIL: '{{SUPPORT_EMAIL}}',
-    COMPANY_ADDRESS: '{{COMPANY_ADDRESS}}',
-    LOGO_URL: '{{LOGO_URL}}',
-  };
-  for (const [key, token] of Object.entries(tokenMap)) {
-    if (prev[key]) {
-      reversed = reversed.replaceAll(prev[key], token);
-    }
-  }
-  return reversed;
-}
-
-// --- Reverse previous personalization in config.toml ---
-function reverseTomlPersonalization(content, prev) {
-  let reversed = content;
-  if (prev.PRODUCT_NAME) {
-    reversed = reversed.replaceAll(prev.PRODUCT_NAME, '__PRODUCT_NAME__');
-  }
-  if (prev.BRAND_COLOR) {
-    reversed = reversed.replaceAll(prev.BRAND_COLOR, '__BRAND_COLOR__');
-  }
-  return reversed;
+function listPureTemplateFiles() {
+  return readdirSync(TEMPLATES_DIR).filter(
+    f =>
+      (f.endsWith('.html') || f.endsWith('.txt')) &&
+      f !== '.personalization.json'
+  );
 }
 
 // --- Main ---
@@ -220,33 +217,40 @@ async function main() {
   console.log('BeakerStack Email Template Personalization\n');
   checkConfirmations();
 
-  const prev = loadPreviousPersonalization();
-  if (prev) {
-    console.log(
-      'i  Previous personalization found — will restore placeholders before re-applying.\n'
-    );
-  }
+  const personalization = loadPersonalizationRecord();
 
-  const productName = await prompt('Product name', defaultProductName);
-  const brandColor = await prompt('Brand color (hex)', defaultBrandColor);
-  const senderName = await prompt('Sender name', `${productName} Team`);
+  const productNameDefault =
+    personalization?.PRODUCT_NAME ?? defaultProductName;
+  const brandColorDefault = personalization?.BRAND_COLOR ?? defaultBrandColor;
+  const senderNameDefault =
+    personalization?.SENDER_NAME ?? `${productNameDefault} Team`;
 
   const suggestedSupportEmail = await defaultSupportEmail();
   const suggestedCompanyAddress = defaultCompanyAddress();
 
-  // CAN-SPAM fields — default support@<apex> from PR_PREVIEW_DOMAIN or branding flatName.com
+  const supportEmailDefault =
+    personalization?.SUPPORT_EMAIL ?? suggestedSupportEmail;
+  const companyAddressDefault =
+    personalization?.COMPANY_ADDRESS ?? suggestedCompanyAddress;
+
+  const productName = await prompt('Product name', productNameDefault);
+  const brandColor = await prompt('Brand color (hex)', brandColorDefault);
+  const senderName = await prompt('Sender name', senderNameDefault);
+
   let supportEmail;
   let companyAddress;
   if (NON_INTERACTIVE) {
-    supportEmail = flagSupportEmail ?? suggestedSupportEmail;
-    companyAddress = flagCompanyAddress ?? suggestedCompanyAddress;
+    supportEmail = flagSupportEmail ?? supportEmailDefault;
+    companyAddress = flagCompanyAddress ?? companyAddressDefault;
   } else {
-    supportEmail = await prompt('Support email', suggestedSupportEmail);
+    supportEmail = await prompt('Support email', supportEmailDefault);
     companyAddress = await prompt(
       'Company address (CAN-SPAM required)',
-      suggestedCompanyAddress
+      companyAddressDefault
     );
   }
+
+  const logoUrl = resolveLogoUrl(personalization);
 
   const replacements = {
     '{{PRODUCT_NAME}}': productName,
@@ -254,21 +258,14 @@ async function main() {
     '{{SENDER_NAME}}': senderName,
     ...(supportEmail ? { '{{SUPPORT_EMAIL}}': supportEmail } : {}),
     ...(companyAddress ? { '{{COMPANY_ADDRESS}}': companyAddress } : {}),
-    '{{LOGO_URL}}': `{{ .SiteURL }}/email-logo.png`,
+    '{{LOGO_URL}}': logoUrl,
   };
 
-  // config.toml uses __PRODUCT_NAME__ (double underscores) to avoid Go template conflicts
-  const tomlReplacements = {
-    __PRODUCT_NAME__: productName,
-    __BRAND_COLOR__: brandColor,
-  };
+  mkdirSync(GENERATED_DIR, { recursive: true });
 
-  // Personalize template files
   let files;
   try {
-    files = readdirSync(TEMPLATES_DIR).filter(
-      f => f.endsWith('.html') || f.endsWith('.txt')
-    );
+    files = listPureTemplateFiles();
   } catch {
     console.error(
       'x  supabase/templates/ not found. Make sure you have the templates directory.'
@@ -276,59 +273,24 @@ async function main() {
     process.exit(1);
   }
 
-  let modified = 0,
-    skipped = 0;
+  let generated = 0;
   for (const file of files) {
-    const path = join(TEMPLATES_DIR, file);
-    let content = readFileSync(path, 'utf8');
-    if (content.includes(EJECTION_MARKER)) {
-      console.log(`!  Skipping ${file} — marked as customized.`);
-      skipped++;
-      continue;
-    }
-    // Reverse previous personalization so tokens are clean before re-applying
-    if (prev) {
-      content = reversePersonalization(content, prev);
-    }
-    let updated = content;
-    for (const [token, value] of Object.entries(replacements)) {
-      updated = updated.replaceAll(token, value);
-    }
-    if (updated !== content) {
-      writeFileSync(path, updated, 'utf8');
-      console.log(`ok ${file}`);
-      modified++;
-    }
+    const sourcePath = join(TEMPLATES_DIR, file);
+    const content = readFileSync(sourcePath, 'utf8');
+    const updated = applyReplacements(content, replacements);
+    const outputPath = join(GENERATED_DIR, file);
+    writeFileSync(outputPath, updated, 'utf8');
+    console.log(`ok generated/${file}`);
+    generated++;
   }
 
-  // Personalize config.toml subject lines (uses __PLACEHOLDER__ style, not {{}} Go template syntax)
-  try {
-    let toml = readFileSync(CONFIG_TOML, 'utf8');
-    // Reverse previous personalization first
-    if (prev) {
-      toml = reverseTomlPersonalization(toml, prev);
-    }
-    let updatedToml = toml;
-    for (const [token, value] of Object.entries(tomlReplacements)) {
-      updatedToml = updatedToml.replaceAll(token, value);
-    }
-    if (updatedToml !== toml) {
-      writeFileSync(CONFIG_TOML, updatedToml, 'utf8');
-      console.log('ok supabase/config.toml (subject lines)');
-      modified++;
-    }
-  } catch {
-    /* config.toml optional */
-  }
-
-  // Save current personalization state for idempotent re-runs
   const newState = {
     PRODUCT_NAME: productName,
     BRAND_COLOR: brandColor,
     SENDER_NAME: senderName,
     ...(supportEmail ? { SUPPORT_EMAIL: supportEmail } : {}),
     ...(companyAddress ? { COMPANY_ADDRESS: companyAddress } : {}),
-    LOGO_URL: `{{ .SiteURL }}/email-logo.png`,
+    LOGO_URL: logoUrl,
   };
   writeFileSync(
     PERSONALIZATION_FILE,
@@ -336,17 +298,25 @@ async function main() {
     'utf8'
   );
 
-  console.log(`\nDone — ${modified} file(s) updated, ${skipped} skipped.`);
+  console.log(
+    `\nDone — ${generated} file(s) written to supabase/templates/generated/.`
+  );
   if (!NON_INTERACTIVE) {
     console.log('\nNext steps:');
     console.log(
-      '  1. Run: npm run setup:email (merges SMTP_* into .env.local and enables auth SMTP in config.toml)'
+      '  1. Commit supabase/templates/generated/ (not the pure templates/)'
     );
     console.log(
-      '  2. Run: supabase stop && supabase start to apply config changes'
+      '  2. Run: npm run setup:email (merges SMTP_* into .env.local and enables auth SMTP in config.toml)'
     );
     console.log(
-      '  3. Test signup confirmation in Inbucket at http://localhost:54324'
+      '  3. Run: npm run email:materialize-config && supabase stop && supabase start'
+    );
+    console.log(
+      '  4. Test signup confirmation in Inbucket at http://localhost:54324'
+    );
+    console.log(
+      '  Note: materialize-config substitutes __PRODUCT_NAME__ in config.toml for local use; git restore supabase/config.toml to reset tokens.'
     );
   }
 }

@@ -95,6 +95,38 @@ if [[ "${DRY_RUN}" == true ]]; then
   exit 0
 fi
 
+load_email_config_for_push() {
+  local config_file="${SUPABASE_DIR}/config.toml"
+  local backup="${SUPABASE_DIR}/.config.toml.tokenized.bak"
+  local push_config="${SUPABASE_DIR}/.config.toml.push"
+  local pers_file="${REPO_ROOT}/supabase/templates/.personalization.json"
+
+  if [[ ! -f "${pers_file}" ]]; then
+    echo "Error: ${pers_file} not found (required to materialize __PRODUCT_NAME__ subjects)." >&2
+    exit 1
+  fi
+
+  cp "${config_file}" "${backup}"
+  node "${SCRIPT_DIR}/materialize-email-config.mjs" \
+    --config="${config_file}" \
+    --personalization="${pers_file}" \
+    --output="${push_config}"
+  cp "${push_config}" "${config_file}"
+}
+
+restore_tokenized_config() {
+  local config_file="${SUPABASE_DIR}/config.toml"
+  local backup="${SUPABASE_DIR}/.config.toml.tokenized.bak"
+  if [[ -f "${backup}" ]]; then
+    mv -f "${backup}" "${config_file}"
+  fi
+  rm -f "${SUPABASE_DIR}/.config.toml.push"
+}
+
+trap restore_tokenized_config EXIT
+
+load_email_config_for_push
+
 cd "${SUPABASE_DIR}"
 supabase link --project-ref "${PROJECT_REF}" --password "${DB_PASSWORD}" --yes
 supabase config push --yes

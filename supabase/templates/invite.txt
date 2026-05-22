@@ -1,10 +1,10 @@
-You've been invited to Beaker Stack
+You've been invited to {{PRODUCT_NAME}}
 
-Beaker Stack Team has invited you to join Beaker Stack. Click the link below to accept your invitation and create your account.
+{{SENDER_NAME}} has invited you to join {{PRODUCT_NAME}}. Click the link below to accept your invitation and create your account.
 
 Accept invitation: {{ if .RedirectTo }}{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=invite{{ else }}{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite{{ end }}
 
 ---
-Sent by Beaker Stack Team
-522 W RIVERSIDE AVE STE N, SPOKANE, WA 99201, USA
-Questions? support@beakerstack.com
+Sent by {{SENDER_NAME}}
+{{COMPANY_ADDRESS}}
+Questions? {{SUPPORT_EMAIL}}

@@ -3,6 +3,6 @@
   "BRAND_COLOR": "#4f46e5",
   "SENDER_NAME": "Beaker Stack Team",
   "SUPPORT_EMAIL": "support@beakerstack.com",
-  "COMPANY_ADDRESS": "522 W RIVERSIDE AVE STE N, SPOKANE, WA 99201, USA",
+  "COMPANY_ADDRESS": "Artificer Innovations, LLC, 522 W RIVERSIDE AVE STE N, SPOKANE, WA 99201, USA",
   "LOGO_URL": "{{ .SiteURL }}/email-logo.png"
 }
