@@ -1,6 +1,6 @@
 -- pgTAP: admin tables, RLS, and RPC access control
 BEGIN;
-SELECT plan(37);
+SELECT plan(39);
 
 -- ── Schema ───────────────────────────────────────────────────────────────────
 SELECT has_table('public', 'admin_users', 'admin_users table exists');
@@ -275,13 +275,10 @@ SELECT is(
     'admin_grant_operator succeeds for target user'
 );
 
--- After grant: target is now admin
-SELECT ok(
-    (
-        SELECT revoked_at IS NULL AND user_id = 'a1000000-0000-0000-0000-000000000001'
-        FROM public.admin_users
-        WHERE user_id = 'a1000000-0000-0000-0000-000000000001'
-    ),
+-- After grant: target is now admin (verify via get_user so RLS is not a concern)
+SELECT is(
+    (public.admin_get_user('a1000000-0000-0000-0000-000000000001'::uuid) -> 'admin' ->> 'is_admin')::boolean,
+    true,
     'admin_grant_operator inserts active admin_users row'
 );
 
@@ -356,3 +353,4 @@ SELECT ok(
 
 SELECT * FROM finish();
 ROLLBACK;
+
