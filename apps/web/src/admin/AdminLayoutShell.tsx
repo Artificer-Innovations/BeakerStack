@@ -7,9 +7,9 @@ import { LayoutDashboard, LogOut } from 'lucide-react';
 
 function breadcrumbsForPath(pathname: string) {
   if (pathname.endsWith('/users')) {
-    return [{ label: 'Dashboard', to: '/admin' }, { label: 'Users' }];
+    return [{ label: 'Admin Dashboard', to: '/admin' }, { label: 'Users' }];
   }
-  return [{ label: 'Dashboard' }];
+  return [{ label: 'Admin Dashboard' }];
 }
 
 export function AdminLayoutShell() {

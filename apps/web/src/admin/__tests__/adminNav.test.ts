@@ -4,7 +4,7 @@ import { adminNavItems } from '../adminNav';
 describe('adminNav', () => {
   it('includes dashboard, users, and waitlist entries', () => {
     expect(adminNavItems.map(n => n.label)).toEqual([
-      'Dashboard',
+      'Admin Dashboard',
       'Users',
       'Waitlist',
       'Waitlist settings',
