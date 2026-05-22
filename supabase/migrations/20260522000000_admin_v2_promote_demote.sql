@@ -363,6 +363,7 @@ SET search_path = public
 AS $$
 DECLARE
     v_uid uuid := auth.uid();
+    v_already_active boolean;
 BEGIN
     IF v_uid IS NULL OR NOT public.admin_is_admin() THEN
         RETURN jsonb_build_object('error', 'not_found');
@@ -372,6 +373,12 @@ BEGIN
         RETURN jsonb_build_object('error', 'not_found');
     END IF;
 
+    -- Check current state before upsert so we only audit on actual state change.
+    SELECT EXISTS (
+        SELECT 1 FROM public.admin_users
+        WHERE user_id = p_user_id AND revoked_at IS NULL
+    ) INTO v_already_active;
+
     -- Upsert: clear revoked_at and update granter on re-grant
     INSERT INTO public.admin_users (user_id, granted_by, granted_at, revoked_at)
     VALUES (p_user_id, v_uid, now(), NULL)
@@ -380,13 +387,15 @@ BEGIN
             granted_at = EXCLUDED.granted_at,
             revoked_at = NULL;
 
-    PERFORM public._admin_insert_audit(
-        v_uid,
-        'admin.operator.grant',
-        'user',
-        p_user_id::text,
-        '{}'::jsonb
-    );
+    IF NOT v_already_active THEN
+        PERFORM public._admin_insert_audit(
+            v_uid,
+            'admin.operator.grant',
+            'user',
+            p_user_id::text,
+            '{}'::jsonb
+        );
+    END IF;
 
     RETURN jsonb_build_object('ok', true);
 END;
@@ -412,6 +421,10 @@ DECLARE
     v_uid uuid := auth.uid();
 BEGIN
     IF v_uid IS NULL OR NOT public.admin_is_admin() THEN
+        RETURN jsonb_build_object('error', 'not_found');
+    END IF;
+
+    IF p_user_id IS NULL THEN
         RETURN jsonb_build_object('error', 'not_found');
     END IF;
 

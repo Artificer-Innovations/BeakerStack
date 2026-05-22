@@ -157,7 +157,7 @@ export function AdminUserDetailDrawer({
                   </div>
                   <button
                     type='button'
-                    disabled={isSelf || actionLoading}
+                    disabled={currentUserId == null || isSelf || actionLoading}
                     title={
                       isSelf
                         ? "You can't revoke your own admin access"
@@ -192,11 +192,14 @@ export function AdminUserDetailDrawer({
 
           {actionPending && (
             <div
+              role='dialog'
+              aria-modal='true'
+              aria-labelledby='confirm-dialog-title'
               className='fixed inset-0 z-50 flex items-center justify-center bg-black/40'
               data-testid='confirm-dialog'
             >
               <div className='w-80 rounded-lg bg-white p-6 shadow-xl'>
-                <h4 className='text-sm font-semibold text-gray-900'>
+                <h4 id='confirm-dialog-title' className='text-sm font-semibold text-gray-900'>
                   {actionPending === 'grant'
                     ? 'Grant admin access'
                     : 'Revoke admin access'}
