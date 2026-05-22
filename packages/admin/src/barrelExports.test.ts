@@ -6,6 +6,8 @@ describe('package barrels', () => {
     expect(mod.checkIsAdmin).toBeTypeOf('function');
     expect(mod.useIsAdmin).toBeTypeOf('function');
     expect(mod.listUsers).toBeTypeOf('function');
+    expect(mod.grantOperator).toBeTypeOf('function');
+    expect(mod.revokeOperator).toBeTypeOf('function');
     expect(mod.recordAuditEvent).toBeTypeOf('function');
   });
 

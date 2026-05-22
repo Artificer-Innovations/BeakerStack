@@ -33,6 +33,7 @@ describe('useAdminUsers', () => {
           subscription_status: 'free',
           plan_display_name: 'Free',
           usage_current_period: { ai_summarize: 1 },
+          is_admin: false,
         },
       ],
       total: 1,

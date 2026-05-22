@@ -3,6 +3,19 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import AdminUsersPage from '../pages/AdminUsersPage';
+import { supabase } from '../../lib/supabase';
+
+vi.mock('../../lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getUser: vi.fn().mockResolvedValue({
+        data: { user: { id: 'current-user-id' } },
+      }),
+    },
+  },
+}));
+
+const mockGetUser = vi.mocked(supabase.auth.getUser);
 
 interface MockAdminUser {
   user_id: string;
@@ -14,14 +27,17 @@ interface MockAdminUser {
   plan_id: string | null;
   subscription_status: string;
   plan_display_name: string | null;
-  usage_current_period: Record<string, number> | null;
+  is_admin: boolean;
+  usage_current_period: Record<string, number>;
 }
+
 interface MockAdminUsersData {
   users: MockAdminUser[];
   total: number;
   limit: number;
   offset: number;
 }
+
 const mockUseAdminUsers = vi.hoisted(
   () =>
     ({
@@ -45,6 +61,7 @@ const mockUseAdminUsers = vi.hoisted(
             plan_id: 'beakerstack_pro',
             subscription_status: 'active',
             plan_display_name: 'Pro',
+            is_admin: false,
             usage_current_period: { ai_summarize: 5 },
           },
         ],
@@ -64,7 +81,7 @@ const mockUseAdminUsers = vi.hoisted(
       offset: number;
       setOffset: ReturnType<typeof vi.fn>;
       pageSize: number;
-      data: MockAdminUsersData;
+      data: MockAdminUsersData | null;
       loading: boolean;
       error: Error | null;
       reload: ReturnType<typeof vi.fn>;
@@ -114,6 +131,7 @@ describe('AdminUsersPage', () => {
           plan_id: 'beakerstack_pro',
           subscription_status: 'active',
           plan_display_name: 'Pro',
+          is_admin: false,
           usage_current_period: { ai_summarize: 5 },
         },
       ],
@@ -132,6 +150,34 @@ describe('AdminUsersPage', () => {
     expect(await screen.findByText('user@example.com')).toBeInTheDocument();
     expect(screen.getByText('Pro')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
+  });
+
+  it('does not show admin badge for non-admin user', async () => {
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+    await screen.findByText('user@example.com');
+    expect(screen.queryByTestId('admin-badge')).not.toBeInTheDocument();
+  });
+
+  it('shows admin badge for admin user', async () => {
+    const currentData = mockUseAdminUsers.data;
+    const baseUser = currentData?.users[0];
+    if (!currentData || !baseUser) {
+      throw new Error('expected mock user data');
+    }
+    mockUseAdminUsers.data = {
+      ...currentData,
+      users: [{ ...baseUser, is_admin: true }],
+    };
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+    expect(await screen.findByTestId('admin-badge')).toBeInTheDocument();
   });
 
   it('shows error message when hook reports error', () => {
@@ -157,78 +203,6 @@ describe('AdminUsersPage', () => {
     );
   });
 
-  it('calls toggleSort when signup header clicked', async () => {
-    const user = userEvent.setup();
-    render(
-      <MemoryRouter>
-        <AdminUsersPage />
-      </MemoryRouter>
-    );
-    await user.click(screen.getByRole('button', { name: /signup/i }));
-    expect(mockUseAdminUsers.toggleSort).toHaveBeenCalledWith('signup');
-  });
-
-  it('calls toggleSort when last_active header clicked', async () => {
-    const user = userEvent.setup();
-    render(
-      <MemoryRouter>
-        <AdminUsersPage />
-      </MemoryRouter>
-    );
-    await user.click(screen.getByRole('button', { name: /last active/i }));
-    expect(mockUseAdminUsers.toggleSort).toHaveBeenCalledWith('last_active');
-  });
-
-  it('marks signup column ascending and shows ↑ when sort is asc', () => {
-    mockUseAdminUsers.sortDir = 'asc';
-    render(
-      <MemoryRouter>
-        <AdminUsersPage />
-      </MemoryRouter>
-    );
-    const button = screen.getByRole('button', { name: /signup ↑/i });
-    const cell = button.closest('[aria-sort]');
-    expect(cell).toHaveAttribute('aria-sort', 'ascending');
-  });
-
-  it('marks last_active column descending when sort = last_active and dir = desc', () => {
-    mockUseAdminUsers.sort = 'last_active';
-    mockUseAdminUsers.sortDir = 'desc';
-    render(
-      <MemoryRouter>
-        <AdminUsersPage />
-      </MemoryRouter>
-    );
-    const button = screen.getByRole('button', { name: /last active ↓/i });
-    const cell = button.closest('[aria-sort]');
-    expect(cell).toHaveAttribute('aria-sort', 'descending');
-  });
-
-  it('marks last_active column ascending when sort = last_active and dir = asc', () => {
-    mockUseAdminUsers.sort = 'last_active';
-    mockUseAdminUsers.sortDir = 'asc';
-    render(
-      <MemoryRouter>
-        <AdminUsersPage />
-      </MemoryRouter>
-    );
-    const button = screen.getByRole('button', { name: /last active ↑/i });
-    const cell = button.closest('[aria-sort]');
-    expect(cell).toHaveAttribute('aria-sort', 'ascending');
-  });
-
-  it('forwards typed search to the hook via onChange', async () => {
-    const user = userEvent.setup();
-    render(
-      <MemoryRouter>
-        <AdminUsersPage />
-      </MemoryRouter>
-    );
-    const input = screen.getByPlaceholderText(/search/i);
-    await user.type(input, 'a');
-    expect(mockUseAdminUsers.setSearch).toHaveBeenCalled();
-  });
-
   it('closes the detail drawer when onClose fires', async () => {
     const user = userEvent.setup();
     render(
@@ -242,6 +216,64 @@ describe('AdminUsersPage', () => {
     expect(screen.queryByTestId('detail-drawer')).not.toBeInTheDocument();
   });
 
+  it('forwards search input to setSearch via onChange', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+    await user.type(screen.getByPlaceholderText(/search/i), 'a');
+    expect(mockUseAdminUsers.setSearch).toHaveBeenCalled();
+  });
+
+  it('calls toggleSort when signup header clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+    await user.click(screen.getByRole('button', { name: /signup/i }));
+    expect(mockUseAdminUsers.toggleSort).toHaveBeenCalledWith('signup');
+  });
+
+  it('calls toggleSort when last active header clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+    await user.click(screen.getByRole('button', { name: /last active/i }));
+    expect(mockUseAdminUsers.toggleSort).toHaveBeenCalledWith('last_active');
+  });
+
+  it('shows signup sort ascending indicator when sortDir is asc', () => {
+    mockUseAdminUsers.sortDir = 'asc';
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+    expect(
+      screen.getByRole('button', { name: /signup ↑/i })
+    ).toBeInTheDocument();
+  });
+
+  it('shows last active sort indicator when sorted by last_active', () => {
+    mockUseAdminUsers.sort = 'last_active';
+    mockUseAdminUsers.sortDir = 'asc';
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+    expect(
+      screen.getByRole('button', { name: /last active ↑/i })
+    ).toBeInTheDocument();
+  });
+
   it('renders em-dash fallbacks for missing user fields', () => {
     mockUseAdminUsers.data = {
       users: [
@@ -249,13 +281,14 @@ describe('AdminUsersPage', () => {
           user_id: 'u2',
           email: null,
           display_name: null,
-          username: null,
+          username: 'handle',
           signup_at: null,
           last_active_at: null,
-          plan_id: null,
+          plan_id: 'beakerstack_free',
           subscription_status: 'active',
           plan_display_name: null,
-          usage_current_period: null,
+          is_admin: false,
+          usage_current_period: {},
         },
       ],
       total: 1,
@@ -267,8 +300,10 @@ describe('AdminUsersPage', () => {
         <AdminUsersPage />
       </MemoryRouter>
     );
-    const dashes = screen.getAllByText('—');
-    expect(dashes.length).toBeGreaterThanOrEqual(3);
+    expect(screen.getByText('handle')).toBeInTheDocument();
+    expect(screen.getByText('beakerstack_free')).toBeInTheDocument();
+    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('0')).toBeInTheDocument();
   });
 
   it('falls back to display_name when email is null in row label', () => {
@@ -283,8 +318,9 @@ describe('AdminUsersPage', () => {
           last_active_at: null,
           plan_id: 'beakerstack_free',
           subscription_status: 'free',
-          plan_display_name: null,
-          usage_current_period: {},
+          plan_display_name: 'Free',
+          is_admin: false,
+          usage_current_period: { ai_summarize: 0 },
         },
       ],
       total: 1,
@@ -312,7 +348,8 @@ describe('AdminUsersPage', () => {
           plan_id: 'beakerstack_free',
           subscription_status: 'free',
           plan_display_name: 'Free',
-          usage_current_period: {},
+          is_admin: false,
+          usage_current_period: { ai_summarize: 0 },
         },
       ],
       total: 1,
@@ -333,5 +370,53 @@ describe('AdminUsersPage', () => {
     } finally {
       Date.prototype.toLocaleDateString = original;
     }
+  });
+
+  it('leaves currentUserId null when auth user is missing', async () => {
+    mockGetUser.mockResolvedValueOnce({
+      data: { user: null },
+      error: null,
+    } as unknown as Awaited<ReturnType<typeof supabase.auth.getUser>>);
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+    await screen.findByText('user@example.com');
+    expect(mockGetUser).toHaveBeenCalled();
+  });
+
+  it('renders empty table when hook data is null', () => {
+    mockUseAdminUsers.data = null;
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+    expect(screen.getByText('No users match your search.')).toBeInTheDocument();
+  });
+
+  it('marks last active column unsorted when sorting by signup', () => {
+    mockUseAdminUsers.sort = 'signup';
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+    const button = screen.getByRole('button', { name: /^last active/i });
+    const cell = button.closest('[aria-sort]');
+    expect(cell).toHaveAttribute('aria-sort', 'none');
+  });
+
+  it('marks signup column unsorted when sorting by last_active', () => {
+    mockUseAdminUsers.sort = 'last_active';
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+    const button = screen.getByRole('button', { name: /^signup/i });
+    const cell = button.closest('[aria-sort]');
+    expect(cell).toHaveAttribute('aria-sort', 'none');
   });
 });

@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react';
-import { getUser, type AdminUserDetail } from '@beakerstack/admin';
+import {
+  getUser,
+  grantOperator,
+  revokeOperator,
+  type AdminUserDetail,
+} from '@beakerstack/admin';
 import { AdminDetailDrawer } from '@beakerstack/admin/web';
 import { supabase } from '../../lib/supabase';
 import { adminProductId } from '../adminUsageColumns';
@@ -18,19 +23,30 @@ export function AdminUserDetailDrawer({
   title,
   open,
   onClose,
+  currentUserId,
+  onAccessChanged,
 }: {
   userId: string | null;
   title: string;
   open: boolean;
   onClose: () => void;
+  currentUserId?: string | null;
+  onAccessChanged?: () => void;
 }) {
   const [detail, setDetail] = useState<AdminUserDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [actionPending, setActionPending] = useState<
+    'grant' | 'revoke' | null
+  >(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open || !userId) {
       setDetail(null);
+      setActionPending(null);
+      setActionError(null);
       return;
     }
     let cancelled = false;
@@ -52,6 +68,44 @@ export function AdminUserDetailDrawer({
       cancelled = true;
     };
   }, [open, userId]);
+
+  const refreshDetail = async () => {
+    if (!userId) return;
+    try {
+      const d = await getUser(supabase, userId, adminProductId);
+      setDetail(d);
+    } catch {
+      // ignore refresh errors — stale detail is better than losing context
+    }
+  };
+
+  const handleConfirmAction = async () => {
+    if (!userId || !actionPending) return;
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      if (actionPending === 'grant') {
+        await grantOperator(supabase, userId);
+      } else {
+        await revokeOperator(supabase, userId);
+      }
+      setActionPending(null);
+      await refreshDetail();
+      onAccessChanged?.();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Action failed';
+      setActionError(
+        msg === 'cannot_self_revoke'
+          ? "You can't revoke your own admin access"
+          : msg
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const isSelf =
+    userId !== null && currentUserId !== null && userId === currentUserId;
 
   return (
     <AdminDetailDrawer open={open} title={title} onClose={onClose}>
@@ -80,6 +134,109 @@ export function AdminUserDetailDrawer({
               </div>
             </dl>
           </section>
+
+          <section>
+            <h3 className='font-semibold text-gray-900'>Operator access</h3>
+            <div className='mt-2 space-y-3'>
+              {detail.admin.is_admin ? (
+                <>
+                  <div className='flex flex-wrap items-center gap-2 text-gray-600'>
+                    <span className='inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20'>
+                      Admin
+                    </span>
+                    {detail.admin.granted_by_email && (
+                      <span className='text-xs text-gray-500'>
+                        granted by {detail.admin.granted_by_email}
+                      </span>
+                    )}
+                    {detail.admin.granted_at && (
+                      <span className='text-xs text-gray-400'>
+                        {formatDate(detail.admin.granted_at)}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type='button'
+                    disabled={currentUserId == null || isSelf || actionLoading}
+                    title={
+                      isSelf
+                        ? "You can't revoke your own admin access"
+                        : undefined
+                    }
+                    className='rounded bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50'
+                    onClick={() => setActionPending('revoke')}
+                  >
+                    Revoke admin access
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className='text-xs text-gray-500'>No admin access</p>
+                  <button
+                    type='button'
+                    disabled={actionLoading}
+                    className='rounded bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50'
+                    onClick={() => setActionPending('grant')}
+                  >
+                    Grant admin access
+                  </button>
+                </>
+              )}
+              {actionError && (
+                <p className='text-xs text-red-600' role='alert'>
+                  {actionError}
+                </p>
+              )}
+            </div>
+          </section>
+
+          {actionPending && (
+            <div
+              role='dialog'
+              aria-modal='true'
+              aria-labelledby='confirm-dialog-title'
+              className='fixed inset-0 z-50 flex items-center justify-center bg-black/40'
+              data-testid='confirm-dialog'
+            >
+              <div className='w-80 rounded-lg bg-white p-6 shadow-xl'>
+                <h4 id='confirm-dialog-title' className='text-sm font-semibold text-gray-900'>
+                  {actionPending === 'grant'
+                    ? 'Grant admin access'
+                    : 'Revoke admin access'}
+                </h4>
+                <p className='mt-2 text-sm text-gray-600'>
+                  {actionPending === 'grant'
+                    ? `Grant admin access to ${detail.auth.email ?? 'this user'}?`
+                    : `Revoke admin access from ${detail.auth.email ?? 'this user'}?`}
+                </p>
+                <div className='mt-4 flex justify-end gap-3'>
+                  <button
+                    type='button'
+                    disabled={actionLoading}
+                    className='rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50'
+                    onClick={() => {
+                      setActionPending(null);
+                      setActionError(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type='button'
+                    disabled={actionLoading}
+                    className={`rounded px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 ${
+                      actionPending === 'grant'
+                        ? 'bg-indigo-600 hover:bg-indigo-700'
+                        : 'bg-red-600 hover:bg-red-700'
+                    }`}
+                    onClick={() => void handleConfirmAction()}
+                  >
+                    {actionLoading ? 'Please wait…' : 'Confirm'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {detail.profile && (
             <section>

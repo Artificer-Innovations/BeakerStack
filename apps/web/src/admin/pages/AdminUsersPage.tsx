@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { AdminUserListRow } from '@beakerstack/admin';
 import {
   AdminPagination,
@@ -9,6 +9,7 @@ import {
 import { AdminUserDetailDrawer } from '../components/AdminUserDetailDrawer.web';
 import { getAdminUsageMeterKeys } from '../adminUsageColumns';
 import { useAdminUsers } from '../hooks/useAdminUsers';
+import { supabase } from '../../lib/supabase';
 
 function formatDate(value: string | null | undefined) {
   if (!value) return '—';
@@ -36,10 +37,18 @@ export default function AdminUsersPage() {
     data,
     loading,
     error,
+    reload,
   } = useAdminUsers();
 
   const [selected, setSelected] = useState<AdminUserListRow | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const meterKeys = useMemo(() => getAdminUsageMeterKeys(), []);
+
+  useEffect(() => {
+    void supabase.auth
+      .getUser()
+      .then(({ data: d }) => setCurrentUserId(d.user?.id ?? null));
+  }, []);
 
   const columns = useMemo((): AdminTableColumn<AdminUserListRow>[] => {
     const base: AdminTableColumn<AdminUserListRow>[] = [
@@ -47,6 +56,16 @@ export default function AdminUsersPage() {
         id: 'email',
         header: 'Email',
         cell: row => <span className='font-medium'>{row.email ?? '—'}</span>,
+      },
+      {
+        id: 'admin',
+        header: 'Admin',
+        cell: row =>
+          row.is_admin ? (
+            <span data-testid='admin-badge' className='inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20'>
+              Admin
+            </span>
+          ) : null,
       },
       {
         id: 'display_name',
@@ -165,7 +184,10 @@ export default function AdminUsersPage() {
         userId={selected?.user_id ?? null}
         title={selected?.email ?? 'User'}
         onClose={() => setSelected(null)}
+        currentUserId={currentUserId}
+        onAccessChanged={reload}
       />
     </div>
   );
 }
+
