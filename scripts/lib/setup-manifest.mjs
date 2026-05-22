@@ -28,6 +28,20 @@ export const GITHUB_SECRETS = [
   },
   {
     type: 'secret',
+    name: 'SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID',
+    envKeys: ['SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID'],
+    optional: true,
+    group: 'oauth',
+  },
+  {
+    type: 'secret',
+    name: 'SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET',
+    envKeys: ['SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET'],
+    optional: true,
+    group: 'oauth',
+  },
+  {
+    type: 'secret',
     name: 'AWS_ACCESS_KEY_ID',
     envKeys: ['AWS_ACCESS_KEY_ID'],
     group: 'aws',
@@ -502,6 +516,7 @@ const GITHUB_CI_DETAIL_GROUP_ORDER = /** @type {Record<string, number>} */ ({
   preview: 4,
   expo: 5,
   google: 6,
+  oauth: 7,
 });
 
 /**

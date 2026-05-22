@@ -192,7 +192,7 @@ Password reset and magic link emails link to the web `/auth/confirm` page. On mo
 
 ## Hosted environments (CI/CD)
 
-Deploy workflows **optionally** push auth email settings after `supabase db push`. The sync step runs **only when** `RESEND_SMTP_PASS` is set (typically after `npm run setup:email` and the **github** phase syncs the send-only key from `.env.local`).
+Deploy workflows **optionally** push auth email settings after `supabase db push`. The sync step runs **only when** `RESEND_SMTP_PASS` **and** `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` / `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` are set (typically after `npm run setup:full` google + github phases). If either gate is missing, deploys skip config push and keep existing Supabase dashboard settings.
 
 | Environment | Workflow                     | `SUPABASE_AUTH_SITE_URL` (derived)                       |
 | ----------- | ---------------------------- | -------------------------------------------------------- |
@@ -202,16 +202,18 @@ Deploy workflows **optionally** push auth email settings after `supabase db push
 
 Site URLs use the same `PR_PREVIEW_DOMAIN` repository variable as web deploy (`deploy-web.sh` / deploy workflows). No sync runs for forks that skip `setup:email`.
 
-The script runs `supabase link` + `supabase config push`, applying `site_url`, redirect allow-list, HTML templates, subjects, `enable_confirmations`, and SMTP from committed `supabase/config.toml`.
+The script runs `supabase link` + `supabase config push`, applying `site_url`, redirect allow-list, HTML templates, subjects, `enable_confirmations`, SMTP, and **Google OAuth** from committed `supabase/config.toml`. Unset Google env vars during push would wipe hosted OAuth — the script and workflows refuse to run without them.
 
-**GitHub configuration** (after `npm run setup:email` or manual Resend setup):
+**GitHub configuration** (after `npm run setup:full` or manual setup):
 
-| Kind     | Name                | Purpose                                                                                      |
-| -------- | ------------------- | -------------------------------------------------------------------------------------------- |
-| Secret   | `RESEND_SMTP_PASS`  | **Gate +** send-only Resend API key (SMTP password) for all environments — unset = skip sync |
-| Variable | `PR_PREVIEW_DOMAIN` | Apex domain (e.g. `beakerstack.com`) — used to build auth site URLs                          |
-| Variable | `SMTP_ADMIN_EMAIL`  | From address (verified in Resend)                                                            |
-| Variable | `SMTP_SENDER_NAME`  | Display name                                                                                 |
+| Kind     | Name                                      | Purpose                                                                                      |
+| -------- | ----------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Secret   | `RESEND_SMTP_PASS`                        | **Gate +** send-only Resend API key (SMTP password) for all environments — unset = skip sync |
+| Secret   | `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` | **Gate +** Google OAuth web client ID for config push (setup wizard **google** phase)        |
+| Secret   | `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`    | **Gate +** Google OAuth client secret for config push                                        |
+| Variable | `PR_PREVIEW_DOMAIN`                       | Apex domain (e.g. `beakerstack.com`) — used to build auth site URLs                          |
+| Variable | `SMTP_ADMIN_EMAIL`                        | From address (verified in Resend)                                                            |
+| Variable | `SMTP_SENDER_NAME`                        | Display name                                                                                 |
 
 Workflows set `SMTP_HOST=smtp.resend.com`, `SMTP_USER=resend`, port `587`. Preview deploys also set `SUPABASE_ADDITIONAL_REDIRECT_URL` to `https://deploy.<domain>/pr-N/auth/confirm`.
 

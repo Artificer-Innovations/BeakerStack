@@ -424,7 +424,10 @@ export function printGooglePhaseReadinessBriefing(ctx) {
     '  • The wizard reads **google-services.json** and stores **GOOGLE_SERVICES_*** for GitHub Actions.'
   );
   logInfo(
-    '  • Web + Supabase Google OAuth (client id/secret in Supabase) is separate — see OAUTH.md.'
+    '  • Web + Supabase Google OAuth (client id/secret in Supabase) is configured **in this same phase** after the optional google-services.json import.'
+  );
+  logInfo(
+    '  • Credentials sync to GitHub as SUPABASE_AUTH_EXTERNAL_GOOGLE_* for hosted config push (see docs/OAUTH.md).'
   );
   logInfo('');
   logInfo('If you want mobile Google Sign-In in CI, have ready:');

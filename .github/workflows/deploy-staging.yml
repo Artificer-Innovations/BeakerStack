@@ -59,13 +59,13 @@ jobs:
         run: |
           set -euo pipefail
           cd supabase
-          
+
           # Link to staging Supabase project
           supabase link \
             --project-ref "${STAGING_SUPABASE_PROJECT_REF}" \
             --password "${STAGING_SUPABASE_DB_PASSWORD}" \
             --yes
-          
+
           # Apply only new migrations (does not reset existing data)
           supabase db push --linked
 
@@ -77,15 +77,22 @@ jobs:
           STAGING_SUPABASE_DB_PASSWORD: ${{ secrets.STAGING_SUPABASE_DB_PASSWORD }}
           SUPABASE_AUTH_SITE_URL: ${{ format('https://staging.{0}', vars.PR_PREVIEW_DOMAIN) }}
           SMTP_HOST: smtp.resend.com
-          SMTP_PORT: "587"
+          SMTP_PORT: '587'
           SMTP_USER: resend
           SMTP_PASS: ${{ secrets.RESEND_SMTP_PASS }}
           SMTP_ADMIN_EMAIL: ${{ vars.SMTP_ADMIN_EMAIL }}
           SMTP_SENDER_NAME: ${{ vars.SMTP_SENDER_NAME }}
+          SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ${{ secrets.SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID }}
+          SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ${{ secrets.SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET }}
         run: |
           set -euo pipefail
           if [ -z "${SMTP_PASS:-}" ]; then
             echo "Skipping Supabase auth email config: RESEND_SMTP_PASS is not set."
+            exit 0
+          fi
+          if [ -z "${SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID:-}" ] || [ -z "${SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET:-}" ]; then
+            echo "Skipping Supabase auth email config: SUPABASE_AUTH_EXTERNAL_GOOGLE_* secrets are not set."
+            echo "  Run npm run setup:full (google phase) or: gh secret set SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID"
             exit 0
           fi
           ./scripts/sync-supabase-auth-config.sh \
@@ -142,7 +149,6 @@ jobs:
             KIT_CRON_SECRET="${STAGING_KIT_CRON_SECRET}"
           supabase functions deploy stripe-webhook billing-stripe waitlist-capture waitlist-ops kit-sync \
             --project-ref "${STAGING_SUPABASE_PROJECT_REF}"
-
 
       - name: Ensure kit-sync cron job (staging)
         env:
