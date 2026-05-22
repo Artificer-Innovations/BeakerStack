@@ -2,6 +2,8 @@ export {
   checkIsAdmin,
   listUsers,
   getUser,
+  grantOperator,
+  revokeOperator,
   recordAuditEvent,
   type ListUsersParams,
 } from './adminClient.js';
@@ -15,3 +17,4 @@ export type {
   AdminNavItem,
   RecordAuditEventInput,
 } from './types.js';
+
