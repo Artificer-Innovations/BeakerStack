@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
+import { AppHeaderWithAdmin } from '../components/AppHeaderWithAdmin';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 import { useDemoCollections } from '@/billing/useDemoCollections';
-import { supabase } from '@/lib/supabase';
 import { AnnotatedPrimitive } from '@/components/dashboard/AnnotatedPrimitive';
 import { BooleanFeatureTiles } from '@/components/dashboard/BooleanFeatureTiles';
 import { CollectionDetail } from '@/components/dashboard/CollectionDetail';
@@ -61,7 +60,7 @@ export default function DashboardPage() {
 
   return (
     <div className='min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col'>
-      <AppHeader supabaseClient={supabase} />
+      <AppHeaderWithAdmin />
 
       <ContentContainer as='main' className='flex-1 py-6 space-y-6'>
         <DemoBanner />

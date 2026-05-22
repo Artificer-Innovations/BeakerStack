@@ -1,12 +1,11 @@
 import { Link } from 'react-router-dom';
-import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
-import { supabase } from '@/lib/supabase';
+import { AppHeaderWithAdmin } from '../components/AppHeaderWithAdmin';
 
 export default function NotAuthorizedPage() {
   return (
     <div className='min-h-screen bg-gray-50'>
-      <AppHeader supabaseClient={supabase} />
+      <AppHeaderWithAdmin />
       <ContentContainer className='py-16'>
         <div className='mx-auto max-w-md rounded-lg bg-white p-8 shadow-sm border border-gray-200 text-center'>
           <h1 className='text-xl font-semibold text-gray-900'>

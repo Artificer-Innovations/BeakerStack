@@ -2,7 +2,7 @@ import { BillingProvider } from '@beakerstack/billing';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
-import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
+import { AppHeaderWithAdmin } from '../components/AppHeaderWithAdmin';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 import { MIN_PASSWORD_LENGTH } from '@beakerstack/shared/constants/auth';
 import { supabase } from '@/lib/supabase';
@@ -157,7 +157,7 @@ function SignupPageContent() {
   if (awaitingEmail) {
     return (
       <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
-        <AppHeader supabaseClient={supabase} />
+        <AppHeaderWithAdmin />
         <ContentContainer className='py-12'>
           <div className='mx-auto max-w-md rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-sm'>
             <h2 className='text-xl font-semibold text-gray-900 dark:text-white'>
@@ -186,7 +186,7 @@ function SignupPageContent() {
 
   return (
     <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
-      <AppHeader supabaseClient={supabase} />
+      <AppHeaderWithAdmin />
       <ContentContainer className='py-12'>
         <div
           className={

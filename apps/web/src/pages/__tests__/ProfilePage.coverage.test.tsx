@@ -55,8 +55,8 @@ vi.mock('@/lib/supabase', () => ({
   supabase: { auth: { signOut: vi.fn() } },
 }));
 
-vi.mock('@beakerstack/shared/components/navigation/AppHeader.web', () => ({
-  AppHeader: () => <header data-testid='app-header'>Header</header>,
+vi.mock('@/components/AppHeaderWithAdmin', () => ({
+  AppHeaderWithAdmin: () => <header data-testid='app-header'>Header</header>,
 }));
 
 vi.mock('@beakerstack/shared/components/profile/ProfileHeader.web', () => ({

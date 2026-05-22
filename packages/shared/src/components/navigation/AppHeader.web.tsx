@@ -9,13 +9,17 @@ import { ContentContainer } from '../layout/ContentContainer.web';
 
 export interface AppHeaderProps {
   supabaseClient: SupabaseClient;
+  showAdminLink?: boolean;
 }
 
 /**
  * AppHeader component for web
  * Displays app icon, title, and navigation based on auth state
  */
-export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
+export function AppHeader({
+  supabaseClient: _supabaseClient,
+  showAdminLink = false,
+}: AppHeaderProps) {
   const auth = useAuthContext();
   const profile = useProfileContext();
   const [scrolled, setScrolled] = useState(false);
@@ -72,7 +76,11 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
           {/* Right side: Auth buttons or user menu */}
           <div className='flex items-center space-x-4'>
             {auth.user ? (
-              <UserMenu user={auth.user} profile={profile.profile} />
+              <UserMenu
+                user={auth.user}
+                profile={profile.profile}
+                showAdminLink={showAdminLink}
+              />
             ) : (
               <>
                 <Link

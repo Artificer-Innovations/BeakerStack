@@ -356,4 +356,59 @@ describe('UserMenu (Web)', () => {
     );
     expect(screen.queryByText('test@example.com')).not.toBeInTheDocument();
   });
+
+  it('should show Admin link when showAdminLink is true', async () => {
+    renderWithProviders(
+      <UserMenu user={mockUser} profile={mockProfile} showAdminLink={true} />
+    );
+    fireEvent.click(screen.getByLabelText('User menu'));
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: 'Admin' })).toBeInTheDocument()
+    );
+    expect(screen.getByRole('link', { name: 'Admin' })).toHaveAttribute(
+      'href',
+      '/admin'
+    );
+  });
+
+  it('should not show Admin link when showAdminLink is false', async () => {
+    renderWithProviders(
+      <UserMenu user={mockUser} profile={mockProfile} showAdminLink={false} />
+    );
+    fireEvent.click(screen.getByLabelText('User menu'));
+    await waitFor(() =>
+      expect(screen.getByText('Dashboard')).toBeInTheDocument()
+    );
+    expect(
+      screen.queryByRole('link', { name: 'Admin' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('should not show Admin link when showAdminLink is omitted', async () => {
+    renderWithProviders(<UserMenu user={mockUser} profile={mockProfile} />);
+    fireEvent.click(screen.getByLabelText('User menu'));
+    await waitFor(() =>
+      expect(screen.getByText('Dashboard')).toBeInTheDocument()
+    );
+    expect(
+      screen.queryByRole('link', { name: 'Admin' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('should close menu when Admin link is clicked', async () => {
+    renderWithProviders(
+      <UserMenu user={mockUser} profile={mockProfile} showAdminLink={true} />
+    );
+    fireEvent.click(screen.getByLabelText('User menu'));
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: 'Admin' })).toBeInTheDocument()
+    );
+    fireEvent.click(screen.getByRole('link', { name: 'Admin' }));
+    await waitFor(() => {
+      expect(screen.getByLabelText('User menu')).toHaveAttribute(
+        'aria-expanded',
+        'false'
+      );
+    });
+  });
 });

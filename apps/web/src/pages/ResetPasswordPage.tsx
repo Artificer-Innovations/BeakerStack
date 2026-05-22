@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
-import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
+import { AppHeaderWithAdmin } from '../components/AppHeaderWithAdmin';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 import { MIN_PASSWORD_LENGTH } from '@beakerstack/shared/constants/auth';
 import { supabase } from '@/lib/supabase';
@@ -89,7 +89,7 @@ export default function ResetPasswordPage() {
 
   return (
     <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
-      <AppHeader supabaseClient={supabase} />
+      <AppHeaderWithAdmin />
       <ContentContainer className='py-12'>
         <div className='w-full max-w-md mx-auto space-y-8'>
           <div>
