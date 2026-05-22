@@ -93,8 +93,23 @@ vi.mock('../hooks/useAdminUsers', () => ({
 }));
 
 vi.mock('../components/AdminUserDetailDrawer.web', () => ({
-  AdminUserDetailDrawer: ({ open, title }: { open: boolean; title: string }) =>
-    open ? <div data-testid='detail-drawer'>{title}</div> : null,
+  AdminUserDetailDrawer: ({
+    open,
+    title,
+    onClose,
+  }: {
+    open: boolean;
+    title: string;
+    onClose: () => void;
+  }) =>
+    open ? (
+      <div data-testid='detail-drawer'>
+        {title}
+        <button type='button' onClick={onClose}>
+          Close drawer
+        </button>
+      </div>
+    ) : null,
 }));
 
 describe('AdminUsersPage', () => {
@@ -148,9 +163,13 @@ describe('AdminUsersPage', () => {
   });
 
   it('shows admin badge for admin user', async () => {
-    const baseUser = mockUseAdminUsers.data!.users[0]!;
+    const currentData = mockUseAdminUsers.data;
+    const baseUser = currentData?.users[0];
+    if (!currentData || !baseUser) {
+      throw new Error('expected mock user data');
+    }
     mockUseAdminUsers.data = {
-      ...mockUseAdminUsers.data!,
+      ...currentData,
       users: [{ ...baseUser, is_admin: true }],
     };
     render(
@@ -182,6 +201,30 @@ describe('AdminUsersPage', () => {
     expect(screen.getByTestId('detail-drawer')).toHaveTextContent(
       'user@example.com'
     );
+  });
+
+  it('closes the detail drawer when onClose fires', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+    await user.click(screen.getByText('user@example.com'));
+    expect(screen.getByTestId('detail-drawer')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /close drawer/i }));
+    expect(screen.queryByTestId('detail-drawer')).not.toBeInTheDocument();
+  });
+
+  it('forwards search input to setSearch via onChange', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>
+    );
+    await user.type(screen.getByPlaceholderText(/search/i), 'a');
+    expect(mockUseAdminUsers.setSearch).toHaveBeenCalled();
   });
 
   it('calls toggleSort when signup header clicked', async () => {
