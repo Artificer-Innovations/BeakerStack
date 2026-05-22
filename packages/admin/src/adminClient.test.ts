@@ -39,6 +39,11 @@ describe('adminClient', () => {
     await expect(checkIsAdmin(sb)).rejects.toThrow('fail');
   });
 
+  it('checkIsAdmin throws default message when RPC error has no message', async () => {
+    const sb = mockSupabase(() => null, { error: {} as { message: string } });
+    await expect(checkIsAdmin(sb)).rejects.toThrow('RPC request failed');
+  });
+
   it('listUsers returns null on not_found', async () => {
     const sb = mockSupabase(name =>
       name === 'admin_list_users' ? { error: 'not_found' } : null
@@ -54,6 +59,14 @@ describe('adminClient', () => {
     expect(result?.limit).toBe(10);
     expect(result?.offset).toBe(5);
     expect(result?.total).toBe(2);
+  });
+
+  it('listUsers defaults users to empty array when users field omitted', async () => {
+    const sb = mockSupabase(name =>
+      name === 'admin_list_users' ? { total: 0, limit: 25, offset: 0 } : null
+    );
+    const result = await listUsers(sb);
+    expect(result?.users).toEqual([]);
   });
 
   it('listUsers parses users payload', async () => {
@@ -128,6 +141,11 @@ describe('adminClient', () => {
     });
   });
 
+  it('getUser throws default message when RPC error has no message', async () => {
+    const sb = mockSupabase(() => null, { error: {} as { message: string } });
+    await expect(getUser(sb, 'u1')).rejects.toThrow('RPC request failed');
+  });
+
   it('recordAuditEvent calls RPC with target and details', async () => {
     const sb = mockSupabase(name =>
       name === 'admin_record_audit_event' ? null : null
@@ -197,9 +215,7 @@ describe('adminClient', () => {
 
   it('revokeOperator throws cannot_self_revoke when RPC returns that code', async () => {
     const sb = mockSupabase(name =>
-      name === 'admin_revoke_operator'
-        ? { error: 'cannot_self_revoke' }
-        : null
+      name === 'admin_revoke_operator' ? { error: 'cannot_self_revoke' } : null
     );
     await expect(revokeOperator(sb, 'self')).rejects.toThrow(
       'cannot_self_revoke'

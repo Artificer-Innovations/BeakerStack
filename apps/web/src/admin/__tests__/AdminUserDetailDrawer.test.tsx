@@ -143,7 +143,9 @@ describe('AdminUserDetailDrawer', () => {
       <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
     );
     await screen.findByText('Admin');
-    expect(screen.getByText('owner@example.com', { exact: false })).toBeInTheDocument();
+    expect(
+      screen.getByText('owner@example.com', { exact: false })
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /revoke admin access/i })
     ).toBeInTheDocument();
@@ -180,9 +182,13 @@ describe('AdminUserDetailDrawer', () => {
       <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
     );
     await screen.findByText('No admin access');
-    await user.click(screen.getByRole('button', { name: /grant admin access/i }));
+    await user.click(
+      screen.getByRole('button', { name: /grant admin access/i })
+    );
     expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument();
-    expect(screen.getByText(/grant admin access to user@example.com/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/grant admin access to user@example.com/i)
+    ).toBeInTheDocument();
   });
 
   it('confirm grant calls grantOperator and refreshes detail', async () => {
@@ -202,7 +208,9 @@ describe('AdminUserDetailDrawer', () => {
       />
     );
     await screen.findByText('No admin access');
-    await user.click(screen.getByRole('button', { name: /grant admin access/i }));
+    await user.click(
+      screen.getByRole('button', { name: /grant admin access/i })
+    );
     await user.click(screen.getByRole('button', { name: /^confirm$/i }));
 
     await waitFor(() =>
@@ -239,10 +247,251 @@ describe('AdminUserDetailDrawer', () => {
       <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
     );
     await screen.findByText('No admin access');
-    await user.click(screen.getByRole('button', { name: /grant admin access/i }));
+    await user.click(
+      screen.getByRole('button', { name: /grant admin access/i })
+    );
     expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /cancel/i }));
     expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument();
     expect(mockGrantOperator).not.toHaveBeenCalled();
+  });
+
+  it('confirm revoke calls revokeOperator and refreshes detail', async () => {
+    const user = userEvent.setup();
+    const onAccessChanged = vi.fn();
+    mockGetUser
+      .mockResolvedValueOnce(adminDetail)
+      .mockResolvedValueOnce(sampleDetail);
+
+    render(
+      <AdminUserDetailDrawer
+        open
+        userId='u1'
+        title='User'
+        onClose={vi.fn()}
+        currentUserId='other-user'
+        onAccessChanged={onAccessChanged}
+      />
+    );
+    await screen.findByText('Admin');
+    await user.click(
+      screen.getByRole('button', { name: /revoke admin access/i })
+    );
+    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+
+    await waitFor(() =>
+      expect(mockRevokeOperator).toHaveBeenCalledWith(expect.anything(), 'u1')
+    );
+    expect(onAccessChanged).toHaveBeenCalled();
+  });
+
+  it('shows friendly message when revoke returns cannot_self_revoke', async () => {
+    const user = userEvent.setup();
+    mockGetUser.mockResolvedValue(adminDetail);
+    mockRevokeOperator.mockRejectedValueOnce(new Error('cannot_self_revoke'));
+
+    render(
+      <AdminUserDetailDrawer
+        open
+        userId='u1'
+        title='User'
+        onClose={vi.fn()}
+        currentUserId='other-user'
+      />
+    );
+    await screen.findByText('Admin');
+    await user.click(
+      screen.getByRole('button', { name: /revoke admin access/i })
+    );
+    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+
+    expect(
+      await screen.findByText("You can't revoke your own admin access")
+    ).toBeInTheDocument();
+  });
+
+  it('shows generic action error for non-Error rejections', async () => {
+    const user = userEvent.setup();
+    mockGrantOperator.mockRejectedValueOnce('nope');
+
+    render(
+      <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
+    );
+    await screen.findByText('No admin access');
+    await user.click(
+      screen.getByRole('button', { name: /grant admin access/i })
+    );
+    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+
+    expect(await screen.findByText('Action failed')).toBeInTheDocument();
+  });
+
+  it('shows non-Error load failure message', async () => {
+    mockGetUser.mockRejectedValueOnce('denied');
+    render(
+      <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('Failed to load user')
+    );
+  });
+
+  it('revoke button stays disabled while currentUserId is unknown', async () => {
+    mockGetUser.mockResolvedValue(adminDetail);
+    render(
+      <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
+    );
+    await screen.findByText('Admin');
+    expect(
+      screen.getByRole('button', { name: /revoke admin access/i })
+    ).toBeDisabled();
+  });
+
+  it('confirm dialog uses fallback label when email is missing', async () => {
+    const user = userEvent.setup();
+    mockGetUser.mockResolvedValue({
+      ...sampleDetail,
+      auth: { ...sampleDetail.auth, email: null },
+    });
+
+    render(
+      <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
+    );
+    await screen.findByText('No admin access');
+    await user.click(
+      screen.getByRole('button', { name: /grant admin access/i })
+    );
+
+    expect(
+      screen.getByText(/grant admin access to this user/i)
+    ).toBeInTheDocument();
+  });
+
+  it('omits profile section when profile is null', async () => {
+    mockGetUser.mockResolvedValue({ ...sampleDetail, profile: null });
+    render(
+      <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
+    );
+    await screen.findByText('Pro');
+    expect(screen.queryByText('Display name')).not.toBeInTheDocument();
+  });
+
+  it('shows billing fallbacks and usage metadata defaults', async () => {
+    mockGetUser.mockResolvedValue({
+      ...sampleDetail,
+      profile: null,
+      plan: null,
+      subscription: { plan_id: 'beakerstack_free', status: null },
+      usage_aggregates: [{ event_type: null, count: null }],
+      usage_events: [
+        { event_type: 'ai_summarize', quantity: null, created_at: null },
+      ],
+      invoices: [{ id: 'inv2', created_at: null }],
+    });
+
+    render(
+      <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
+    );
+    await screen.findByText('beakerstack_free');
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+    expect(screen.getByText('×1')).toBeInTheDocument();
+  });
+
+  it('shows admin metadata without granter when not recorded', async () => {
+    mockGetUser.mockResolvedValue({
+      ...adminDetail,
+      admin: {
+        is_admin: true,
+        granted_at: null,
+        granted_by_email: null,
+      },
+    });
+
+    render(
+      <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
+    );
+    await screen.findByText('Admin');
+    expect(screen.queryByText(/granted by/i)).not.toBeInTheDocument();
+  });
+
+  it('ignores refresh errors after a successful grant', async () => {
+    const user = userEvent.setup();
+    mockGetUser
+      .mockResolvedValueOnce(sampleDetail)
+      .mockRejectedValueOnce(new Error('refresh failed'));
+
+    render(
+      <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
+    );
+    await screen.findByText('No admin access');
+    await user.click(
+      screen.getByRole('button', { name: /grant admin access/i })
+    );
+    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+
+    await waitFor(() => expect(mockGrantOperator).toHaveBeenCalled());
+    expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument();
+  });
+
+  it('falls back to raw date string when formatDate throws', async () => {
+    mockGetUser.mockResolvedValue({
+      ...sampleDetail,
+      auth: { ...sampleDetail.auth, created_at: 'bad-date' },
+    });
+    const original = Date.prototype.toLocaleString;
+    Date.prototype.toLocaleString = function () {
+      throw new Error('bad date');
+    };
+    try {
+      render(
+        <AdminUserDetailDrawer
+          open
+          userId='u1'
+          title='User'
+          onClose={vi.fn()}
+        />
+      );
+      expect(await screen.findByText('bad-date')).toBeInTheDocument();
+    } finally {
+      Date.prototype.toLocaleString = original;
+    }
+  });
+
+  it('revoke confirm uses fallback label when email is missing', async () => {
+    const user = userEvent.setup();
+    mockGetUser.mockResolvedValue({
+      ...adminDetail,
+      auth: { ...adminDetail.auth, email: null },
+    });
+
+    render(
+      <AdminUserDetailDrawer
+        open
+        userId='u1'
+        title='User'
+        onClose={vi.fn()}
+        currentUserId='other-user'
+      />
+    );
+    await screen.findByText('Admin');
+    await user.click(
+      screen.getByRole('button', { name: /revoke admin access/i })
+    );
+    expect(
+      screen.getByText(/revoke admin access from this user/i)
+    ).toBeInTheDocument();
+  });
+
+  it('shows profile field fallbacks when values are missing', async () => {
+    mockGetUser.mockResolvedValue({
+      ...sampleDetail,
+      profile: { display_name: null, username: null },
+    });
+    render(
+      <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
+    );
+    await screen.findByText('Profile');
+    const dashes = screen.getAllByText('—');
+    expect(dashes.length).toBeGreaterThan(0);
   });
 });
