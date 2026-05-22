@@ -15,9 +15,22 @@ export function scrubEmail(str: string): string {
 }
 
 const SENSITIVE_KEYS = new Set([
-  'password', 'passwd', 'secret', 'token', 'access_token', 'refresh_token',
-  'api_key', 'apikey', 'authorization', 'auth', 'credential', 'private_key',
-  'email', 'ssn', 'credit_card', 'card_number',
+  'password',
+  'passwd',
+  'secret',
+  'token',
+  'access_token',
+  'refresh_token',
+  'api_key',
+  'apikey',
+  'authorization',
+  'auth',
+  'credential',
+  'private_key',
+  'email',
+  'ssn',
+  'credit_card',
+  'card_number',
 ]);
 
 export function scrubRequest(body: unknown): unknown {

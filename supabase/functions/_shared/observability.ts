@@ -27,7 +27,7 @@ export function initEdgeObservability(config: EdgeObservabilityConfig): void {
 export function withEdgeScope(
   handler: (req: Request) => Promise<Response>
 ): (req: Request) => Promise<Response> {
-  return (req) => handler(req);
+  return req => handler(req);
 }
 
 export function captureEdgeException(err: unknown): void {

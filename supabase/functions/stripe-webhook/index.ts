@@ -404,7 +404,11 @@ async function processStripeEvent(
               row.product_id,
               lifecycleEvent,
               userEmail,
-              { user_id: row.user_id, plan_id: finalPlanId, status: finalStatus },
+              {
+                user_id: row.user_id,
+                plan_id: finalPlanId,
+                status: finalStatus,
+              },
               `${lifecycleEvent}:${event.id}`
             );
           }

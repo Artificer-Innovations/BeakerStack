@@ -14,14 +14,16 @@ const mockHandle: ObservabilityHandle = {
   captureMessage: () => {},
   setUser: () => {},
   addBreadcrumb: () => {},
-  withScope: (fn) => fn(null),
+  withScope: fn => fn(null),
   startSpan: (_name, fn) => fn(),
 };
 
 describe('useObservability', () => {
   it('throws when outside provider', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(() => render(<Consumer />)).toThrow('useObservability must be called inside');
+    expect(() => render(<Consumer />)).toThrow(
+      'useObservability must be called inside'
+    );
     spy.mockRestore();
   });
 

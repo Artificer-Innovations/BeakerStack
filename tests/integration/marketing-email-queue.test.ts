@@ -67,7 +67,9 @@ describe('Marketing Email Queue — Integration Tests', () => {
       expect(row?.email).toBe(email);
       expect(row?.status).toBe('pending');
       expect(row?.attempts).toBe(0);
-      expect(row?.payload).toMatchObject({ metadata: { source: 'integration-test' } });
+      expect(row?.payload).toMatchObject({
+        metadata: { source: 'integration-test' },
+      });
       expect(row?.idempotency_key).toBe(idempotencyKey);
     });
 
@@ -109,10 +111,12 @@ describe('Marketing Email Queue — Integration Tests', () => {
         .eq('enabled', true)
         .neq('product_id', TEST_PRODUCT_ID);
 
-      const { error } = await admin.from('marketing_email_settings').upsert(
-        { product_id: TEST_PRODUCT_ID, enabled: true, provider: 'kit' },
-        { onConflict: 'product_id' }
-      );
+      const { error } = await admin
+        .from('marketing_email_settings')
+        .upsert(
+          { product_id: TEST_PRODUCT_ID, enabled: true, provider: 'kit' },
+          { onConflict: 'product_id' }
+        );
       expect(error).toBeNull();
     });
 

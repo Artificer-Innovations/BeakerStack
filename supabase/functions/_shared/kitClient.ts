@@ -49,7 +49,11 @@ export function signupTag(ns: string, opts?: TagSchemeOpts): string {
   return `${ns}${opts?.separator ?? DEFAULT_SEP}signup`;
 }
 
-export function tierTag(ns: string, tier: string, opts?: TagSchemeOpts): string {
+export function tierTag(
+  ns: string,
+  tier: string,
+  opts?: TagSchemeOpts
+): string {
   const sep = opts?.separator ?? DEFAULT_SEP;
   const prefix = opts?.tierPrefix ?? DEFAULT_TIER_PREFIX;
   return `${ns}${sep}${prefix}${sep}${tier}`;
@@ -59,7 +63,11 @@ export function churnedTag(ns: string, opts?: TagSchemeOpts): string {
   return `${ns}${opts?.separator ?? DEFAULT_SEP}churned`;
 }
 
-export function interestTag(ns: string, tier: string, opts?: TagSchemeOpts): string {
+export function interestTag(
+  ns: string,
+  tier: string,
+  opts?: TagSchemeOpts
+): string {
   const sep = opts?.separator ?? DEFAULT_SEP;
   return `${ns}${sep}interest${sep}${tier}`;
 }
@@ -122,14 +130,20 @@ export class KitClient {
 
   private async findTag(name: string): Promise<string | null> {
     // per_page=1: tag names are unique in Kit; single result avoids pagination.
-    const res = await this.get(`/tags?name=${encodeURIComponent(name)}&per_page=1`);
-    const tags = (res['tags'] as Array<{ id: string; name: string }> | undefined) ?? [];
+    const res = await this.get(
+      `/tags?name=${encodeURIComponent(name)}&per_page=1`
+    );
+    const tags =
+      (res['tags'] as Array<{ id: string; name: string }> | undefined) ?? [];
     return tags.find(t => t.name === name)?.id ?? null;
   }
 
   private async findSubscriberId(email: string): Promise<string | null> {
-    const res = await this.get(`/subscribers?email_address=${encodeURIComponent(email)}`);
-    const subs = (res['subscribers'] as Array<{ id: string }> | undefined) ?? [];
+    const res = await this.get(
+      `/subscribers?email_address=${encodeURIComponent(email)}`
+    );
+    const subs =
+      (res['subscribers'] as Array<{ id: string }> | undefined) ?? [];
     return subs[0]?.id ?? null;
   }
 
@@ -137,7 +151,10 @@ export class KitClient {
     return this.request('GET', path);
   }
 
-  private async post(path: string, body: unknown): Promise<Record<string, unknown>> {
+  private async post(
+    path: string,
+    body: unknown
+  ): Promise<Record<string, unknown>> {
     return this.request('POST', path, body);
   }
 

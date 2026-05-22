@@ -30,7 +30,11 @@ export interface ObservabilityHandle {
   captureException(err: unknown, context?: Record<string, unknown>): void;
   captureMessage(msg: string, level?: 'info' | 'warning' | 'error'): void;
   setUser(id: string | null): void;
-  addBreadcrumb(crumb: { message: string; category?: string; data?: Record<string, unknown> }): void;
+  addBreadcrumb(crumb: {
+    message: string;
+    category?: string;
+    data?: Record<string, unknown>;
+  }): void;
   withScope<T>(fn: (scope: unknown) => T): T;
   startSpan<T>(name: string, fn: () => T): T;
 }

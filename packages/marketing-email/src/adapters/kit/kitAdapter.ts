@@ -6,7 +6,11 @@ const KIT_API_BASE = 'https://api.kit.com/v4';
 
 // Status codes that indicate a permanent failure — the Phase 3 worker should
 // dead-letter these rather than retry (per #286 Phase 3 spec).
-const PERMANENT_STATUS_CODES = new Set(['kit_api_400', 'kit_api_404', 'kit_api_422']);
+const PERMANENT_STATUS_CODES = new Set([
+  'kit_api_400',
+  'kit_api_404',
+  'kit_api_422',
+]);
 
 export function isPermanentKitError(code: string): boolean {
   return PERMANENT_STATUS_CODES.has(code) || code === 'kit_tag_not_found';

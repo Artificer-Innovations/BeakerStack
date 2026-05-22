@@ -26,7 +26,10 @@ export async function enqueueMarketingEmail(
     .maybeSingle();
 
   if (settingsErr) {
-    console.error('enqueueMarketingEmail: settings lookup failed', settingsErr.message);
+    console.error(
+      'enqueueMarketingEmail: settings lookup failed',
+      settingsErr.message
+    );
     return;
   }
   if (!settings?.enabled) return;
