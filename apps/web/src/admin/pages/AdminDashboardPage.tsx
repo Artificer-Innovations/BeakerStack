@@ -6,7 +6,7 @@ import type { SignupMode } from '@beakerstack/waitlist';
 const SIGNUP_MODE_LABELS: Record<SignupMode, string> = {
   open: 'Open',
   waitlist: 'Waitlist',
-  invite_only: 'Invite Only',
+  invite_only: 'Invite only',
   closed: 'Closed',
 };
 

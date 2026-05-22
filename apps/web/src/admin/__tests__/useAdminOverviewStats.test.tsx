@@ -22,6 +22,16 @@ const mockListUsers = vi.mocked(listUsers);
 const mockListWaitlistEntries = vi.mocked(listWaitlistEntries);
 const mockGetSettings = vi.mocked(getAdminWaitlistSettings);
 
+const fullSettings = {
+  signup_mode: 'waitlist' as const,
+  default_plan_id: '',
+  invite_ttl_days: 7,
+  identity_match_mode: 'lenient' as const,
+  copy: {},
+  metadata_schema: [],
+  updated_at: '2024-01-01T00:00:00Z',
+};
+
 describe('useAdminOverviewStats', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -37,7 +47,7 @@ describe('useAdminOverviewStats', () => {
       limit: 1,
       offset: 0,
     });
-    mockGetSettings.mockResolvedValue({ signup_mode: 'waitlist' });
+    mockGetSettings.mockResolvedValue(fullSettings);
   });
 
   it('fetches all three stats on mount', async () => {
@@ -69,6 +79,16 @@ describe('useAdminOverviewStats', () => {
     const { result } = renderHook(() => useAdminOverviewStats());
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.signupMode).toBeNull();
+    expect(result.current.error).toBeNull();
+  });
+
+  it('handles null list RPC responses gracefully', async () => {
+    mockListUsers.mockResolvedValue(null as never);
+    mockListWaitlistEntries.mockResolvedValue(null as never);
+    const { result } = renderHook(() => useAdminOverviewStats());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.usersTotal).toBeNull();
+    expect(result.current.waitlistPending).toBeNull();
     expect(result.current.error).toBeNull();
   });
 });

@@ -73,4 +73,34 @@ describe('AdminLayoutShell', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/');
     });
   });
+
+  describe('breadcrumbs', () => {
+    it('Overview \u2192 Users for /users path', () => {
+      renderShell('/users', 'users', <p>outlet</p>);
+      const bc = screen.getByRole('navigation', { name: 'Breadcrumb' });
+      expect(within(bc).getByRole('link', { name: 'Overview' })).toHaveAttribute('href', '/admin');
+      expect(within(bc).getByText('Users')).toBeInTheDocument();
+    });
+
+    it('Overview \u2192 Waitlist for /waitlist path', () => {
+      renderShell('/waitlist', 'waitlist', <p>outlet</p>);
+      const bc = screen.getByRole('navigation', { name: 'Breadcrumb' });
+      expect(within(bc).getByRole('link', { name: 'Overview' })).toHaveAttribute('href', '/admin');
+      expect(within(bc).getByText('Waitlist')).toBeInTheDocument();
+    });
+
+    it('Overview \u2192 Waitlist Settings for /waitlist/settings path', () => {
+      renderShell('/waitlist/settings', 'waitlist/settings', <p>outlet</p>);
+      const bc = screen.getByRole('navigation', { name: 'Breadcrumb' });
+      expect(within(bc).getByRole('link', { name: 'Overview' })).toHaveAttribute('href', '/admin');
+      expect(within(bc).getByText('Waitlist Settings')).toBeInTheDocument();
+    });
+
+    it('single Overview crumb with no link on /admin root', () => {
+      renderShell('/admin', 'admin', <p>outlet</p>);
+      const bc = screen.getByRole('navigation', { name: 'Breadcrumb' });
+      expect(within(bc).getByText('Overview')).toBeInTheDocument();
+      expect(within(bc).queryByRole('link', { name: 'Overview' })).toBeNull();
+    });
+  });
 });

@@ -47,9 +47,9 @@ describe('AdminDashboardPage', () => {
         <AdminDashboardPage />
       </MemoryRouter>
     );
-    expect(screen.getByText('42 total')).toBeInTheDocument();
+    expect(screen.getByText('42 total users')).toBeInTheDocument();
     expect(screen.getByText('7 pending')).toBeInTheDocument();
-    expect(screen.getByText('Invite Only')).toBeInTheDocument();
+    expect(screen.getByText('Invite only')).toBeInTheDocument();
   });
 
   it('shows em-dash for stats while loading', () => {
@@ -65,7 +65,7 @@ describe('AdminDashboardPage', () => {
         <AdminDashboardPage />
       </MemoryRouter>
     );
-    expect(screen.getByText('\u2014 total')).toBeInTheDocument();
+    expect(screen.getByText('\u2014 total users')).toBeInTheDocument();
     expect(screen.getByText('\u2014 pending')).toBeInTheDocument();
     expect(screen.getAllByText('\u2014')).toHaveLength(1);
   });

@@ -35,8 +35,8 @@ export function useAdminOverviewStats(): AdminOverviewStats {
     ])
       .then(([usersResult, waitlistResult, settings]) => {
         if (cancelled) return;
-        setUsersTotal(usersResult.total);
-        setWaitlistPending(waitlistResult.total);
+        setUsersTotal(usersResult?.total ?? null);
+        setWaitlistPending(waitlistResult?.total ?? null);
         setSignupMode(settings?.signup_mode ?? null);
       })
       .catch((e: unknown) => {
