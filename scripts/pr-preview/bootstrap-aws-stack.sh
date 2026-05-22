@@ -586,14 +586,15 @@ list_failed_change_sets_json() {
     echo "[]"
     return 0
   fi
-  printf '%s' "${raw}" | python3 <<'PY'
-import json, sys
+  LIST_CHANGE_SETS_JSON="${raw}" python3 -c '
+import json, os, sys
 
+raw = os.environ.get("LIST_CHANGE_SETS_JSON", "")
 try:
-    data = json.load(sys.stdin)
+    data = json.loads(raw)
 except json.JSONDecodeError:
     print("[]")
-    raise SystemExit(0)
+    sys.exit(0)
 rows = []
 for x in data.get("Summaries") or []:
     if x.get("Status") == "FAILED":
@@ -605,7 +606,7 @@ for x in data.get("Summaries") or []:
             }
         )
 print(json.dumps(rows))
-PY
+'
 }
 
 preflight_collect_data() {
@@ -731,7 +732,21 @@ delete_failed_change_sets_for_stack() {
     return 0
   fi
   local names
-  names="$(printf '%s' "${raw}" | python3 -c "import json,sys; d=json.load(sys.stdin); print('\\n'.join(x.get('ChangeSetName','') for x in (d.get('Summaries')or[]) if x.get('Status')=='FAILED'))")"
+  names="$(
+    LIST_CHANGE_SETS_JSON="${raw}" python3 -c '
+import json, os, sys
+
+try:
+    data = json.loads(os.environ.get("LIST_CHANGE_SETS_JSON", ""))
+except json.JSONDecodeError:
+    sys.exit(0)
+for x in data.get("Summaries") or []:
+    if x.get("Status") == "FAILED":
+        name = x.get("ChangeSetName", "")
+        if name:
+            print(name)
+'
+  )"
   if [[ -z "${names}" ]]; then
     log "INFO" "No FAILED change sets on stack ${STACK_NAME}."
     return 0
@@ -866,6 +881,7 @@ print_deploy_diagnostics() {
     --query "sort_by(Summaries[?Status=='FAILED'], &CreationTime)[-1].ChangeSetName" \
     --output text 2>/dev/null || echo '')"
   cs_name="${cs_name//$'\t'/}"
+  cs_name="${cs_name%%$'\n'*}"
   if [[ -n "${cs_name}" && "${cs_name}" != "None" && "${cs_name}" != "null" ]]; then
     log "DIAG" "Latest FAILED change set: ${cs_name}"
     "${AWS_CLI[@]}" cloudformation describe-change-set \
@@ -880,6 +896,10 @@ print_deploy_diagnostics() {
 
 run_cloudformation_deploy() {
   build_aws_cli
+
+  log "INFO" "Removing stale FAILED change sets before deploy (if any)..."
+  delete_failed_change_sets_for_stack
+
   local deploy_cmd=(
     "${AWS_CLI[@]}" cloudformation deploy
     --template-file "${TEMPLATE_PATH}"
