@@ -34,7 +34,6 @@ test('collectSupabaseGoogleOAuthIntoAcc stores credentials from prompts', async 
   const acc = { GOOGLE_SERVICES_WEB_CLIENT_ID: 'web-client-id' };
   const rl = mockRl(['', '', '']);
   await collectSupabaseGoogleOAuthIntoAcc(
-    rl,
     async () => 'client-secret',
     async q => rl.question(q),
     acc,
@@ -48,7 +47,6 @@ test('collectSupabaseGoogleOAuthIntoAcc skip leaves acc unchanged', async () => 
   const acc = {};
   const rl = mockRl(['n']);
   await collectSupabaseGoogleOAuthIntoAcc(
-    rl,
     async () => 'secret',
     async q => rl.question(q),
     acc,
@@ -61,7 +59,6 @@ test('collectSupabaseGoogleOAuthIntoAcc drops partial id when secret skipped', a
   const acc = {};
   const rl = mockRl(['', 'my-client-id', '']);
   await collectSupabaseGoogleOAuthIntoAcc(
-    rl,
     async () => '',
     async q => rl.question(q),
     acc,

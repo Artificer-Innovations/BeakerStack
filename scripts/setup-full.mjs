@@ -2285,7 +2285,6 @@ async function phaseGoogle(flags, rl, promptInput, acc) {
   }
 
   await collectSupabaseGoogleOAuthIntoAcc(
-    rl,
     prompt => readSecretLineMaskedOrVisible(rl, promptInput, flags, prompt),
     q => rlQuestion(rl, q),
     acc,

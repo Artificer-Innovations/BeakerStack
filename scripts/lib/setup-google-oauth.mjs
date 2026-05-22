@@ -45,14 +45,12 @@ export function hasSupabaseGoogleOAuthCredentials(acc) {
 }
 
 /**
- * @param {import('node:readline/promises').Interface} rl
  * @param {(line: string) => Promise<string>} promptSecret
  * @param {(q: string) => Promise<string>} question
  * @param {Record<string, string>} acc
  * @param {{ logInfo?: (m: string) => void; logWarn?: (m: string) => void; dryRun?: boolean }} opts
  */
 export async function collectSupabaseGoogleOAuthIntoAcc(
-  rl,
   promptSecret,
   question,
   acc,
