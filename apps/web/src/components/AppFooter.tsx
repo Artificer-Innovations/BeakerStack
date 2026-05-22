@@ -8,7 +8,7 @@ export function AppFooter() {
 
   return (
     <footer className='border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'>
-      <ContentContainer className='py-6'>
+      <ContentContainer className='py-7'>
         <div className='flex flex-col items-center gap-3 sm:flex-row sm:justify-between'>
           <p
             suppressHydrationWarning
