@@ -36,26 +36,30 @@ export function normalizeMarketingEmailAdminSettings(
   raw: Record<string, unknown>
 ): MarketingEmailAdminSettings {
   const config =
-    raw.config && typeof raw.config === 'object' && !Array.isArray(raw.config)
-      ? (raw.config as Record<string, unknown>)
+    raw['config'] &&
+    typeof raw['config'] === 'object' &&
+    !Array.isArray(raw['config'])
+      ? (raw['config'] as Record<string, unknown>)
       : {};
   return {
     product_id:
-      typeof raw.product_id === 'string'
-        ? raw.product_id
+      typeof raw['product_id'] === 'string'
+        ? raw['product_id']
         : DEFAULT_MARKETING_EMAIL_ADMIN_SETTINGS.product_id,
-    enabled: raw.enabled === true,
+    enabled: raw['enabled'] === true,
     provider: 'kit',
     config: {
-      namespace: typeof config.namespace === 'string' ? config.namespace : '',
-      kitFormId: typeof config.kitFormId === 'string' ? config.kitFormId : '',
-      tierTagNames: Array.isArray(config.tierTagNames)
-        ? (config.tierTagNames as string[])
+      namespace:
+        typeof config['namespace'] === 'string' ? config['namespace'] : '',
+      kitFormId:
+        typeof config['kitFormId'] === 'string' ? config['kitFormId'] : '',
+      tierTagNames: Array.isArray(config['tierTagNames'])
+        ? (config['tierTagNames'] as string[])
         : [],
     },
     updated_at:
-      typeof raw.updated_at === 'string'
-        ? raw.updated_at
+      typeof raw['updated_at'] === 'string'
+        ? raw['updated_at']
         : DEFAULT_MARKETING_EMAIL_ADMIN_SETTINGS.updated_at,
   };
 }
@@ -105,9 +109,9 @@ export async function getAdminMarketingEmailQueueStats(
   if (error || !data || (data as { error?: string }).error) return null;
   const raw = data as Record<string, unknown>;
   return {
-    pending: typeof raw.pending === 'number' ? raw.pending : 0,
-    processing: typeof raw.processing === 'number' ? raw.processing : 0,
-    done: typeof raw.done === 'number' ? raw.done : 0,
-    failed: typeof raw.failed === 'number' ? raw.failed : 0,
+    pending: typeof raw['pending'] === 'number' ? raw['pending'] : 0,
+    processing: typeof raw['processing'] === 'number' ? raw['processing'] : 0,
+    done: typeof raw['done'] === 'number' ? raw['done'] : 0,
+    failed: typeof raw['failed'] === 'number' ? raw['failed'] : 0,
   };
 }
