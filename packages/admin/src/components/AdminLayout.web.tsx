@@ -8,6 +8,7 @@ export type AdminLayoutProps = {
   navItems: AdminNavItem[];
   breadcrumbs?: { label: string; to?: string }[];
   headerRight?: ReactNode;
+  sidebarFooter?: ReactNode;
 };
 
 export function AdminLayout({
@@ -15,6 +16,7 @@ export function AdminLayout({
   navItems,
   breadcrumbs,
   headerRight,
+  sidebarFooter,
 }: AdminLayoutProps) {
   return (
     <div className='min-h-screen bg-gray-50 flex'>
@@ -48,6 +50,11 @@ export function AdminLayout({
             </NavLink>
           ))}
         </nav>
+        {sidebarFooter && (
+          <div className='px-2 py-4 border-t border-gray-200'>
+            {sidebarFooter}
+          </div>
+        )}
       </aside>
       <div className='flex-1 flex flex-col min-w-0'>
         <header className='bg-white border-b border-gray-200 px-4 sm:px-6 py-4'>
