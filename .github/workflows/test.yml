@@ -132,7 +132,7 @@ jobs:
     if: >-
       (github.event.action != 'edited' || github.event.changes.base) &&
       (needs.test-scope.outputs.run_unit == 'true' ||
-       (needs.test-scope.outputs.run_tested_scripts == 'true' && matrix.shard == 'scripts'))
+       needs.test-scope.outputs.run_tested_scripts == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -177,8 +177,21 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node
 
+      - name: Determine whether this shard should run
+        id: shard-scope
+        shell: bash
+        run: |
+          run_shard=false
+          if [[ "${{ needs.test-scope.outputs.run_unit }}" == "true" ]]; then
+            run_shard=true
+          elif [[ "${{ needs.test-scope.outputs.run_tested_scripts }}" == "true" && "${{ matrix.shard }}" == "scripts" ]]; then
+            run_shard=true
+          fi
+          echo "run=${run_shard}" >> "${GITHUB_OUTPUT}"
+
       - name: Run unit tests (${{ matrix.shard }})
         id: run-tests
+        if: steps.shard-scope.outputs.run == 'true'
         continue-on-error: true
         env:
           COVERAGE_MERGE: '1'
@@ -188,7 +201,7 @@ jobs:
           npm run ${{ matrix.script }} 2>&1 | tee ci/unit-coverage-${{ matrix.shard }}.log
 
       - name: Stage coverage for upload
-        if: always() && matrix.coverage_path != ''
+        if: always() && steps.shard-scope.outputs.run == 'true' && matrix.coverage_path != ''
         run: |
           staging="coverage-artifact-staging/${{ matrix.coverage_path }}"
           mkdir -p "$staging"
@@ -196,7 +209,7 @@ jobs:
           test -f "$staging/coverage-final.json"
 
       - name: Upload coverage reports
-        if: always() && matrix.coverage_path != ''
+        if: always() && steps.shard-scope.outputs.run == 'true' && matrix.coverage_path != ''
         uses: actions/upload-artifact@v4
         with:
           name: unit-coverage-reports-${{ matrix.shard }}
@@ -204,7 +217,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload test log
-        if: always()
+        if: always() && steps.shard-scope.outputs.run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: unit-coverage-log-${{ matrix.shard }}
