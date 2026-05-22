@@ -152,7 +152,9 @@ async function handleWorker(
         .eq('email', row.email)
         .maybeSingle();
 
-      if (suppressed) {
+      // user.deleted is a GDPR erasure — it must run even if the user previously
+      // unsubscribed via Kit webhook. Suppression only governs marketing sends.
+      if (suppressed && row.event_type !== 'user.deleted') {
         await markDone(admin, row.id);
         skipped++;
         continue;
@@ -307,6 +309,12 @@ async function processEvent(
       if ((config.onChurn ?? 'tag_only') === 'unsubscribe') {
         await kit.unsubscribeUser(email);
       }
+      break;
+    }
+    case 'user.deleted': {
+      // GDPR erasure: hard-delete the subscriber from Kit. Bypasses suppression
+      // check above so this always runs regardless of unsubscribe status.
+      await kit.deleteUser(email);
       break;
     }
     default:

@@ -6,7 +6,8 @@ export type LifecycleEventType =
   | 'waitlist.approved'
   | 'waitlist.converted'
   | 'user.tier_changed'
-  | 'user.churned';
+  | 'user.churned'
+  | 'user.deleted';
 
 // Fire-and-forget: failures are logged but never thrown so marketing email never
 // blocks user-facing flows. A transient failure permanently drops the event —

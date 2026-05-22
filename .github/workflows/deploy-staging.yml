@@ -121,6 +121,7 @@ jobs:
           STAGING_BILLING_ALLOWED_ORIGINS: ${{ secrets.STAGING_BILLING_ALLOWED_ORIGINS }}
           STAGING_KIT_API_KEY: ${{ secrets.STAGING_KIT_API_KEY }}
           STAGING_KIT_CRON_SECRET: ${{ secrets.STAGING_KIT_CRON_SECRET }}
+          STAGING_KIT_WEBHOOK_SECRET: ${{ secrets.STAGING_KIT_WEBHOOK_SECRET }}
         run: |
           set -euo pipefail
           cd supabase
@@ -139,7 +140,8 @@ jobs:
           # strings would clobber any manually-configured Supabase project secrets.
           [[ -n "${STAGING_KIT_API_KEY:-}" ]] && supabase secrets set KIT_API_KEY="${STAGING_KIT_API_KEY}"
           [[ -n "${STAGING_KIT_CRON_SECRET:-}" ]] && supabase secrets set KIT_CRON_SECRET="${STAGING_KIT_CRON_SECRET}"
-          supabase functions deploy stripe-webhook billing-stripe waitlist-capture waitlist-ops kit-sync \
+          [[ -n "${STAGING_KIT_WEBHOOK_SECRET:-}" ]] && supabase secrets set KIT_WEBHOOK_SECRET="${STAGING_KIT_WEBHOOK_SECRET}"
+          supabase functions deploy stripe-webhook billing-stripe waitlist-capture waitlist-ops kit-sync kit-webhook \
             --project-ref "${STAGING_SUPABASE_PROJECT_REF}"
 
       - name: Ensure kit-sync cron job (staging)
