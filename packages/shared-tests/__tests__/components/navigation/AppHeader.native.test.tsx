@@ -274,4 +274,24 @@ describe('AppHeader (Native)', () => {
     await screen.findByText(BRANDING.displayName);
     expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
   });
+
+  it('renders on Android with explicit status bar height', async () => {
+    appHeaderPlatformOsRef().current = 'android';
+    appHeaderStatusBarHeightRef().current = 32;
+    renderWithProviders(
+      <AppHeader supabaseClient={createMockSupabaseClient()} />
+    );
+    await screen.findByText(BRANDING.displayName);
+    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+  });
+
+  it('renders on Android when status bar height is zero', async () => {
+    appHeaderPlatformOsRef().current = 'android';
+    appHeaderStatusBarHeightRef().current = 0;
+    renderWithProviders(
+      <AppHeader supabaseClient={createMockSupabaseClient()} />
+    );
+    await screen.findByText(BRANDING.displayName);
+    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+  });
 });

@@ -166,6 +166,21 @@ describe('ProfileAvatar.web — coverage gaps', () => {
     expect(screen.getByRole('img')).not.toHaveClass('custom-class');
   });
 
+  it('uses display name in alt text for avatar images', () => {
+    render(<ProfileAvatar profile={baseProfile} />);
+    expect(screen.getByAltText('Test User')).toBeInTheDocument();
+  });
+
+  it('uses username in alt text when display name is empty', () => {
+    const profile: UserProfile = {
+      ...baseProfile,
+      display_name: '',
+      username: 'zeta',
+    };
+    render(<ProfileAvatar profile={profile} />);
+    expect(screen.getByAltText('zeta')).toBeInTheDocument();
+  });
+
   it('uses username in alt text when avatar image is shown without display name', () => {
     const profile: UserProfile = {
       ...baseProfile,
