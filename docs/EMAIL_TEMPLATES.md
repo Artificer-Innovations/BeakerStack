@@ -210,6 +210,17 @@ Recommended DMARC policy for production:
 v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@yourdomain.com; pct=100
 ```
 
+## Auth vs waitlist invite email
+
+Auth transactional email (this feature) and waitlist invite email are **entirely separate delivery paths** with separate configuration:
+
+| Path                                                               | Mechanism                                                                                         | Config                                                  |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Auth email (signup confirmation, password reset, magic link, etc.) | Supabase SMTP via `[auth.email.smtp]` in `config.toml`                                            | `SMTP_*` env vars / `RESEND_SMTP_PASS`                  |
+| Waitlist invite email                                              | `waitlist-ops` Edge Function (`send_invite_email` action) via `@beakerstack/email` Resend adapter | `WAITLIST_RESEND_API_KEY`, `WAITLIST_INVITE_FROM`, etc. |
+
+Setting `WAITLIST_RESEND_API_KEY` has no effect on auth emails, and `SMTP_PASS` has no effect on waitlist invite delivery. See [docs/guides/waitlist-setup.md](guides/waitlist-setup.md) for waitlist invite configuration.
+
 ## Auth vs marketing email separation
 
 Transactional auth emails (this feature) and marketing/promotional emails should use **separate sending domains** or subdomains. For example:

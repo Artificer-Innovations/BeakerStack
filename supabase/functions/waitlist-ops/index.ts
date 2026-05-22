@@ -4,6 +4,12 @@ import {
   jsonResponse,
 } from '../_shared/waitlist-origins.ts';
 import { enqueueMarketingEmail } from '../_shared/marketingEmailQueue.ts';
+import {
+  createLogEmailAdapter,
+  createResendEmailAdapter,
+  renderEmailTemplate,
+  EmailSendError,
+} from '../_shared/email.ts';
 
 type Body = {
   action:
@@ -24,17 +30,6 @@ type Body = {
   html?: string;
   productId?: string;
 };
-
-function renderTemplate(
-  template: string,
-  vars: Record<string, string>
-): string {
-  let out = template;
-  for (const [key, value] of Object.entries(vars)) {
-    out = out.replaceAll(`{{${key}}}`, value);
-  }
-  return out;
-}
 
 async function requireAdmin(
   req: Request,
@@ -311,35 +306,27 @@ Deno.serve(async req => {
       body.html ??
       Deno.env.get('WAITLIST_INVITE_HTML') ??
       '<p>Complete your signup: <a href="{{inviteUrl}}">{{inviteUrl}}</a></p>';
-    const html = renderTemplate(htmlTemplate, { inviteUrl });
+    const html = renderEmailTemplate(htmlTemplate, { inviteUrl });
 
-    const resendKey = Deno.env.get('WAITLIST_RESEND_API_KEY');
-    if (!resendKey) {
-      console.log(
-        `[beakerstack/email] waitlist invite (log only) to=${to} subject=${subject}\n${html}`
-      );
+    const apiKey = Deno.env.get('WAITLIST_RESEND_API_KEY');
+    const from =
+      Deno.env.get('WAITLIST_INVITE_FROM') ?? 'onboarding@resend.dev';
+    const logAdapter = createLogEmailAdapter();
+
+    if (!apiKey) {
+      await logAdapter.send({ to, subject, html });
       return jsonResponse({ error: 'email_not_configured' }, 501, req);
     }
 
-    const from =
-      Deno.env.get('WAITLIST_INVITE_FROM') ?? 'onboarding@resend.dev';
-    const resendRes = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${resendKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from,
-        to: [to],
-        subject,
-        html,
-      }),
-    });
-    if (!resendRes.ok) {
-      const detail = await resendRes.text();
-      console.error('resend send failed', resendRes.status, detail);
-      return jsonResponse({ error: 'email_send_failed' }, 502, req);
+    try {
+      const adapter = createResendEmailAdapter({ apiKey, from });
+      await adapter.send({ to, subject, html });
+    } catch (err) {
+      if (err instanceof EmailSendError) {
+        console.error('resend send failed', err.status, err.body);
+        return jsonResponse({ error: 'email_send_failed' }, 502, req);
+      }
+      throw err;
     }
 
     return jsonResponse({ ok: true }, 200, req);
