@@ -22,8 +22,8 @@ Flags:
   email_templates       supabase/templates/** and email personalization scripts
   auth_deploy_scripts   scripts/sync-supabase-auth-config.sh
   billing_deploy        stripe webhook / billing deploy scripts
-  web_deploy            apps/web/** and shared packages
-  mobile_deploy         apps/mobile/**
+  web_deploy            apps/web/** and runtime packages/**/src (excluding tests)
+  mobile_deploy         apps/mobile/** and mobile runtime packages/**/src (excluding tests)
   deploy_infra          infra/aws/**, scripts/pr-preview/**, deploy workflows
   tested_scripts        scripts covered by test:unit:scripts
   dependencies          package.json / package-lock.json changes
@@ -57,6 +57,54 @@ write_flag() {
   fi
 }
 
+# True for test-only paths under packages/ (should not trigger preview app builds).
+is_package_test_path() {
+  local f="$1"
+  case "$f" in
+    packages/shared-tests/* | packages/test-utils/*)
+      return 0
+      ;;
+  esac
+  if [[ "${f}" == *"/__tests__/"* ]]; then
+    case "${f}" in
+      packages/*) return 0 ;;
+    esac
+  fi
+  case "${f}" in
+    *.test.ts | *.test.tsx | *.test.mjs | *.test.js | *.coverage.test.ts | *.coverage.test.tsx)
+      case "${f}" in
+        packages/*) return 0 ;;
+      esac
+      ;;
+  esac
+  return 1
+}
+
+# True for runtime library source under packages/*/src consumed by preview app builds.
+is_package_runtime_source() {
+  local f="$1"
+  is_package_test_path "${f}" && return 1
+  case "${f}" in
+    packages/shared/src/* | packages/billing/src/* | packages/logger/src/* | \
+    packages/observability/src/* | packages/admin/src/* | packages/email/src/* | \
+    packages/waitlist/src/*)
+      return 0
+      ;;
+  esac
+  return 1
+}
+
+# Runtime packages consumed by apps/web but not bundled into apps/mobile.
+is_package_web_only_runtime_source() {
+  local f="$1"
+  case "${f}" in
+    packages/admin/src/* | packages/email/src/* | packages/waitlist/src/*)
+      return 0
+      ;;
+  esac
+  return 1
+}
+
 # Classify one path; sets global match_* booleans (multiple may be true).
 classify_path() {
   local f="$1"
@@ -81,8 +129,17 @@ classify_path() {
       match_app_code=true
       match_mobile_deploy=true
       ;;
-    apps/* | packages/* | tests/*)
+    apps/* | tests/*)
       match_app_code=true
+      ;;
+    packages/*)
+      match_app_code=true
+      if is_package_runtime_source "${f}"; then
+        match_web_deploy=true
+        if ! is_package_web_only_runtime_source "${f}"; then
+          match_mobile_deploy=true
+        fi
+      fi
       ;;
     supabase/migrations/* | supabase/functions/* | supabase/config.toml | supabase/seed.sql | supabase/seed/*)
       match_supabase_schema=true
@@ -305,6 +362,21 @@ self_test() {
   assert_classify package.json app_code true
   assert_classify .github/workflows/test.yml app_code true
   assert_classify .github/workflows/pr-preview-environment.yml deploy_infra true
+  assert_classify packages/shared/src/hooks/useAuth.ts web_deploy true
+  assert_classify packages/shared/src/hooks/useAuth.ts mobile_deploy true
+  assert_classify packages/shared/src/hooks/useAuth.ts app_code true
+  assert_classify packages/billing/src/hooks/useCheckout.ts web_deploy true
+  assert_classify packages/billing/src/hooks/useCheckout.ts mobile_deploy true
+  assert_classify packages/billing/src/presentation/billingSyncDisplay.ts web_deploy true
+  assert_classify packages/billing/src/presentation/billingSyncDisplay.ts mobile_deploy true
+  assert_classify packages/billing/src/hooks/useCheckout.test.ts web_deploy false
+  assert_classify packages/billing/src/hooks/useCheckout.test.ts mobile_deploy false
+  assert_classify packages/billing/src/hooks/useCheckout.test.ts app_code true
+  assert_classify packages/shared-tests/__tests__/AppHeader.native.test.tsx web_deploy false
+  assert_classify packages/shared-tests/__tests__/AppHeader.native.test.tsx mobile_deploy false
+  assert_classify packages/shared-tests/__tests__/AppHeader.native.test.tsx app_code true
+  assert_classify packages/admin/src/adminClient.ts web_deploy true
+  assert_classify packages/admin/src/adminClient.ts mobile_deploy false
 
   return "${failed}"
 }
