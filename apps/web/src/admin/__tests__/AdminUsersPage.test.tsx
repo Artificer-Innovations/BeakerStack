@@ -102,7 +102,7 @@ describe('AdminUsersPage', () => {
       </MemoryRouter>
     );
     await screen.findByText('user@example.com');
-    expect(screen.queryByText('Admin')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('admin-badge')).not.toBeInTheDocument();
   });
 
   it('shows admin badge for admin user', async () => {
@@ -115,7 +115,7 @@ describe('AdminUsersPage', () => {
         <AdminUsersPage />
       </MemoryRouter>
     );
-    expect(await screen.findByText('Admin')).toBeInTheDocument();
+    expect(await screen.findByTestId('admin-badge')).toBeInTheDocument();
   });
 
   it('shows error message when hook reports error', () => {
@@ -152,3 +152,4 @@ describe('AdminUsersPage', () => {
     expect(mockUseAdminUsers.toggleSort).toHaveBeenCalledWith('signup');
   });
 });
+

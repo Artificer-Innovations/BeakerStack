@@ -62,7 +62,7 @@ export default function AdminUsersPage() {
         header: 'Admin',
         cell: row =>
           row.is_admin ? (
-            <span className='inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20'>
+            <span data-testid='admin-badge' className='inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20'>
               Admin
             </span>
           ) : null,
@@ -190,3 +190,4 @@ export default function AdminUsersPage() {
     </div>
   );
 }
+
