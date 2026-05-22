@@ -1,4 +1,4 @@
-export { defineMarketingEmailConfig } from './schema.js';
+export { defineMarketingEmailConfig, NAMESPACE_RE } from './schema.js';
 export type { MarketingEmailConfig } from './schema.js';
 export type { MarketingEmailAdapter } from './types.js';
 export { MarketingEmailError } from './errors.js';

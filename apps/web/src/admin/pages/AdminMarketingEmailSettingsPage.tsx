@@ -3,13 +3,12 @@ import {
   getAdminMarketingEmailSettings,
   updateAdminMarketingEmailSettings,
   getAdminMarketingEmailQueueStats,
+  NAMESPACE_RE,
   type MarketingEmailAdminSettings,
   type MarketingEmailQueueStats,
 } from '@beakerstack/marketing-email';
 import { supabase } from '../../lib/supabase';
 import { MARKETING_EMAIL_PRODUCT_ID } from '../../marketing-email/beakerstackMarketingEmailConfig';
-
-const NAMESPACE_RE = /^[a-z][a-z0-9-]*$/;
 
 export default function AdminMarketingEmailSettingsPage() {
   const [settings, setSettings] =
