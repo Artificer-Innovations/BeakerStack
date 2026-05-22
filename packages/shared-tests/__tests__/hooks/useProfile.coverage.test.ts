@@ -259,6 +259,25 @@ describe('useProfile — coverage gaps', () => {
     expect(thrown).toBeInstanceOf(Error);
     expect(thrown?.message).toBe('create failed');
     expect(result.current.error?.message).toBe('create failed');
+    expect(result.current.loading).toBe(false);
+  });
+
+  it('clears loading when createProfile rejects an Error instance', async () => {
+    const { mockClient } = createClientWithRealtime({
+      createThrows: new Error('create failed'),
+    });
+    const mockUser = createMockUser();
+    const { result } = renderHook(() => useProfile(mockClient, mockUser));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await expect(
+        result.current.createProfile(mockUser.id, { username: 'new' })
+      ).rejects.toThrow('create failed');
+    });
+
+    expect(result.current.loading).toBe(false);
   });
 
   it('wraps non-Error failures when updateProfile rejects a string', async () => {
@@ -284,6 +303,27 @@ describe('useProfile — coverage gaps', () => {
     expect(thrown).toBeInstanceOf(Error);
     expect(thrown?.message).toBe('update failed');
     expect(result.current.error?.message).toBe('update failed');
+    expect(result.current.loading).toBe(false);
+  });
+
+  it('clears loading when updateProfile rejects an Error instance', async () => {
+    const { mockClient } = createClientWithRealtime({
+      updateThrows: new Error('update failed'),
+    });
+    const mockUser = createMockUser();
+    const { result } = renderHook(() => useProfile(mockClient, mockUser));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await expect(
+        result.current.updateProfile(mockUser.id, {
+          display_name: 'Updated',
+        })
+      ).rejects.toThrow('update failed');
+    });
+
+    expect(result.current.loading).toBe(false);
   });
 
   it('completes createProfile successfully and clears loading state', async () => {

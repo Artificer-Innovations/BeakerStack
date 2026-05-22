@@ -147,6 +147,29 @@ describe('useAvatarUpload — coverage gaps', () => {
 
     expect(thrown?.message).toBe('upload exploded');
     expect(result.current.error?.message).toBe('upload exploded');
+    expect(result.current.uploading).toBe(false);
+    expect(result.current.progress).toBe(0);
+  });
+
+  it('clears upload state when uploadAvatar rejects an Error instance', async () => {
+    const { mockClient, mockBucket } = createMockSupabaseClient();
+    mockBucket.upload.mockImplementationOnce(() =>
+      Promise.reject(new Error('upload failed'))
+    );
+    const { result } = renderHook(() =>
+      useAvatarUpload(mockClient, 'user-id-1')
+    );
+
+    const file = new File(['content'], 'avatar.jpg', { type: 'image/jpeg' });
+
+    await act(async () => {
+      await expect(result.current.uploadAvatar(file)).rejects.toThrow(
+        'upload failed'
+      );
+    });
+
+    expect(result.current.uploading).toBe(false);
+    expect(result.current.progress).toBe(0);
   });
 
   it('wraps non-Error remove failures', async () => {

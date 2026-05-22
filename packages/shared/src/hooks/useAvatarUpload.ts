@@ -189,6 +189,8 @@ export function useAvatarUpload(
 
         setProgress(100);
         setUploadedUrl(cacheBustedUrl); // For component display
+        setUploading(false);
+        setProgress(0);
         return cleanUrl; // Return normalized clean URL for database storage
       } catch (err) {
         const error =
@@ -196,10 +198,9 @@ export function useAvatarUpload(
             ? err
             : /* v8 ignore next */ new Error(String(err));
         setError(error);
-        throw error;
-      } finally {
         setUploading(false);
         setProgress(0);
+        throw error;
       }
     },
     [supabaseClient, userId, validateFile, getFileExtension]
