@@ -17,14 +17,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy-staging:
+  deploy-backend-staging:
     if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
-    env:
-      DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
-      STACK_NAME: ${{ vars.PR_PREVIEW_STACK_NAME }}
-      VITE_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
-      VITE_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -42,14 +37,6 @@ jobs:
         uses: supabase/setup-cli@v1
         with:
           version: 2.54.11
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: ${{ vars.PR_PREVIEW_AWS_REGION != '' && vars.PR_PREVIEW_AWS_REGION || 'us-east-1' }}
 
       - name: Apply database migrations
         env:
@@ -165,6 +152,36 @@ jobs:
           [[ -z "${KIT_CRON_SECRET:-}" ]] && { echo "STAGING_KIT_CRON_SECRET not set — skipping cron registration"; exit 0; }
           node scripts/ensure-kit-sync-cron.mjs
 
+  deploy-web-staging:
+    needs: [deploy-backend-staging]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    env:
+      DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
+      STACK_NAME: ${{ vars.PR_PREVIEW_STACK_NAME }}
+      VITE_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ vars.PR_PREVIEW_AWS_REGION != '' && vars.PR_PREVIEW_AWS_REGION || 'us-east-1' }}
+
       - name: Resolve infrastructure outputs
         id: infra
         shell: bash
@@ -200,6 +217,13 @@ jobs:
             --environment staging \
             --region "${AWS_REGION_VALUE}"
 
+  deploy-finalize-staging:
+    needs: [deploy-web-staging]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    env:
+      DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
+    steps:
       - name: Generate staging signed cookie bootstrap URL
         id: signed_cookies
         shell: bash
@@ -232,7 +256,6 @@ jobs:
           CF_SIGNATURE=$(printf '%s' "${POLICY_JSON}" | \
             openssl dgst -sha1 -sign "${KEY_FILE}" | base64 -w0 | tr '+' '-' | tr '/' '~' | tr '=' '_')
           rm -f "${KEY_FILE}"
-
           BOOTSTRAP_URL="https://${STAGING_DOMAIN}/_preview-auth?policy=${CF_POLICY}&sig=${CF_SIGNATURE}&kid=${CLOUDFRONT_SIGNING_KEY_ID}&dest=/"
           echo "BOOTSTRAP_URL=${BOOTSTRAP_URL}" >> "${GITHUB_OUTPUT}"
           echo "STAGING_URL=https://${STAGING_DOMAIN}" >> "${GITHUB_OUTPUT}"
@@ -290,7 +313,7 @@ jobs:
 
   deploy-mobile-staging:
     if: vars.MOBILE_ENABLED != 'false'
-    needs: [deploy-staging]
+    needs: [deploy-backend-staging]
     runs-on: ubuntu-latest
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
