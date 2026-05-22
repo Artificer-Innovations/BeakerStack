@@ -111,6 +111,21 @@ jobs:
           STACK_NAME="${PREVIEW_STACK_NAME:-beakerstack-pr-preview}"
           AWS_REGION_VALUE="${PREVIEW_AWS_REGION:-us-east-1}"
           PREVIEW_PREFIX_VALUE="${PREVIEW_PREFIX:-pr-}"
+          IF_STACK_EXISTS_MODE="deploy"
+          # Web-only pushes still need bucket/distribution outputs but must not re-run CloudFormation.
+          if [[ "${{ needs.preview-scope.outputs.run_infra }}" != "true" ]]; then
+            stack_status="$(aws cloudformation describe-stacks \
+              --stack-name "${STACK_NAME}" \
+              --region "${AWS_REGION_VALUE}" \
+              --query 'Stacks[0].StackStatus' \
+              --output text 2>/dev/null || true)"
+            case "${stack_status}" in
+              CREATE_COMPLETE|UPDATE_COMPLETE|UPDATE_ROLLBACK_COMPLETE)
+                IF_STACK_EXISTS_MODE="refresh-outputs"
+                echo "Stack ${STACK_NAME} is ${stack_status}; skipping CloudFormation deploy (web-only change)."
+                ;;
+            esac
+          fi
           ./scripts/pr-preview/bootstrap-aws-stack.sh \
             --stack-name "${STACK_NAME}" \
             --region "${AWS_REGION_VALUE}" \
@@ -118,6 +133,7 @@ jobs:
             --hosted-zone-id "${PREVIEW_HOSTED_ZONE_ID}" \
             --certificate-arn "${PREVIEW_CERTIFICATE_ARN}" \
             --preview-prefix "${PREVIEW_PREFIX_VALUE}" \
+            --if-stack-exists "${IF_STACK_EXISTS_MODE}" \
             --skip-cloudfront-function-publish
 
   deploy-preview-backend:

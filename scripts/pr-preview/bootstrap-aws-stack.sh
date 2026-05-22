@@ -586,15 +586,14 @@ list_failed_change_sets_json() {
     echo "[]"
     return 0
   fi
-  LIST_CHANGE_SETS_JSON="${raw}" python3 -c '
-import json, os, sys
+  printf '%s' "${raw}" | python3 -c '
+import json, sys
 
-raw = os.environ.get("LIST_CHANGE_SETS_JSON", "")
 try:
-    data = json.loads(raw)
+    data = json.load(sys.stdin)
 except json.JSONDecodeError:
     print("[]")
-    sys.exit(0)
+    raise SystemExit(0)
 rows = []
 for x in data.get("Summaries") or []:
     if x.get("Status") == "FAILED":
@@ -733,13 +732,13 @@ delete_failed_change_sets_for_stack() {
   fi
   local names
   names="$(
-    LIST_CHANGE_SETS_JSON="${raw}" python3 -c '
-import json, os, sys
+    printf '%s' "${raw}" | python3 -c '
+import json, sys
 
 try:
-    data = json.loads(os.environ.get("LIST_CHANGE_SETS_JSON", ""))
+    data = json.load(sys.stdin)
 except json.JSONDecodeError:
-    sys.exit(0)
+    raise SystemExit(0)
 for x in data.get("Summaries") or []:
     if x.get("Status") == "FAILED":
         name = x.get("ChangeSetName", "")
@@ -896,10 +895,6 @@ print_deploy_diagnostics() {
 
 run_cloudformation_deploy() {
   build_aws_cli
-
-  log "INFO" "Removing stale FAILED change sets before deploy (if any)..."
-  delete_failed_change_sets_for_stack
-
   local deploy_cmd=(
     "${AWS_CLI[@]}" cloudformation deploy
     --template-file "${TEMPLATE_PATH}"
