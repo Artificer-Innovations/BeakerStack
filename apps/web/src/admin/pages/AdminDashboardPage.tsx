@@ -37,7 +37,7 @@ export default function AdminOverviewPage() {
             </span>
             <div>
               <p className='font-semibold text-gray-900'>Users</p>
-              <p className='text-sm text-gray-500'>{stat(usersTotal)} total</p>
+              <p className='text-sm text-gray-500'>{stat(usersTotal)} total users</p>
             </div>
           </div>
         </Link>
