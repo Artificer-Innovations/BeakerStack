@@ -6,5 +6,5 @@ Confirm your email: {{ if .RedirectTo }}{{ .RedirectTo }}?token_hash={{ .TokenHa
 
 ---
 Sent by Beaker Stack Team
-522 W RIVERSIDE AVE STE N, SPOKANE, WA 99201, USA
+Artificer Innovations, LLC, 522 W RIVERSIDE AVE STE N, SPOKANE, WA 99201, USA
 Questions? support@beakerstack.com

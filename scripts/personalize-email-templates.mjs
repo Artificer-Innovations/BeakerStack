@@ -261,12 +261,6 @@ async function main() {
     '{{LOGO_URL}}': logoUrl,
   };
 
-  // config.toml uses __PRODUCT_NAME__ (double underscores) to avoid Go template conflicts
-  const tomlReplacements = {
-    __PRODUCT_NAME__: productName,
-    __BRAND_COLOR__: brandColor,
-  };
-
   mkdirSync(GENERATED_DIR, { recursive: true });
 
   let files;
@@ -288,18 +282,6 @@ async function main() {
     writeFileSync(outputPath, updated, 'utf8');
     console.log(`ok generated/${file}`);
     generated++;
-  }
-
-  // Substitute subject-line tokens in config.toml (workspace only; committed file keeps tokens)
-  try {
-    const toml = readFileSync(CONFIG_TOML, 'utf8');
-    const updatedToml = applyReplacements(toml, tomlReplacements);
-    if (updatedToml !== toml) {
-      writeFileSync(CONFIG_TOML, updatedToml, 'utf8');
-      console.log('ok supabase/config.toml (subject lines)');
-    }
-  } catch {
-    /* config.toml optional */
   }
 
   const newState = {
@@ -328,10 +310,13 @@ async function main() {
       '  2. Run: npm run setup:email (merges SMTP_* into .env.local and enables auth SMTP in config.toml)'
     );
     console.log(
-      '  3. Run: supabase stop && supabase start to apply config changes'
+      '  3. Run: npm run email:materialize-config && supabase stop && supabase start'
     );
     console.log(
       '  4. Test signup confirmation in Inbucket at http://localhost:54324'
+    );
+    console.log(
+      '  Note: materialize-config substitutes __PRODUCT_NAME__ in config.toml for local use; git restore supabase/config.toml to reset tokens.'
     );
   }
 }

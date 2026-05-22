@@ -28,9 +28,9 @@ BeakerStack separates **adopter source templates** from **deploy artifacts**:
 | `supabase/templates/generated/`            | **Deploy output** — personalized HTML and `.txt` copies that Supabase and CI use. Commit these after running personalize. |
 | `supabase/templates/.personalization.json` | Branding record used by `npm run email:personalize` (and CI `--non-interactive`).                                         |
 
-`supabase/config.toml` points `content_path` at `supabase/templates/generated/*.html`. Email **subjects** in `config.toml` use `__PRODUCT_NAME__` tokens in the committed file; the personalize script substitutes them when you run it locally or in CI.
+`supabase/config.toml` points `content_path` at `supabase/templates/generated/*.html`. Email **subjects** use readable `__PRODUCT_NAME__` tokens in the committed config (for example, `Confirm your __PRODUCT_NAME__ account`). The personalize script never edits `config.toml`; deploy sync and optional local materialization substitute tokens from `.personalization.json`.
 
-Deploy workflows regenerate `generated/` and substitute subject tokens immediately before `scripts/sync-supabase-auth-config.sh`. CI also fails PRs when `generated/` is stale relative to the pure templates and branding config.
+Deploy workflows regenerate `generated/` before `scripts/sync-supabase-auth-config.sh`, which materializes subjects into a temporary config copy for `supabase config push` and restores the tokenized file afterward. CI also fails PRs when `generated/` is stale relative to the pure templates and branding config.
 
 ## Quick start
 
@@ -70,19 +70,27 @@ The script will prompt for (or read from `.personalization.json` when non-intera
 
 **Logo CDN override:** set `LOGO_URL` in `supabase/templates/.personalization.json`, or pass `--logo-url=https://cdn.example.com/logo.png`. The value persists across runs unless overridden by the flag.
 
-**Subject lines:** after personalize, `supabase/config.toml` subject lines are substituted in your working tree for local Supabase. Do not commit literal subjects — the committed file keeps `__PRODUCT_NAME__` tokens.
+**Subject lines:** for local Supabase, run `npm run email:materialize-config` after personalize to substitute `__PRODUCT_NAME__` in your working copy of `config.toml`, then `supabase stop && supabase start`. Do not commit materialized subjects — run `git restore supabase/config.toml` to restore tokens. Hosted deploys materialize automatically during config push.
 
 ### 3. Configure SMTP
 
 `[auth.email.smtp]` in `supabase/config.toml` is enabled and reads `SMTP_*` from the environment (see [SMTP setup](#smtp-setup-resend)). Set those vars in `.env.local` for local Supabase, or run `npm run setup:email` to provision Resend + Route 53 and merge values automatically.
 
-### 4. Apply configuration
+### 4. Materialize config subjects (local only)
+
+```bash
+npm run email:materialize-config
+```
+
+Substitutes `__PRODUCT_NAME__` in `supabase/config.toml` from `.personalization.json` for local Supabase. The committed file keeps tokens; restore with `git restore supabase/config.toml` if needed.
+
+### 5. Apply configuration
 
 ```bash
 supabase stop && supabase start
 ```
 
-### 5. Test with Inbucket
+### 6. Test with Inbucket
 
 Open [http://localhost:54324](http://localhost:54324) to view emails sent during local development.
 
