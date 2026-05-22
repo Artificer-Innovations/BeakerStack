@@ -225,7 +225,7 @@ Password reset and magic link emails link to the web `/auth/confirm` page. On mo
 
 ## Hosted environments (CI/CD)
 
-Deploy workflows **optionally** push auth email settings after `supabase db push`. Before sync, workflows run `npm run email:personalize --non-interactive` so `generated/` and subject tokens reflect the latest branding and legal config. The sync step runs **only when** `RESEND_SMTP_PASS` **and** `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` / `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` are set (typically after `npm run setup:full` google + github phases). If either gate is missing, deploys skip config push and keep existing Supabase dashboard settings.
+Deploy workflows **optionally** push auth email settings after `supabase db push`. Before sync, workflows run `npm run email:personalize -- --non-interactive` so `generated/` and subject tokens reflect the latest branding and legal config. The sync step runs **only when** `RESEND_SMTP_PASS` **and** `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` / `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` are set (typically after `npm run setup:full` google + github phases). If either gate is missing, deploys skip config push and keep existing Supabase dashboard settings.
 
 | Environment | Workflow                     | `SUPABASE_AUTH_SITE_URL` (derived)                       |
 | ----------- | ---------------------------- | -------------------------------------------------------- |
