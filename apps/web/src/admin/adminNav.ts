@@ -1,10 +1,10 @@
 import type { AdminNavItem } from '@beakerstack/admin';
-import { ClipboardList, LayoutDashboard, Settings, Users } from 'lucide-react';
+import { ClipboardList, LayoutDashboard, Mail, Settings, Users } from 'lucide-react';
 import { createElement } from 'react';
 
 export const adminNavItems: AdminNavItem[] = [
   {
-    label: 'Overview',
+    label: 'Admin Dashboard',
     to: '/admin',
     icon: createElement(LayoutDashboard, { className: 'h-4 w-4 shrink-0' }),
   },
@@ -22,5 +22,10 @@ export const adminNavItems: AdminNavItem[] = [
     label: 'Waitlist settings',
     to: '/admin/waitlist/settings',
     icon: createElement(Settings, { className: 'h-4 w-4 shrink-0' }),
+  },
+  {
+    label: 'Marketing email settings',
+    to: '/admin/marketing-email/settings',
+    icon: createElement(Mail, { className: 'h-4 w-4 shrink-0' }),
   },
 ];

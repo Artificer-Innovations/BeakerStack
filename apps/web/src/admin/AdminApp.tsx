@@ -8,6 +8,9 @@ const AdminWaitlistPage = lazy(() => import('./pages/AdminWaitlistPage'));
 const AdminWaitlistSettingsPage = lazy(
   () => import('./pages/AdminWaitlistSettingsPage')
 );
+const AdminMarketingEmailSettingsPage = lazy(
+  () => import('./pages/AdminMarketingEmailSettingsPage')
+);
 
 function PageFallback() {
   return (
@@ -28,6 +31,10 @@ export default function AdminApp() {
           <Route
             path='waitlist/settings'
             element={<AdminWaitlistSettingsPage />}
+          />
+          <Route
+            path='marketing-email/settings'
+            element={<AdminMarketingEmailSettingsPage />}
           />
         </Route>
       </Routes>

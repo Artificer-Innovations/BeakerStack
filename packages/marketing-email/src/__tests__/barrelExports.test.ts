@@ -8,6 +8,11 @@ describe('package barrels', () => {
     expect(mod.defineKitConfig).toBeTypeOf('function');
     expect(mod.MarketingEmailError).toBeTypeOf('function');
     expect(mod.waitlistTag).toBeTypeOf('function');
+    expect(mod.getAdminMarketingEmailSettings).toBeTypeOf('function');
+    expect(mod.updateAdminMarketingEmailSettings).toBeTypeOf('function');
+    expect(mod.getAdminMarketingEmailQueueStats).toBeTypeOf('function');
+    expect(mod.normalizeMarketingEmailAdminSettings).toBeTypeOf('function');
+    expect(mod.DEFAULT_MARKETING_EMAIL_ADMIN_SETTINGS).toBeTypeOf('object');
   });
 
   it('exports web entry', async () => {
