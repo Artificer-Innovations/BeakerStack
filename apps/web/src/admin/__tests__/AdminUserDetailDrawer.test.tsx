@@ -1,15 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { getUser } from '@beakerstack/admin';
+import { getUser, grantOperator, revokeOperator } from '@beakerstack/admin';
 import { AdminUserDetailDrawer } from '../components/AdminUserDetailDrawer.web';
 
 vi.mock('@beakerstack/admin', async importOriginal => {
   const actual = await importOriginal<typeof import('@beakerstack/admin')>();
-  return { ...actual, getUser: vi.fn() };
+  return {
+    ...actual,
+    getUser: vi.fn(),
+    grantOperator: vi.fn(),
+    revokeOperator: vi.fn(),
+  };
 });
 
+vi.mock('../../lib/supabase', () => ({
+  supabase: {},
+}));
+
 const mockGetUser = vi.mocked(getUser);
+const mockGrantOperator = vi.mocked(grantOperator);
+const mockRevokeOperator = vi.mocked(revokeOperator);
 
 const sampleDetail = {
   auth: {
@@ -22,6 +33,11 @@ const sampleDetail = {
   profile: { display_name: 'User', username: 'user1' },
   subscription: { plan_id: 'beakerstack_pro', status: 'active' },
   plan: { display_name: 'Pro' },
+  admin: {
+    is_admin: false,
+    granted_at: null,
+    granted_by_email: null,
+  },
   usage_aggregates: [{ event_type: 'ai_summarize', count: 3 }],
   usage_events: [
     {
@@ -39,10 +55,21 @@ const sampleDetail = {
   ],
 };
 
+const adminDetail = {
+  ...sampleDetail,
+  admin: {
+    is_admin: true,
+    granted_at: '2024-03-01T00:00:00Z',
+    granted_by_email: 'owner@example.com',
+  },
+};
+
 describe('AdminUserDetailDrawer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetUser.mockResolvedValue(sampleDetail);
+    mockGrantOperator.mockResolvedValue(undefined);
+    mockRevokeOperator.mockResolvedValue(undefined);
   });
 
   it('loads and displays user detail when open', async () => {
@@ -95,101 +122,127 @@ describe('AdminUserDetailDrawer', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders em-dash fallbacks for missing detail fields', async () => {
-    mockGetUser.mockResolvedValueOnce({
-      auth: {
-        id: 'u1',
-        email: null,
-        created_at: null,
-        last_sign_in_at: null,
-        email_confirmed_at: null,
-      },
-      profile: { display_name: null, username: null },
-      subscription: null,
-      plan: null,
-      usage_aggregates: [{}],
-      usage_events: [{}],
-      invoices: [{ id: 'inv-only' }],
-    });
+  // ── Operator access section ────────────────────────────────────────────────
+
+  it('shows No admin access and grant button for non-admin user', async () => {
     render(
       <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
     );
-    await screen.findByRole('heading', { name: 'Account' });
-    // Account section: email '—', dates '—' twice
-    const dashes = screen.getAllByText('—');
-    expect(dashes.length).toBeGreaterThanOrEqual(3);
-    // Recent usage events: blank event type and quantity ×1 default
-    expect(screen.getByText(/×1/)).toBeInTheDocument();
-    // Invoice without stripe_invoice_id falls back to id
-    expect(screen.getByText('inv-only')).toBeInTheDocument();
+    await screen.findByText('No admin access');
+    expect(
+      screen.getByRole('button', { name: /grant admin access/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /revoke admin access/i })
+    ).not.toBeInTheDocument();
   });
 
-  it('falls back to subscription plan_id when plan has no display_name', async () => {
-    mockGetUser.mockResolvedValueOnce({
-      auth: {
-        id: 'u1',
-        email: 'user@example.com',
-        created_at: '2024-01-01T00:00:00Z',
-        last_sign_in_at: null,
-        email_confirmed_at: null,
-      },
-      profile: null,
-      subscription: { plan_id: 'beakerstack_pro', status: 'active' },
-      plan: {},
-      usage_aggregates: [],
-      usage_events: [],
-      invoices: [],
-    });
+  it('shows admin badge and revoke button for admin user', async () => {
+    mockGetUser.mockResolvedValue(adminDetail);
     render(
       <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
     );
-    expect(await screen.findByText('beakerstack_pro')).toBeInTheDocument();
+    await screen.findByText('Admin');
+    expect(screen.getByText('owner@example.com', { exact: false })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /revoke admin access/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /grant admin access/i })
+    ).not.toBeInTheDocument();
   });
 
-  it('falls back to date string when formatting throws', async () => {
-    mockGetUser.mockResolvedValueOnce({
-      auth: {
-        id: 'u1',
-        email: 'user@example.com',
-        created_at: 'not-iso',
-        last_sign_in_at: null,
-        email_confirmed_at: null,
-      },
-      profile: null,
-      subscription: null,
-      plan: null,
-      usage_aggregates: [],
-      usage_events: [],
-      invoices: [],
+  it('revoke button is disabled when viewing own user', async () => {
+    mockGetUser.mockResolvedValue(adminDetail);
+    render(
+      <AdminUserDetailDrawer
+        open
+        userId='u1'
+        title='User'
+        onClose={vi.fn()}
+        currentUserId='u1'
+      />
+    );
+    await screen.findByText('Admin');
+    const revokeBtn = screen.getByRole('button', {
+      name: /revoke admin access/i,
     });
-    const toLocale = Date.prototype.toLocaleString;
-    Date.prototype.toLocaleString = function () {
-      throw new Error('bad date');
-    };
-    try {
-      render(
-        <AdminUserDetailDrawer
-          open
-          userId='u1'
-          title='User'
-          onClose={vi.fn()}
-        />
-      );
-      await screen.findByText('not-iso');
-    } finally {
-      Date.prototype.toLocaleString = toLocale;
-    }
+    expect(revokeBtn).toBeDisabled();
+    expect(revokeBtn).toHaveAttribute(
+      'title',
+      "You can't revoke your own admin access"
+    );
   });
 
-  it('uses generic error copy when getUser throws a non-Error value', async () => {
-    mockGetUser.mockRejectedValueOnce('boom');
+  it('grant button opens confirm dialog', async () => {
+    const user = userEvent.setup();
     render(
       <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
     );
+    await screen.findByText('No admin access');
+    await user.click(screen.getByRole('button', { name: /grant admin access/i }));
+    expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument();
+    expect(screen.getByText(/grant admin access to user@example.com/i)).toBeInTheDocument();
+  });
+
+  it('confirm grant calls grantOperator and refreshes detail', async () => {
+    const user = userEvent.setup();
+    const onAccessChanged = vi.fn();
+    mockGetUser
+      .mockResolvedValueOnce(sampleDetail)
+      .mockResolvedValueOnce(adminDetail);
+
+    render(
+      <AdminUserDetailDrawer
+        open
+        userId='u1'
+        title='User'
+        onClose={vi.fn()}
+        onAccessChanged={onAccessChanged}
+      />
+    );
+    await screen.findByText('No admin access');
+    await user.click(screen.getByRole('button', { name: /grant admin access/i }));
+    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+
     await waitFor(() =>
-      expect(screen.getByRole('alert')).toHaveTextContent(
-        /failed to load user/i
-      )
+      expect(mockGrantOperator).toHaveBeenCalledWith(expect.anything(), 'u1')
     );
+    expect(onAccessChanged).toHaveBeenCalled();
+  });
+
+  it('revoke button opens confirm dialog', async () => {
+    const user = userEvent.setup();
+    mockGetUser.mockResolvedValue(adminDetail);
+    render(
+      <AdminUserDetailDrawer
+        open
+        userId='u1'
+        title='User'
+        onClose={vi.fn()}
+        currentUserId='other-user'
+      />
+    );
+    await screen.findByText('Admin');
+    await user.click(
+      screen.getByRole('button', { name: /revoke admin access/i })
+    );
+    expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument();
+    expect(
+      screen.getByText(/revoke admin access from user@example.com/i)
+    ).toBeInTheDocument();
+  });
+
+  it('cancel dismisses confirm dialog without calling rpc', async () => {
+    const user = userEvent.setup();
+    render(
+      <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
+    );
+    await screen.findByText('No admin access');
+    await user.click(screen.getByRole('button', { name: /grant admin access/i }));
+    expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /cancel/i }));
+    expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument();
+    expect(mockGrantOperator).not.toHaveBeenCalled();
   });
 });

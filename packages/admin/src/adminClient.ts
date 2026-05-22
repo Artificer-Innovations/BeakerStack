@@ -23,6 +23,17 @@ function isNotFound(payload: unknown): boolean {
   );
 }
 
+function errorCode(payload: unknown): string | undefined {
+  if (
+    payload !== null &&
+    typeof payload === 'object' &&
+    'error' in payload
+  ) {
+    return (payload as { error?: string }).error;
+  }
+  return undefined;
+}
+
 /** PostgREST errors are plain objects; wrap so callers get a readable message. */
 function rpcError(error: { message?: string }): Error {
   return new Error(error.message ?? 'RPC request failed');
@@ -86,6 +97,30 @@ export async function getUser(
   if (error) throw rpcError(error);
   if (isNotFound(data)) return null;
   return data as AdminUserDetail;
+}
+
+export async function grantOperator(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<void> {
+  const { data, error } = await supabase.rpc('admin_grant_operator', {
+    p_user_id: userId,
+  });
+  if (error) throw rpcError(error);
+  if (isNotFound(data)) throw new Error('not_found');
+}
+
+export async function revokeOperator(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<void> {
+  const { data, error } = await supabase.rpc('admin_revoke_operator', {
+    p_user_id: userId,
+  });
+  if (error) throw rpcError(error);
+  if (isNotFound(data)) throw new Error('not_found');
+  const code = errorCode(data);
+  if (code === 'cannot_self_revoke') throw new Error('cannot_self_revoke');
 }
 
 export async function recordAuditEvent(

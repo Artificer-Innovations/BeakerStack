@@ -2,13 +2,13 @@
 
 ## Where admin status is stored
 
-`public.admin_users` maps `user_id` → grant metadata. Active admins have `revoked_at IS NULL`. The table has RLS enabled with **no** policies for `anon` or `authenticated` — clients cannot read or modify it.
+`public.admin_users` maps `user_id` → grant metadata. Active admins have `revoked_at IS NULL`. The table has RLS enabled with **no** policies for `anon` or `authenticated` — clients cannot read or modify it directly.
 
 ## How admin status is checked
 
 - **Client hint:** `admin_is_admin()` RPC (via `useIsAdmin`). Used for UI only.
 - **Authoritative:** Every `admin_*` RPC re-checks `admin_is_admin()` before returning data.
-- **Grants/revokes:** Service role CLI only (`npm run admin:grant` / `admin:revoke`). Use `--granted-by <email>` on grant to populate `admin_users.granted_by` when the granter has an auth account.
+- **Grants/revokes:** Via CLI (`npm run admin:grant` / `admin:revoke`) **or** via the authenticated `admin_grant_operator` / `admin_revoke_operator` RPCs from the admin UI. Both paths go through `SECURITY DEFINER` functions that enforce server-side admin checks — there is no direct client access to the `admin_users` table.
 
 ### Client route guard cache
 
@@ -16,11 +16,11 @@
 
 ## Audit log
 
-`public.admin_audit_log` is append-only from the application. Built-in RPCs log list/view actions automatically. Custom admin features should call `recordAuditEvent` or `admin_record_audit_event`.
+`public.admin_audit_log` is append-only from the application. Built-in RPCs log list/view actions automatically. Grant and revoke operations log `admin.operator.grant` and `admin.operator.revoke` respectively. Custom admin features should call `recordAuditEvent` or `admin_record_audit_event`.
 
-**Audited in v1 (examples):** `admin.users.list`, `admin.users.view`, plus any custom events you record.
+**Audited (examples):** `admin.users.list`, `admin.users.view`, `admin.operator.grant`, `admin.operator.revoke`, plus any custom events you record.
 
-**Not audited:** Routine non-admin app usage, failed non-admin RPC attempts (no row written).
+**Not audited:** Routine non-admin app usage, failed non-admin RPC attempts (no row written), idempotent no-op revokes.
 
 ## Production responsibilities
 

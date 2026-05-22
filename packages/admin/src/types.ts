@@ -11,6 +11,7 @@ export type AdminUserListRow = {
   plan_id: string | null;
   subscription_status: string | null;
   plan_display_name: string | null;
+  is_admin: boolean;
   usage_current_period: Record<string, number>;
 };
 
@@ -32,6 +33,11 @@ export type AdminUserDetail = {
   profile: Record<string, unknown> | null;
   subscription: Record<string, unknown> | null;
   plan: Record<string, unknown> | null;
+  admin: {
+    is_admin: boolean;
+    granted_at: string | null;
+    granted_by_email: string | null;
+  };
   usage_aggregates: Record<string, unknown>[];
   usage_events: Record<string, unknown>[];
   invoices: Record<string, unknown>[];

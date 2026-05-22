@@ -1,6 +1,6 @@
 -- pgTAP: admin tables, RLS, and RPC access control
 BEGIN;
-SELECT plan(23);
+SELECT plan(37);
 
 -- ── Schema ───────────────────────────────────────────────────────────────────
 SELECT has_table('public', 'admin_users', 'admin_users table exists');
@@ -58,6 +58,22 @@ SELECT ok(
         WHERE routine_schema = 'public' AND routine_name = 'admin_get_user'
     ),
     'admin_get_user exists'
+);
+
+SELECT ok(
+    EXISTS (
+        SELECT 1 FROM information_schema.routines
+        WHERE routine_schema = 'public' AND routine_name = 'admin_grant_operator'
+    ),
+    'admin_grant_operator exists'
+);
+
+SELECT ok(
+    EXISTS (
+        SELECT 1 FROM information_schema.routines
+        WHERE routine_schema = 'public' AND routine_name = 'admin_revoke_operator'
+    ),
+    'admin_revoke_operator exists'
 );
 
 -- ── Test users ───────────────────────────────────────────────────────────────
@@ -121,6 +137,18 @@ SELECT is(
     'non-admin admin_get_user returns not_found'
 );
 
+SELECT is(
+    public.admin_grant_operator('a1000000-0000-0000-0000-000000000001'::uuid) ->> 'error',
+    'not_found',
+    'non-admin admin_grant_operator returns not_found'
+);
+
+SELECT is(
+    public.admin_revoke_operator('a1000000-0000-0000-0000-000000000002'::uuid) ->> 'error',
+    'not_found',
+    'non-admin admin_revoke_operator returns not_found'
+);
+
 -- ── Admin RPC succeeds ───────────────────────────────────────────────────────
 SELECT set_config('request.jwt.claims',
     '{"sub":"a1000000-0000-0000-0000-000000000002","role":"authenticated"}',
@@ -136,6 +164,33 @@ SELECT ok(
     'admin admin_list_users returns total count'
 );
 
+-- is_admin field present in list response
+SELECT ok(
+    (
+        SELECT bool_and(
+            (u -> 'is_admin') IS NOT NULL
+        )
+        FROM jsonb_array_elements(
+            public.admin_list_users(10, 0, NULL, 'signup', 'desc', 'beakerstack') -> 'users'
+        ) u
+    ),
+    'admin_list_users rows include is_admin field'
+);
+
+-- operator row shows is_admin = true in list
+SELECT ok(
+    (
+        SELECT bool_or(
+            (u ->> 'is_admin')::boolean = true
+            AND u ->> 'user_id' = 'a1000000-0000-0000-0000-000000000002'
+        )
+        FROM jsonb_array_elements(
+            public.admin_list_users(10, 0, NULL, 'signup', 'desc', 'beakerstack') -> 'users'
+        ) u
+    ),
+    'admin_list_users marks operator user as is_admin'
+);
+
 SELECT is(
     public.admin_get_user('a1000000-0000-0000-0000-000000000001'::uuid) ->> 'error',
     NULL,
@@ -146,6 +201,24 @@ SELECT ok(
     (public.admin_get_user('a1000000-0000-0000-0000-000000000001'::uuid) -> 'auth' ->> 'email')
         = 'admin-test-user@example.com',
     'admin admin_get_user includes target auth email'
+);
+
+-- admin section present in get_user response
+SELECT ok(
+    (public.admin_get_user('a1000000-0000-0000-0000-000000000001'::uuid) -> 'admin') IS NOT NULL,
+    'admin_get_user response includes admin section'
+);
+
+SELECT is(
+    (public.admin_get_user('a1000000-0000-0000-0000-000000000001'::uuid) -> 'admin' ->> 'is_admin')::boolean,
+    false,
+    'admin_get_user admin.is_admin is false for non-admin target'
+);
+
+SELECT is(
+    (public.admin_get_user('a1000000-0000-0000-0000-000000000002'::uuid) -> 'admin' ->> 'is_admin')::boolean,
+    true,
+    'admin_get_user admin.is_admin is true for operator target'
 );
 
 SELECT ok(
@@ -184,6 +257,46 @@ SELECT ok(
         ) ? 'metadata'
     ),
     'admin_get_user usage_events projection omits metadata'
+);
+
+-- ── admin_grant_operator ──────────────────────────────────────────────────────
+
+-- Self-revoke is blocked: operator cannot revoke themselves
+SELECT is(
+    public.admin_revoke_operator('a1000000-0000-0000-0000-000000000002'::uuid) ->> 'error',
+    'cannot_self_revoke',
+    'admin_revoke_operator rejects self-revoke'
+);
+
+-- Grant non-admin user
+SELECT is(
+    public.admin_grant_operator('a1000000-0000-0000-0000-000000000001'::uuid) ->> 'ok',
+    'true',
+    'admin_grant_operator succeeds for target user'
+);
+
+-- After grant: target is now admin
+SELECT ok(
+    (
+        SELECT revoked_at IS NULL AND user_id = 'a1000000-0000-0000-0000-000000000001'
+        FROM public.admin_users
+        WHERE user_id = 'a1000000-0000-0000-0000-000000000001'
+    ),
+    'admin_grant_operator inserts active admin_users row'
+);
+
+-- Revoke the newly granted user
+SELECT is(
+    public.admin_revoke_operator('a1000000-0000-0000-0000-000000000001'::uuid) ->> 'ok',
+    'true',
+    'admin_revoke_operator succeeds for active admin target'
+);
+
+-- Idempotent revoke: revoking again is a no-op, not an error
+SELECT is(
+    public.admin_revoke_operator('a1000000-0000-0000-0000-000000000001'::uuid) ->> 'ok',
+    'true',
+    'admin_revoke_operator is idempotent — no-op when target not active admin'
 );
 
 -- Revoked admin is denied (UPDATE as superuser — RLS blocks authenticated)
@@ -225,6 +338,20 @@ SELECT ok(
   (SELECT count(*)::int FROM public.admin_audit_log
    WHERE actor_user_id = 'a1000000-0000-0000-0000-000000000002') >= 1,
   'admin list action wrote audit log row'
+);
+
+SELECT ok(
+  (SELECT count(*)::int FROM public.admin_audit_log
+   WHERE actor_user_id = 'a1000000-0000-0000-0000-000000000002'
+     AND action = 'admin.operator.grant') >= 1,
+  'grant action wrote audit log row'
+);
+
+SELECT ok(
+  (SELECT count(*)::int FROM public.admin_audit_log
+   WHERE actor_user_id = 'a1000000-0000-0000-0000-000000000002'
+     AND action = 'admin.operator.revoke') >= 1,
+  'revoke action wrote audit log row'
 );
 
 SELECT * FROM finish();
