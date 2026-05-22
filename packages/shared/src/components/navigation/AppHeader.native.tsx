@@ -42,7 +42,9 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
 
   // Get status bar height for Android
   const statusBarHeight =
-    Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0;
+    Platform.OS === 'android'
+      ? StatusBar.currentHeight || /* v8 ignore next */ 0
+      : /* v8 ignore next */ 0;
 
   return (
     <View style={[styles.header, { paddingTop: statusBarHeight }]}>

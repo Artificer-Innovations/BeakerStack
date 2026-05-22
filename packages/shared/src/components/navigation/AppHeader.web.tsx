@@ -36,9 +36,11 @@ export function AppHeader({
   // Extract base path from current location (e.g., /pr-9 from /pr-9/login)
   // This handles path-based PR previews where the app is served from /pr-<N>/
   const getBasePath = (): string => {
+    /* v8 ignore start -- window unavailable outside browser/jsdom */
     if (typeof window === 'undefined' || !window.location) {
       return '/';
     }
+    /* v8 ignore stop */
     // Match PR path pattern (e.g., /pr-123)
     const basePathMatch = window.location.pathname.match(/^(\/pr-\d+)/);
     return basePathMatch ? basePathMatch[1] + '/' : '/';

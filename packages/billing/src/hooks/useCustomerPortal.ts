@@ -53,15 +53,16 @@ export function useCustomerPortal<
         } catch {
           // jsdom throws "Not implemented: navigation" on full navigation; real browsers proceed.
         }
+        setPending(false);
         return url;
       }
       await refreshSubscription();
+      setPending(false);
       return url;
     } catch (e) {
       setError(mapUnknownError(e));
-      return null;
-    } finally {
       setPending(false);
+      return null;
     }
   }, [
     supabase,

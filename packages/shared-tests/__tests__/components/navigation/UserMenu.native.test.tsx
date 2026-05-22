@@ -17,8 +17,10 @@ jest.mock('@beakerstack/shared/components/profile/ProfileAvatar.native', () => {
 
 jest.mock('react-native', () => {
   const RN = jest.requireActual('react-native');
+  const React = require('react');
   /** Must match `USER_MENU_TEST_PLATFORM_OS_KEY` below. */
   const key = '__BeakerStack_UserMenuNativeTest_platformOs';
+  const stripKey = '__BeakerStack_UserMenuNativeTest_stripAvatarRef';
   const platformOsRef = (): { current: string } => {
     const g = globalThis as Record<string, { current: string } | undefined>;
     if (!g[key]) {
@@ -26,8 +28,24 @@ jest.mock('react-native', () => {
     }
     return g[key]!;
   };
+  const stripAvatarRefRef = (): { current: boolean } => {
+    const g = globalThis as Record<string, { current: boolean } | undefined>;
+    if (!g[stripKey]) {
+      g[stripKey] = { current: false };
+    }
+    return g[stripKey]!;
+  };
+  const BaseView = RN.View;
+  const View = (props: Record<string, unknown>) => {
+    const ref =
+      stripAvatarRefRef().current && props.collapsable === false
+        ? undefined
+        : props.ref;
+    return React.createElement(BaseView, { ...props, ref });
+  };
   return {
     ...RN,
+    View,
     Alert: {
       alert: jest.fn(
         (
@@ -77,12 +95,23 @@ jest.mock('react-native', () => {
 const USER_MENU_TEST_PLATFORM_OS_KEY =
   '__BeakerStack_UserMenuNativeTest_platformOs';
 
+const USER_MENU_STRIP_AVATAR_REF_KEY =
+  '__BeakerStack_UserMenuNativeTest_stripAvatarRef';
+
 function userMenuPlatformOsRef(): { current: string } {
   const g = globalThis as Record<string, { current: string } | undefined>;
   if (!g[USER_MENU_TEST_PLATFORM_OS_KEY]) {
     g[USER_MENU_TEST_PLATFORM_OS_KEY] = { current: 'ios' };
   }
   return g[USER_MENU_TEST_PLATFORM_OS_KEY]!;
+}
+
+function userMenuStripAvatarRefRef(): { current: boolean } {
+  const g = globalThis as Record<string, { current: boolean } | undefined>;
+  if (!g[USER_MENU_STRIP_AVATAR_REF_KEY]) {
+    g[USER_MENU_STRIP_AVATAR_REF_KEY] = { current: false };
+  }
+  return g[USER_MENU_STRIP_AVATAR_REF_KEY]!;
 }
 
 const createMockSupabaseClient = (): SupabaseClient =>
@@ -146,10 +175,18 @@ const openMenu = async () => {
   await screen.findByText('Profile');
 };
 
+const mockAvatarMeasure = () => {
+  const UIManager = require('react-native').UIManager;
+  jest.spyOn(UIManager, 'measure').mockImplementation((_node, callback) => {
+    callback(0, 0, 48, 48, 300, 20);
+  });
+};
+
 describe('UserMenu (Native)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     userMenuPlatformOsRef().current = 'ios';
+    userMenuStripAvatarRefRef().current = false;
   });
 
   it('renders user avatar', () => {
@@ -164,6 +201,7 @@ describe('UserMenu (Native)', () => {
   });
 
   it('opens menu when avatar is pressed', async () => {
+    mockAvatarMeasure();
     renderWithProviders(
       <UserMenu
         user={createMockUser()}
@@ -365,5 +403,79 @@ describe('UserMenu (Native)', () => {
     await waitFor(() => {
       expect(screen.queryByText('Profile')).not.toBeInTheDocument();
     });
+  });
+
+  it('positions iOS menu using avatar measure layout', async () => {
+    userMenuPlatformOsRef().current = 'ios';
+    userMenuStripAvatarRefRef().current = false;
+    mockAvatarMeasure();
+
+    renderWithProviders(
+      <UserMenu
+        user={createMockUser()}
+        profile={createMockProfile()}
+        navigation={mockNavigation}
+      />
+    );
+
+    await openMenu();
+    expect(screen.getByText('Profile')).toBeInTheDocument();
+  });
+
+  it('toggles menu when avatar ref is unavailable', async () => {
+    userMenuStripAvatarRefRef().current = true;
+
+    renderWithProviders(
+      <UserMenu
+        user={createMockUser()}
+        profile={createMockProfile()}
+        navigation={mockNavigation}
+      />
+    );
+
+    fireEvent.click(screen.getByLabelText('Open user menu'));
+    await screen.findByText('Profile');
+  });
+
+  it('handles onStartShouldSetResponder on menu container', () => {
+    const TestRenderer = require('react-test-renderer');
+    const { act: testAct } = TestRenderer;
+    let capturedResponder: (() => boolean) | undefined;
+
+    let tree!: ReturnType<typeof TestRenderer.create>;
+    testAct(() => {
+      tree = TestRenderer.create(
+        <AuthProvider supabaseClient={createMockSupabaseClient()}>
+          <UserMenu
+            user={createMockUser()}
+            profile={createMockProfile()}
+            navigation={mockNavigation}
+          />
+        </AuthProvider>
+      );
+    });
+
+    const visit = (node: {
+      props?: { onStartShouldSetResponder?: () => boolean };
+      children: unknown[];
+    }) => {
+      if (node.props?.onStartShouldSetResponder) {
+        capturedResponder = node.props.onStartShouldSetResponder;
+      }
+      node.children.forEach(child => {
+        if (typeof child !== 'string' && child && typeof child === 'object') {
+          visit(child as typeof node);
+        }
+      });
+    };
+    visit(tree.root);
+
+    testAct(() => {
+      tree.root
+        .findByProps({ accessibilityLabel: 'Open user menu' })
+        .props.onPress();
+    });
+
+    expect(capturedResponder?.()).toBe(true);
   });
 });

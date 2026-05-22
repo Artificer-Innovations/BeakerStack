@@ -6,12 +6,20 @@ import {
 } from '../test/billingFixtures.js';
 import { useUsage } from './useUsage.js';
 
-const { rpc, mockSupabase, usageRealtimeCb, removeChannel } = vi.hoisted(() => {
+const {
+  rpc,
+  mockSupabase,
+  usageRealtimeCb,
+  removeChannel,
+  channelEnabled,
+  channel,
+} = vi.hoisted(() => {
   const rpc = vi.fn();
   const usageRealtimeCb = {
     current: undefined as ((p: unknown) => void) | undefined,
   };
   const removeChannel = vi.fn();
+  const channelEnabled = { value: true };
   const channel = vi.fn(() => {
     const chain = {
       on: vi.fn((type: string, _cfg: unknown, cb: (p: unknown) => void) => {
@@ -24,10 +32,19 @@ const { rpc, mockSupabase, usageRealtimeCb, removeChannel } = vi.hoisted(() => {
   });
   const mockSupabase = {
     rpc,
-    channel,
+    get channel() {
+      return channelEnabled.value ? channel : undefined;
+    },
     removeChannel,
   } as unknown as ReturnType<typeof baseBillingContextExtras>['supabase'];
-  return { rpc, mockSupabase, usageRealtimeCb, removeChannel };
+  return {
+    rpc,
+    mockSupabase,
+    usageRealtimeCb,
+    removeChannel,
+    channelEnabled,
+    channel,
+  };
 });
 
 vi.mock('./useBillingContext.js', () => ({
@@ -100,7 +117,7 @@ describe('useUsage', () => {
     });
     const { result, unmount } = renderHook(() => useUsage('ai'));
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(mockSupabase.channel).toHaveBeenCalled();
+    expect(channel).toHaveBeenCalled();
     rpc.mockClear();
     usageRealtimeCb.current?.({
       new: { product_id: 'test_product', event_type: 'ai' },
@@ -117,6 +134,7 @@ describe('useUsage (coverage)', () => {
   beforeEach(() => {
     rpc.mockReset();
     usageRealtimeCb.current = undefined;
+    channelEnabled.value = true;
   });
 
   it('sets error when RPC returns an error object', async () => {
@@ -189,7 +207,7 @@ describe('useUsage (coverage)', () => {
       on: vi.fn(),
       subscribe: vi.fn(),
     };
-    vi.mocked(mockSupabase.channel).mockReturnValueOnce(joinedChannel as never);
+    vi.mocked(channel).mockReturnValueOnce(joinedChannel as never);
     const { unmount } = renderHook(() => useUsage('ai'));
     await waitFor(() => expect(rpc).toHaveBeenCalled());
     expect(joinedChannel.on).not.toHaveBeenCalled();
@@ -212,5 +230,60 @@ describe('useUsage (coverage)', () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it('defaults omitted usage fields from RPC payload', async () => {
+    rpc.mockResolvedValue({
+      data: { limit: 5, remaining: 4 },
+      error: null,
+    });
+    const { result } = renderHook(() => useUsage('ai'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.used).toBe(0);
+    expect(result.current.resetsAt).toBe('');
+  });
+
+  it('refetches when realtime payload only includes old row', async () => {
+    rpc.mockResolvedValue({
+      data: { used: 1, limit: 5, remaining: 4, periodEnd: '', periodStart: '' },
+      error: null,
+    });
+    renderHook(() => useUsage('ai'));
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(1));
+    rpc.mockClear();
+    usageRealtimeCb.current?.({
+      new: undefined,
+      old: { product_id: 'test_product', event_type: 'ai' },
+    });
+    await waitFor(() => expect(rpc).toHaveBeenCalled());
+  });
+
+  it('skips realtime subscription when channel is unavailable', async () => {
+    channelEnabled.value = false;
+    rpc.mockResolvedValue({
+      data: { used: 1, limit: 5, remaining: 4, periodEnd: '', periodStart: '' },
+      error: null,
+    });
+    const { result } = renderHook(() => useUsage('ai'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.used).toBe(1);
+  });
+
+  it('skips re-attaching handlers when channel is already joining', async () => {
+    rpc.mockResolvedValue({
+      data: { used: 1, limit: 5, remaining: 4, periodEnd: '', periodStart: '' },
+      error: null,
+    });
+    const joiningChannel = {
+      state: 'joining' as const,
+      on: vi.fn(),
+      subscribe: vi.fn(),
+    };
+    vi.mocked(channel).mockReturnValueOnce(joiningChannel as never);
+    const { unmount } = renderHook(() => useUsage('ai'));
+    await waitFor(() => expect(rpc).toHaveBeenCalled());
+    expect(joiningChannel.on).not.toHaveBeenCalled();
+    unmount();
+    expect(removeChannel).toHaveBeenCalled();
   });
 });

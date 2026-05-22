@@ -71,4 +71,18 @@ describe('usePlanCatalog', () => {
       expect(result.current.plans[0]?.display_name).toBe('Pro')
     );
   });
+
+  it('coalesces undefined query data to an empty catalog', async () => {
+    order.mockResolvedValue({ data: undefined, error: null });
+    const { result } = renderHook(() => usePlanCatalog());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.plans).toEqual([]);
+  });
+
+  it('coalesces null rows to an empty catalog', async () => {
+    order.mockResolvedValue({ data: null, error: null });
+    const { result } = renderHook(() => usePlanCatalog());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.plans).toEqual([]);
+  });
 });

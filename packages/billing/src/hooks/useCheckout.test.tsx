@@ -98,4 +98,38 @@ describe('useCheckout', () => {
       })
     );
   });
+
+  it('omits trialDays when value is NaN', async () => {
+    invoke.mockResolvedValue({
+      data: { checkoutUrl: 'https://stripe.test/session' },
+      error: null,
+    });
+    const { result } = renderHook(() => useCheckout());
+    await result.current.startCheckout('plan_free', 'monthly', Number.NaN);
+    expect(invoke).toHaveBeenCalledWith(
+      'billing-stripe',
+      expect.objectContaining({
+        body: expect.not.objectContaining({ trialDays: expect.anything() }),
+      })
+    );
+    expect(result.current.pending).toBe(false);
+  });
+
+  it('clears pending after a successful checkout', async () => {
+    invoke.mockResolvedValue({
+      data: { checkoutUrl: 'https://stripe.test/session' },
+      error: null,
+    });
+    const { result } = renderHook(() => useCheckout());
+    await result.current.startCheckout('plan_free');
+    expect(result.current.pending).toBe(false);
+  });
+
+  it('clears pending when invoke throws before returning', async () => {
+    invoke.mockRejectedValueOnce(new Error('network down'));
+    const { result } = renderHook(() => useCheckout());
+    const r = await result.current.startCheckout('plan_free');
+    expect(r).toBeNull();
+    expect(result.current.pending).toBe(false);
+  });
 });

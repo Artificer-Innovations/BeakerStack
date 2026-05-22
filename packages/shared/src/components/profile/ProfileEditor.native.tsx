@@ -177,12 +177,14 @@ export function ProfileEditor({
   }, [formData, fieldErrors, isSubmitting, profile.loading, handleFieldChange]);
 
   const handleSubmit = useCallback(async () => {
+    /* v8 ignore start -- form is hidden unless user is present */
     if (!user) {
       const error = new Error('User must be logged in to update profile');
       setGeneralError(error.message);
       onError?.(error);
       return;
     }
+    /* v8 ignore stop */
 
     setIsSubmitting(true);
     setFieldErrors({});

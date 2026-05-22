@@ -115,6 +115,19 @@ describe('billingClient', () => {
     ).resolves.toBe(true);
   });
 
+  it('getRemainingUsage defaults used when omitted from RPC payload', async () => {
+    const supabase = mockSupabase({
+      rpcRemaining: {
+        limit: 10,
+        remaining: 10,
+        periodEnd: '2026-01-31',
+        periodStart: '2026-01-01',
+      },
+    });
+    const r = await getRemainingUsage(supabase, 'beakerstack', 'ai_summarize');
+    expect(r?.used).toBe(0);
+  });
+
   it('getRemainingUsage maps omitted limit and remaining to null', async () => {
     const supabase = mockSupabase({
       rpcRemaining: {

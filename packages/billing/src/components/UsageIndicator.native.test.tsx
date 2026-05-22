@@ -95,6 +95,18 @@ describe('UsageIndicator (native)', () => {
     expect(screen.queryByText(/left/)).toBeNull();
   });
 
+  it('renders expanded caption without reset date when resetsAt is empty', () => {
+    vi.mocked(useUsage).mockReturnValue({
+      used: 2,
+      limit: 5,
+      remaining: 3,
+      resetsAt: '',
+      loading: false,
+    });
+    render(<UsageIndicator meter='ai' variant='expanded' />);
+    expect(screen.getByText(/2 of 5 used · resets —/)).toBeInTheDocument();
+  });
+
   it('shows ellipsis while loading', () => {
     vi.mocked(useUsage).mockReturnValue({
       used: 0,

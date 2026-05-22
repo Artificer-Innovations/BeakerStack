@@ -111,6 +111,38 @@ describe('useCustomerPortal', () => {
       const url = await result.current.openPortal();
       expect(url).toBe('https://billing.stripe/session');
       expect(refreshSubscription).toHaveBeenCalled();
+      expect(result.current.pending).toBe(false);
+    } finally {
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: realLocation,
+      });
+    }
+  });
+
+  it('clears pending after a failed portal open', async () => {
+    invoke.mockResolvedValue({ data: {}, error: null });
+    const { result } = renderHook(() => useCustomerPortal());
+    await result.current.openPortal();
+    await waitFor(() => expect(result.current.pending).toBe(false));
+  });
+
+  it('clears pending when refreshSubscription fails without window.location', async () => {
+    const realLocation = window.location;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: undefined,
+    });
+    invoke.mockResolvedValue({
+      data: { url: 'https://billing.stripe/session' },
+      error: null,
+    });
+    refreshSubscription.mockRejectedValueOnce(new Error('refresh failed'));
+    try {
+      const { result } = renderHook(() => useCustomerPortal());
+      const url = await result.current.openPortal();
+      expect(url).toBeNull();
+      expect(result.current.pending).toBe(false);
     } finally {
       Object.defineProperty(window, 'location', {
         configurable: true,

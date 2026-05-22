@@ -6,24 +6,111 @@ import {
 } from '@beakerstack/shared/hooks/useAuth.native';
 import type { SupabaseClient, User, Session } from '@supabase/supabase-js';
 
-jest.mock('expo-constants', () => ({
-  default: {
-    expoConfig: {
-      extra: {
-        googleWebClientId: 'test-web-client-id',
-        googleIosClientId: 'test-ios-client-id',
-        googleAndroidClientId: 'test-android-client-id',
+const EXPO_CONSTANTS_STATE_KEY =
+  '__beakerstack_useAuthNativeExpoConstantsState';
+
+type ExpoConstantsTestState = {
+  expoConfig: { extra?: Record<string, unknown> } | null;
+  manifest: { extra?: Record<string, unknown> } | null;
+  throwOnRead: boolean;
+};
+
+function getExpoConstantsState(): ExpoConstantsTestState {
+  const g = globalThis as Record<string, unknown>;
+  if (!g[EXPO_CONSTANTS_STATE_KEY]) {
+    g[EXPO_CONSTANTS_STATE_KEY] = {
+      expoConfig: {
+        extra: {
+          googleWebClientId: 'test-web-client-id',
+          googleIosClientId: 'test-ios-client-id',
+          googleAndroidClientId: 'test-android-client-id',
+        },
       },
-    },
-    manifest: {
-      extra: {
-        googleWebClientId: 'test-web-client-id',
-        googleIosClientId: 'test-ios-client-id',
-        googleAndroidClientId: 'test-android-client-id',
+      manifest: {
+        extra: {
+          googleWebClientId: 'test-web-client-id',
+          googleIosClientId: 'test-ios-client-id',
+          googleAndroidClientId: 'test-android-client-id',
+        },
       },
+      throwOnRead: false,
+    } satisfies ExpoConstantsTestState;
+  }
+  return g[EXPO_CONSTANTS_STATE_KEY] as ExpoConstantsTestState;
+}
+
+function resetConstantsState() {
+  const state = getExpoConstantsState();
+  state.throwOnRead = false;
+  state.expoConfig = {
+    extra: {
+      googleWebClientId: 'test-web-client-id',
+      googleIosClientId: 'test-ios-client-id',
+      googleAndroidClientId: 'test-android-client-id',
     },
-  },
-}));
+  };
+  state.manifest = {
+    extra: {
+      googleWebClientId: 'test-web-client-id',
+      googleIosClientId: 'test-ios-client-id',
+      googleAndroidClientId: 'test-android-client-id',
+    },
+  };
+}
+
+jest.mock('expo-constants', () => {
+  const g = globalThis as Record<string, unknown>;
+  const stateKey = '__beakerstack_useAuthNativeExpoConstantsState';
+  if (!g[stateKey]) {
+    g[stateKey] = {
+      expoConfig: {
+        extra: {
+          googleWebClientId: 'test-web-client-id',
+          googleIosClientId: 'test-ios-client-id',
+          googleAndroidClientId: 'test-android-client-id',
+        },
+      },
+      manifest: {
+        extra: {
+          googleWebClientId: 'test-web-client-id',
+          googleIosClientId: 'test-ios-client-id',
+          googleAndroidClientId: 'test-android-client-id',
+        },
+      },
+      throwOnRead: false,
+    };
+  }
+  if (!g.__beakerstack_mockExpoConstants) {
+    const mockConstants: Record<string, unknown> = {};
+    Object.defineProperty(mockConstants, 'expoConfig', {
+      configurable: true,
+      enumerable: true,
+      get() {
+        const state = g[stateKey] as ExpoConstantsTestState | undefined;
+        if (state?.throwOnRead) {
+          throw new Error('Constants unavailable');
+        }
+        return state?.expoConfig ?? null;
+      },
+    });
+    Object.defineProperty(mockConstants, 'manifest', {
+      configurable: true,
+      enumerable: true,
+      get() {
+        const state = g[stateKey] as ExpoConstantsTestState | undefined;
+        if (state?.throwOnRead) {
+          throw new Error('Constants unavailable');
+        }
+        return state?.manifest ?? null;
+      },
+    });
+    g.__beakerstack_mockExpoConstants = mockConstants;
+  }
+  return {
+    __esModule: true,
+    default: g.__beakerstack_mockExpoConstants,
+  };
+});
 
 /** Mutable flags read by the hoisted Google Sign-In mock factory and getters */
 const googleSignInMockControl = {
@@ -31,6 +118,8 @@ const googleSignInMockControl = {
   throwOnFactory: false,
   /** Throw when accessing GoogleSignin / statusCodes exports (getGoogleSignIn catch) */
   throwOnAccess: false,
+  /** When true, factory throws a primitive instead of Error (import().catch path) */
+  throwNonError: false,
   throwMessage: 'Module not found',
 };
 
@@ -55,6 +144,9 @@ jest.mock(
   '@react-native-google-signin/google-signin',
   () => {
     if (googleSignInMockControl.throwOnFactory) {
+      if (googleSignInMockControl.throwNonError) {
+        throw googleSignInMockControl.throwMessage;
+      }
       throw new Error(googleSignInMockControl.throwMessage);
     }
     return {
@@ -194,8 +286,10 @@ describe('useAuth (Native)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetGoogleSignInModuleStateForTests();
+    resetConstantsState();
     googleSignInMockControl.throwOnFactory = false;
     googleSignInMockControl.throwOnAccess = false;
+    googleSignInMockControl.throwNonError = false;
     // @ts-expect-error test-only assignment to global __DEV__
     global.__DEV__ = false;
   });
@@ -525,9 +619,11 @@ describe('Google Sign-In and configureGoogleSignIn', () => {
   beforeEach(() => {
     jest.clearAllTimers();
     resetGoogleSignInModuleStateForTests();
+    resetConstantsState();
     jest.clearAllMocks();
     googleSignInMockControl.throwOnFactory = false;
     googleSignInMockControl.throwOnAccess = false;
+    googleSignInMockControl.throwNonError = false;
     mockGoogleSignin.configure.mockReset();
     mockGoogleSignin.hasPlayServices.mockReset();
     mockGoogleSignin.hasPlayServices.mockResolvedValue(undefined);
@@ -899,5 +995,274 @@ describe('Google Sign-In and configureGoogleSignIn', () => {
         await result.current.updatePassword('short');
       })
     ).rejects.toThrow('Weak password');
+  });
+
+  it('logs Constants debug info when Google Sign-In is not configured', async () => {
+    const { Logger } = require('@beakerstack/logger');
+    const state = getExpoConstantsState();
+    state.expoConfig = {
+      extra: {
+        googleWebClientId: 'manifest-web-client-id',
+      },
+    };
+    state.manifest = {
+      extra: {
+        googleWebClientId: 'manifest-web-client-id',
+      },
+    };
+
+    const { mockClient } = createMockSupabaseClient();
+    const { result } = renderHook(() => useAuth(mockClient));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await expect(result.current.signInWithGoogle()).rejects.toThrow(
+        /Google Sign-In not configured/
+      );
+    });
+
+    expect(Logger.debug).toHaveBeenCalledWith(
+      '[useAuth] Google Sign-In not configured - Constants check',
+      expect.objectContaining({
+        hasGoogleWebClientId: true,
+        hasGoogleIosClientId: false,
+      })
+    );
+  });
+
+  it('logs Constants access error when configuration check throws', async () => {
+    const { Logger } = require('@beakerstack/logger');
+    getExpoConstantsState().throwOnRead = true;
+
+    const { mockClient } = createMockSupabaseClient();
+    const { result } = renderHook(() => useAuth(mockClient));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await expect(result.current.signInWithGoogle()).rejects.toThrow(
+        /Google Sign-In not configured/
+      );
+    });
+
+    expect(Logger.debug).toHaveBeenCalledWith(
+      '[useAuth] Google Sign-In not configured - Error accessing Constants',
+      expect.any(Error)
+    );
+  });
+
+  it('logs current Google configuration details when sign-in fails after configure', async () => {
+    const { Logger } = require('@beakerstack/logger');
+    mockGoogleSignin.signIn.mockRejectedValueOnce(new Error('sign-in failed'));
+
+    await runDeferredGoogleConfigure(() =>
+      configureGoogleSignIn({ webClientId: 'test-web-client-id' })
+    );
+
+    const { mockClient } = createMockSupabaseClient();
+    const { result } = renderHook(() => useAuth(mockClient));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await expect(result.current.signInWithGoogle()).rejects.toThrow(
+        'sign-in failed'
+      );
+    });
+
+    expect(Logger.error).toHaveBeenCalledWith(
+      '[useAuth] Current Google Sign-In configuration:',
+      expect.objectContaining({
+        hasWebClientId: true,
+        hasIosClientId: true,
+        hasAndroidClientId: true,
+        webClientIdPrefix: 'test-web-client-id...',
+        androidClientIdPrefix: 'test-android-client-...',
+      })
+    );
+  });
+
+  it('logs configuration access error in Google sign-in catch handler', async () => {
+    const { Logger } = require('@beakerstack/logger');
+    mockGoogleSignin.signIn.mockRejectedValueOnce(new Error('sign-in failed'));
+
+    await runDeferredGoogleConfigure(() =>
+      configureGoogleSignIn({ webClientId: 'test-web-client-id' })
+    );
+
+    getExpoConstantsState().throwOnRead = true;
+
+    const { mockClient } = createMockSupabaseClient();
+    const { result } = renderHook(() => useAuth(mockClient));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await expect(result.current.signInWithGoogle()).rejects.toThrow(
+        'sign-in failed'
+      );
+    });
+
+    expect(Logger.error).toHaveBeenCalledWith(
+      '[useAuth] Error accessing configuration:',
+      expect.any(Error)
+    );
+  });
+
+  it('uses manifest extra when expoConfig is unavailable', async () => {
+    const { Logger } = require('@beakerstack/logger');
+    const state = getExpoConstantsState();
+    state.expoConfig = null;
+    state.manifest = {
+      extra: {
+        googleWebClientId: 'manifest-only-web-client-id',
+      },
+    };
+
+    const { mockClient } = createMockSupabaseClient();
+    const { result } = renderHook(() => useAuth(mockClient));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await expect(result.current.signInWithGoogle()).rejects.toThrow(
+        /Google Sign-In not configured/
+      );
+    });
+
+    expect(Logger.debug).toHaveBeenCalledWith(
+      '[useAuth] Google Sign-In not configured - Constants check',
+      expect.objectContaining({
+        hasGoogleWebClientId: true,
+        hasManifest: true,
+        hasExpoConfig: false,
+      })
+    );
+  });
+
+  it('logs missing webClientId options when configureGoogleSignIn is called without args', () => {
+    const { Logger } = require('@beakerstack/logger');
+    configureGoogleSignIn();
+    expect(Logger.warn).toHaveBeenCalledWith(
+      '[useAuth] Google Sign-In not configured: webClientId is missing',
+      expect.objectContaining({
+        hasWebClientId: false,
+        optionsKeys: [],
+      })
+    );
+  });
+
+  it('logs configure failure when GoogleSignin.configure throws a non-Error value', async () => {
+    const { Logger } = require('@beakerstack/logger');
+    mockGoogleSignin.configure.mockImplementationOnce(() => {
+      throw 'configure failed';
+    });
+
+    await runDeferredGoogleConfigure(() =>
+      configureGoogleSignIn({ webClientId: 'test-web-client-id' })
+    );
+
+    expect(Logger.error).toHaveBeenCalledWith(
+      '[useAuth]',
+      expect.stringContaining('Failed to configure Google Sign-In'),
+      'configure failed'
+    );
+  });
+
+  it('handles sessions that do not include a user object', async () => {
+    const { mockClient } = createMockSupabaseClient();
+    (mockClient.auth.getSession as jest.Mock).mockResolvedValueOnce({
+      data: {
+        session: {
+          access_token: 'token',
+          refresh_token: 'refresh',
+          expires_in: 3600,
+          token_type: 'bearer',
+          user: null,
+        },
+      },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useAuth(mockClient));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.user).toBeNull();
+    expect(result.current.session?.access_token).toBe('token');
+  });
+
+  it('logs configuration without iosClientId prefix when iosClientId is omitted', async () => {
+    const { Logger } = require('@beakerstack/logger');
+    await runDeferredGoogleConfigure(() =>
+      configureGoogleSignIn({ webClientId: 'test-web-client-id-only' })
+    );
+
+    expect(Logger.info).toHaveBeenCalledWith(
+      '[useAuth] Configuring Google Sign-In...',
+      expect.objectContaining({
+        hasIosClientId: false,
+        iosClientIdPrefix: undefined,
+        webClientIdPrefix: 'test-web-client-id-o...',
+      })
+    );
+  });
+
+  it('logs missing client id prefixes when sign-in fails without configured ids', async () => {
+    const { Logger } = require('@beakerstack/logger');
+    const state = getExpoConstantsState();
+    state.expoConfig = { extra: null as unknown as Record<string, unknown> };
+    state.manifest = { extra: null as unknown as Record<string, unknown> };
+
+    mockGoogleSignin.signIn.mockRejectedValueOnce(new Error('sign-in failed'));
+
+    await runDeferredGoogleConfigure(() =>
+      configureGoogleSignIn({ webClientId: 'test-web-client-id' })
+    );
+
+    const { mockClient } = createMockSupabaseClient();
+    const { result } = renderHook(() => useAuth(mockClient));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await expect(result.current.signInWithGoogle()).rejects.toThrow(
+        'sign-in failed'
+      );
+    });
+
+    expect(Logger.error).toHaveBeenCalledWith(
+      '[useAuth] Current Google Sign-In configuration:',
+      expect.objectContaining({
+        hasWebClientId: false,
+        webClientIdPrefix: undefined,
+        androidClientIdPrefix: undefined,
+      })
+    );
+  });
+
+  it('logs Constants extra fallback when Google Sign-In is not configured', async () => {
+    const { Logger } = require('@beakerstack/logger');
+    const state = getExpoConstantsState();
+    state.expoConfig = { extra: null as unknown as Record<string, unknown> };
+    state.manifest = null;
+
+    const { mockClient } = createMockSupabaseClient();
+    const { result } = renderHook(() => useAuth(mockClient));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await expect(result.current.signInWithGoogle()).rejects.toThrow(
+        /Google Sign-In not configured/
+      );
+    });
+
+    expect(Logger.debug).toHaveBeenCalledWith(
+      '[useAuth] Google Sign-In not configured - Constants check',
+      expect.objectContaining({
+        extraKeys: [],
+      })
+    );
   });
 });

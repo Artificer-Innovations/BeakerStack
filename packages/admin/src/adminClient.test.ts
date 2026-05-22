@@ -69,6 +69,14 @@ describe('adminClient', () => {
     expect(result?.users).toEqual([]);
   });
 
+  it('listUsers defaults total, limit, and offset when response omits them', async () => {
+    const sb = mockSupabase(name =>
+      name === 'admin_list_users' ? { users: [] } : null
+    );
+    const result = await listUsers(sb);
+    expect(result).toEqual({ users: [], total: 0, limit: 25, offset: 0 });
+  });
+
   it('listUsers parses users payload', async () => {
     const sb = mockSupabase(name =>
       name === 'admin_list_users'

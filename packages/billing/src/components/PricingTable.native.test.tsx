@@ -77,6 +77,21 @@ describe('PricingTable (native)', () => {
     expect(screen.getByText(/14-day trial/)).toBeInTheDocument();
   });
 
+  it('highlights current plan when highlightCurrent is enabled', () => {
+    vi.mocked(usePlan).mockReturnValue({
+      data: p1,
+      loading: false,
+      error: null,
+    });
+    render(<PricingTable highlightCurrent onSelectPlan={vi.fn()} />);
+    expect(screen.getByText('Pro')).toBeInTheDocument();
+  });
+
+  it('ignores empty highlightPlanId', () => {
+    render(<PricingTable highlightPlanId='' onSelectPlan={vi.fn()} />);
+    expect(screen.getByText('Pro')).toBeInTheDocument();
+  });
+
   it('highlights plan when highlightPlanId matches', () => {
     vi.mocked(usePlan).mockReturnValue({
       data: null,

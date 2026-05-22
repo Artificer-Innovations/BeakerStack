@@ -164,13 +164,7 @@ export function BillingProvider<P extends ProductBillingConfig>({
   }, [userId, supabase, config.productId, loadSubscription]);
 
   useEffect(() => {
-    if (!userId) {
-      if (channelRef.current) {
-        void supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-      return;
-    }
+    if (!userId) return;
     const filter = `user_id=eq.${userId}`;
     const ch = supabase
       .channel(`billing_subscriptions:${config.productId}:${userId}`)

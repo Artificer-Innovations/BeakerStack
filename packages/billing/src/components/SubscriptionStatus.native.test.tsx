@@ -40,6 +40,36 @@ describe('SubscriptionStatus (native)', () => {
     expect(screen.getByText('…')).toBeInTheDocument();
   });
 
+  it('formats renewal date when period end is set', () => {
+    vi.mocked(useSubscription).mockReturnValue({
+      data: testSubscription({
+        current_period_end: '2026-06-15T00:00:00.000Z',
+      }),
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+    });
+    render(<SubscriptionStatus />);
+    expect(screen.getByText(/Renews \/ period ends:/)).toBeInTheDocument();
+    expect(screen.queryByText(/Renews \/ period ends: —/)).toBeNull();
+  });
+
+  it('falls back to em dash when plan and subscription are missing', () => {
+    vi.mocked(useSubscription).mockReturnValue({
+      data: null,
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+    });
+    vi.mocked(usePlan).mockReturnValue({
+      data: null,
+      loading: false,
+      error: null,
+    });
+    render(<SubscriptionStatus />);
+    expect(screen.getByText(/Plan: —/)).toBeInTheDocument();
+  });
+
   it('shows past_due billing warning', () => {
     vi.mocked(useSubscription).mockReturnValue({
       data: testSubscription({ status: 'past_due' }),

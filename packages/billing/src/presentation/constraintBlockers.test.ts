@@ -281,6 +281,29 @@ describe('computeDowngradeBlockers', () => {
     ).toBe(true);
   });
 
+  it('uses target plan id when display name is missing', () => {
+    const current = plan({
+      id: 'cur',
+      display_name: 'Current',
+      features: { containers_per_account_max: -1 },
+      usage_limits: { ai_summarize: 100 },
+    });
+    const target = plan({
+      id: 'tgt_id',
+      display_name: null as unknown as string,
+      features: { containers_per_account_max: 1 },
+      usage_limits: { ai_summarize: 10 },
+    });
+    const blockers = computeDowngradeBlockers(
+      current,
+      target,
+      defaultOptions({ collectionCount: 5 }),
+      [target],
+      billingConfig
+    );
+    expect(blockers.hard.some(b => b.includes('tgt_id'))).toBe(true);
+  });
+
   it('uses fallback exclusive plan name when no plan advertises the boolean feature', () => {
     const current = plan({
       id: 'cur',

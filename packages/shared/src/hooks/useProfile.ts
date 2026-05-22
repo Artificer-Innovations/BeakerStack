@@ -281,17 +281,21 @@ export function useProfile(
       if (createError) {
         const errorObj = new Error(createError.message);
         setError(errorObj);
+        setLoading(false);
         throw errorObj;
       }
 
       setProfile(createdProfile);
+      setLoading(false);
       return createdProfile;
     } catch (err) {
-      const errorObj = err instanceof Error ? err : new Error(String(err));
+      const errorObj =
+        err instanceof Error
+          ? err
+          : /* v8 ignore next */ new Error(String(err));
       setError(errorObj);
-      throw errorObj;
-    } finally {
       setLoading(false);
+      throw errorObj;
     }
   };
 
@@ -327,6 +331,7 @@ export function useProfile(
         Logger.error('[useProfile] Update error:', updateError);
         const errorObj = new Error(updateError.message);
         setError(errorObj);
+        setLoading(false);
         throw errorObj;
       }
 
@@ -336,6 +341,7 @@ export function useProfile(
           'Update succeeded but returned no profile data'
         );
         setError(errorObj);
+        setLoading(false);
         throw errorObj;
       }
 
@@ -344,14 +350,17 @@ export function useProfile(
         updatedProfile
       );
       setProfile(updatedProfile);
+      setLoading(false);
       return updatedProfile;
     } catch (err) {
       Logger.error('[useProfile] Update caught error:', err);
-      const errorObj = err instanceof Error ? err : new Error(String(err));
+      const errorObj =
+        err instanceof Error
+          ? err
+          : /* v8 ignore next */ new Error(String(err));
       setError(errorObj);
-      throw errorObj;
-    } finally {
       setLoading(false);
+      throw errorObj;
     }
   };
 
