@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { adminNavItems } from '../adminNav';
 
 describe('adminNav', () => {
-  it('includes dashboard, users, and waitlist entries', () => {
+  it('includes overview, users, and waitlist entries', () => {
     expect(adminNavItems.map(n => n.label)).toEqual([
-      'Admin Dashboard',
+      'Overview',
       'Users',
       'Waitlist',
       'Waitlist settings',

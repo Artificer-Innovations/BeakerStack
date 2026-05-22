@@ -42,9 +42,18 @@ describe('AdminLayoutShell', () => {
     expect(screen.getByText('Users outlet')).toBeInTheDocument();
   });
 
-  it('uses dashboard-only breadcrumbs on non-users admin routes', () => {
+  it('renders outlet for waitlist path', () => {
     renderShell('/waitlist', 'waitlist', <p>Waitlist outlet</p>);
     expect(screen.getByText('Waitlist outlet')).toBeInTheDocument();
+  });
+
+  it('renders outlet for waitlist settings path', () => {
+    renderShell(
+      '/waitlist/settings',
+      'waitlist/settings',
+      <p>Settings outlet</p>
+    );
+    expect(screen.getByText('Settings outlet')).toBeInTheDocument();
   });
 
   it('renders a Dashboard link pointing to /dashboard', () => {

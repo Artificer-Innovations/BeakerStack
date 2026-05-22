@@ -4,7 +4,7 @@ import { createElement } from 'react';
 
 export const adminNavItems: AdminNavItem[] = [
   {
-    label: 'Admin Dashboard',
+    label: 'Overview',
     to: '/admin',
     icon: createElement(LayoutDashboard, { className: 'h-4 w-4 shrink-0' }),
   },
