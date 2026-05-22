@@ -52,11 +52,11 @@ SELECT ok(
 
 -- Enable marketing email for one product so trigger fires.
 INSERT INTO public.marketing_email_settings
-  (product_id, enabled, provider, namespace, form_id)
+  (product_id, enabled, provider, config)
 VALUES
-  ('beakerstack', true, 'kit', 'bstack-test', 'form-1')
+  ('beakerstack', true, 'kit', '{"namespace":"bstack-test","form_id":"form-1"}')
 ON CONFLICT (product_id) DO UPDATE
-  SET enabled = true, provider = 'kit', namespace = 'bstack-test', form_id = 'form-1';
+  SET enabled = true, provider = 'kit', config = '{"namespace":"bstack-test","form_id":"form-1"}'::jsonb;
 
 -- Test user to delete.
 DO $$
