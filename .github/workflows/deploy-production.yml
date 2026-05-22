@@ -121,6 +121,7 @@ jobs:
           PRODUCTION_BILLING_ALLOWED_ORIGINS: ${{ secrets.PRODUCTION_BILLING_ALLOWED_ORIGINS }}
           PRODUCTION_KIT_API_KEY: ${{ secrets.PRODUCTION_KIT_API_KEY }}
           PRODUCTION_KIT_CRON_SECRET: ${{ secrets.PRODUCTION_KIT_CRON_SECRET }}
+          PRODUCTION_KIT_WEBHOOK_SECRET: ${{ secrets.PRODUCTION_KIT_WEBHOOK_SECRET }}
         run: |
           set -euo pipefail
           cd supabase
@@ -139,7 +140,8 @@ jobs:
           # strings would clobber any manually-configured Supabase project secrets.
           [[ -n "${PRODUCTION_KIT_API_KEY:-}" ]] && supabase secrets set KIT_API_KEY="${PRODUCTION_KIT_API_KEY}"
           [[ -n "${PRODUCTION_KIT_CRON_SECRET:-}" ]] && supabase secrets set KIT_CRON_SECRET="${PRODUCTION_KIT_CRON_SECRET}"
-          supabase functions deploy stripe-webhook billing-stripe waitlist-capture waitlist-ops kit-sync \
+          [[ -n "${PRODUCTION_KIT_WEBHOOK_SECRET:-}" ]] && supabase secrets set KIT_WEBHOOK_SECRET="${PRODUCTION_KIT_WEBHOOK_SECRET}"
+          supabase functions deploy stripe-webhook billing-stripe waitlist-capture waitlist-ops kit-sync kit-webhook \
             --project-ref "${PRODUCTION_SUPABASE_PROJECT_REF}"
 
       - name: Ensure kit-sync cron job (production)

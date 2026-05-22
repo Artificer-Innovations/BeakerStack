@@ -123,10 +123,10 @@ async function handleWorker(
 
       const config = settings.config;
 
-      // Guard: namespace is required for all Kit tag operations. Dead-letter with a
-      // clear message so the operator knows exactly what to fix, rather than letting
-      // the row reach Kit API and fail with a confusing tag-not-found error.
-      if (!config.namespace) {
+      // Guard: namespace is required for tag operations, but not for GDPR erasure
+      // (deleteUser only needs API key + email). Carve out user.deleted so it is
+      // never dead-lettered by a missing namespace.
+      if (!config.namespace && row.event_type !== 'user.deleted') {
         const { error: upErr } = await admin
           .from('marketing_email_sync_queue')
           .update({
@@ -152,7 +152,9 @@ async function handleWorker(
         .eq('email', row.email)
         .maybeSingle();
 
-      if (suppressed) {
+      // user.deleted is a GDPR erasure — it must run even if the user previously
+      // unsubscribed via Kit webhook. Suppression only governs marketing sends.
+      if (suppressed && row.event_type !== 'user.deleted') {
         await markDone(admin, row.id);
         skipped++;
         continue;
@@ -307,6 +309,12 @@ async function processEvent(
       if ((config.onChurn ?? 'tag_only') === 'unsubscribe') {
         await kit.unsubscribeUser(email);
       }
+      break;
+    }
+    case 'user.deleted': {
+      // GDPR erasure: hard-delete the subscriber from Kit. Bypasses suppression
+      // check above so this always runs regardless of unsubscribe status.
+      await kit.deleteUser(email);
       break;
     }
     default:
