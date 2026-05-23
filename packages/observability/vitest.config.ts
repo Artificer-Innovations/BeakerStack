@@ -36,6 +36,7 @@ export default defineConfig({
         '**/vitest.setup.ts',
         '**/*.{test,spec}.{ts,tsx}',
         'src/test/**',
+        '**/tsup.config.*',
         // Type-only modules: no executable statements after TS emit
         'src/types.ts',
         'src/index.ts',

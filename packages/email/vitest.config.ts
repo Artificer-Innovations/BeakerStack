@@ -18,6 +18,7 @@ export default defineConfig({
         '**/vitest.config.*',
         '**/*.{test,spec}.{ts,tsx}',
         'src/types.ts',
+        '**/tsup.config.*',
       ],
       thresholds: {
         statements: 95,

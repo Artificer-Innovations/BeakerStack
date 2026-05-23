@@ -1,3 +1,4 @@
+import { Logger } from '@beakerstack/logger';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { LifecycleEventName } from '@beakerstack/lifecycle-events';
 
@@ -18,7 +19,7 @@ export async function enqueueMarketingEmail(
     .maybeSingle();
 
   if (settingsErr) {
-    console.error(
+    Logger.error(
       'enqueueMarketingEmail: settings lookup failed',
       settingsErr.message
     );
@@ -36,6 +37,6 @@ export async function enqueueMarketingEmail(
 
   // '23505' is Postgres unique_violation — swallow so callers are idempotent.
   if (error && error.code !== '23505') {
-    console.error('enqueueMarketingEmail error', error.message);
+    Logger.error('enqueueMarketingEmail error', error.message);
   }
 }
