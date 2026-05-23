@@ -38,6 +38,8 @@
   },
   "include": [
     "./deno-shim.d.ts",
-    "./_shared/**/*.ts"
+    "./_shared/**/*.ts",
+    "./kit-sync/**/*.ts",
+    "./waitlist-ops/**/*.ts"
   ]
 }

@@ -59,6 +59,7 @@
       "outDir": "supabase/functions/_shared/_generated/marketing-email-edge",
       "npmName": "@beakerstack/marketing-email/edge",
       "dependsOn": [
+        "logger",
         "lifecycle-events"
       ]
     }

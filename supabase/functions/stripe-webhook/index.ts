@@ -10,7 +10,7 @@ import {
   type ClassifyDecision,
   type OwnedSubscriptionRow,
 } from '../_shared/billing-webhook-guards.ts';
-import { enqueueMarketingEmail } from '../_shared/marketingEmailQueue.ts';
+import { enqueueMarketingEmail } from '@beakerstack/marketing-email/edge';
 
 type ProcessResult =
   | {

@@ -8,7 +8,8 @@ import { execSync } from 'child_process';
 import { resolve, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const ROOT = resolve(__dirname, '..');
 
 function log(...args) {
@@ -22,11 +23,25 @@ function die(msg) {
 
 // ── Manifest loading ──────────────────────────────────────────────────────────
 
+export function parseManifest(json) {
+  const data = JSON.parse(json);
+  if (!Array.isArray(data.ports)) throw new Error('manifest.ports must be an array');
+  for (const p of data.ports) {
+    if (!p.id) throw new Error('port missing required field "id"');
+    if (!p.package) throw new Error(`port ${p.id} missing "package"`);
+    if (!p.entry) throw new Error(`port ${p.id} missing "entry"`);
+    if (!p.tsupConfig) throw new Error(`port ${p.id} missing "tsupConfig"`);
+    if (!p.outDir) throw new Error(`port ${p.id} missing "outDir"`);
+    if (!p.npmName) throw new Error(`port ${p.id} missing "npmName"`);
+  }
+  return data;
+}
+
 function loadManifest() {
   const path = resolve(ROOT, 'supabase/functions/edge-shared.manifest.json');
   if (!existsSync(path)) die(`Manifest not found: ${path}`);
   try {
-    return JSON.parse(readFileSync(path, 'utf8'));
+    return parseManifest(readFileSync(path, 'utf8'));
   } catch (e) {
     die(`Failed to parse manifest: ${e.message}`);
   }
@@ -34,7 +49,7 @@ function loadManifest() {
 
 // ── Topological sort ──────────────────────────────────────────────────────────
 
-function topoSort(ports) {
+export function topoSort(ports) {
   const byId = new Map(ports.map(p => [p.id, p]));
   const visited = new Set();
   const visiting = new Set();
@@ -45,11 +60,11 @@ function topoSort(ports) {
     if (visiting.has(id)) {
       // Trace cycle
       const cycle = [...visiting, id];
-      die(`Cycle detected in dependsOn: ${cycle.join(' → ')}`);
+      throw new Error(`Cycle detected in dependsOn: ${cycle.join(' → ')}`);
     }
     visiting.add(id);
     const port = byId.get(id);
-    if (!port) die(`Unknown port id in dependsOn: "${id}"`);
+    if (!port) throw new Error(`Unknown port id in dependsOn: "${id}"`);
     for (const dep of port.dependsOn ?? []) {
       visit(dep);
     }
@@ -90,6 +105,16 @@ function buildPort(port) {
 
 // ── Import map validation ─────────────────────────────────────────────────────
 
+/** Pure helper: returns npmNames that have no entry in the import map. */
+export function validateImportMapEntries(ports, imports) {
+  const missing = [];
+  for (const port of ports) {
+    if (!imports[port.npmName]) missing.push(port.npmName);
+  }
+  return missing;
+}
+
+
 function validateImportMap(ports) {
   const denoJsonPath = resolve(ROOT, 'supabase/functions/deno.json');
   if (!existsSync(denoJsonPath)) {
@@ -115,8 +140,17 @@ function validateImportMap(ports) {
     const mappedPath = imports[port.npmName];
     if (!mappedPath) {
       console.error(
-        `[sync-edge-shared] WARN: ${port.npmName} has no entry in deno.json imports`
+        `[sync-edge-shared] ERROR: ${port.npmName} has no entry in deno.json imports`
       );
+      errors++;
+      continue;
+    }
+
+    if (mappedPath !== expectedRelPath) {
+      console.error(
+        `[sync-edge-shared] ERROR: import map entry for ${port.npmName} points to ${mappedPath}, expected ${expectedRelPath}`
+      );
+      errors++;
       continue;
     }
 
@@ -136,21 +170,28 @@ function validateImportMap(ports) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-const manifest = loadManifest();
-const { ports } = manifest;
+if (__filename === process.argv[1]) {
+  const manifest = loadManifest();
+  const { ports } = manifest;
 
-if (!Array.isArray(ports) || ports.length === 0) {
-  die('Manifest has no ports');
+  if (!Array.isArray(ports) || ports.length === 0) {
+    die('Manifest has no ports');
+  }
+
+  let ordered;
+  try {
+    ordered = topoSort(ports);
+  } catch (e) {
+    die(e.message);
+  }
+
+  log(`Building ${ordered.length} port(s) in dependency order…`);
+
+  for (const port of ordered) {
+    buildPort(port);
+  }
+
+  validateImportMap(ports);
+
+  log(`Done. ${ordered.length} port(s) built successfully.`);
 }
-
-const ordered = topoSort(ports);
-
-log(`Building ${ordered.length} port(s) in dependency order…`);
-
-for (const port of ordered) {
-  buildPort(port);
-}
-
-validateImportMap(ports);
-
-log(`Done. ${ordered.length} port(s) built successfully.`);

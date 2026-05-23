@@ -1,54 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-
-// ── Inline copies of sync-edge-shared.mjs logic for unit testing ──────────────
-
-function topoSort(ports) {
-  const byId = new Map(ports.map(p => [p.id, p]));
-  const visited = new Set();
-  const visiting = new Set();
-  const order = [];
-
-  function visit(id) {
-    if (visited.has(id)) return;
-    if (visiting.has(id)) {
-      const cycle = [...visiting, id];
-      throw new Error(`Cycle detected: ${cycle.join(' → ')}`);
-    }
-    visiting.add(id);
-    const port = byId.get(id);
-    if (!port) throw new Error(`Unknown port id: "${id}"`);
-    for (const dep of port.dependsOn ?? []) visit(dep);
-    visiting.delete(id);
-    visited.add(id);
-    order.push(port);
-  }
-
-  for (const port of ports) visit(port.id);
-  return order;
-}
-
-function parseManifest(json) {
-  const data = JSON.parse(json);
-  if (!Array.isArray(data.ports)) throw new Error('manifest.ports must be an array');
-  for (const p of data.ports) {
-    if (!p.id) throw new Error('port missing required field "id"');
-    if (!p.package) throw new Error(`port ${p.id} missing "package"`);
-    if (!p.entry) throw new Error(`port ${p.id} missing "entry"`);
-    if (!p.tsupConfig) throw new Error(`port ${p.id} missing "tsupConfig"`);
-    if (!p.outDir) throw new Error(`port ${p.id} missing "outDir"`);
-    if (!p.npmName) throw new Error(`port ${p.id} missing "npmName"`);
-  }
-  return data;
-}
-
-function validateImportMapEntries(ports, imports) {
-  const missing = [];
-  for (const port of ports) {
-    if (!imports[port.npmName]) missing.push(port.npmName);
-  }
-  return missing;
-}
+import { topoSort, parseManifest, validateImportMapEntries } from '../sync-edge-shared.mjs';
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 

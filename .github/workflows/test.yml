@@ -263,7 +263,7 @@ jobs:
     needs: test-scope
     if: >-
       (github.event.action != 'edited' || github.event.changes.base) &&
-      needs.test-scope.outputs.run_supabase == 'true'
+      (needs.test-scope.outputs.run_supabase == 'true' || needs.test-scope.outputs.run_unit == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -292,7 +292,7 @@ jobs:
         run: npm run lint:supabase
 
   supabase-tests:
-    needs: test-scope
+    needs: [test-scope, build-edge]
     if: >-
       (github.event.action != 'edited' || github.event.changes.base) &&
       needs.test-scope.outputs.run_supabase == 'true'
