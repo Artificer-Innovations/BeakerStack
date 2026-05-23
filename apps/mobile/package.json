@@ -117,6 +117,14 @@
       "lcov",
       "html",
       "json"
-    ]
+    ],
+    "coverageThreshold": {
+      "global": {
+        "statements": 98,
+        "branches": 93,
+        "functions": 96,
+        "lines": 99
+      }
+    }
   }
 }

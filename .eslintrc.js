@@ -55,11 +55,77 @@ module.exports = {
         '**/*.test.{ts,tsx}',
         '**/__mocks__/**/*.{ts,tsx}',
       ],
-      env: {
-        jest: true,
-      },
       rules: {
         '@typescript-eslint/no-var-requires': 'off',
+      },
+    },
+    {
+      files: [
+        'apps/web/**/*.{test,spec}.{ts,tsx}',
+        'packages/admin/**/*.{test,spec}.{ts,tsx}',
+        'packages/billing/**/*.{test,spec}.{ts,tsx}',
+        'packages/email/**/*.{test,spec}.{ts,tsx}',
+        'packages/lifecycle-events/**/*.{test,spec}.{ts,tsx}',
+        'packages/logger/**/*.{test,spec}.{ts,tsx}',
+        'packages/marketing-email/**/*.{test,spec}.{ts,tsx}',
+        'packages/observability/**/*.{test,spec}.{ts,tsx}',
+        'packages/test-utils/**/*.{test,spec}.{ts,tsx}',
+        'packages/waitlist/**/*.{test,spec}.{ts,tsx}',
+      ],
+      plugins: ['@vitest'],
+      extends: ['plugin:@vitest/legacy-recommended'],
+      rules: {
+        '@vitest/no-disabled-tests': 'error',
+        '@vitest/prefer-expect-assertions': 'off',
+      },
+    },
+    {
+      files: [
+        'apps/mobile/**/*.{test,spec}.{ts,tsx}',
+        'packages/shared-tests/**/*.{test,spec}.{ts,tsx}',
+        'tests/**/*.{test,spec}.{ts,tsx,js}',
+      ],
+      plugins: ['jest'],
+      extends: ['plugin:jest/recommended'],
+      rules: {
+        'jest/expect-expect': [
+          'error',
+          { assertFunctionNames: ['expect', 'expectParseFailure'] },
+        ],
+        'jest/no-focused-tests': 'error',
+        'jest/no-disabled-tests': 'error',
+        'jest/valid-expect': 'error',
+        'jest/no-conditional-expect': 'error',
+        'jest/no-identical-title': 'error',
+        'jest/no-jest-import': 'off',
+      },
+    },
+    {
+      files: ['**/*.{test,spec}.{tsx,jsx}'],
+      plugins: ['testing-library', 'jest-dom'],
+      rules: {
+        'testing-library/await-async-queries': 'error',
+        'testing-library/await-async-utils': 'error',
+        'testing-library/no-await-sync-queries': 'error',
+        'testing-library/no-wait-for-side-effects': 'error',
+        'testing-library/no-wait-for-multiple-assertions': 'off',
+        'testing-library/prefer-find-by': 'off',
+        'testing-library/no-unnecessary-act': 'off',
+        'testing-library/prefer-screen-queries': 'off',
+        'testing-library/no-node-access': 'off',
+        'jest-dom/prefer-checked': 'error',
+        'jest-dom/prefer-enabled-disabled': 'error',
+        'jest-dom/prefer-required': 'error',
+      },
+    },
+    {
+      files: [
+        'packages/shared-tests/**/*.native*.test.{ts,tsx}',
+        'packages/shared-tests/**/*.web.coverage.test.{ts,tsx}',
+      ],
+      rules: {
+        // react-test-renderer findBy* helpers are synchronous, not RTL async queries.
+        'testing-library/await-async-queries': 'off',
       },
     },
     {

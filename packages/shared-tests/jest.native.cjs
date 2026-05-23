@@ -39,6 +39,8 @@ module.exports = {
     '!<rootDir>/packages/shared/src/index.ts',
     '!<rootDir>/packages/shared/src/**/index.web.ts',
     '!<rootDir>/packages/shared/src/**/index.native.ts',
+    '!<rootDir>/packages/shared/src/**/*.web.ts',
+    '!<rootDir>/packages/shared/src/**/*.web.tsx',
     '!<rootDir>/packages/shared/src/types/**',
     // Pure data files — auto-generated or constant objects with no logic to test
     '!<rootDir>/packages/shared/src/generated/**',
@@ -57,4 +59,12 @@ module.exports = {
     '**/__tests__/**/*.native.test.{ts,tsx}',
   ],
   coverageProvider: 'v8',
+  coverageThreshold: {
+    global: {
+      statements: 99,
+      branches: 99,
+      functions: 99,
+      lines: 99,
+    },
+  },
 };

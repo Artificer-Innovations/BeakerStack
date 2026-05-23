@@ -182,12 +182,16 @@ describe('KitAdapter error handling', () => {
     const longBody = 'x'.repeat(300);
     mockFetch({ status: 500, text: longBody });
     const adapter = makeAdapter();
+    let caught: unknown;
     try {
       await adapter.deleteUser('x@x.com');
     } catch (e) {
-      expect((e as MarketingEmailError).message).toContain('x'.repeat(200));
-      expect((e as MarketingEmailError).message).not.toContain('x'.repeat(201));
+      caught = e;
     }
+    expect(caught).toBeInstanceOf(MarketingEmailError);
+    const err = caught as MarketingEmailError;
+    expect(err.message).toContain('x'.repeat(200));
+    expect(err.message).not.toContain('x'.repeat(201));
   });
 });
 

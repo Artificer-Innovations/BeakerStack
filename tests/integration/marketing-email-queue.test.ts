@@ -117,7 +117,9 @@ describe('Marketing Email Queue — Integration Tests', () => {
           { product_id: TEST_PRODUCT_ID, enabled: true, provider: 'kit' },
           { onConflict: 'product_id' }
         );
-      expect(error).toBeNull();
+      if (error) {
+        throw error;
+      }
     });
 
     it('settings lookup returns enabled for the test product', async () => {
@@ -187,7 +189,9 @@ describe('Marketing Email Queue — Integration Tests', () => {
         .from('marketing_email_settings')
         .update({ enabled: false })
         .eq('product_id', TEST_PRODUCT_ID);
-      expect(error).toBeNull();
+      if (error) {
+        throw error;
+      }
     });
 
     afterAll(async () => {

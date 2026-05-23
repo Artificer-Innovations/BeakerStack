@@ -64,7 +64,7 @@ describe('SocialLoginButton', () => {
     });
 
     await waitFor(() => {
-      expect(button).not.toBeDisabled();
+      expect(button).toBeEnabled();
       expect(screen.getByText('Sign in with Google')).toBeInTheDocument();
     });
   });

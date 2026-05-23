@@ -202,13 +202,11 @@ describe('ProfileEditor (Native)', () => {
 
     render(<ProfileEditor />);
 
-    await waitFor(() => {
-      const usernameInput = screen.getByTestId(
-        'input-username'
-      ) as HTMLInputElement;
-      fireEvent.change(usernameInput, { target: { value: 'newusername' } });
-      expect(usernameInput.value).toBe('newusername');
-    });
+    const usernameInput = (await waitFor(() =>
+      screen.getByTestId('input-username')
+    )) as HTMLInputElement;
+    fireEvent.change(usernameInput, { target: { value: 'newusername' } });
+    expect(usernameInput.value).toBe('newusername');
   });
 
   it('validates and shows field errors for invalid input', async () => {

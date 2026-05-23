@@ -145,7 +145,7 @@ describe('UserMenu.native — coverage gaps', () => {
 
     fireEvent.click(screen.getByLabelText('Open user menu'));
     jest.runAllTimers();
-    await screen.findByText('Profile');
+    expect(await screen.findByText('Profile')).toBeTruthy();
   });
 
   it('handles onStartShouldSetResponder on the open menu container', () => {

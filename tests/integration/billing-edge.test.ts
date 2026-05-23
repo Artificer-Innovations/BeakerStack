@@ -40,16 +40,11 @@ describeEdge('billing-stripe Edge integration', () => {
     });
     expect(error ?? data).toBeDefined();
     const errBody = (data ?? {}) as { error?: string };
-    if (!error) {
-      expect(errBody.error).toBe('unauthenticated');
-    }
+    expect(error !== null || errBody.error === 'unauthenticated').toBe(true);
   });
 
-  const stripeCheckoutIt = process.env.STRIPE_SECRET_KEY ? it : it.skip;
-
-  stripeCheckoutIt(
-    'returns checkoutUrl for authenticated checkout when Stripe is configured',
-    async () => {
+  if (process.env.STRIPE_SECRET_KEY) {
+    it('returns checkoutUrl for authenticated checkout when Stripe is configured', async () => {
       await signInTestUser(supabase, email, password);
       const { data, error } = await supabase.functions.invoke(
         'billing-stripe',
@@ -67,9 +62,9 @@ describeEdge('billing-stripe Edge integration', () => {
       expect(error).toBeNull();
       const body = data as { checkoutUrl?: string; error?: string };
       expect(body.checkoutUrl ?? body.error).toBeDefined();
-      if (body.checkoutUrl) {
-        expect(body.checkoutUrl).toMatch(/^https?:\/\//);
-      }
-    }
-  );
+      expect(
+        body.checkoutUrl === undefined || /^https?:\/\//.test(body.checkoutUrl)
+      ).toBe(true);
+    });
+  }
 });

@@ -434,7 +434,7 @@ describe('UserMenu (Native)', () => {
     );
 
     fireEvent.click(screen.getByLabelText('Open user menu'));
-    await screen.findByText('Profile');
+    expect(await screen.findByText('Profile')).toBeTruthy();
   });
 
   it('handles onStartShouldSetResponder on menu container', () => {

@@ -135,9 +135,7 @@ describe('CollectionDetail', () => {
   it('allows add item when plan has unlimited item cap (-1)', () => {
     hp.maxItemsValue = -1;
     renderDetail(makeCollection({ item_count: 99 }));
-    expect(
-      screen.getByRole('button', { name: /add item/i })
-    ).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /add item/i })).toBeEnabled();
   });
 
   it('add item error: shows generic message for non-Error rejections', async () => {
