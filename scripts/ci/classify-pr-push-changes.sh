@@ -2,7 +2,8 @@
 # Classify changed files in a git ref range for CI job scoping (Test + PR Preview).
 #
 # Used by .github/workflows/test.yml (test-scope) and pr-preview-environment.yml
-# (preview-scope). Keep --self-test cases updated when adding path rules.
+# (preview-scope). Keep --self-test cases updated when adding path rules or
+# derived flags (run_supabase, run_supabase_reset, etc.).
 
 set -euo pipefail
 
@@ -222,108 +223,152 @@ classify_path() {
   esac
 }
 
+# Aggregated classification for one or more paths (self-test + classify_range).
+result_app_code=false
+result_supabase_schema=false
+result_integration_tests=false
+result_email_templates=false
+result_auth_deploy=false
+result_billing_deploy=false
+result_web_deploy=false
+result_mobile_deploy=false
+result_deploy_infra=false
+result_tested_scripts=false
+result_dependencies=false
+result_run_lint=false
+result_run_typecheck=false
+result_run_unit=false
+result_run_supabase=false
+result_run_email_templates=false
+result_run_migration_filenames=false
+result_run_tested_scripts=false
+result_run_deploy=false
+result_run_infra=false
+result_run_supabase_reset=false
+result_run_stripe_billing=false
+result_run_auth_sync=false
+result_run_web=false
+result_run_mobile=false
+
+compute_derived_flags() {
+  result_run_lint="${result_app_code}"
+  result_run_typecheck="${result_app_code}"
+  result_run_unit="${result_app_code}"
+  result_run_supabase=false
+  if [[ "${result_supabase_schema}" == true || "${result_integration_tests}" == true ]]; then
+    result_run_supabase=true
+  fi
+  result_run_email_templates="${result_email_templates}"
+  result_run_migration_filenames="${result_supabase_schema}"
+  result_run_tested_scripts="${result_tested_scripts}"
+
+  result_run_supabase_reset="${result_supabase_schema}"
+  result_run_stripe_billing="${result_billing_deploy}"
+  result_run_auth_sync=false
+  if [[ "${result_auth_deploy}" == true || "${result_email_templates}" == true ]]; then
+    result_run_auth_sync=true
+  fi
+  result_run_web="${result_web_deploy}"
+  result_run_mobile="${result_mobile_deploy}"
+  result_run_infra="${result_deploy_infra}"
+
+  result_run_deploy=false
+  if [[ "${result_deploy_infra}" == true || "${result_web_deploy}" == true || "${result_mobile_deploy}" == true || \
+        "${result_supabase_schema}" == true || "${result_billing_deploy}" == true || "${result_auth_deploy}" == true || \
+        "${result_email_templates}" == true || "${result_dependencies}" == true ]]; then
+    result_run_deploy=true
+  fi
+}
+
+aggregate_paths() {
+  result_app_code=false
+  result_supabase_schema=false
+  result_integration_tests=false
+  result_email_templates=false
+  result_auth_deploy=false
+  result_billing_deploy=false
+  result_web_deploy=false
+  result_mobile_deploy=false
+  result_deploy_infra=false
+  result_tested_scripts=false
+  result_dependencies=false
+
+  local file
+  for file in "$@"; do
+    [[ -z "${file}" ]] && continue
+    classify_path "${file}"
+    [[ "${match_app_code}" == true ]] && result_app_code=true
+    [[ "${match_supabase_schema}" == true ]] && result_supabase_schema=true
+    [[ "${match_integration_tests}" == true ]] && result_integration_tests=true
+    [[ "${match_email_templates}" == true ]] && result_email_templates=true
+    [[ "${match_auth_deploy}" == true ]] && result_auth_deploy=true
+    [[ "${match_billing_deploy}" == true ]] && result_billing_deploy=true
+    [[ "${match_web_deploy}" == true ]] && result_web_deploy=true
+    [[ "${match_mobile_deploy}" == true ]] && result_mobile_deploy=true
+    [[ "${match_deploy_infra}" == true ]] && result_deploy_infra=true
+    [[ "${match_tested_scripts}" == true ]] && result_tested_scripts=true
+    [[ "${match_dependencies}" == true ]] && result_dependencies=true
+  done
+
+  if [[ "${result_dependencies}" == true ]]; then
+    result_web_deploy=true
+    result_mobile_deploy=true
+  fi
+
+  compute_derived_flags
+}
+
+write_classification_flags() {
+  write_flag app_code "$(bool "${result_app_code}")"
+  write_flag supabase_schema "$(bool "${result_supabase_schema}")"
+  write_flag integration_tests "$(bool "${result_integration_tests}")"
+  write_flag email_templates "$(bool "${result_email_templates}")"
+  write_flag auth_deploy_scripts "$(bool "${result_auth_deploy}")"
+  write_flag billing_deploy "$(bool "${result_billing_deploy}")"
+  write_flag web_deploy "$(bool "${result_web_deploy}")"
+  write_flag mobile_deploy "$(bool "${result_mobile_deploy}")"
+  write_flag deploy_infra "$(bool "${result_deploy_infra}")"
+  write_flag tested_scripts "$(bool "${result_tested_scripts}")"
+  write_flag dependencies "$(bool "${result_dependencies}")"
+  write_flag run_lint "$(bool "${result_run_lint}")"
+  write_flag run_typecheck "$(bool "${result_run_typecheck}")"
+  write_flag run_unit "$(bool "${result_run_unit}")"
+  write_flag run_supabase "$(bool "${result_run_supabase}")"
+  write_flag run_email_templates "$(bool "${result_run_email_templates}")"
+  write_flag run_migration_filenames "$(bool "${result_run_migration_filenames}")"
+  write_flag run_tested_scripts "$(bool "${result_run_tested_scripts}")"
+  write_flag run_deploy "$(bool "${result_run_deploy}")"
+  write_flag run_infra "$(bool "${result_run_infra}")"
+  write_flag run_supabase_reset "$(bool "${result_run_supabase_reset}")"
+  write_flag run_stripe_billing "$(bool "${result_run_stripe_billing}")"
+  write_flag run_auth_sync "$(bool "${result_run_auth_sync}")"
+  write_flag run_web "$(bool "${result_run_web}")"
+  write_flag run_mobile "$(bool "${result_run_mobile}")"
+}
+
 classify_range() {
   local base_ref="$1"
   local head_ref="$2"
 
-  local app_code=false
-  local supabase_schema=false
-  local integration_tests=false
-  local email_templates=false
-  local auth_deploy=false
-  local billing_deploy=false
-  local web_deploy=false
-  local mobile_deploy=false
-  local deploy_infra=false
-  local tested_scripts=false
-  local dependencies=false
-
-  local file diff_files
+  local diff_files
   if ! diff_files="$(git diff --name-only "${base_ref}" "${head_ref}")"; then
     printf '[ERROR] git diff failed for %s..%s\n' "${base_ref}" "${head_ref}" >&2
     exit 1
   fi
+
+  local -a files=()
+  local file
   while IFS= read -r file; do
     [[ -z "${file}" ]] && continue
-    classify_path "${file}"
-    [[ "${match_app_code}" == true ]] && app_code=true
-    [[ "${match_supabase_schema}" == true ]] && supabase_schema=true
-    [[ "${match_integration_tests}" == true ]] && integration_tests=true
-    [[ "${match_email_templates}" == true ]] && email_templates=true
-    [[ "${match_auth_deploy}" == true ]] && auth_deploy=true
-    [[ "${match_billing_deploy}" == true ]] && billing_deploy=true
-    [[ "${match_web_deploy}" == true ]] && web_deploy=true
-    [[ "${match_mobile_deploy}" == true ]] && mobile_deploy=true
-    [[ "${match_deploy_infra}" == true ]] && deploy_infra=true
-    [[ "${match_tested_scripts}" == true ]] && tested_scripts=true
-    [[ "${match_dependencies}" == true ]] && dependencies=true
+    files+=("${file}")
   done <<<"${diff_files}"
 
-  # Lockfile-only changes need web + mobile preview deploys (not just run_deploy=true).
-  if [[ "${dependencies}" == true ]]; then
-    web_deploy=true
-    mobile_deploy=true
-  fi
-
-  # Derived Test flags
-  local run_lint="${app_code}"
-  local run_typecheck="${app_code}"
-  local run_unit="${app_code}"
-  local run_supabase=false
-  if [[ "${supabase_schema}" == true || "${integration_tests}" == true ]]; then
-    run_supabase=true
-  fi
-  local run_email_templates="${email_templates}"
-  local run_migration_filenames="${supabase_schema}"
-  local run_tested_scripts="${tested_scripts}"
-
-  # Derived Preview flags
-  local run_supabase_reset="${supabase_schema}"
-  local run_stripe_billing="${billing_deploy}"
-  local run_auth_sync=false
-  if [[ "${auth_deploy}" == true || "${email_templates}" == true ]]; then
-    run_auth_sync=true
-  fi
-  local run_web="${web_deploy}"
-  local run_mobile="${mobile_deploy}"
-  local run_infra="${deploy_infra}"
-
-  local run_deploy=false
-  if [[ "${deploy_infra}" == true || "${web_deploy}" == true || "${mobile_deploy}" == true || \
-        "${supabase_schema}" == true || "${billing_deploy}" == true || "${auth_deploy}" == true || \
-        "${email_templates}" == true || "${dependencies}" == true ]]; then
-    run_deploy=true
-  fi
-
-  write_flag app_code "$(bool "${app_code}")"
-  write_flag supabase_schema "$(bool "${supabase_schema}")"
-  write_flag integration_tests "$(bool "${integration_tests}")"
-  write_flag email_templates "$(bool "${email_templates}")"
-  write_flag auth_deploy_scripts "$(bool "${auth_deploy}")"
-  write_flag billing_deploy "$(bool "${billing_deploy}")"
-  write_flag web_deploy "$(bool "${web_deploy}")"
-  write_flag mobile_deploy "$(bool "${mobile_deploy}")"
-  write_flag deploy_infra "$(bool "${deploy_infra}")"
-  write_flag tested_scripts "$(bool "${tested_scripts}")"
-  write_flag dependencies "$(bool "${dependencies}")"
-  write_flag run_lint "$(bool "${run_lint}")"
-  write_flag run_typecheck "$(bool "${run_typecheck}")"
-  write_flag run_unit "$(bool "${run_unit}")"
-  write_flag run_supabase "$(bool "${run_supabase}")"
-  write_flag run_email_templates "$(bool "${run_email_templates}")"
-  write_flag run_migration_filenames "$(bool "${run_migration_filenames}")"
-  write_flag run_tested_scripts "$(bool "${run_tested_scripts}")"
-  write_flag run_deploy "$(bool "${run_deploy}")"
-  write_flag run_infra "$(bool "${run_infra}")"
-  write_flag run_supabase_reset "$(bool "${run_supabase_reset}")"
-  write_flag run_stripe_billing "$(bool "${run_stripe_billing}")"
-  write_flag run_auth_sync "$(bool "${run_auth_sync}")"
-  write_flag run_web "$(bool "${run_web}")"
-  write_flag run_mobile "$(bool "${run_mobile}")"
+  aggregate_paths "${files[@]}"
+  write_classification_flags
 
   printf '[INFO] classify %s..%s: run_deploy=%s app_code=%s web=%s mobile=%s auth_sync=%s\n' \
-    "${base_ref}" "${head_ref}" "$(bool "${run_deploy}")" "$(bool "${app_code}")" \
-    "$(bool "${run_web}")" "$(bool "${run_mobile}")" "$(bool "${run_auth_sync}")" >&2
+    "${base_ref}" "${head_ref}" "$(bool "${result_run_deploy}")" "$(bool "${result_app_code}")" \
+    "$(bool "${result_run_web}")" "$(bool "${result_run_mobile}")" "$(bool "${result_run_auth_sync}")" >&2
 }
 
 self_test() {
@@ -353,6 +398,49 @@ self_test() {
       printf 'self-test FAIL: %s field %s expected %s got %s\n' "${path}" "${field}" "${want}" "${got}" >&2
       failed=1
     fi
+  }
+
+  assert_derived() {
+    local label="$1"
+    shift
+    local -a fields=()
+    local -a wants=()
+    local -a paths=()
+
+    while [[ $# -gt 0 && "$1" != "--" ]]; do
+      fields+=("$1")
+      wants+=("$2")
+      shift 2
+    done
+    shift
+    paths=("$@")
+
+    aggregate_paths "${paths[@]}"
+
+    local i field want got
+    for i in "${!fields[@]}"; do
+      field="${fields[$i]}"
+      want="${wants[$i]}"
+      got=false
+      case "${field}" in
+        run_supabase) [[ "${result_run_supabase}" == true ]] && got=true ;;
+        run_supabase_reset) [[ "${result_run_supabase_reset}" == true ]] && got=true ;;
+        run_unit) [[ "${result_run_unit}" == true ]] && got=true ;;
+        run_migration_filenames) [[ "${result_run_migration_filenames}" == true ]] && got=true ;;
+        integration_tests) [[ "${result_integration_tests}" == true ]] && got=true ;;
+        supabase_schema) [[ "${result_supabase_schema}" == true ]] && got=true ;;
+        *)
+          printf 'self-test FAIL: unknown derived field %s\n' "${field}" >&2
+          failed=1
+          continue
+          ;;
+      esac
+      if [[ "${got}" != "${want}" ]]; then
+        printf 'self-test FAIL: %s derived %s expected %s got %s (paths: %s)\n' \
+          "${label}" "${field}" "${want}" "${got}" "${paths[*]:-"(none)"}" >&2
+        failed=1
+      fi
+    done
   }
 
   assert_classify README.md app_code false
@@ -400,6 +488,21 @@ self_test() {
   assert_classify tests/jest.integration.config.js integration_tests true
   assert_classify tests/e2e/web/flows/home.yaml app_code true
   assert_classify tests/e2e/web/flows/home.yaml integration_tests false
+
+  assert_derived integration-only-changes \
+    run_supabase true run_supabase_reset false run_unit true run_migration_filenames false \
+    integration_tests true supabase_schema false \
+    -- tests/integration/auth.test.ts tests/integration/auth-rls.test.ts
+  assert_derived package-unit-test-only \
+    run_supabase false run_unit true integration_tests false \
+    -- packages/billing/src/hooks/useCheckout.test.ts
+  assert_derived supabase-schema-changes \
+    run_supabase true run_supabase_reset true run_migration_filenames true \
+    supabase_schema true integration_tests false \
+    -- supabase/migrations/001.sql
+  assert_derived integration-utils-changes \
+    run_supabase true run_supabase_reset false integration_tests true \
+    -- tests/utils/test-clients.ts
 
   return "${failed}"
 }
