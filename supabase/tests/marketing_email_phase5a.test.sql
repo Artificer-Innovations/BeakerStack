@@ -164,18 +164,18 @@ SELECT is(
 
 -- ── 14  one-enabled: enabling phase5a-test disables other enabled rows ────────
 
--- Seed phase5a-other as enabled via the admin RPC (direct INSERT would bypass
--- RLS but this keeps the test consistent with production access patterns).
-PERFORM public.admin_update_marketing_email_settings(
-    'phase5a-other', true,
-    '{"namespace":"other-ns","kitFormId":"form-other","tierTagNames":[]}'::jsonb
-);
-
--- Now enable phase5a-test — should flip phase5a-other to disabled.
-PERFORM public.admin_update_marketing_email_settings(
-    'phase5a-test', true,
-    '{"namespace":"phase5a-ns","kitFormId":"form-99","tierTagNames":["pro"]}'::jsonb
-);
+-- Seed phase5a-other as enabled and then enable phase5a-test via the admin RPC.
+-- PERFORM is PL/pgSQL-only, so both calls are wrapped in a DO block.
+DO $$ BEGIN
+  PERFORM public.admin_update_marketing_email_settings(
+      'phase5a-other', true,
+      '{"namespace":"other-ns","kitFormId":"form-other","tierTagNames":[]}'::jsonb
+  );
+  PERFORM public.admin_update_marketing_email_settings(
+      'phase5a-test', true,
+      '{"namespace":"phase5a-ns","kitFormId":"form-99","tierTagNames":["pro"]}'::jsonb
+  );
+END; $$;
 
 SELECT is(
     (SELECT enabled FROM public.marketing_email_settings WHERE product_id = 'phase5a-other'),
