@@ -27,4 +27,16 @@ describe('package barrels', () => {
     expect(mod.KitAdapter).toBeTypeOf('function');
     expect(mod.defineMarketingEmailConfig).toBeTypeOf('function');
   });
+
+  it('exports adapters/kit/edge entry', async () => {
+    const mod = await import('../adapters/kit/edge.js');
+    expect(mod.KitClient).toBeTypeOf('function');
+    expect(mod.KitClientError).toBeTypeOf('function');
+    expect(mod.isPermanentKitError).toBeTypeOf('function');
+    expect(mod.isRateLimitError).toBeTypeOf('function');
+    expect(mod.defineKitConfig).toBeTypeOf('function');
+    expect(mod.waitlistTag).toBeTypeOf('function');
+    expect(mod.convertedTag).toBeTypeOf('function');
+    expect(mod.interestTag).toBeTypeOf('function');
+  });
 });

@@ -19,6 +19,11 @@ export function waitlistApprovedTag(
   return `${namespace}${sep}waitlist-approved`;
 }
 
+export function convertedTag(namespace: string, opts?: TagSchemeOpts): string {
+  const sep = opts?.separator ?? DEFAULT_SEP;
+  return `${namespace}${sep}converted`;
+}
+
 export function signupTag(namespace: string, opts?: TagSchemeOpts): string {
   const sep = opts?.separator ?? DEFAULT_SEP;
   return `${namespace}${sep}signup`;
@@ -37,4 +42,13 @@ export function tierTag(
 export function churnedTag(namespace: string, opts?: TagSchemeOpts): string {
   const sep = opts?.separator ?? DEFAULT_SEP;
   return `${namespace}${sep}churned`;
+}
+
+export function interestTag(
+  namespace: string,
+  tier: string,
+  opts?: TagSchemeOpts
+): string {
+  const sep = opts?.separator ?? DEFAULT_SEP;
+  return `${namespace}${sep}interest${sep}${tier}`;
 }

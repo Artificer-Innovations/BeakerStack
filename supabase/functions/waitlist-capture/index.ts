@@ -3,7 +3,7 @@ import {
   corsHeadersForWaitlist,
   jsonResponse,
 } from '../_shared/waitlist-origins.ts';
-import { enqueueMarketingEmail } from '../_shared/marketingEmailQueue.ts';
+import { enqueueMarketingEmail } from '@beakerstack/marketing-email/edge';
 
 type Body = {
   email?: string;

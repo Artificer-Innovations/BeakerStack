@@ -3,14 +3,43 @@
     "noEmit": true,
     "strict": true,
     "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "skipLibCheck": true,
     "types": [],
     "allowImportingTsExtensions": true,
     "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedParameters": false,
+    "paths": {
+      "@beakerstack/logger": [
+        "./_shared/_generated/logger/index.d.ts"
+      ],
+      "@beakerstack/email": [
+        "./_shared/_generated/email/index.d.ts"
+      ],
+      "@beakerstack/observability/edge": [
+        "./_shared/_generated/observability/edge.d.ts"
+      ],
+      "@beakerstack/lifecycle-events": [
+        "./_shared/_generated/lifecycle-events/index.d.ts"
+      ],
+      "@beakerstack/marketing-email/kit": [
+        "./_shared/_generated/marketing-email-kit/edge.d.ts"
+      ],
+      "@beakerstack/marketing-email/edge": [
+        "./_shared/_generated/marketing-email-edge/edge.d.ts"
+      ]
+    }
   },
-  "include": ["./deno-shim.d.ts", "./_shared/**/*.ts"]
+  "include": [
+    "./deno-shim.d.ts",
+    "./_shared/**/*.ts",
+    "./kit-sync/**/*.ts",
+    "./waitlist-ops/**/*.ts"
+  ]
 }

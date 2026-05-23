@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest';
 import {
   waitlistTag,
   waitlistApprovedTag,
+  convertedTag,
   signupTag,
   tierTag,
   churnedTag,
+  interestTag,
 } from '../adapters/kit/kitTagScheme.js';
 
 describe('kitTagScheme', () => {
@@ -16,6 +18,10 @@ describe('kitTagScheme', () => {
 
   it('waitlistApprovedTag', () => {
     expect(waitlistApprovedTag(ns)).toBe('acme:waitlist-approved');
+  });
+
+  it('convertedTag', () => {
+    expect(convertedTag(ns)).toBe('acme:converted');
   });
 
   it('signupTag', () => {
@@ -30,9 +36,21 @@ describe('kitTagScheme', () => {
     expect(churnedTag(ns)).toBe('acme:churned');
   });
 
+  it('interestTag', () => {
+    expect(interestTag(ns, 'pro')).toBe('acme:interest:pro');
+  });
+
   it('respects custom separator', () => {
     expect(waitlistTag(ns, { separator: '.' })).toBe('acme.waitlist');
     expect(tierTag(ns, 'pro', { separator: '.' })).toBe('acme.tier.pro');
+  });
+
+  it('convertedTag respects custom separator', () => {
+    expect(convertedTag(ns, { separator: '.' })).toBe('acme.converted');
+  });
+
+  it('interestTag respects custom separator', () => {
+    expect(interestTag(ns, 'pro', { separator: '.' })).toBe('acme.interest.pro');
   });
 
   it('respects custom tierPrefix', () => {
