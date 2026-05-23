@@ -8,7 +8,8 @@
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "lib": ["ES2021", "DOM", "DOM.Iterable"]
   },
   "include": ["src/**/*"]
 }

@@ -54,9 +54,23 @@ Set `WAITLIST_ALLOWED_ORIGINS` (or `BILLING_ALLOWED_ORIGINS`) on Edge Functions 
 
 ## Email
 
-No Resend/Kit required for v1. Default: **log adapter** (invite URL in Edge logs) + **Copy invite link** in admin.
+Invite email delivery is handled by the `waitlist-ops` Edge Function using the `@beakerstack/email` adapter pattern.
 
-Optional: wire a transactional provider via `waitlist-ops` `send_invite_email` body or extend the Edge function.
+### Adapter selection
+
+| `WAITLIST_RESEND_API_KEY` set? | Behavior                                                                                                                                         |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| No (default)                   | **Log adapter** — logs `to=` and `subject=` metadata to Edge logs; returns `501 email_not_configured`. Admin UI shows "Copy invite link".        |
+| Yes                            | **Resend adapter** — sends email via `https://api.resend.com/emails`; returns `200 { ok: true }` on success or `502 email_send_failed` on error. |
+
+### Edge Function env vars
+
+| Variable                  | Purpose                                                |
+| ------------------------- | ------------------------------------------------------ |
+| `WAITLIST_RESEND_API_KEY` | Resend API key. Required for real email delivery.      |
+| `WAITLIST_INVITE_FROM`    | Sender address (default: `onboarding@resend.dev`).     |
+| `WAITLIST_INVITE_SUBJECT` | Email subject (default: `You are invited to sign up`). |
+| `WAITLIST_INVITE_HTML`    | HTML template with `{{inviteUrl}}` placeholder.        |
 
 Marketing nurture (ConvertKit) is a separate package — see `docs/specs/kit-integration-feature-brief.md`. Listen with `onLifecycleEvent('waitlist.joined' | 'waitlist.approved')`.
 

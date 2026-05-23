@@ -46,15 +46,17 @@
 
 ## Edge secrets (hosted)
 
-| Secret                     | Purpose                                         |
-| -------------------------- | ----------------------------------------------- |
-| `WAITLIST_ALLOWED_ORIGINS` | CORS for capture (e.g. `http://localhost:5173`) |
-| `WAITLIST_INVITE_SUBJECT`  | Optional invite email subject                   |
-| `WAITLIST_INVITE_HTML`     | Optional HTML template with `{{inviteUrl}}`     |
-| `WAITLIST_RESEND_API_KEY`  | Resend API key; without it, send returns 501    |
-| `WAITLIST_INVITE_FROM`     | Resend `from` address (e.g. `invites@your.com`) |
+| Secret                     | Purpose                                                                                                                 |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `WAITLIST_ALLOWED_ORIGINS` | CORS for capture (e.g. `http://localhost:5173`)                                                                         |
+| `WAITLIST_INVITE_SUBJECT`  | Optional invite email subject                                                                                           |
+| `WAITLIST_INVITE_HTML`     | Optional HTML template with `{{inviteUrl}}`                                                                             |
+| `WAITLIST_RESEND_API_KEY`  | Resend API key. Without it, send returns `501 email_not_configured` and logs metadata only (safe default for dev/test). |
+| `WAITLIST_INVITE_FROM`     | Resend `from` address (default: `onboarding@resend.dev`)                                                                |
 
 Uses the same Supabase service role / URL vars as billing Edge Functions.
+
+> **Note:** Waitlist invite email (`waitlist-ops`) and auth transactional email (Supabase SMTP) are **entirely separate delivery paths** with separate configuration. `WAITLIST_RESEND_API_KEY` only affects invite emails; auth emails use `SMTP_*` vars. See [docs/EMAIL_TEMPLATES.md](../EMAIL_TEMPLATES.md) for auth email setup.
 
 ## Mode changes
 
