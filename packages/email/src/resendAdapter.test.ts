@@ -85,7 +85,7 @@ describe('createResendEmailAdapter', () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 403,
-      json: async () => errorBody,
+      text: async () => JSON.stringify(errorBody),
     });
     vi.stubGlobal('fetch', mockFetch);
 
@@ -111,9 +111,6 @@ describe('createResendEmailAdapter', () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 500,
-      json: async () => {
-        throw new Error('not json');
-      },
       text: async () => 'Internal Server Error',
     });
     vi.stubGlobal('fetch', mockFetch);

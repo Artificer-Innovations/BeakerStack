@@ -61,11 +61,12 @@ export function createResendEmailAdapter({
       });
 
       if (!res.ok) {
+        const text = await res.text();
         let body: unknown;
         try {
-          body = await res.json();
+          body = JSON.parse(text);
         } catch {
-          body = await res.text();
+          body = text;
         }
         throw new EmailSendError(
           `Resend API error: ${res.status}`,
