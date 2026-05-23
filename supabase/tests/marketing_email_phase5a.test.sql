@@ -25,6 +25,34 @@ INSERT INTO public.admin_users (user_id)
 VALUES ('a5000000-0000-0000-0000-000000000001')
 ON CONFLICT (user_id) DO UPDATE SET revoked_at = NULL;
 
+-- ── Test 14 pre-seed: insert phase5a-other as enabled ───────────────────────
+-- Direct INSERT runs here as the postgres superuser (before SET LOCAL ROLE),
+-- so it bypasses RLS. After the role switch, only SECURITY DEFINER RPCs can
+-- write to marketing_email_settings.
+
+DELETE FROM public.marketing_email_settings WHERE product_id IN ('phase5a-test', 'phase5a-other');
+
+INSERT INTO public.marketing_email_settings (product_id, enabled, provider, config)
+VALUES (
+    'phase5a-other', true, 'kit',
+    '{"namespace":"other-ns","kitFormId":"form-other","tierTagNames":[]}'::jsonb
+);
+
+-- ── Test 16 pre-seed: insert queue rows ─────────────────────────────────────
+-- marketing_email_sync_queue also enforces RLS for the authenticated role.
+-- Insert the test rows now while still running as postgres superuser.
+
+INSERT INTO public.marketing_email_sync_queue
+  (product_id, email, event_type, status, idempotency_key, payload)
+VALUES
+  ('phase5a-test', 'a@example.com', 'user.signed_up', 'pending',    'phase5a:pending',    '{}'::jsonb),
+  ('phase5a-test', 'b@example.com', 'user.signed_up', 'processing', 'phase5a:processing', '{}'::jsonb),
+  ('phase5a-test', 'c@example.com', 'user.signed_up', 'done',       'phase5a:done',       '{}'::jsonb),
+  ('phase5a-test', 'd@example.com', 'user.signed_up', 'failed',     'phase5a:failed',     '{}'::jsonb)
+ON CONFLICT (idempotency_key) DO NOTHING;
+
+-- ── Switch to authenticated admin role ───────────────────────────────────────
+
 SELECT set_config('request.jwt.claims',
     '{"sub":"a5000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
 SET LOCAL ROLE authenticated;
@@ -63,8 +91,6 @@ SELECT ok(
 );
 
 -- ── 4  get returns ok=true, settings=null when no row exists ─────────────────
-
-DELETE FROM public.marketing_email_settings WHERE product_id = 'phase5a-test';
 
 SELECT is(
     public.admin_get_marketing_email_settings('phase5a-test'),
@@ -163,19 +189,13 @@ SELECT is(
 );
 
 -- ── 14  one-enabled: enabling phase5a-test disables other enabled rows ────────
+-- phase5a-other was pre-seeded as enabled (as postgres superuser, above).
+-- Call the admin RPC to enable phase5a-test, which must flip phase5a-other off.
 
--- Seed phase5a-other as enabled and then enable phase5a-test via the admin RPC.
--- PERFORM is PL/pgSQL-only, so both calls are wrapped in a DO block.
-DO $$ BEGIN
-  PERFORM public.admin_update_marketing_email_settings(
-      'phase5a-other', true,
-      '{"namespace":"other-ns","kitFormId":"form-other","tierTagNames":[]}'::jsonb
-  );
-  PERFORM public.admin_update_marketing_email_settings(
-      'phase5a-test', true,
-      '{"namespace":"phase5a-ns","kitFormId":"form-99","tierTagNames":["pro"]}'::jsonb
-  );
-END; $$;
+SELECT public.admin_update_marketing_email_settings(
+    'phase5a-test', true,
+    '{"namespace":"phase5a-ns","kitFormId":"form-99","tierTagNames":["pro"]}'::jsonb
+);
 
 SELECT is(
     (SELECT enabled FROM public.marketing_email_settings WHERE product_id = 'phase5a-other'),
@@ -196,15 +216,7 @@ SELECT ok(
 );
 
 -- ── 16  queue stats counts match inserted rows by status ─────────────────────
-
--- Insert some test queue rows.
-INSERT INTO public.marketing_email_sync_queue
-  (product_id, email, event_type, status, idempotency_key, payload)
-VALUES
-  ('phase5a-test', 'a@example.com', 'user.signed_up', 'pending',    'phase5a:pending',    '{}'::jsonb),
-  ('phase5a-test', 'b@example.com', 'user.signed_up', 'processing', 'phase5a:processing', '{}'::jsonb),
-  ('phase5a-test', 'c@example.com', 'user.signed_up', 'done',       'phase5a:done',       '{}'::jsonb),
-  ('phase5a-test', 'd@example.com', 'user.signed_up', 'failed',     'phase5a:failed',     '{}'::jsonb);
+-- Rows were pre-seeded as postgres superuser above to bypass RLS.
 
 SELECT is(
     (SELECT jsonb_build_object(
