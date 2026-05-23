@@ -5,6 +5,10 @@ import {
   getAdminWaitlistSettings,
   listWaitlistEntries,
 } from '@beakerstack/waitlist';
+import {
+  getAdminMarketingEmailSettings,
+  getAdminMarketingEmailQueueStats,
+} from '@beakerstack/marketing-email';
 import { useAdminOverviewStats } from '../hooks/useAdminOverviewStats';
 
 vi.mock('@beakerstack/admin', async importOriginal => {
@@ -21,9 +25,21 @@ vi.mock('@beakerstack/waitlist', async importOriginal => {
   };
 });
 
+vi.mock('@beakerstack/marketing-email', async importOriginal => {
+  const actual =
+    await importOriginal<typeof import('@beakerstack/marketing-email')>();
+  return {
+    ...actual,
+    getAdminMarketingEmailSettings: vi.fn(),
+    getAdminMarketingEmailQueueStats: vi.fn(),
+  };
+});
+
 const mockListUsers = vi.mocked(listUsers);
 const mockListWaitlistEntries = vi.mocked(listWaitlistEntries);
 const mockGetSettings = vi.mocked(getAdminWaitlistSettings);
+const mockGetMeSettings = vi.mocked(getAdminMarketingEmailSettings);
+const mockGetMeStats = vi.mocked(getAdminMarketingEmailQueueStats);
 
 const fullSettings = {
   signup_mode: 'waitlist' as const,
@@ -34,6 +50,15 @@ const fullSettings = {
   metadata_schema: [],
   updated_at: '2024-01-01T00:00:00Z',
 };
+
+const meSettings = {
+  product_id: 'test-product',
+  enabled: true,
+  provider: 'kit' as const,
+  config: { namespace: 'ns', kitFormId: 'form-1', tierTagNames: [] },
+};
+
+const meStats = { pending: 0, processing: 0, done: 10, failed: 0 };
 
 describe('useAdminOverviewStats', () => {
   beforeEach(() => {
@@ -51,6 +76,8 @@ describe('useAdminOverviewStats', () => {
       offset: 0,
     });
     mockGetSettings.mockResolvedValue(fullSettings);
+    mockGetMeSettings.mockResolvedValue(meSettings);
+    mockGetMeStats.mockResolvedValue(meStats);
   });
 
   it('fetches all three stats on mount', async () => {
@@ -93,5 +120,32 @@ describe('useAdminOverviewStats', () => {
     expect(result.current.usersTotal).toBeNull();
     expect(result.current.waitlistPending).toBeNull();
     expect(result.current.error).toBeNull();
+  });
+
+  it('populates marketingEmail with settings and stats', async () => {
+    const stats = { pending: 2, processing: 0, done: 5, failed: 1 };
+    mockGetMeStats.mockResolvedValue(stats);
+    const { result } = renderHook(() => useAdminOverviewStats());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.marketingEmail).toEqual({
+      settings: meSettings,
+      stats,
+    });
+  });
+
+  it('sets marketingEmail.settings=null when no settings row exists', async () => {
+    mockGetMeSettings.mockResolvedValue(null);
+    const { result } = renderHook(() => useAdminOverviewStats());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.marketingEmail?.settings).toBeNull();
+    expect(result.current.error).toBeNull();
+  });
+
+  it('sets error when marketing email fetch throws', async () => {
+    mockGetMeSettings.mockRejectedValueOnce(new Error('me network error'));
+    const { result } = renderHook(() => useAdminOverviewStats());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.error?.message).toBe('me network error');
+    expect(result.current.marketingEmail).toBeNull();
   });
 });
