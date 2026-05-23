@@ -175,6 +175,7 @@
     "setup:full": "node ./scripts/setup-full.mjs",
     "setup-full": "node ./scripts/setup-full.mjs",
     "setup:email": "node ./scripts/setup-email-dns.mjs",
+    "setup:kit": "node ./scripts/setup-kit.mjs",
     "email:personalize": "node scripts/personalize-email-templates.mjs",
     "email:materialize-config": "node scripts/materialize-email-config.mjs --in-place",
     "setup:diagnose-secret-input": "node ./scripts/dev-diagnose-secret-input.mjs",

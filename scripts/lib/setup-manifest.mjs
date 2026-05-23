@@ -2,6 +2,7 @@ import {
   isStripeGithubSecretDef,
   setupStripeKeysDeferred,
 } from './setup-stripe.mjs';
+import { isKitGithubSecretDef, setupKitKeysDeferred } from './setup-kit.mjs';
 
 /**
  * Maps local .env keys to GitHub Actions secrets/variables used by workflows.
@@ -23,6 +24,27 @@ export const GITHUB_SECRETS = [
     type: 'secret',
     name: 'RESEND_SMTP_PASS',
     envKeys: ['RESEND_SMTP_PASS', 'SMTP_PASS'],
+    optional: true,
+    group: 'core',
+  },
+  {
+    type: 'secret',
+    name: 'KIT_API_KEY',
+    envKeys: ['KIT_API_KEY'],
+    optional: true,
+    group: 'core',
+  },
+  {
+    type: 'secret',
+    name: 'KIT_CRON_SECRET',
+    envKeys: ['KIT_CRON_SECRET'],
+    optional: true,
+    group: 'core',
+  },
+  {
+    type: 'secret',
+    name: 'KIT_WEBHOOK_SECRET',
+    envKeys: ['KIT_WEBHOOK_SECRET'],
     optional: true,
     group: 'core',
   },
@@ -482,10 +504,12 @@ export function listMissingRequiredGithubForCi(env) {
   const missing = [];
   const mobileDisabled = env.MOBILE_ENABLED === 'false';
   const stripeDeferred = setupStripeKeysDeferred(env);
+  const kitDeferred = setupKitKeysDeferred(env);
   for (const def of GITHUB_SECRETS) {
     if (def.optional) continue;
     if (mobileDisabled && MOBILE_GROUPS.has(def.group)) continue;
     if (stripeDeferred && isStripeGithubSecretDef(def)) continue;
+    if (kitDeferred && isKitGithubSecretDef(def)) continue;
     if (resolveValueForGithub(env, def)) continue;
     missing.push({
       kind: 'secret',
@@ -497,6 +521,7 @@ export function listMissingRequiredGithubForCi(env) {
     if (def.optional) continue;
     if (mobileDisabled && MOBILE_GROUPS.has(def.group)) continue;
     if (stripeDeferred && isStripeGithubSecretDef(def)) continue;
+    if (kitDeferred && isKitGithubSecretDef(def)) continue;
     if (resolveValueForGithub(env, def)) continue;
     missing.push({
       kind: 'variable',

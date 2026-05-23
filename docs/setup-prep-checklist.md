@@ -31,18 +31,19 @@ Do not commit filled-in values or `.env*` files with secrets.
 
 ## Track B — Full cloud
 
-**Phases:** `prereqs` → `identity` → `supabase` → `aws` → `expo` → `google` → `stripe` → `write` → `github`  
+**Phases:** `prereqs` → `identity` → `supabase` → `aws` → `email-dns` → `expo` → `google` → `stripe` → `kit` → `write` → `github`  
 **Skip a phase:** answer **N** at `Run "<phase>" now?`  
 **Resume:** `npm run setup:full -- --from=supabase` (etc.)
 
 ### Decide first
 
-| Question                | If **no** / skip                                         |
-| ----------------------- | -------------------------------------------------------- |
-| Mobile (Expo / EAS)?    | `--skip-mobile` → skips `expo` + `google`                |
-| Rebrand template?       | `--skip-rename` → skips `identity`                       |
-| Push secrets with `gh`? | `--skip-github` → skips `github` sync                    |
-| Stripe billing in CI?   | `--skip-stripe` → skips `stripe` + Stripe keys at github |
+| Question                | If **no** / skip                                                |
+| ----------------------- | --------------------------------------------------------------- |
+| Mobile (Expo / EAS)?    | `--skip-mobile` → skips `expo` + `google`                       |
+| Rebrand template?       | `--skip-rename` → skips `identity`                              |
+| Push secrets with `gh`? | `--skip-github` → skips `github` sync                           |
+| Stripe billing in CI?   | `--skip-stripe` → skips `stripe` + Stripe keys at github        |
+| Kit marketing email?    | `--skip-kit` → skips `kit` phase; run `npm run setup:kit` later |
 
 ### At a glance
 
@@ -56,6 +57,7 @@ Do not commit filled-in values or `.env*` files with secrets.
 | expo      | **EXPO_TOKEN**               | Skipped if no mobile                                            |
 | google    | —                            | `google-services.json` path                                     |
 | stripe    | Stripe `sk_*` + `whsec_*` ×3 | Preview/staging test; production live when ready                |
+| kit       | Kit API key + webhook secret | Shared `KIT_*` for all environments; admin UI config per env    |
 | write     | —                            | Merges `.env*` files                                            |
 | github    | Anything still missing       | May prompt `CLOUDFRONT_*` if you set up signed cookies          |
 
@@ -215,6 +217,28 @@ For **hosted** Supabase URLs, the wizard **creates or updates** the matching Str
 **Saved as:** `*_STRIPE_*` in `.env.cloud.generated.local` → GitHub secrets in **github** phase.
 
 **Not in this phase:** `npm run billing:sync-stripe`, `supabase secrets set`, Stripe CLI local forwarding — [stripe-billing-setup.md](stripe-billing-setup.md).
+
+---
+
+### kit
+
+**Have ready:**
+
+1. **[Kit account](https://kit.com)** — V4 API key (Settings → Developer).
+2. **Tags and form** in Kit dashboard (create before sync; see `supabase/functions/README.md`).
+3. **Webhook signing secret** — Kit dashboard → Webhooks → Signing secret (account-level, shared).
+4. **Supabase phase done** — so the wizard can auto-provision webhook URLs per tier.
+
+**You will be asked:**
+
+- **Press Enter** when ready (or **N** to skip / `--skip-kit`)
+- Masked prompts for `KIT_API_KEY`, `KIT_CRON_SECRET` (Enter to auto-generate), `KIT_WEBHOOK_SECRET`
+
+**Saved as:** `KIT_*` in `.env.local` / `.env.cloud.generated.local` → GitHub secrets in **github** phase (or immediately if you run `npm run setup:kit` standalone).
+
+**Standalone:** `npm run setup:kit` — same flow without the full wizard; syncs GitHub secrets at the end unless `--skip-github`.
+
+**Per environment (admin UI, not secrets):** `/admin/marketing-email/settings` — enable sync, namespace, form ID, tier tags.
 
 ---
 

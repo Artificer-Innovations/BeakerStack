@@ -265,9 +265,24 @@ jobs:
           WEBHOOK_DESCRIPTION: BeakerStack preview (${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }})
         run: node scripts/ensure-stripe-webhook-endpoint.mjs
 
-      - name: Deploy preview billing edge functions
+      - name: Ensure Kit webhook endpoint (preview)
+        if: >-
+          needs.preview-scope.outputs.run_stripe_billing == 'true' ||
+          needs.preview-scope.outputs.run_supabase_reset == 'true'
+        continue-on-error: true
+        env:
+          KIT_API_KEY: ${{ secrets.KIT_API_KEY }}
+          KIT_WEBHOOK_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}/functions/v1/kit-webhook
+          WEBHOOK_DESCRIPTION: BeakerStack preview kit-webhook (${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }})
+        run: |
+          [[ -z "${KIT_API_KEY:-}" ]] && { echo "KIT_API_KEY not set — skipping Kit webhook ensure"; exit 0; }
+          node scripts/ensure-kit-webhook-endpoint.mjs
+
+      - name: Deploy preview edge functions
         id: billing-functions
-        if: needs.preview-scope.outputs.run_stripe_billing == 'true'
+        if: >-
+          needs.preview-scope.outputs.run_stripe_billing == 'true' ||
+          needs.preview-scope.outputs.run_supabase_reset == 'true'
         continue-on-error: true
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -279,11 +294,27 @@ jobs:
           PREVIEW_STRIPE_SECRET_KEY: ${{ secrets.PREVIEW_STRIPE_SECRET_KEY }}
           PREVIEW_STRIPE_WEBHOOK_SECRET: ${{ steps.stripe_webhook_preview.outputs.resolved_webhook_secret }}
           PREVIEW_BILLING_ALLOWED_ORIGINS: ${{ secrets.PREVIEW_BILLING_ALLOWED_ORIGINS }}
+          KIT_API_KEY: ${{ secrets.KIT_API_KEY }}
+          KIT_CRON_SECRET: ${{ secrets.KIT_CRON_SECRET }}
+          KIT_WEBHOOK_SECRET: ${{ secrets.KIT_WEBHOOK_SECRET }}
           SUPABASE_MAX_RETRIES: 5
         run: |
           set -euo pipefail
           chmod +x ./scripts/pr-preview/deploy-preview-billing-functions.sh
           ./scripts/pr-preview/deploy-preview-billing-functions.sh
+
+      - name: Ensure kit-sync cron job (preview)
+        if: >-
+          needs.preview-scope.outputs.run_stripe_billing == 'true' ||
+          needs.preview-scope.outputs.run_supabase_reset == 'true'
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PR_TESTING_SUPABASE_SERVICE_ROLE_KEY }}
+          KIT_CRON_SECRET: ${{ secrets.KIT_CRON_SECRET }}
+        run: |
+          [[ -z "${KIT_CRON_SECRET:-}" ]] && { echo "KIT_CRON_SECRET not set — skipping cron registration"; exit 0; }
+          node scripts/ensure-kit-sync-cron.mjs
 
   deploy-preview-web:
     if: >-

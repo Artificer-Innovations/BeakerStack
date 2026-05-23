@@ -201,7 +201,7 @@ classify_path() {
       match_email_templates=true
       match_tested_scripts=true
       ;;
-    scripts/ensure-stripe-webhook-endpoint.mjs | scripts/ensure-kit-sync-cron.mjs | scripts/billing/*)
+    scripts/ensure-stripe-webhook-endpoint.mjs | scripts/ensure-kit-webhook-endpoint.mjs | scripts/ensure-kit-sync-cron.mjs | scripts/pr-preview/deploy-preview-billing-functions.sh | scripts/billing/*)
       match_billing_deploy=true
       ;;
     scripts/lib/* | scripts/__tests__/*)

@@ -54,6 +54,7 @@ import {
   printExpoPhaseReadinessBriefing,
   printGooglePhaseReadinessBriefing,
   printStripePhaseReadinessBriefing,
+  printKitPhaseReadinessBriefing,
   printGithubPhaseReadinessBriefing,
   confirmRunPhase,
   printManualInstructions,
@@ -93,6 +94,11 @@ import {
   discoverRoute53PublicZonesForApex,
 } from './lib/setup-aws-discover.mjs';
 import { phaseEmailDns } from './setup-email-dns.mjs';
+import { phaseKit } from './setup-kit.mjs';
+import {
+  SETUP_KIT_SKIPPED_ENV,
+  isKitGithubSecretDef,
+} from './lib/setup-kit.mjs';
 
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -114,6 +120,7 @@ const PHASE_ORDER = [
   'expo',
   'google',
   'stripe',
+  'kit',
   'write',
   'github',
 ];
@@ -121,7 +128,7 @@ const PHASE_ORDER = [
 /** Merged from dotenv-style secret files / pastes (allowlisted keys only). */
 const MERGEABLE_SETUP_ENV_KEYS = mergeableSetupEnvKeys();
 
-/** @typedef {{ dryRun: boolean; fromPhase: string; skipRename: boolean; awsProfile: string; skipGithub: boolean; skipStripe: boolean; skipEmailDns: boolean; githubRepo: string; mobileEnabled: boolean; plainSecretPrompts: boolean; guide: 'full' | 'brief'; guideFromCli: boolean }} CliFlags */
+/** @typedef {{ dryRun: boolean; fromPhase: string; skipRename: boolean; awsProfile: string; skipGithub: boolean; skipStripe: boolean; skipKit: boolean; skipEmailDns: boolean; githubRepo: string; mobileEnabled: boolean; plainSecretPrompts: boolean; guide: 'full' | 'brief'; guideFromCli: boolean }} CliFlags */
 
 function printHelp() {
   console.log(`Usage: node scripts/setup-full.mjs [options]
@@ -130,12 +137,13 @@ Options:
   --dry-run              No env/state file writes; no PAT/EXPO env merge; no Supabase api-keys fetch;
                          no AWS bootstrap run; no google-services import; GitHub sync skips gh but still
                          reads .env*.local to log what would be synced
-  --from=PHASE           Resume at prereqs|identity|supabase|aws|email-dns|expo|google|stripe|write|github (alias: gh=github;
+  --from=PHASE           Resume at prereqs|identity|supabase|aws|email-dns|expo|google|stripe|kit|write|github (alias: gh=github;
                          merges existing .env*.local first when resuming)
   --skip-rename          Skip the identity / rename phase entirely
   --skip-github          Skip GitHub Actions secret/variable sync
   --skip-email-dns       Skip Resend domain + Route 53 DNS email setup
   --skip-stripe          Skip Stripe key collection; Stripe secrets not required at github sync
+  --skip-kit             Skip Kit marketing email key collection
   --github-repo=OWNER/NAME  Override repo for gh secret/variable sync (default: gh repo view in cwd)
   --skip-mobile          Skip Expo, EAS, and Google Services setup (web-only repos)
   --aws-profile=NAME     Pass through to bootstrap-aws-stack.sh
@@ -179,6 +187,7 @@ function parseArgv(argv) {
     awsProfile: '',
     skipGithub: false,
     skipStripe: false,
+    skipKit: false,
     skipEmailDns: false,
     githubRepo: '',
     mobileEnabled: true,
@@ -191,6 +200,7 @@ function parseArgv(argv) {
     else if (a === '--skip-rename') flags.skipRename = true;
     else if (a === '--skip-github') flags.skipGithub = true;
     else if (a === '--skip-stripe') flags.skipStripe = true;
+    else if (a === '--skip-kit') flags.skipKit = true;
     else if (a === '--skip-email-dns') flags.skipEmailDns = true;
     else if (a.startsWith('--github-repo='))
       flags.githubRepo = a.slice('--github-repo='.length).trim();
@@ -2364,6 +2374,13 @@ async function collectMissingGithubCiEnvIntoAcc(flags, rl, promptInput, acc) {
     );
   }
 
+  const kitMissing = details.filter(d => isKitGithubSecretDef(d.def));
+  if (kitMissing.length) {
+    logInfo(
+      `${kitMissing.length} Kit key(s) still missing — run \`npm run setup:kit\` or \`npm run setup:full -- --from=kit\` for guided collection, or enter below.`
+    );
+  }
+
   if (!input.isTTY) {
     logWarn(
       `${details.length} required GitHub CI value(s) missing locally; skipping prompts (stdin not a TTY). Add keys to .env.local / .env.cloud.generated.local or run this phase in a full terminal.`
@@ -2596,6 +2613,9 @@ async function main() {
   if (flags.skipStripe) {
     acc[SETUP_STRIPE_SKIPPED_ENV] = 'true';
   }
+  if (flags.skipKit) {
+    acc[SETUP_KIT_SKIPPED_ENV] = 'true';
+  }
 
   if (!flags.mobileEnabled) {
     acc.MOBILE_ENABLED = 'false';
@@ -2654,6 +2674,11 @@ async function main() {
         acc[SETUP_STRIPE_SKIPPED_ENV] = 'true';
         continue;
       }
+      if (phase === 'kit' && flags.skipKit) {
+        logInfo('Skipping Kit phase (--skip-kit).');
+        acc[SETUP_KIT_SKIPPED_ENV] = 'true';
+        continue;
+      }
       if (phase === 'github' && flags.skipGithub) {
         logInfo('Skipping GitHub sync (--skip-github).');
         continue;
@@ -2680,6 +2705,9 @@ async function main() {
         }
         if (phase === 'stripe') {
           acc[SETUP_STRIPE_SKIPPED_ENV] = 'true';
+        }
+        if (phase === 'kit') {
+          acc[SETUP_KIT_SKIPPED_ENV] = 'true';
         }
         continue;
       }
@@ -2724,6 +2752,16 @@ async function main() {
         }
       }
 
+      if (phase === 'kit' && !flags.skipKit) {
+        printKitPhaseReadinessBriefing(logCtx);
+        if (!flags.dryRun && input.isTTY) {
+          await rlQuestion(
+            rl,
+            'Press Enter when you have a Kit API key and webhook signing secret…'
+          );
+        }
+      }
+
       if (phase === 'github' && !flags.skipGithub) {
         printGithubPhaseReadinessBriefing(logCtx);
         if (!flags.dryRun && input.isTTY) {
@@ -2755,6 +2793,23 @@ async function main() {
           break;
         case 'stripe':
           await phaseStripe(flags, rl, promptInput, acc);
+          break;
+        case 'kit':
+          await phaseKit(
+            {
+              dryRun: flags.dryRun,
+              skipKit: false,
+              skipGithub: true,
+              standalone: false,
+            },
+            rl,
+            acc,
+            {
+              question: q => rlQuestion(rl, q),
+              readSecret: prompt =>
+                readSecretLineMaskedOrVisible(rl, promptInput, flags, prompt),
+            }
+          );
           break;
         case 'github':
           await phaseGithub(flags, rl, acc, promptInput);

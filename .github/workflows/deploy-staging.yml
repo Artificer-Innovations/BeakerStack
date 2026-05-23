@@ -118,6 +118,16 @@ jobs:
       - name: Sync edge shared packages
         run: npm run functions:sync-shared
 
+      - name: Ensure Kit webhook endpoint (staging)
+        continue-on-error: true
+        env:
+          KIT_API_KEY: ${{ secrets.KIT_API_KEY }}
+          KIT_WEBHOOK_URL: ${{ secrets.STAGING_SUPABASE_URL }}/functions/v1/kit-webhook
+          WEBHOOK_DESCRIPTION: BeakerStack staging kit-webhook (${{ secrets.STAGING_SUPABASE_PROJECT_REF }})
+        run: |
+          [[ -z "${KIT_API_KEY:-}" ]] && { echo "KIT_API_KEY not set — skipping Kit webhook ensure"; exit 0; }
+          node scripts/ensure-kit-webhook-endpoint.mjs
+
       - name: Deploy Supabase Edge Functions
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -129,6 +139,9 @@ jobs:
           STAGING_STRIPE_SECRET_KEY: ${{ secrets.STAGING_STRIPE_SECRET_KEY }}
           STAGING_STRIPE_WEBHOOK_SECRET: ${{ steps.stripe_webhook_staging.outputs.resolved_webhook_secret }}
           STAGING_BILLING_ALLOWED_ORIGINS: ${{ secrets.STAGING_BILLING_ALLOWED_ORIGINS }}
+          KIT_API_KEY: ${{ secrets.KIT_API_KEY }}
+          KIT_CRON_SECRET: ${{ secrets.KIT_CRON_SECRET }}
+          KIT_WEBHOOK_SECRET: ${{ secrets.KIT_WEBHOOK_SECRET }}
           STAGING_KIT_API_KEY: ${{ secrets.STAGING_KIT_API_KEY }}
           STAGING_KIT_CRON_SECRET: ${{ secrets.STAGING_KIT_CRON_SECRET }}
           STAGING_KIT_WEBHOOK_SECRET: ${{ secrets.STAGING_KIT_WEBHOOK_SECRET }}
@@ -146,11 +159,14 @@ jobs:
             BILLING_SUPABASE_ANON_KEY="${STAGING_SUPABASE_ANON_KEY}" \
             BILLING_SUPABASE_SERVICE_ROLE_KEY="${STAGING_SUPABASE_SERVICE_ROLE_KEY}" \
             BILLING_ALLOWED_ORIGINS="${STAGING_BILLING_ALLOWED_ORIGINS}"
-          # Only set Kit secrets when the GitHub secrets are configured; passing empty
-          # strings would clobber any manually-configured Supabase project secrets.
-          [[ -n "${STAGING_KIT_API_KEY:-}" ]] && supabase secrets set KIT_API_KEY="${STAGING_KIT_API_KEY}"
-          [[ -n "${STAGING_KIT_CRON_SECRET:-}" ]] && supabase secrets set KIT_CRON_SECRET="${STAGING_KIT_CRON_SECRET}"
-          [[ -n "${STAGING_KIT_WEBHOOK_SECRET:-}" ]] && supabase secrets set KIT_WEBHOOK_SECRET="${STAGING_KIT_WEBHOOK_SECRET}"
+          # Prefer shared KIT_* secrets; fall back to legacy STAGING_KIT_* names.
+          RESOLVED_KIT_API_KEY="${KIT_API_KEY:-${STAGING_KIT_API_KEY:-}}"
+          RESOLVED_KIT_CRON_SECRET="${KIT_CRON_SECRET:-${STAGING_KIT_CRON_SECRET:-}}"
+          RESOLVED_KIT_WEBHOOK_SECRET="${KIT_WEBHOOK_SECRET:-${STAGING_KIT_WEBHOOK_SECRET:-}}"
+          # Only set Kit secrets when configured; empty strings would clobber manual Supabase secrets.
+          [[ -n "${RESOLVED_KIT_API_KEY}" ]] && supabase secrets set KIT_API_KEY="${RESOLVED_KIT_API_KEY}"
+          [[ -n "${RESOLVED_KIT_CRON_SECRET}" ]] && supabase secrets set KIT_CRON_SECRET="${RESOLVED_KIT_CRON_SECRET}"
+          [[ -n "${RESOLVED_KIT_WEBHOOK_SECRET}" ]] && supabase secrets set KIT_WEBHOOK_SECRET="${RESOLVED_KIT_WEBHOOK_SECRET}"
           supabase functions deploy stripe-webhook billing-stripe waitlist-capture waitlist-ops kit-sync kit-webhook \
             --project-ref "${STAGING_SUPABASE_PROJECT_REF}"
 
@@ -158,11 +174,12 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
-          KIT_CRON_SECRET: ${{ secrets.STAGING_KIT_CRON_SECRET }}
+          KIT_CRON_SECRET: ${{ secrets.KIT_CRON_SECRET }}
+          STAGING_KIT_CRON_SECRET: ${{ secrets.STAGING_KIT_CRON_SECRET }}
         run: |
-          # secrets.* is not allowed in step `if:` — gate here.
-          [[ -z "${KIT_CRON_SECRET:-}" ]] && { echo "STAGING_KIT_CRON_SECRET not set — skipping cron registration"; exit 0; }
-          node scripts/ensure-kit-sync-cron.mjs
+          RESOLVED_KIT_CRON_SECRET="${KIT_CRON_SECRET:-${STAGING_KIT_CRON_SECRET:-}}"
+          [[ -z "${RESOLVED_KIT_CRON_SECRET}" ]] && { echo "KIT_CRON_SECRET not set — skipping cron registration"; exit 0; }
+          KIT_CRON_SECRET="${RESOLVED_KIT_CRON_SECRET}" node scripts/ensure-kit-sync-cron.mjs
 
   deploy-web-staging:
     needs: [deploy-backend-staging]

@@ -257,6 +257,13 @@ const PHASE_INTROS = {
       'If you choose Yes, a prerequisites checklist prints next — Stripe Dashboard test/live mode, webhook URLs per Supabase project.',
     ],
   },
+  kit: {
+    title: 'Kit marketing email (CI keys)',
+    body: [
+      'Collects shared KIT_API_KEY, KIT_CRON_SECRET, and KIT_WEBHOOK_SECRET for GitHub Actions (same Kit account for preview, staging, production).',
+      'If you choose Yes, a prerequisites checklist prints next — Kit API key, tags, webhook signing secret, admin UI settings per environment.',
+    ],
+  },
   write: {
     title: 'Write env files',
     body: [
@@ -533,6 +540,49 @@ export function printStripePhaseReadinessBriefing(ctx) {
 }
 
 /**
+ * Prerequisites checklist shown after you confirm the Kit phase.
+ * @param {LogCtx} ctx
+ */
+export function printKitPhaseReadinessBriefing(ctx) {
+  const { logInfo } = ctx;
+  logInfo('');
+  logInfo('── Before Kit marketing email keys ──');
+  logInfo('');
+  logInfo(
+    'BeakerStack syncs lifecycle events to Kit (ConvertKit Creator API v4). One shared Kit account is fine for all environments.'
+  );
+  logInfo('');
+  logInfo('1) Kit account');
+  logInfo('   • Kit → Settings → Developer → create a V4 API key');
+  logInfo('');
+  logInfo('2) Tags and form (manual in Kit dashboard)');
+  logInfo(
+    '   • Create tags before sync: {namespace}:signup, :waitlist, :converted, etc.'
+  );
+  logInfo(
+    '   • Create a form/sequence; note form ID for Admin → Marketing Email Settings'
+  );
+  logInfo('');
+  logInfo('3) Webhook signing secret');
+  logInfo(
+    '   • Kit dashboard → Webhooks → Signing secret (account-level, shared)'
+  );
+  logInfo(
+    '   • Webhook URLs are auto-provisioned when Supabase URLs are in env'
+  );
+  logInfo('');
+  logInfo('4) Per environment (non-secret, in admin UI)');
+  logInfo(
+    '   • /admin/marketing-email/settings — enable sync, namespace, form ID, tier tags'
+  );
+  logInfo('');
+  logInfo(
+    'Skip Kit: answer N at Run kit now, use --skip-kit, or run later: npm run setup:kit'
+  );
+  logInfo('');
+}
+
+/**
  * Prerequisites checklist shown after you confirm the GitHub sync phase.
  * @param {LogCtx} ctx
  */
@@ -746,6 +796,16 @@ export function printManualInstructions(ctx, phaseId) {
       );
       logInfo('3. Or re-run: npm run setup:full -- --from=stripe');
       logInfo('4. See docs/stripe-billing-setup.md');
+      break;
+    case 'kit':
+      logInfo(
+        '1. Kit → Settings → Developer → API key + webhook signing secret'
+      );
+      logInfo(
+        '2. Pre-create tags and a form in Kit; configure admin UI per environment'
+      );
+      logInfo('3. Or re-run: npm run setup:kit');
+      logInfo('4. Or re-run: npm run setup:full -- --from=kit');
       break;
     case 'github':
       logInfo('1. gh auth login with admin on the repository');

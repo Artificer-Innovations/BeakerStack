@@ -10,6 +10,9 @@ This file lists repository **secrets** and **variables** the setup wizard can sy
 | ------------------------------------------ | -------- | ---------- |
 | `SUPABASE_ACCESS_TOKEN`                    | no       | core       |
 | `RESEND_SMTP_PASS`                         | yes      | core       |
+| `KIT_API_KEY`                              | yes      | core       |
+| `KIT_CRON_SECRET`                          | yes      | core       |
+| `KIT_WEBHOOK_SECRET`                       | yes      | core       |
 | `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID`  | yes      | oauth      |
 | `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`     | yes      | oauth      |
 | `AWS_ACCESS_KEY_ID`                        | no       | aws        |
