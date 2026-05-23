@@ -1,28 +1,59 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { topoSort, parseManifest, validateImportMapEntries } from '../sync-edge-shared.mjs';
+import {
+  topoSort,
+  parseManifest,
+  validateImportMapEntries,
+  findBareImports,
+  extractImportSpecifiers,
+  isAllowedImportSpecifier,
+} from '../sync-edge-shared.mjs';
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('manifest parsing', () => {
   it('parses a valid manifest', () => {
-    const manifest = parseManifest(JSON.stringify({
-      ports: [
-        { id: 'a', package: 'packages/a', entry: 'src/index.ts',
-          tsupConfig: 'tsup.config.ts', outDir: 'supabase/functions/_shared/_generated/a',
-          npmName: '@scope/a', dependsOn: [] },
-      ],
-    }));
+    const manifest = parseManifest(
+      JSON.stringify({
+        ports: [
+          {
+            id: 'a',
+            package: 'packages/a',
+            entry: 'src/index.ts',
+            tsupConfig: 'tsup.config.ts',
+            outDir: 'supabase/functions/_shared/_generated/a',
+            npmName: '@scope/a',
+            dependsOn: [],
+          },
+        ],
+      })
+    );
     assert.equal(manifest.ports.length, 1);
   });
 
   it('throws on missing ports array', () => {
-    assert.throws(() => parseManifest(JSON.stringify({})), /ports must be an array/);
+    assert.throws(
+      () => parseManifest(JSON.stringify({})),
+      /ports must be an array/
+    );
   });
 
   it('throws on port missing id', () => {
     assert.throws(
-      () => parseManifest(JSON.stringify({ ports: [{ package: 'x', entry: 'y', tsupConfig: 'z', outDir: 'o', npmName: 'n' }] })),
+      () =>
+        parseManifest(
+          JSON.stringify({
+            ports: [
+              {
+                package: 'x',
+                entry: 'y',
+                tsupConfig: 'z',
+                outDir: 'o',
+                npmName: 'n',
+              },
+            ],
+          })
+        ),
       /missing required field "id"/
     );
   });
@@ -87,5 +118,68 @@ describe('import map validation', () => {
     const imports = { '@scope/a': './a.js' };
     const missing = validateImportMapEntries(ports, imports);
     assert.deepEqual(missing, ['@scope/missing']);
+  });
+});
+
+describe('bare import detection', () => {
+  it('allows workspace, relative, and npm specifiers', () => {
+    assert.equal(isAllowedImportSpecifier('./schema.js'), true);
+    assert.equal(isAllowedImportSpecifier('../logger/index.js'), true);
+    assert.equal(isAllowedImportSpecifier('@beakerstack/logger'), true);
+    assert.equal(isAllowedImportSpecifier('npm:zod@3.22.0'), true);
+    assert.equal(isAllowedImportSpecifier('jsr:@std/path'), true);
+    assert.equal(isAllowedImportSpecifier('https://example.com/mod.js'), true);
+  });
+
+  it('returns no violations for clean generated-style imports', () => {
+    const content = `
+      import { setupLogging } from "@beakerstack/logger";
+      import { validateConfig } from "./schema.js";
+      export { foo } from "../utils.js";
+    `;
+    assert.deepEqual(findBareImports(content), []);
+  });
+
+  it('flags bare npm specifiers', () => {
+    const content = `import { z } from "zod";`;
+    assert.deepEqual(findBareImports(content), ['zod']);
+  });
+
+  it('allows npm-prefixed specifiers', () => {
+    const content = `import { z } from "npm:zod@3.22.0";`;
+    assert.deepEqual(findBareImports(content), []);
+  });
+
+  it('flags side-effect bare npm imports', () => {
+    const content = `import "zod";`;
+    assert.deepEqual(findBareImports(content), ['zod']);
+  });
+
+  it('flags dynamic bare npm imports', () => {
+    const content = `const mod = await import("zod");`;
+    assert.deepEqual(findBareImports(content), ['zod']);
+  });
+
+  it('allows side-effect and dynamic npm-prefixed specifiers', () => {
+    const content = `
+      import "npm:zod@3.22.0";
+      const mod = await import('npm:zod@3.22.0');
+    `;
+    assert.deepEqual(findBareImports(content), []);
+  });
+
+  it('extracts specifiers from all supported import forms', () => {
+    const content = `
+      import { z } from "zod";
+      import "side-effect";
+      export { foo } from "./local.js";
+      const mod = import("dynamic");
+    `;
+    assert.deepEqual(extractImportSpecifiers(content), [
+      'zod',
+      './local.js',
+      'side-effect',
+      'dynamic',
+    ]);
   });
 });

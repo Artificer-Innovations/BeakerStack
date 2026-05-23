@@ -9,4 +9,5 @@ export default defineConfig({
   clean: true,
   outDir: 'dist',
   external: ['@beakerstack/logger'],
+  noExternal: ['zod'],
 });
