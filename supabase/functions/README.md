@@ -65,6 +65,7 @@ npm run functions:sync-shared
 ```
 
 Run this before:
+
 - `supabase functions serve` (local dev and CI)
 - `supabase functions deploy` (handled automatically by CI deploy jobs)
 
@@ -74,3 +75,14 @@ which have no `dev:*` script, run `npm run functions:sync-shared` manually.
 Import map: `supabase/functions/deno.json`
 Manifest: `supabase/functions/edge-shared.manifest.json`
 Sync script: `scripts/sync-edge-shared.mjs`
+
+### Dependency rules for manifest ports
+
+Generated edge bundles use a two-tier model:
+
+- **`@beakerstack/*` workspace packages** — externalized in tsup and resolved via `deno.json` import map (shared graph across functions).
+- **Third-party npm dependencies** — bundled into the generated artifact via tsup `noExternal` (or equivalent). Do not leave bare specifiers like `"zod"` in generated `.js` files.
+
+When adding a new manifest port, check the tsup config: if the package has npm runtime deps, add them to `noExternal` so they are inlined. The sync script scans `_shared/_generated/` and fails on unmapped bare imports.
+
+**Troubleshooting deploy bundling errors:** If deploy fails with `Relative import path "X" not prefixed with / or ./ or ../ and not in import map`, run `npm run functions:sync-shared` locally and inspect generated files under `_shared/_generated/` for bare npm imports.
