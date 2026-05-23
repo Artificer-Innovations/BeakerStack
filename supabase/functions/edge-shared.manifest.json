@@ -1,0 +1,66 @@
+{
+  "ports": [
+    {
+      "id": "logger",
+      "package": "packages/logger",
+      "entry": "src/index.ts",
+      "tsupConfig": "tsup.config.ts",
+      "outDir": "supabase/functions/_shared/_generated/logger",
+      "npmName": "@beakerstack/logger",
+      "dependsOn": []
+    },
+    {
+      "id": "email",
+      "package": "packages/email",
+      "entry": "src/index.ts",
+      "tsupConfig": "tsup.config.ts",
+      "outDir": "supabase/functions/_shared/_generated/email",
+      "npmName": "@beakerstack/email",
+      "dependsOn": [
+        "logger"
+      ]
+    },
+    {
+      "id": "observability-edge",
+      "package": "packages/observability",
+      "entry": "src/edge.ts",
+      "tsupConfig": "tsup.config.edge.ts",
+      "outDir": "supabase/functions/_shared/_generated/observability",
+      "npmName": "@beakerstack/observability/edge",
+      "dependsOn": [
+        "logger"
+      ]
+    },
+    {
+      "id": "lifecycle-events",
+      "package": "packages/lifecycle-events",
+      "entry": "src/index.ts",
+      "tsupConfig": "tsup.config.ts",
+      "outDir": "supabase/functions/_shared/_generated/lifecycle-events",
+      "npmName": "@beakerstack/lifecycle-events",
+      "dependsOn": [
+        "logger"
+      ]
+    },
+    {
+      "id": "marketing-email-kit",
+      "package": "packages/marketing-email",
+      "entry": "src/adapters/kit/edge.ts",
+      "tsupConfig": "tsup.config.kit-edge.ts",
+      "outDir": "supabase/functions/_shared/_generated/marketing-email-kit",
+      "npmName": "@beakerstack/marketing-email/kit",
+      "dependsOn": []
+    },
+    {
+      "id": "marketing-email-edge",
+      "package": "packages/marketing-email",
+      "entry": "src/edge.ts",
+      "tsupConfig": "tsup.config.marketing-edge.ts",
+      "outDir": "supabase/functions/_shared/_generated/marketing-email-edge",
+      "npmName": "@beakerstack/marketing-email/edge",
+      "dependsOn": [
+        "lifecycle-events"
+      ]
+    }
+  ]
+}

@@ -84,6 +84,9 @@ start_functions_serve() {
     warn "supabase/.env.local not found — billing checkout test may skip without STRIPE_SECRET_KEY"
   fi
 
+  info "Syncing edge shared packages…"
+  npm run functions:sync-shared
+
   info "Starting supabase functions serve (background, log: $LOG_FILE)"
   # shellcheck disable=SC2086
   supabase functions serve --no-verify-jwt "${env_args[@]}" >>"$LOG_FILE" 2>&1 &

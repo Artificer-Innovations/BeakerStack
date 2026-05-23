@@ -3,13 +3,19 @@ import {
   corsHeadersForWaitlist,
   jsonResponse,
 } from '../_shared/waitlist-origins.ts';
-import { enqueueMarketingEmail } from '../_shared/marketingEmailQueue.ts';
+import { enqueueMarketingEmail } from '@beakerstack/marketing-email/edge';
 import {
   createLogEmailAdapter,
   createResendEmailAdapter,
   renderEmailTemplate,
   EmailSendError,
-} from '../_shared/email.ts';
+} from '@beakerstack/email';
+import { initEdgeObservability } from '@beakerstack/observability/edge';
+
+initEdgeObservability({
+  project: 'waitlist-ops',
+  environment: Deno.env.get('ENVIRONMENT') ?? 'development',
+});
 
 type Body = {
   action:

@@ -12,7 +12,8 @@ export type LifecycleEventName =
   | 'waitlist.converted'
   | 'user.signed_up'
   | 'user.tier_changed'
-  | 'user.churned';
+  | 'user.churned'
+  | 'user.deleted';
 
 export interface LifecycleEventPayload {
   email: string;

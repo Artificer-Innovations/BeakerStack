@@ -15,7 +15,13 @@ import {
   tierTag,
   churnedTag,
   interestTag,
-} from '../_shared/kitClient.ts';
+} from '@beakerstack/marketing-email/kit';
+import { initEdgeObservability } from '@beakerstack/observability/edge';
+
+initEdgeObservability({
+  project: 'kit-sync',
+  environment: Deno.env.get('ENVIRONMENT') ?? 'development',
+});
 
 const BATCH_SIZE = parseInt(Deno.env.get('KIT_SYNC_BATCH_SIZE') ?? '10', 10);
 const KIT_CRON_SECRET = Deno.env.get('KIT_CRON_SECRET') ?? '';

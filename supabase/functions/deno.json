@@ -1,0 +1,10 @@
+{
+  "imports": {
+    "@beakerstack/logger": "./_shared/_generated/logger/index.js",
+    "@beakerstack/email": "./_shared/_generated/email/index.js",
+    "@beakerstack/observability/edge": "./_shared/_generated/observability/edge.js",
+    "@beakerstack/lifecycle-events": "./_shared/_generated/lifecycle-events/index.js",
+    "@beakerstack/marketing-email/kit": "./_shared/_generated/marketing-email-kit/edge.js",
+    "@beakerstack/marketing-email/edge": "./_shared/_generated/marketing-email-edge/edge.js"
+  }
+}

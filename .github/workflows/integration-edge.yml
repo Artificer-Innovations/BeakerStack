@@ -36,6 +36,9 @@ jobs:
           CI_EXPORT_EDGE_TESTS: '1'
         run: ./scripts/ci-export-supabase-env.sh
 
+      - name: Sync edge shared packages
+        run: npm run functions:sync-shared
+
       - name: Serve Edge Functions
         run: |
           supabase functions serve > /tmp/functions-serve.log 2>&1 &

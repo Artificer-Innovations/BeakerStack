@@ -258,6 +258,39 @@ jobs:
       - name: Check SQL migration filenames
         run: node --test scripts/__tests__/db-migration-filenames.test.mjs
 
+
+  build-edge:
+    needs: test-scope
+    if: >-
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.test-scope.outputs.run_supabase == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.54.11
+
+      - name: Assert Supabase CLI minimum version
+        run: |
+          MIN="1.120.0"
+          ACTUAL=$(supabase --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          if [ "$(printf '%s\n' "$MIN" "$ACTUAL" | sort -V | head -1)" != "$MIN" ]; then
+            echo "Supabase CLI $ACTUAL < $MIN (required for deno.json import maps)" >&2
+            exit 1
+          fi
+
+      - name: Sync edge shared packages
+        run: npm run functions:sync-shared
+
+      - name: Lint Supabase functions
+        run: npm run lint:supabase
+
   supabase-tests:
     needs: test-scope
     if: >-

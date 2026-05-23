@@ -54,3 +54,23 @@ Serve `stripe-webhook` on the URL Stripe CLI forwards to (see `apps/web/docs/bil
 - PR preview workflow sets preview billing secrets on the shared preview Supabase project before deploy (`PREVIEW_BILLING_ALLOWED_ORIGINS`).
 
 Ensure the corresponding Stripe and Supabase service-role secrets are configured in GitHub Actions.
+
+## Generated shared packages
+
+Workspace packages are bundled into `_shared/_generated/` by the sync script before each use.
+This directory is gitignored — it is never committed.
+
+```bash
+npm run functions:sync-shared
+```
+
+Run this before:
+- `supabase functions serve` (local dev and CI)
+- `supabase functions deploy` (handled automatically by CI deploy jobs)
+
+The `dev:waitlist-functions` script runs sync automatically. For `kit-sync` and `kit-webhook`,
+which have no `dev:*` script, run `npm run functions:sync-shared` manually.
+
+Import map: `supabase/functions/deno.json`
+Manifest: `supabase/functions/edge-shared.manifest.json`
+Sync script: `scripts/sync-edge-shared.mjs`

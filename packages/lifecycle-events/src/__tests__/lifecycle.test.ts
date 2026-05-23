@@ -75,6 +75,7 @@ describe('onLifecycleEvent / emitLifecycleEvent', () => {
     await emitLifecycleEvent('user.signed_up', payload);
     await emitLifecycleEvent('user.tier_changed', payload);
     await emitLifecycleEvent('user.churned', payload);
-    expect(events).toHaveLength(7);
+    await emitLifecycleEvent('user.deleted', payload);
+    expect(events).toHaveLength(8);
   });
 });

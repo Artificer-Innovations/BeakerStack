@@ -296,3 +296,6 @@ apps/mobile/google-services.json
 .augment/skills/
 .claude/skills/
 skills-lock.json
+
+# Edge Function generated shared packages (build-at-consume-time)
+supabase/functions/_shared/_generated/
