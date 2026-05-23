@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { enqueueMarketingEmail } from '../edge.js';
 import { Logger } from '@beakerstack/logger';
 
@@ -39,18 +40,18 @@ function makeSupabaseMock(
     throw new Error(`Unexpected table: ${table}`);
   });
 
-  return { from: from as unknown as typeof from, insertMock };
+  return { supabase: { from } as unknown as SupabaseClient, insertMock };
 }
 
 describe('enqueueMarketingEmail', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('logs and returns early when settings lookup fails', async () => {
-    const { from } = makeSupabaseMock({ data: null, error: { message: 'db error' } });
+    const { supabase } = makeSupabaseMock({ data: null, error: { message: 'db error' } });
     await enqueueMarketingEmail(
-      { from } as any,
+      supabase,
       'prod-1',
-      'user.signed_up' as any,
+      'user.signed_up',
       'user@example.com',
       {},
       'key-1'
@@ -62,11 +63,11 @@ describe('enqueueMarketingEmail', () => {
   });
 
   it('returns early when marketing emails are disabled', async () => {
-    const { from, insertMock } = makeSupabaseMock({ data: { enabled: false }, error: null });
+    const { supabase, insertMock } = makeSupabaseMock({ data: { enabled: false }, error: null });
     await enqueueMarketingEmail(
-      { from } as any,
+      supabase,
       'prod-1',
-      'user.signed_up' as any,
+      'user.signed_up',
       'u@e.com',
       {},
       'k-1'
@@ -76,11 +77,11 @@ describe('enqueueMarketingEmail', () => {
   });
 
   it('returns early when settings are null (product not configured)', async () => {
-    const { from, insertMock } = makeSupabaseMock({ data: null, error: null });
+    const { supabase, insertMock } = makeSupabaseMock({ data: null, error: null });
     await enqueueMarketingEmail(
-      { from } as any,
+      supabase,
       'prod-1',
-      'user.signed_up' as any,
+      'user.signed_up',
       'u@e.com',
       {},
       'k-1'
@@ -90,14 +91,14 @@ describe('enqueueMarketingEmail', () => {
   });
 
   it('inserts into queue when marketing emails are enabled', async () => {
-    const { from, insertMock } = makeSupabaseMock(
+    const { supabase, insertMock } = makeSupabaseMock(
       { data: { enabled: true }, error: null },
       { error: null }
     );
     await enqueueMarketingEmail(
-      { from } as any,
+      supabase,
       'prod-1',
-      'user.signed_up' as any,
+      'user.signed_up',
       'user@example.com',
       { plan: 'pro' },
       'key-1'
@@ -115,14 +116,14 @@ describe('enqueueMarketingEmail', () => {
   });
 
   it('logs error when insert fails with non-23505 code', async () => {
-    const { from } = makeSupabaseMock(
+    const { supabase } = makeSupabaseMock(
       { data: { enabled: true }, error: null },
       { error: { code: 'some_error', message: 'insert failed' } }
     );
     await enqueueMarketingEmail(
-      { from } as any,
+      supabase,
       'prod-1',
-      'user.signed_up' as any,
+      'user.signed_up',
       'u@e.com',
       {},
       'k-1'
@@ -131,14 +132,14 @@ describe('enqueueMarketingEmail', () => {
   });
 
   it('swallows 23505 unique violation silently', async () => {
-    const { from } = makeSupabaseMock(
+    const { supabase } = makeSupabaseMock(
       { data: { enabled: true }, error: null },
       { error: { code: '23505', message: 'duplicate key' } }
     );
     await enqueueMarketingEmail(
-      { from } as any,
+      supabase,
       'prod-1',
-      'user.signed_up' as any,
+      'user.signed_up',
       'u@e.com',
       {},
       'k-1'

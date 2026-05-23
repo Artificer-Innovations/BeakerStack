@@ -1,3 +1,5 @@
+/* eslint-disable no-console -- edge telemetry sink: forwards Logger calls to console
+   since Sentry is unavailable in Deno Edge Functions; real capture wired in #354 */
 import { setupLogging } from '@beakerstack/logger';
 import type { ObservabilityConfig } from './types.js';
 import { validateConfig } from './schema.js';
