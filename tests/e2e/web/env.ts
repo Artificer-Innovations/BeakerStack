@@ -44,7 +44,9 @@ export function applyE2eSupabaseEnv(): void {
 
 export const e2eAuthDir = path.join(__dirname, '.auth');
 export const e2eStatePath = path.join(e2eAuthDir, 'state.json');
+export const e2eAdminStatePath = path.join(e2eAuthDir, 'admin-state.json');
 export const e2eStorageStatePath = path.join(e2eAuthDir, 'user.json');
+export const e2eAdminStorageStatePath = path.join(e2eAuthDir, 'admin.json');
 
 export interface E2eSeedState {
   email: string;

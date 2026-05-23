@@ -1,12 +1,15 @@
 import { readFileSync } from 'node:fs';
-import { applyE2eSupabaseEnv, e2eStatePath, type E2eSeedState } from './env';
+import {
+  applyE2eSupabaseEnv,
+  e2eAdminStatePath,
+  e2eStatePath,
+  type E2eSeedState,
+} from './env';
 import { createServiceRoleClient } from '../../utils/test-clients';
 
-async function globalTeardown(): Promise<void> {
-  applyE2eSupabaseEnv();
-
+async function deleteSeedUser(statePath: string): Promise<void> {
   try {
-    const raw = readFileSync(e2eStatePath, 'utf8');
+    const raw = readFileSync(statePath, 'utf8');
     const seed = JSON.parse(raw) as E2eSeedState;
     const admin = createServiceRoleClient();
     const { error } = await admin.auth.admin.deleteUser(seed.userId);
@@ -16,6 +19,12 @@ async function globalTeardown(): Promise<void> {
   } catch {
     // State file missing or teardown failed — local DB resets handle leftovers.
   }
+}
+
+async function globalTeardown(): Promise<void> {
+  applyE2eSupabaseEnv();
+  await deleteSeedUser(e2eStatePath);
+  await deleteSeedUser(e2eAdminStatePath);
 }
 
 export default globalTeardown;

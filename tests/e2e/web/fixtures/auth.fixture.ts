@@ -2,29 +2,47 @@ import { test as base, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { WebSelectors } from '../../shared/fixtures';
 import {
+  e2eAdminStatePath,
+  e2eAdminStorageStatePath,
   e2eStatePath,
   e2eStorageStatePath,
   webPath,
   type E2eSeedState,
 } from '../env';
 
-function readSeedState(): E2eSeedState {
-  return JSON.parse(readFileSync(e2eStatePath, 'utf8')) as E2eSeedState;
+function readSeedStateFrom(path: string): E2eSeedState {
+  return JSON.parse(readFileSync(path, 'utf8')) as E2eSeedState;
 }
 
 export const test = base.extend<{
   authenticatedPage: Page;
+  adminPage: Page;
   seedUser: E2eSeedState;
+  adminUser: E2eSeedState;
 }>({
   // Playwright fixture with no dependencies — empty destructure is intentional.
   // eslint-disable-next-line no-empty-pattern
   seedUser: async ({}, use) => {
-    await use(readSeedState());
+    await use(readSeedStateFrom(e2eStatePath));
+  },
+
+  // eslint-disable-next-line no-empty-pattern
+  adminUser: async ({}, use) => {
+    await use(readSeedStateFrom(e2eAdminStatePath));
   },
 
   authenticatedPage: async ({ browser }, use) => {
     const context = await browser.newContext({
       storageState: e2eStorageStatePath,
+    });
+    const page = await context.newPage();
+    await use(page);
+    await context.close();
+  },
+
+  adminPage: async ({ browser }, use) => {
+    const context = await browser.newContext({
+      storageState: e2eAdminStorageStatePath,
     });
     const page = await context.newPage();
     await use(page);
@@ -55,4 +73,13 @@ export async function fillLoginForm(
 
 export async function gotoRoute(page: Page, routePath: string): Promise<void> {
   await page.goto(webPath(routePath));
+}
+
+export async function openUserMenu(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'User menu' }).click();
+}
+
+export async function signOut(page: Page): Promise<void> {
+  await openUserMenu(page);
+  await page.getByRole('button', { name: 'Sign Out' }).click();
 }
