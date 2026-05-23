@@ -377,12 +377,12 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          eval "$(./scripts/pr-preview/generate-preview-bootstrap-url.sh \
+          ./scripts/pr-preview/generate-preview-bootstrap-url.sh \
             --domain "${PREVIEW_DOMAIN}" \
             --preview-prefix "${PREVIEW_PREFIX:-pr-}" \
             --pr-number "${PR_NUMBER}" \
             --signing-key "${CLOUDFRONT_SIGNING_KEY:-}" \
-            --signing-key-id "${CLOUDFRONT_SIGNING_KEY_ID:-}")"
+            --signing-key-id "${CLOUDFRONT_SIGNING_KEY_ID:-}"
 
       - name: Create GitHub Deployment (PR preview)
         uses: actions/github-script@v7

@@ -1177,8 +1177,9 @@ PR_NUMBER=${2:-123}
 echo "🧪 Running E2E tests..."
 
 if [ "$ENVIRONMENT" = "pr" ]; then
-  WEB_URL="https://deploy.yourdomain.com/pr-${PR_NUMBER}/"
-  echo "Testing PR environment: $WEB_URL"
+  WEB_URL="https://deploy.yourdomain.com"
+  WEB_BASE_PATH="/pr-${PR_NUMBER}"
+  echo "Testing PR environment: ${WEB_URL}${WEB_BASE_PATH}/"
 elif [ "$ENVIRONMENT" = "staging" ]; then
   WEB_URL="https://staging.yourdomain.com"
   echo "Testing staging environment: $WEB_URL"
@@ -2059,7 +2060,7 @@ jobs:
       - name: Run Playwright
         env:
           E2E_TARGET: preview
-          WEB_URL: https://deploy.yourdomain.com/pr-${{ github.event.pull_request.number }}/
+          WEB_URL: https://deploy.yourdomain.com
           WEB_BASE_PATH: /pr-${{ github.event.pull_request.number }}
         run: npm run test:e2e:web
 ```

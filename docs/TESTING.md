@@ -264,7 +264,15 @@ npm run test:e2e:web:ui
 export WEB_URL="http://localhost:5173"
 export TEST_PASSWORD="E2e_$(openssl rand -hex 16)_Aa1"
 npm run test:e2e:web
+
+# PR preview (CI): origin + base path — do not embed the path in WEB_URL
+export WEB_URL="https://deploy.example.com"
+export WEB_BASE_PATH="/pr-123"
+export E2E_TARGET=preview
+npm run test:e2e:web
 ```
+
+**Coverage:** 16 spec files, 26 test cases under `tests/e2e/web/specs/` (auth, billing, admin, marketing, navigation, profile).
 
 **Structure:**
 

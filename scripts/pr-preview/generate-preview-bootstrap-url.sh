@@ -2,13 +2,16 @@
 # Generate a CloudFront signed-cookie bootstrap URL for PR preview access.
 # Prints BOOTSTRAP_URL and ACCESS_MODE to stdout (KEY=value) and optionally GITHUB_OUTPUT.
 #
-# Usage:
-#   eval "$(./scripts/pr-preview/generate-preview-bootstrap-url.sh \
-#     --domain deploy.example.com \
+# Usage (GitHub Actions — writes step outputs, no stdout):
+#   ./scripts/pr-preview/generate-preview-bootstrap-url.sh \
+#     --domain "${PREVIEW_DOMAIN}" \
 #     --preview-prefix pr- \
 #     --pr-number 42 \
 #     --signing-key "$CLOUDFRONT_SIGNING_KEY" \
-#     --signing-key-id "$CLOUDFRONT_SIGNING_KEY_ID")"
+#     --signing-key-id "$CLOUDFRONT_SIGNING_KEY_ID"
+#
+# Usage (local shell — prints KEY=value to stdout):
+#   eval "$(./scripts/pr-preview/generate-preview-bootstrap-url.sh ...)"
 #
 # When neither signing secret is set, exits 0 with ACCESS_MODE=public (no bootstrap URL).
 
@@ -66,11 +69,12 @@ fi
 emit_output() {
   local key="$1"
   local value="$2"
-  printf '%s=%s\n' "${key}" "${value}"
-  if [[ -n "${GITHUB_OUTPUT}" ]]; then
+  if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
     {
       echo "${key}=${value}"
     } >> "${GITHUB_OUTPUT}"
+  else
+    printf '%s=%s\n' "${key}" "${value}"
   fi
 }
 
