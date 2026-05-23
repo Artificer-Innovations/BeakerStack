@@ -1,5 +1,5 @@
 name: Setup Node
-description: Install Node.js 20 and run npm ci (run actions/checkout first)
+description: Install Node.js 20.19+ and run npm ci (run actions/checkout first)
 
 runs:
   using: composite
@@ -9,6 +9,17 @@ runs:
       with:
         node-version: 20.x
         cache: npm
+
+    - name: Assert Node.js minimum version
+      shell: bash
+      run: |
+        set -euo pipefail
+        MIN="20.19.0"
+        ACTUAL="$(node -v | sed 's/^v//')"
+        if [ "$(printf '%s\n' "$MIN" "$ACTUAL" | sort -V | head -1)" != "$MIN" ]; then
+          echo "Node.js $ACTUAL is below required minimum $MIN" >&2
+          exit 1
+        fi
 
     - name: Install dependencies
       shell: bash
