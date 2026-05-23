@@ -91,7 +91,7 @@ describe('AdminMarketingEmailSettingsPage', () => {
     render(<AdminMarketingEmailSettingsPage />);
     await screen.findByRole('button', { name: /save settings/i });
     expect(
-      screen.getByText(/new events are enqueued but not synced/i)
+      screen.getByText(/new events are not enqueued/i)
     ).toBeInTheDocument();
   });
 
@@ -99,7 +99,7 @@ describe('AdminMarketingEmailSettingsPage', () => {
     render(<AdminMarketingEmailSettingsPage />);
     await screen.findByRole('button', { name: /save settings/i });
     expect(
-      screen.queryByText(/new events are enqueued but not synced/i)
+      screen.queryByText(/new events are not enqueued/i)
     ).not.toBeInTheDocument();
   });
 

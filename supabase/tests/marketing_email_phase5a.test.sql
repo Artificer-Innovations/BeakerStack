@@ -164,15 +164,12 @@ SELECT is(
 
 -- ── 14  one-enabled: enabling phase5a-test disables other enabled rows ────────
 
--- Ensure another product is enabled first.
-INSERT INTO public.marketing_email_settings (product_id, enabled, provider, config)
-VALUES (
-    'phase5a-other', true, 'kit',
+-- Seed phase5a-other as enabled via the admin RPC (direct INSERT would bypass
+-- RLS but this keeps the test consistent with production access patterns).
+PERFORM public.admin_update_marketing_email_settings(
+    'phase5a-other', true,
     '{"namespace":"other-ns","kitFormId":"form-other","tierTagNames":[]}'::jsonb
-)
-ON CONFLICT (product_id) DO UPDATE
-  SET enabled = true,
-      config = '{"namespace":"other-ns","kitFormId":"form-other","tierTagNames":[]}'::jsonb;
+);
 
 -- Now enable phase5a-test — should flip phase5a-other to disabled.
 PERFORM public.admin_update_marketing_email_settings(
@@ -198,7 +195,7 @@ SELECT ok(
     'update writes an audit row'
 );
 
--- ── 16  queue stats returns zero counts when queue is empty for a fresh test key
+-- ── 16  queue stats counts match inserted rows by status ─────────────────────
 
 -- Insert some test queue rows.
 INSERT INTO public.marketing_email_sync_queue
