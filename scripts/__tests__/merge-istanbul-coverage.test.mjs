@@ -51,6 +51,30 @@ test('mergeFileCoverage unions neutral file coverage across runs', () => {
   assert.deepEqual(merged.b, { 0: [1, 1] });
 });
 
+test('mergeFileCoverage preserves source maps when only one side defines them', () => {
+  const merged = mergeFileCoverage(
+    {
+      s: { 0: 1 },
+      f: { 0: 1 },
+      b: { 0: [1, 0] },
+      statementMap: { 0: { start: { line: 10 } } },
+      fnMap: { 0: { name: 'render', line: 10 } },
+      branchMap: { 0: { line: 11, type: 'if' } },
+    },
+    {
+      s: { 0: 2 },
+      f: { 0: 2 },
+      b: { 0: [0, 1] },
+    }
+  );
+
+  assert.deepEqual(merged.statementMap, { 0: { start: { line: 10 } } });
+  assert.deepEqual(merged.fnMap, { 0: { name: 'render', line: 10 } });
+  assert.deepEqual(merged.branchMap, { 0: { line: 11, type: 'if' } });
+  assert.deepEqual(merged.s, { 0: 2 });
+  assert.deepEqual(merged.b, { 0: [1, 1] });
+});
+
 test('mergeIstanbulCoverageReports keeps disjoint web and native files', () => {
   const merged = mergeIstanbulCoverageReports([
     {

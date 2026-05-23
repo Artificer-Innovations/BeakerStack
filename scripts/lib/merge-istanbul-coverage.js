@@ -51,6 +51,19 @@ function mergeBranchMap(left, right) {
  * @param {Record<string, unknown> | undefined} left
  * @param {Record<string, unknown> | undefined} right
  */
+function mergeSourceMap(left, right) {
+  const merged = {
+    ...(left ?? {}),
+    ...(right ?? {}),
+  };
+
+  return Object.keys(merged).length > 0 ? merged : undefined;
+}
+
+/**
+ * @param {Record<string, unknown> | undefined} left
+ * @param {Record<string, unknown> | undefined} right
+ */
 function mergeFileCoverage(left, right) {
   if (!left) {
     return right ? { ...right } : undefined;
@@ -78,27 +91,18 @@ function mergeFileCoverage(left, right) {
       /** @type {Record<string, number>} */ (left.l),
       /** @type {Record<string, number>} */ (right.l)
     ),
-    statementMap:
-      left.statementMap || right.statementMap
-        ? {
-            .../** @type {Record<string, unknown>} */ (left.statementMap),
-            .../** @type {Record<string, unknown>} */ (right.statementMap),
-          }
-        : undefined,
-    fnMap:
-      left.fnMap || right.fnMap
-        ? {
-            .../** @type {Record<string, unknown>} */ (left.fnMap),
-            .../** @type {Record<string, unknown>} */ (right.fnMap),
-          }
-        : undefined,
-    branchMap:
-      left.branchMap || right.branchMap
-        ? {
-            .../** @type {Record<string, unknown>} */ (left.branchMap),
-            .../** @type {Record<string, unknown>} */ (right.branchMap),
-          }
-        : undefined,
+    statementMap: mergeSourceMap(
+      /** @type {Record<string, unknown>} */ (left.statementMap),
+      /** @type {Record<string, unknown>} */ (right.statementMap)
+    ),
+    fnMap: mergeSourceMap(
+      /** @type {Record<string, unknown>} */ (left.fnMap),
+      /** @type {Record<string, unknown>} */ (right.fnMap)
+    ),
+    branchMap: mergeSourceMap(
+      /** @type {Record<string, unknown>} */ (left.branchMap),
+      /** @type {Record<string, unknown>} */ (right.branchMap)
+    ),
   };
 }
 
@@ -123,6 +127,7 @@ function mergeIstanbulCoverageReports(reports) {
 module.exports = {
   mergeHitMap,
   mergeBranchMap,
+  mergeSourceMap,
   mergeFileCoverage,
   mergeIstanbulCoverageReports,
 };
