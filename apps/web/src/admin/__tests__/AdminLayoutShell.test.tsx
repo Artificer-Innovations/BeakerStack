@@ -12,7 +12,10 @@ vi.mock('@beakerstack/shared/contexts/AuthContext', () => ({
 }));
 
 vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  const actual =
+    await vi.importActual<typeof import('react-router-dom')>(
+      'react-router-dom'
+    );
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
@@ -42,9 +45,18 @@ describe('AdminLayoutShell', () => {
     expect(screen.getByText('Users outlet')).toBeInTheDocument();
   });
 
-  it('uses dashboard-only breadcrumbs on non-users admin routes', () => {
+  it('renders outlet for waitlist path', () => {
     renderShell('/waitlist', 'waitlist', <p>Waitlist outlet</p>);
     expect(screen.getByText('Waitlist outlet')).toBeInTheDocument();
+  });
+
+  it('renders outlet for waitlist settings path', () => {
+    renderShell(
+      '/waitlist/settings',
+      'waitlist/settings',
+      <p>Settings outlet</p>
+    );
+    expect(screen.getByText('Settings outlet')).toBeInTheDocument();
   });
 
   it('renders a Dashboard link pointing to /dashboard', () => {
@@ -57,11 +69,64 @@ describe('AdminLayoutShell', () => {
     const user = userEvent.setup();
     renderShell('/admin', 'admin', <p>Admin home</p>);
     const sidebar = screen.getByRole('complementary');
-    const signOutButton = within(sidebar).getByRole('button', { name: /sign out/i });
+    const signOutButton = within(sidebar).getByRole('button', {
+      name: /sign out/i,
+    });
     await user.click(signOutButton);
     await waitFor(() => {
       expect(mockSignOut).toHaveBeenCalledTimes(1);
       expect(mockNavigate).toHaveBeenCalledWith('/');
+    });
+  });
+
+  describe('breadcrumbs', () => {
+    it('Overview \u2192 Users for /users path', () => {
+      renderShell('/users', 'users', <p>outlet</p>);
+      const bc = screen.getByRole('navigation', { name: 'Breadcrumb' });
+      expect(
+        within(bc).getByRole('link', { name: 'Overview' })
+      ).toHaveAttribute('href', '/admin');
+      expect(within(bc).getByText('Users')).toBeInTheDocument();
+    });
+
+    it('Overview \u2192 Waitlist for /waitlist path', () => {
+      renderShell('/waitlist', 'waitlist', <p>outlet</p>);
+      const bc = screen.getByRole('navigation', { name: 'Breadcrumb' });
+      expect(
+        within(bc).getByRole('link', { name: 'Overview' })
+      ).toHaveAttribute('href', '/admin');
+      expect(within(bc).getByText('Waitlist')).toBeInTheDocument();
+    });
+
+    it('Overview \u2192 Waitlist Settings for /waitlist/settings path', () => {
+      renderShell('/waitlist/settings', 'waitlist/settings', <p>outlet</p>);
+      const bc = screen.getByRole('navigation', { name: 'Breadcrumb' });
+      expect(
+        within(bc).getByRole('link', { name: 'Overview' })
+      ).toHaveAttribute('href', '/admin');
+      expect(within(bc).getByText('Waitlist Settings')).toBeInTheDocument();
+    });
+
+    it('Overview \u2192 Marketing Email Settings for /marketing-email/settings path', () => {
+      renderShell(
+        '/marketing-email/settings',
+        'marketing-email/settings',
+        <p>outlet</p>
+      );
+      const bc = screen.getByRole('navigation', { name: 'Breadcrumb' });
+      expect(
+        within(bc).getByRole('link', { name: 'Overview' })
+      ).toHaveAttribute('href', '/admin');
+      expect(
+        within(bc).getByText('Marketing Email Settings')
+      ).toBeInTheDocument();
+    });
+
+    it('single Overview crumb with no link on /admin root', () => {
+      renderShell('/admin', 'admin', <p>outlet</p>);
+      const bc = screen.getByRole('navigation', { name: 'Breadcrumb' });
+      expect(within(bc).getByText('Overview')).toBeInTheDocument();
+      expect(within(bc).queryByRole('link', { name: 'Overview' })).toBeNull();
     });
   });
 });
