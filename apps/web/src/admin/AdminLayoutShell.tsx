@@ -7,6 +7,12 @@ import { LayoutDashboard, LogOut } from 'lucide-react';
 
 function breadcrumbsForPath(pathname: string) {
   const root = { label: 'Overview', to: '/admin' };
+  if (pathname.includes('/marketing-email/settings')) {
+    return [root, { label: 'Marketing Email Settings' }];
+  }
+  if (pathname.includes('/marketing-email')) {
+    return [root, { label: 'Marketing Email' }];
+  }
   if (pathname.includes('/waitlist/settings')) {
     return [root, { label: 'Waitlist Settings' }];
   }
