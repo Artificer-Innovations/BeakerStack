@@ -1,5 +1,11 @@
 import type { AdminNavItem } from '@beakerstack/admin';
-import { ClipboardList, LayoutDashboard, Mail, Settings, Users } from 'lucide-react';
+import {
+  ClipboardList,
+  LayoutDashboard,
+  Mail,
+  Settings,
+  Users,
+} from 'lucide-react';
 import { createElement } from 'react';
 
 export const adminNavItems: AdminNavItem[] = [

@@ -11,8 +11,9 @@ import { supabase } from '../../lib/supabase';
 import { MARKETING_EMAIL_PRODUCT_ID } from '../../marketing-email/beakerstackMarketingEmailConfig';
 
 export default function AdminMarketingEmailSettingsPage() {
-  const [settings, setSettings] =
-    useState<MarketingEmailAdminSettings | null>(null);
+  const [settings, setSettings] = useState<MarketingEmailAdminSettings | null>(
+    null
+  );
   const [stats, setStats] = useState<MarketingEmailQueueStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -104,8 +105,8 @@ export default function AdminMarketingEmailSettingsPage() {
           Marketing email settings
         </h2>
         <p className='mt-1 text-sm text-gray-600'>
-          Configure the Kit integration for subscriber sync and manage the
-          sync queue.
+          Configure the Kit integration for subscriber sync and manage the sync
+          queue.
         </p>
       </div>
 
@@ -158,9 +159,8 @@ export default function AdminMarketingEmailSettingsPage() {
           </label>
           {!settings.enabled ? (
             <p className='text-xs text-amber-700'>
-              When disabled, new events are not enqueued.
-              Existing pending queue rows are not dropped — they will be
-              processed when re-enabled.
+              When disabled, new events are not enqueued. Existing pending queue
+              rows are not dropped — they will be processed when re-enabled.
             </p>
           ) : null}
         </fieldset>
@@ -171,9 +171,7 @@ export default function AdminMarketingEmailSettingsPage() {
           </legend>
 
           <label className='block'>
-            <span className='text-sm font-medium text-gray-700'>
-              Namespace
-            </span>
+            <span className='text-sm font-medium text-gray-700'>Namespace</span>
             <p className='text-xs text-gray-500'>
               Lowercase letters, digits, and hyphens — e.g.{' '}
               <code>my-product</code>. Used as a tag prefix in Kit.

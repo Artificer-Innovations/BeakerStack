@@ -24,11 +24,7 @@ function isNotFound(payload: unknown): boolean {
 }
 
 function errorCode(payload: unknown): string | undefined {
-  if (
-    payload !== null &&
-    typeof payload === 'object' &&
-    'error' in payload
-  ) {
+  if (payload !== null && typeof payload === 'object' && 'error' in payload) {
     return (payload as { error?: string }).error;
   }
   return undefined;

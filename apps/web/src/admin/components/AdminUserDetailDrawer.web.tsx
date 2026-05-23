@@ -36,9 +36,9 @@ export function AdminUserDetailDrawer({
   const [detail, setDetail] = useState<AdminUserDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [actionPending, setActionPending] = useState<
-    'grant' | 'revoke' | null
-  >(null);
+  const [actionPending, setActionPending] = useState<'grant' | 'revoke' | null>(
+    null
+  );
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -199,7 +199,10 @@ export function AdminUserDetailDrawer({
               data-testid='confirm-dialog'
             >
               <div className='w-80 rounded-lg bg-white p-6 shadow-xl'>
-                <h4 id='confirm-dialog-title' className='text-sm font-semibold text-gray-900'>
+                <h4
+                  id='confirm-dialog-title'
+                  className='text-sm font-semibold text-gray-900'
+                >
                   {actionPending === 'grant'
                     ? 'Grant admin access'
                     : 'Revoke admin access'}

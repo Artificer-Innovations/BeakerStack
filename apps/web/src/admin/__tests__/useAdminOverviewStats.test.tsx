@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { listUsers } from '@beakerstack/admin';
-import { getAdminWaitlistSettings, listWaitlistEntries } from '@beakerstack/waitlist';
+import {
+  getAdminWaitlistSettings,
+  listWaitlistEntries,
+} from '@beakerstack/waitlist';
 import { useAdminOverviewStats } from '../hooks/useAdminOverviewStats';
 
 vi.mock('@beakerstack/admin', async importOriginal => {

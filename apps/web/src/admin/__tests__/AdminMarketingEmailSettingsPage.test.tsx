@@ -122,7 +122,9 @@ describe('AdminMarketingEmailSettingsPage', () => {
     await user.click(screen.getByRole('button', { name: /save settings/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent(/namespace is required/i);
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        /namespace is required/i
+      );
     });
     expect(mockUpdate).not.toHaveBeenCalled();
   });
@@ -138,7 +140,9 @@ describe('AdminMarketingEmailSettingsPage', () => {
     await user.click(screen.getByRole('button', { name: /save settings/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent(/kit form id is required/i);
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        /kit form id is required/i
+      );
     });
     expect(mockUpdate).not.toHaveBeenCalled();
   });
