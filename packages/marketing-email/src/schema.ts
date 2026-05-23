@@ -16,7 +16,7 @@ export interface MarketingEmailConfig {
 
 // Namespace must be lowercase, start with a letter, and contain only letters,
 // digits, and hyphens — matching DB constraints added in Phase 2 (#286).
-const NAMESPACE_RE = /^[a-z][a-z0-9-]*$/;
+export const NAMESPACE_RE = /^[a-z][a-z0-9-]*$/;
 
 export function defineMarketingEmailConfig(
   config: MarketingEmailConfig
