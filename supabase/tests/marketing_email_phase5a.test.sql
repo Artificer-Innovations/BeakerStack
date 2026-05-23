@@ -5,7 +5,7 @@
 
 BEGIN;
 
-SELECT plan(17);
+SELECT plan(18);
 
 -- ── Admin user seeding ───────────────────────────────────────────────────────
 -- All RPCs are admin_is_admin()-gated; seed a test admin user and set JWT claims
@@ -24,6 +24,19 @@ END; $$;
 INSERT INTO public.admin_users (user_id)
 VALUES ('a5000000-0000-0000-0000-000000000001')
 ON CONFLICT (user_id) DO UPDATE SET revoked_at = NULL;
+
+-- ── Non-admin user pre-seed ──────────────────────────────────────────────────
+-- Seed a user who is NOT in admin_users; used for test 18.
+
+DO $$ BEGIN
+  INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at,
+      raw_app_meta_data, raw_user_meta_data, created_at, updated_at, aud, role)
+  VALUES ('a5000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000000',
+      'phase5a-nonadmin@example.com', crypt('pw', gen_salt('bf')), now(),
+      '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb,
+      now(), now(), 'authenticated', 'authenticated')
+  ON CONFLICT (id) DO NOTHING;
+END; $$;
 
 -- ── Test 14 pre-seed: insert phase5a-other as enabled ───────────────────────
 -- Direct INSERT runs here as the postgres superuser (before SET LOCAL ROLE),
@@ -249,6 +262,20 @@ SELECT ok(
         FROM (SELECT public.admin_get_marketing_email_queue_stats() AS result) sub
     ),
     'admin_get_marketing_email_queue_stats returns jsonb with pending/processing/done/failed keys'
+);
+
+-- ── 18  non-admin user gets not_found ────────────────────────────────────────
+-- Switch JWT to a user not in admin_users; admin RPCs must return not_found.
+-- Pattern from waitlist.test.sql lines 114-122.
+
+SELECT set_config('request.jwt.claims',
+    '{"sub":"a5000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+SET LOCAL ROLE authenticated;
+
+SELECT is(
+    public.admin_get_marketing_email_settings('phase5a-test')->>'error',
+    'not_found',
+    'non-admin user gets not_found from admin_get_marketing_email_settings'
 );
 
 SELECT * FROM finish();
