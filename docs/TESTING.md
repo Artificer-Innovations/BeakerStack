@@ -45,8 +45,8 @@ Integration Tests (Centralized)
 └── tests/integration/               → Cross-platform integration tests
 
 E2E Tests (Centralized)
-├── tests/e2e/web/                   → Web user flow tests
-├── tests/e2e/mobile/                → Mobile user flow tests
+├── tests/e2e/web/specs/             → Web user flow tests (Playwright)
+├── tests/e2e/mobile/                → Mobile user flow tests (Maestro)
 └── tests/e2e/shared/                → Shared E2E utilities
 
 Database Tests (Supabase Convention)
@@ -216,18 +216,78 @@ Integration tests **do not** contribute to `npm run test:coverage` or merged `co
 ### Relationship to other layers
 
 - **pgTAP (`npm run test:db`):** migration contracts, policy existence, SQL-only matrices.
-- **E2E (`npm run test:e2e`):** Maestro UI journeys (separate from this suite).
+- **E2E (`npm run test:e2e`):** Playwright web journeys + Maestro mobile (separate from this suite).
 
 ## E2E Tests
 
 ### What to Test
 
-- Complete user flows on web application
-- Complete user flows on mobile application
-- Critical user journeys (login, signup, profile management)
-- Cross-platform functionality
+- Complete user flows on the web application (Playwright)
+- Complete user flows on the mobile application (Maestro)
+- Critical user journeys (login, signup, profile management, protected routes)
+- Cross-platform functionality (mobile only today via Maestro)
 
-### Prerequisites
+### Web E2E (Playwright)
+
+**Location:** `tests/e2e/web/specs/`
+
+**Prerequisites:**
+
+1. Install browser binaries (once per machine):
+
+   ```bash
+   npm run test:e2e:web:install
+   ```
+
+2. Local Supabase running:
+
+   ```bash
+   supabase start
+   ```
+
+3. Web dev server running (or let Playwright start it via `webServer` when not in preview CI):
+
+   ```bash
+   npm run web
+   ```
+
+**Run web E2E:**
+
+```bash
+# Default: http://localhost:5173
+npm run test:e2e:web
+
+# Interactive UI mode
+npm run test:e2e:web:ui
+
+# Custom target
+export WEB_URL="http://localhost:5173"
+export TEST_PASSWORD="E2e_$(openssl rand -hex 16)_Aa1"
+npm run test:e2e:web
+```
+
+**Structure:**
+
+```
+tests/e2e/web/
+├── playwright.config.ts
+├── global-setup.ts          # Seeds confirmed user + saves auth storageState
+├── fixtures/auth.fixture.ts
+└── specs/
+    ├── marketing/landing.spec.ts
+    ├── auth/login.spec.ts
+    ├── auth/signup.spec.ts
+    ├── auth/protected-routes.spec.ts
+    └── profile/profile-edit.spec.ts
+```
+
+Shared utilities in `tests/e2e/shared/` and `tests/utils/` are imported from TypeScript specs (selectors, test emails, Supabase seed helpers).
+
+**CI:** Web E2E runs in [`.github/workflows/e2e-web-pr-approval.yml`](../.github/workflows/e2e-web-pr-approval.yml) when **@ZappoMan approves** a PR targeting `develop`. Tests run against the deployed PR preview URL after verifying the preview deployment matches the PR HEAD commit.
+
+### Mobile E2E (Maestro)
+
+**Prerequisites:**
 
 1. **Install Maestro CLI:**
 
@@ -236,129 +296,32 @@ Integration tests **do not** contribute to `npm run test:coverage` or merged `co
    export PATH="$HOME/.maestro/bin:$PATH"
    ```
 
-2. **For Web E2E Tests:**
-   - Web app must be running or deployed
-   - Set `WEB_URL` environment variable
+2. App built and installed on device/simulator; set `MOBILE_APP_ID` (defaults to `com.anonymous.beakerstack`).
 
-3. **For Mobile E2E Tests:**
-   - App must be built and installed on device/simulator
-   - Simulator/emulator must be running
-   - Set `MOBILE_APP_ID` environment variable (defaults to `com.anonymous.beakerstack`)
-
-### Running E2E Tests
-
-**Before running E2E tests:**
-
-1. **Ensure Maestro is installed:**
-
-   ```bash
-   # If not already installed:
-   curl -Ls "https://get.maestro.mobile.dev" | bash
-   export PATH="$PATH:$HOME/.maestro/bin"
-   ```
-
-2. **Set required environment variables:**
-
-   ```bash
-   # Set web URL (for web tests) - defaults to http://localhost:5173 if not set
-   export WEB_URL="http://localhost:5173"
-
-   # Set test credentials (password optional — npm scripts and run-e2e.sh pick a random one if unset)
-   export TEST_EMAIL="e2e-test-$(date +%s)@example.com"
-   export TEST_PASSWORD="E2e_$(openssl rand -hex 16)_Aa1"
-
-   # Set mobile app ID (for mobile tests)
-   export MOBILE_APP_ID="com.anonymous.beakerstack"
-   ```
-
-3. **Ensure the web app is running** (for web E2E tests):
-
-   ```bash
-   npm run web
-   ```
-
-4. **Build and install the mobile app** (for mobile E2E tests):
-
-   **For iOS:**
-
-   ```bash
-   # Make sure an iOS simulator is running
-   # Open Simulator app or run: open -a Simulator
-
-   # Build and install the app
-   cd apps/mobile
-   npm run ios
-   # Or from root: npm run mobile:ios
-   ```
-
-   **For Android:**
-
-   ```bash
-   # Make sure an Android emulator is running
-   # Start from Android Studio or run: emulator -avd <avd_name>
-
-   # Build and install the app
-   cd apps/mobile
-   npm run android
-   # Or from root: npm run mobile:android
-   ```
-
-   **Note:** The app only needs to be built and installed once. After that, you can run E2E tests multiple times without rebuilding (unless you change native code).
-
-**Then run tests:**
+**Run mobile E2E:**
 
 ```bash
-# Run all E2E tests
-npm run test:e2e
-
-# Run web E2E tests only
-npm run test:e2e:web
-
-# Run mobile E2E tests only
-# Prerequisites: App must be built and installed, simulator/emulator must be running
 npm run test:e2e:mobile
 
-# Or run directly with Maestro (with custom app ID)
+# Or directly with Maestro
 export PATH="$PATH:$HOME/.maestro/bin"
 maestro test tests/e2e/mobile/flows/home.yaml \
- --env MOBILE_APP_ID="com.anonymous.beakerstack" \
+  --env MOBILE_APP_ID="com.anonymous.beakerstack" \
   --env TEST_EMAIL="e2e-test-$(date +%s)@example.com" \
   --env TEST_PASSWORD="E2e_$(openssl rand -hex 16)_Aa1"
+```
 
-# Run against specific environment (script sets env vars automatically)
+### Running All E2E Tests
+
+```bash
+# Web (Playwright) + mobile (Maestro)
+npm run test:e2e
+
+# Environment helper (web Playwright + optional mobile Maestro)
 ./scripts/run-e2e.sh local
 ./scripts/run-e2e.sh pr 123
 ./scripts/run-e2e.sh staging
 ./scripts/run-e2e.sh production
-```
-
-### E2E Test Structure
-
-E2E tests are written in YAML format using Maestro:
-
-```yaml
-# tests/e2e/web/flows/home.yaml
-url: ${WEB_URL} # Use 'url:' for web, 'appId:' for mobile
----
-- launchApp
-- waitForAnimationToEnd
-- assertVisible: 'Welcome to Beaker Stack'
-- assertVisible: 'Sign Up'
-- tapOn: 'Sign Up'
-- waitForAnimationToEnd
-- assertVisible: 'Create your account'
-- inputText:
-    id: 'email'
-    text: '${TEST_EMAIL}'
-- inputText:
-    id: 'password'
-    text: '${TEST_PASSWORD}'
-- inputText:
-    id: 'confirm-password'
-    text: '${TEST_PASSWORD}'
-- tapOn: 'Create account'
-- waitForAnimationToEnd
-- takeScreenshot: 'after-signup'
 ```
 
 ### E2E Test Utilities
@@ -366,8 +329,8 @@ url: ${WEB_URL} # Use 'url:' for web, 'appId:' for mobile
 Shared utilities are available in `tests/e2e/shared/`:
 
 - `test-data.ts` - Test data generators
-- `fixtures.ts` - Test fixtures and selectors
-- `helpers.ts` - Helper functions
+- `fixtures.ts` - Test fixtures and selectors (`WebSelectors`)
+- `helpers.ts` - Legacy Maestro-oriented placeholders
 
 ## Database Tests
 
@@ -540,30 +503,9 @@ xdg-open apps/web/coverage/index.html
 xdg-open packages/billing/coverage/index.html
 ```
 
-**Important Note on Web E2E Tests:**
+**Web E2E:** Playwright (Chromium). See [E2E Tests](#e2e-tests) for setup and CI approval gate.
 
-✅ **Maestro supports web testing** (in beta) using Chromium. Use `url:` instead of `appId:` in your test files.
-
-**Current limitations:**
-
-- Chromium-only (no Firefox/WebKit support yet)
-- Default `en-US` locale
-- Limited screen-size configuration options
-
-**When to use Maestro for web:**
-
-- You want one YAML framework across mobile + web
-- Chromium-only testing is acceptable
-- You like the Studio recorder/inspector
-
-**When to use Playwright/Cypress instead:**
-
-- You need cross-browser coverage (Chromium + WebKit + Firefox)
-- You need more mature React-web testing ergonomics
-
-**Troubleshooting:**
-
-If coverage reports don't appear:
+**Coverage troubleshooting:**
 
 1. **Verify dependencies are installed:**
 
@@ -662,25 +604,24 @@ describe('Profile Sync', () => {
 
 ### E2E Test Example
 
-```yaml
-# tests/e2e/web/flows/signup.yaml
-appId: ${WEB_URL}
----
-- launchApp
-- tapOn: "Don't have an account? Sign up"
-- assertVisible: 'Create your account'
-- inputText:
-    id: 'email'
-    text: '${TEST_EMAIL}'
-- inputText:
-    id: 'password'
-    text: '${TEST_PASSWORD}'
-- inputText:
-    id: 'confirm-password'
-    text: '${TEST_PASSWORD}'
-- tapOn: 'Create account'
-- assertVisible: 'Dashboard'
-- takeScreenshot: 'after-signup'
+```typescript
+// tests/e2e/web/specs/auth/login.spec.ts
+import {
+  test,
+  expect,
+  gotoRoute,
+  fillLoginForm,
+} from '../../fixtures/auth.fixture';
+
+test('signs in seeded user and lands on dashboard', async ({
+  page,
+  seedUser,
+}) => {
+  await gotoRoute(page, '/login');
+  await fillLoginForm(page, seedUser.email, seedUser.password);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/dashboard/);
+});
 ```
 
 ## Best Practices
@@ -749,15 +690,35 @@ appId: ${WEB_URL}
 
 ### E2E Tests
 
+**Web (Playwright):**
+
+**Problem:** Browser not installed
+
+- **Solution:** Run `npm run test:e2e:web:install`
+
+**Problem:** Web tests fail — cannot connect to server
+
+- **Solution:** Start the dev server: `npm run web` (or ensure `WEB_URL` points at a running app)
+
+**Problem:** Auth seed / login fails locally
+
+- **Solution:** Ensure Supabase is running: `supabase start`
+
+**Problem:** CI E2E did not run after approval
+
+- **Solution:** E2E runs only when @ZappoMan approves PRs to `develop`. Ensure PR Preview deployed the same HEAD commit first.
+
+**Problem:** Assertions fail — element not found
+
+- **Solution:** Open the HTML report: `npx playwright show-report tests/e2e/web/report`. Prefer role/label selectors; see `tests/e2e/shared/fixtures.ts`.
+
+**Mobile (Maestro):**
+
 **Problem:** Maestro not found
 
 - **Solution:** Install Maestro: `curl -Ls "https://get.maestro.mobile.dev" | bash`
 
-**Problem:** Web tests fail - "Cannot connect to server"
-
-- **Solution:** Ensure web dev server is running: `npm run web`
-
-**Problem:** Mobile tests fail - "App not installed"
+**Problem:** Mobile tests fail — app not installed
 
 - **Solution:** Build and install app: `npm run mobile:ios` or `npm run mobile:android`
 
@@ -772,31 +733,17 @@ appId: ${WEB_URL}
   - Ensure a simulator/emulator is running:
     - iOS: Open Simulator app or check with `xcrun simctl list devices | grep Booted`
     - Android: Check with `adb devices` (should show a device)
-- Verify the app ID matches: `com.anonymous.beakerstack` (or set `MOBILE_APP_ID` env var)
-- Try uninstalling and reinstalling: `cd apps/mobile && npm run ios:uninstall && npm run ios`
+  - Verify the app ID matches: `com.anonymous.beakerstack` (or set `MOBILE_APP_ID` env var)
+  - Try uninstalling and reinstalling: `cd apps/mobile && npm run ios:uninstall && npm run ios`
 
-**Problem:** "Invalid File Path" error with runScript
+**Problem:** "Invalid File Path" error with runScript (mobile)
 
-- **Solution:** Maestro doesn't support `runScript`. Set environment variables before running tests:
+- **Solution:** Maestro doesn't support `runScript`. Set environment variables before running mobile tests:
   ```bash
   export TEST_EMAIL="e2e-test-$(date +%s)@example.com"
   export TEST_PASSWORD="E2e_$(openssl rand -hex 16)_Aa1"
-  npm run test:e2e:web
+  npm run test:e2e:mobile
   ```
-
-**Problem:** Web tests fail with "Unable to launch app"
-
-- **Solution:**
-  - Use `url:` instead of `appId:` in web test YAML files
-  - Ensure `WEB_URL` environment variable is set
-  - Ensure the web app is running at the specified URL
-
-**Problem:** Assertions fail with "Element not visible"
-
-- **Solution:**
-  - Check the actual UI text/selectors in your app - they may differ from test expectations
-  - Use Maestro Studio to record and inspect: `maestro -p web studio`
-  - Check debug artifacts in `~/.maestro/tests/` for screenshots and UI hierarchy
 
 ### Database Tests
 
@@ -832,11 +779,10 @@ appId: ${WEB_URL}
 Tests are automatically run in CI/CD:
 
 - **On every PR:** Unit tests (parallel `unit-coverage-shard` matrix per workspace in `.github/workflows/test.yml`), integration tests, database tests
-- **After PR preview deployment:** E2E tests against preview environment
-- **On merge to develop:** All tests + staging E2E tests
-- **On merge to main:** All tests + production smoke tests
+- **When @ZappoMan approves a PR to `develop`:** Playwright web E2E against the PR preview (`.github/workflows/e2e-web-pr-approval.yml`)
+- **On merge to develop / main:** Standard test workflows; staging/production smoke E2E are optional follow-ups
 
-See `.github/workflows/test.yml` for test workflow configuration.
+See `.github/workflows/test.yml` and `.github/workflows/e2e-web-pr-approval.yml`.
 
 ## Additional Resources
 
@@ -844,6 +790,7 @@ See `.github/workflows/test.yml` for test workflow configuration.
 - [Protected routes — manual checks](testing/TESTING_PROTECTED_ROUTES.md)
 - [Jest Documentation](https://jestjs.io/docs/getting-started)
 - [React Testing Library](https://testing-library.com/react)
-- [Maestro Documentation](https://maestro.mobile.dev/)
+- [Playwright Documentation](https://playwright.dev/docs/intro)
+- [Maestro Documentation](https://maestro.mobile.dev/) (mobile E2E)
 - [Supabase Testing](https://supabase.com/docs/guides/cli/local-development#testing)
 - [pgTAP Documentation](https://pgtap.org/)

@@ -72,33 +72,35 @@ SCREENSHOTS_DIR="tests/e2e/screenshots"
 mkdir -p "$SCREENSHOTS_DIR"
 
 # Run Web E2E Tests
-echo "🌐 Running Web E2E Tests..."
+echo "🌐 Running Web E2E Tests (Playwright)..."
 echo ""
 
+WEB_E2E_ENV=(
+  "WEB_URL=${WEB_URL}"
+)
+if [[ -n "${WEB_BASE_PATH:-}" ]]; then
+  WEB_E2E_ENV+=("WEB_BASE_PATH=${WEB_BASE_PATH}")
+fi
+if [[ -n "${TEST_PASSWORD:-}" ]]; then
+  WEB_E2E_ENV+=("TEST_PASSWORD=${TEST_PASSWORD}")
+fi
+
+run_web_e2e() {
+  env "${WEB_E2E_ENV[@]}" npm run test:e2e:web
+}
+
 if [ "$ENVIRONMENT" != "local" ]; then
-  # For non-local environments, use the web URL
-  maestro test tests/e2e/web/flows/ \
-    --env WEB_URL="$WEB_URL" \
-    --env TEST_EMAIL="$TEST_EMAIL" \
-    --env TEST_PASSWORD="$TEST_PASSWORD" \
-    --format junit \
-    --output tests/e2e/results/web-results.xml || {
+  run_web_e2e || {
     echo "❌ Web E2E tests failed"
     exit 1
   }
 else
-  # For local, check if dev server is running
   if ! curl -s "$WEB_URL" > /dev/null 2>&1; then
     echo "⚠️  Warning: Web dev server not running at $WEB_URL"
     echo "   Start it with: npm run web"
     echo "   Or skip web tests with: --skip-web"
   else
-    maestro test tests/e2e/web/flows/ \
-      --env WEB_URL="$WEB_URL" \
-      --env TEST_EMAIL="$TEST_EMAIL" \
-      --env TEST_PASSWORD="$TEST_PASSWORD" \
-      --format junit \
-      --output tests/e2e/results/web-results.xml || {
+    run_web_e2e || {
       echo "❌ Web E2E tests failed"
       exit 1
     }

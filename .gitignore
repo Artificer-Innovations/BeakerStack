@@ -275,10 +275,16 @@ supabase/logs
 # EAS
 .easignore
 
-# Maestro
+# Maestro (mobile E2E)
 maestro.log
 # takeScreenshot outputs (written to repo root by default when running e2e flows)
 after-signup.png
+
+# Playwright web E2E
+tests/e2e/web/.auth/
+tests/e2e/web/test-results/
+tests/e2e/web/report/
+tests/e2e/web/results/
 apps/mobile/google-services.json
 
 # Android build artifacts and keystores

@@ -2031,66 +2031,51 @@ jobs:
         run: supabase stop
 ```
 
-#### E2E Tests (after PR preview deployment)
+#### Web E2E (Playwright, on PR approval)
+
+Web E2E runs when **@ZappoMan approves** a PR targeting `develop`, not on every push. The workflow verifies the PR preview deployment matches HEAD, then runs Playwright against `https://deploy.<domain>/pr-<N>/`.
 
 ```yaml
-# Part of .github/workflows/pr-preview-environment.yml
+# .github/workflows/e2e-web-pr-approval.yml
+
+on:
+  pull_request_review:
+    types: [submitted]
 
 jobs:
-  # ... previous jobs (reset DB, deploy web/mobile) ...
-
-  test-e2e-web:
-    needs: deploy-web-preview
+  e2e-web:
+    if: |
+      github.event.review.state == 'approved' &&
+      github.event.review.user.login == 'ZappoMan' &&
+      github.event.pull_request.base.ref == 'develop'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Verify preview deployment SHA
+        uses: actions/github-script@v7
+        # ... ensures pr-<N>-preview deployment ref == PR head SHA
+      - name: Run Playwright
+        env:
+          E2E_TARGET: preview
+          WEB_URL: https://deploy.yourdomain.com/pr-${{ github.event.pull_request.number }}/
+          WEB_BASE_PATH: /pr-${{ github.event.pull_request.number }}
+        run: npm run test:e2e:web
+```
 
-      - name: Setup Maestro
-        run: |
-          curl -Ls "https://get.maestro.mobile.dev" | bash
-          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+Mobile E2E remains Maestro-based (local/manual) until a separate mobile browser strategy is adopted:
 
-      - name: Run web E2E tests
-        run: |
-          maestro test tests/e2e/web/flows/ \
-            --host https://deploy.yourdomain.com/pr-${{ github.event.pull_request.number }}/
-
-      - name: Upload screenshots
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: e2e-web-screenshots
-          path: tests/e2e/web/screenshots/
-
-  test-e2e-mobile:
-    needs: deploy-mobile-preview
-    runs-on: macos-latest # Required for iOS simulator
-    if: contains(github.event.pull_request.labels.*.name, 'test-mobile-e2e')
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Maestro
-        run: |
-          curl -Ls "https://get.maestro.mobile.dev" | bash
-          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
-
-      - name: Setup iOS Simulator
-        run: |
-          xcrun simctl boot "iPhone 14"
-
-      - name: Install app on simulator
-        run: |
-          # Install app via EAS or local build
-
-      - name: Run mobile E2E tests
-        run: maestro test tests/e2e/mobile/flows/
-
-      - name: Upload screenshots
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: e2e-mobile-screenshots
-          path: tests/e2e/mobile/screenshots/
+```yaml
+test-e2e-mobile:
+  needs: deploy-mobile-preview
+  runs-on: macos-latest
+  if: contains(github.event.pull_request.labels.*.name, 'test-mobile-e2e')
+  steps:
+    - uses: actions/checkout@v4
+    - name: Setup Maestro
+      run: curl -Ls "https://get.maestro.mobile.dev" | bash
+    - run: maestro test tests/e2e/mobile/flows/
 ```
 
 #### On Merge to Develop (Staging)
