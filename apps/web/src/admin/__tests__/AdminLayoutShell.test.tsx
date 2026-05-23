@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { AdminLayoutShell } from '../AdminLayoutShell';
+import { AdminLayoutShell, breadcrumbsForPath } from '../AdminLayoutShell';
 
 const mockSignOut = vi.fn().mockResolvedValue(undefined);
 const mockNavigate = vi.fn();
@@ -107,11 +107,44 @@ describe('AdminLayoutShell', () => {
       expect(within(bc).getByText('Waitlist Settings')).toBeInTheDocument();
     });
 
+    it('Overview \u2192 Marketing Email Settings for /marketing-email/settings path', () => {
+      renderShell(
+        '/marketing-email/settings',
+        'marketing-email/settings',
+        <p>outlet</p>
+      );
+      const bc = screen.getByRole('navigation', { name: 'Breadcrumb' });
+      expect(
+        within(bc).getByRole('link', { name: 'Overview' })
+      ).toHaveAttribute('href', '/admin');
+      expect(
+        within(bc).getByText('Marketing Email Settings')
+      ).toBeInTheDocument();
+    });
+
     it('single Overview crumb with no link on /admin root', () => {
       renderShell('/admin', 'admin', <p>outlet</p>);
       const bc = screen.getByRole('navigation', { name: 'Breadcrumb' });
       expect(within(bc).getByText('Overview')).toBeInTheDocument();
       expect(within(bc).queryByRole('link', { name: 'Overview' })).toBeNull();
     });
+  });
+});
+
+describe('breadcrumbsForPath', () => {
+  it('returns Marketing Email breadcrumb for /marketing-email', () => {
+    const crumbs = breadcrumbsForPath('/admin/marketing-email');
+    expect(crumbs[crumbs.length - 1].label).toBe('Marketing Email');
+  });
+
+  it('returns Marketing Email Settings breadcrumb for /marketing-email/settings', () => {
+    const crumbs = breadcrumbsForPath('/admin/marketing-email/settings');
+    expect(crumbs[crumbs.length - 1].label).toBe('Marketing Email Settings');
+  });
+
+  it('/marketing-email/settings wins over /marketing-email', () => {
+    const crumbs = breadcrumbsForPath('/admin/marketing-email/settings');
+    expect(crumbs[crumbs.length - 1].label).toBe('Marketing Email Settings');
+    expect(crumbs[crumbs.length - 1].label).not.toBe('Marketing Email');
   });
 });
