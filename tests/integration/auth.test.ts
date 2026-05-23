@@ -85,7 +85,7 @@ describe('Authentication Integration Tests', () => {
       });
 
       const sameUserRetry = data.user?.id === testUserId;
-      const signupBlocked = error !== undefined && !data.user;
+      const signupBlocked = error !== null && !data.user;
       expect(sameUserRetry || signupBlocked).toBe(true);
     });
   });

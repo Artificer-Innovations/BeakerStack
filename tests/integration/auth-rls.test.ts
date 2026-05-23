@@ -77,7 +77,7 @@ describe('Auth RLS integration', () => {
       .eq('user_id', userB.userId)
       .select();
 
-    const blockedByPolicy = error !== undefined;
+    const blockedByPolicy = error !== null;
     const emptyUpdate = (data ?? []).length === 0;
     expect(blockedByPolicy || emptyUpdate).toBe(true);
   });
