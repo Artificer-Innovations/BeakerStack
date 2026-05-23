@@ -56,6 +56,7 @@ const meSettings = {
   enabled: true,
   provider: 'kit' as const,
   config: { namespace: 'ns', kitFormId: 'form-1', tierTagNames: [] },
+  updated_at: '2024-01-01T00:00:00Z',
 };
 
 const meStats = { pending: 0, processing: 0, done: 10, failed: 0 };
