@@ -49,7 +49,7 @@ module.exports = {
     '!<rootDir>/packages/shared/src/constants/auth.ts',
   ],
   coveragePathIgnorePatterns: ['/node_modules/', '/__tests__/', '/__mocks__/'],
-  coverageDirectory: path.join(__dirname, 'coverage'),
+  coverageDirectory: path.join(__dirname, 'coverage', 'native'),
   coverageReporters:
     process.env.COVERAGE_MERGE === '1'
       ? ['text', 'json']

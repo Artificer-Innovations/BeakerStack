@@ -6,9 +6,10 @@
     "test": "npm run test:web && npm run test:native",
     "test:web": "jest --config ./jest.web.cjs",
     "test:native": "NATIVE_TESTS=true jest --config ./jest.native.cjs",
-    "test:coverage": "npm run test:coverage:web && npm run test:coverage:native",
+    "test:coverage": "npm run test:coverage:web && npm run test:coverage:native && npm run test:coverage:merge",
     "test:coverage:web": "jest --config ./jest.web.cjs --coverage",
-    "test:coverage:native": "NATIVE_TESTS=true jest --config ./jest.native.cjs --coverage"
+    "test:coverage:native": "NATIVE_TESTS=true jest --config ./jest.native.cjs --coverage",
+    "test:coverage:merge": "node scripts/merge-coverage.cjs"
   },
   "devDependencies": {
     "@babel/core": "^7.25.0",
