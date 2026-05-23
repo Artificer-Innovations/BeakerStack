@@ -95,6 +95,21 @@ describe('AdminDashboardPage', () => {
     expect(screen.getByText('…')).toBeInTheDocument();
   });
 
+  it('shows "—" for marketing email when null after load (error state)', () => {
+    mockUseStats.mockReturnValue({
+      ...defaultStats,
+      marketingEmail: null,
+      loading: false,
+    });
+    render(
+      <MemoryRouter>
+        <AdminDashboardPage />
+      </MemoryRouter>
+    );
+    // At least one '—' rendered for the marketing email error state
+    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(1);
+  });
+
   it('shows "Not configured" when settings is null', () => {
     mockUseStats.mockReturnValue({
       ...defaultStats,

@@ -36,7 +36,8 @@ export default function AdminOverviewPage() {
     loading || value === null ? '—' : String(value);
 
   const hasFailed =
-    marketingEmail !== null && (marketingEmail.stats?.failed ?? 0) > 0;
+    marketingEmail?.settings != null &&
+    (marketingEmail.stats?.failed ?? 0) > 0;
 
   return (
     <div className='space-y-6'>
@@ -47,7 +48,7 @@ export default function AdminOverviewPage() {
         </p>
       </div>
 
-      <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
+      <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-2'>
         <Link to='/admin/users' className={cardClass}>
           <div className='flex items-center gap-3'>
             <span className='inline-flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600'>
@@ -102,12 +103,14 @@ export default function AdminOverviewPage() {
               <p
                 className={`text-sm ${hasFailed ? 'text-red-600' : 'text-gray-500'}`}
               >
-                {marketingEmail !== null
-                  ? marketingEmailSubtitle(
-                      marketingEmail.settings,
-                      marketingEmail.stats
-                    )
-                  : '…'}
+                {loading
+                  ? '…'
+                  : marketingEmail !== null
+                    ? marketingEmailSubtitle(
+                        marketingEmail.settings,
+                        marketingEmail.stats
+                      )
+                    : '—'}
               </p>
             </div>
           </div>

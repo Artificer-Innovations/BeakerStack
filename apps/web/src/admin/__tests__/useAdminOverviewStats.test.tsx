@@ -81,12 +81,13 @@ describe('useAdminOverviewStats', () => {
     mockGetMeStats.mockResolvedValue(meStats);
   });
 
-  it('fetches all three stats on mount', async () => {
+  it('fetches all overview stats on mount', async () => {
     const { result } = renderHook(() => useAdminOverviewStats());
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.usersTotal).toBe(18);
     expect(result.current.waitlistPending).toBe(3);
     expect(result.current.signupMode).toBe('waitlist');
+    expect(mockGetMeSettings).toHaveBeenCalledWith(expect.anything(), 'beakerstack');
     expect(result.current.error).toBeNull();
   });
 
