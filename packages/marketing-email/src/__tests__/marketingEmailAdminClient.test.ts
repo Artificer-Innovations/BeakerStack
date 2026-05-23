@@ -158,6 +158,20 @@ describe('updateAdminMarketingEmailSettings', () => {
     ).toBeNull();
   });
 
+  it('returns null when settings payload is null', async () => {
+    const sb = makeSupabase({
+      data: { ok: true, settings: null },
+      error: null,
+    });
+    expect(
+      await updateAdminMarketingEmailSettings(sb, {
+        product_id: 'beakerstack',
+        enabled: false,
+        config: { namespace: 'ns', kitFormId: 'f', tierTagNames: [] },
+      })
+    ).toBeNull();
+  });
+
   it('returns normalized settings on success', async () => {
     const sb = makeSupabase({
       data: {
