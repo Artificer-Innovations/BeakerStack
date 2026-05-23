@@ -190,12 +190,17 @@ SELECT is(
 
 -- ── 14  one-enabled: enabling phase5a-test disables other enabled rows ────────
 -- phase5a-other was pre-seeded as enabled (as postgres superuser, above).
--- Call the admin RPC to enable phase5a-test, which must flip phase5a-other off.
+-- Call the admin RPC as authenticated so admin_is_admin() gates correctly.
 
 SELECT public.admin_update_marketing_email_settings(
     'phase5a-test', true,
     '{"namespace":"phase5a-ns","kitFormId":"form-99","tierTagNames":["pro"]}'::jsonb
 );
+
+-- Reset to superuser for tests 14-16 assertions: marketing_email_settings,
+-- admin_audit_log, and marketing_email_sync_queue all enforce RLS that blocks
+-- direct reads by the authenticated role. Running as superuser bypasses RLS.
+RESET ROLE;
 
 SELECT is(
     (SELECT enabled FROM public.marketing_email_settings WHERE product_id = 'phase5a-other'),
@@ -232,6 +237,11 @@ SELECT is(
 );
 
 -- ── 17  queue_stats function returns a jsonb with all four status keys ────────
+-- Re-authenticate so admin_is_admin() gate on the RPC passes.
+
+SELECT set_config('request.jwt.claims',
+    '{"sub":"a5000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+SET LOCAL ROLE authenticated;
 
 SELECT ok(
     (
