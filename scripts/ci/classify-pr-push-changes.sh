@@ -19,6 +19,7 @@ Compare git refs and write boolean flags to GITHUB_OUTPUT (when set) or stdout.
 Flags:
   app_code              apps/**, packages/**, tests/**, lint/tsconfig deps
   supabase_schema       supabase migrations, functions, config (excludes templates)
+  integration_tests     tests/integration/**, tests/utils/**, integration Jest configs
   email_templates       supabase/templates/** and email personalization scripts
   auth_deploy_scripts   scripts/sync-supabase-auth-config.sh
   billing_deploy        stripe webhook / billing deploy scripts
@@ -112,6 +113,7 @@ classify_path() {
 
   match_app_code=false
   match_supabase_schema=false
+  match_integration_tests=false
   match_email_templates=false
   match_auth_deploy=false
   match_billing_deploy=false
@@ -129,6 +131,10 @@ classify_path() {
     apps/mobile/*)
       match_app_code=true
       match_mobile_deploy=true
+      ;;
+    tests/integration/* | tests/utils/* | tests/jest.integration.config.js | tests/jest.integration.edge.config.js)
+      match_app_code=true
+      match_integration_tests=true
       ;;
     apps/* | tests/*)
       match_app_code=true
@@ -222,6 +228,7 @@ classify_range() {
 
   local app_code=false
   local supabase_schema=false
+  local integration_tests=false
   local email_templates=false
   local auth_deploy=false
   local billing_deploy=false
@@ -241,6 +248,7 @@ classify_range() {
     classify_path "${file}"
     [[ "${match_app_code}" == true ]] && app_code=true
     [[ "${match_supabase_schema}" == true ]] && supabase_schema=true
+    [[ "${match_integration_tests}" == true ]] && integration_tests=true
     [[ "${match_email_templates}" == true ]] && email_templates=true
     [[ "${match_auth_deploy}" == true ]] && auth_deploy=true
     [[ "${match_billing_deploy}" == true ]] && billing_deploy=true
@@ -261,7 +269,10 @@ classify_range() {
   local run_lint="${app_code}"
   local run_typecheck="${app_code}"
   local run_unit="${app_code}"
-  local run_supabase="${supabase_schema}"
+  local run_supabase=false
+  if [[ "${supabase_schema}" == true || "${integration_tests}" == true ]]; then
+    run_supabase=true
+  fi
   local run_email_templates="${email_templates}"
   local run_migration_filenames="${supabase_schema}"
   local run_tested_scripts="${tested_scripts}"
@@ -286,6 +297,7 @@ classify_range() {
 
   write_flag app_code "$(bool "${app_code}")"
   write_flag supabase_schema "$(bool "${supabase_schema}")"
+  write_flag integration_tests "$(bool "${integration_tests}")"
   write_flag email_templates "$(bool "${email_templates}")"
   write_flag auth_deploy_scripts "$(bool "${auth_deploy}")"
   write_flag billing_deploy "$(bool "${billing_deploy}")"
@@ -326,6 +338,7 @@ self_test() {
     case "${field}" in
       app_code) [[ "${match_app_code}" == true ]] && got=true ;;
       supabase_schema) [[ "${match_supabase_schema}" == true ]] && got=true ;;
+      integration_tests) [[ "${match_integration_tests}" == true ]] && got=true ;;
       email_templates) [[ "${match_email_templates}" == true ]] && got=true ;;
       auth_deploy) [[ "${match_auth_deploy}" == true ]] && got=true ;;
       billing_deploy) [[ "${match_billing_deploy}" == true ]] && got=true ;;
@@ -380,6 +393,13 @@ self_test() {
   assert_classify packages/admin/src/adminClient.ts mobile_deploy false
   assert_classify packages/lifecycle-events/src/index.ts web_deploy true
   assert_classify packages/lifecycle-events/src/index.ts mobile_deploy false
+  assert_classify tests/integration/auth.test.ts app_code true
+  assert_classify tests/integration/auth.test.ts integration_tests true
+  assert_classify tests/integration/auth.test.ts supabase_schema false
+  assert_classify tests/utils/test-clients.ts integration_tests true
+  assert_classify tests/jest.integration.config.js integration_tests true
+  assert_classify tests/e2e/web/flows/home.yaml app_code true
+  assert_classify tests/e2e/web/flows/home.yaml integration_tests false
 
   return "${failed}"
 }
