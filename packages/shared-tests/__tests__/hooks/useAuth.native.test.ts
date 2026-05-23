@@ -340,12 +340,14 @@ describe('useAuth (Native)', () => {
     });
 
     await act(async () => {
+      let caught: unknown;
       try {
         await result.current.signIn('test@example.com', 'wrongpassword');
       } catch (err) {
-        expect(err).toBeInstanceOf(Error);
-        expect((err as Error).message).toBe(errorMessage);
+        caught = err;
       }
+      expect(caught).toBeInstanceOf(Error);
+      expect((caught as Error).message).toBe(errorMessage);
     });
 
     expect(result.current.error?.message).toBe(errorMessage);
@@ -384,12 +386,14 @@ describe('useAuth (Native)', () => {
     });
 
     await act(async () => {
+      let caught: unknown;
       try {
         await result.current.signUp('test@example.com', 'password123');
       } catch (err) {
-        expect(err).toBeInstanceOf(Error);
-        expect((err as Error).message).toBe(errorMessage);
+        caught = err;
       }
+      expect(caught).toBeInstanceOf(Error);
+      expect((caught as Error).message).toBe(errorMessage);
     });
 
     expect(result.current.error?.message).toBe(errorMessage);

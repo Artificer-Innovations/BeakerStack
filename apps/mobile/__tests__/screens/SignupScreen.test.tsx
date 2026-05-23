@@ -160,10 +160,8 @@ describe('SignupScreen', () => {
       <SignupScreen navigation={mockNavigation} />
     );
 
-    await waitFor(() => {
-      const submitButton = getByText('Create Account');
-      fireEvent.press(submitButton);
-    });
+    const submitButton = await waitFor(() => getByText('Create Account'));
+    fireEvent.press(submitButton);
 
     await waitFor(() => {
       expect(Alert.alert).toHaveBeenCalledWith(
@@ -180,17 +178,17 @@ describe('SignupScreen', () => {
       mockClient
     );
 
-    await waitFor(() => {
-      const emailInput = getByPlaceholderText('Email address');
-      const passwordInput = getByPlaceholderText('Password');
-      const confirmPasswordInput = getByPlaceholderText('Confirm password');
-      const submitButton = getByText('Create Account');
+    const emailInput = await waitFor(() =>
+      getByPlaceholderText('Email address')
+    );
+    const passwordInput = getByPlaceholderText('Password');
+    const confirmPasswordInput = getByPlaceholderText('Confirm password');
+    const submitButton = getByText('Create Account');
 
-      fireEvent.changeText(emailInput, 'test@example.com');
-      fireEvent.changeText(passwordInput, 'short');
-      fireEvent.changeText(confirmPasswordInput, 'short');
-      fireEvent.press(submitButton);
-    });
+    fireEvent.changeText(emailInput, 'test@example.com');
+    fireEvent.changeText(passwordInput, 'short');
+    fireEvent.changeText(confirmPasswordInput, 'short');
+    fireEvent.press(submitButton);
 
     await waitFor(() => {
       expect(Alert.alert).toHaveBeenCalledWith(
@@ -206,18 +204,17 @@ describe('SignupScreen', () => {
       <SignupScreen navigation={mockNavigation} />
     );
 
-    const emailInput = getByPlaceholderText('Email address');
+    const emailInput = await waitFor(() =>
+      getByPlaceholderText('Email address')
+    );
     const passwordInput = getByPlaceholderText('Password');
     const confirmPasswordInput = getByPlaceholderText('Confirm password');
+    const submitButton = getByText('Create Account');
 
-    await waitFor(() => {
-      const submitButton = getByText('Create Account');
-
-      fireEvent.changeText(emailInput, 'test@example.com');
-      fireEvent.changeText(passwordInput, 'password123');
-      fireEvent.changeText(confirmPasswordInput, 'differentpassword');
-      fireEvent.press(submitButton);
-    });
+    fireEvent.changeText(emailInput, 'test@example.com');
+    fireEvent.changeText(passwordInput, 'password123');
+    fireEvent.changeText(confirmPasswordInput, 'differentpassword');
+    fireEvent.press(submitButton);
 
     await waitFor(() => {
       expect(Alert.alert).toHaveBeenCalledWith(
@@ -247,17 +244,17 @@ describe('SignupScreen', () => {
       mockClient
     );
 
-    const emailInput = getByPlaceholderText('Email address');
+    const emailInput = await waitFor(() =>
+      getByPlaceholderText('Email address')
+    );
     const passwordInput = getByPlaceholderText('Password');
     const confirmPasswordInput = getByPlaceholderText('Confirm password');
+    const submitButton = getByText('Create Account');
 
-    await waitFor(() => {
-      const submitButton = getByText('Create Account');
-      fireEvent.changeText(emailInput, 'test@example.com');
-      fireEvent.changeText(passwordInput, 'password123');
-      fireEvent.changeText(confirmPasswordInput, 'password123');
-      fireEvent.press(submitButton);
-    });
+    fireEvent.changeText(emailInput, 'test@example.com');
+    fireEvent.changeText(passwordInput, 'password123');
+    fireEvent.changeText(confirmPasswordInput, 'password123');
+    fireEvent.press(submitButton);
 
     await waitFor(() => {
       expect(mockClient.auth.signUp).toHaveBeenCalledWith({
@@ -283,17 +280,17 @@ describe('SignupScreen', () => {
       mockClient
     );
 
-    const emailInput = getByPlaceholderText('Email address');
+    const emailInput = await waitFor(() =>
+      getByPlaceholderText('Email address')
+    );
     const passwordInput = getByPlaceholderText('Password');
     const confirmPasswordInput = getByPlaceholderText('Confirm password');
+    const submitButton = getByText('Create Account');
 
-    await waitFor(() => {
-      const submitButton = getByText('Create Account');
-      fireEvent.changeText(emailInput, 'test@example.com');
-      fireEvent.changeText(passwordInput, 'password123');
-      fireEvent.changeText(confirmPasswordInput, 'password123');
-      fireEvent.press(submitButton);
-    });
+    fireEvent.changeText(emailInput, 'test@example.com');
+    fireEvent.changeText(passwordInput, 'password123');
+    fireEvent.changeText(confirmPasswordInput, 'password123');
+    fireEvent.press(submitButton);
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('SignupPending', {
@@ -318,18 +315,17 @@ describe('SignupScreen', () => {
       mockClient
     );
 
-    const emailInput = getByPlaceholderText('Email address');
+    const emailInput = await waitFor(() =>
+      getByPlaceholderText('Email address')
+    );
     const passwordInput = getByPlaceholderText('Password');
     const confirmPasswordInput = getByPlaceholderText('Confirm password');
+    const submitButton = getByText('Create Account');
 
-    await waitFor(() => {
-      const submitButton = getByText('Create Account');
-
-      fireEvent.changeText(emailInput, 'existing@example.com');
-      fireEvent.changeText(passwordInput, 'password123');
-      fireEvent.changeText(confirmPasswordInput, 'password123');
-      fireEvent.press(submitButton);
-    });
+    fireEvent.changeText(emailInput, 'existing@example.com');
+    fireEvent.changeText(passwordInput, 'password123');
+    fireEvent.changeText(confirmPasswordInput, 'password123');
+    fireEvent.press(submitButton);
 
     await waitFor(() => {
       expect(Alert.alert).toHaveBeenCalledWith(

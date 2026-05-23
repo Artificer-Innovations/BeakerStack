@@ -287,7 +287,7 @@ describe('FormInput (Web)', () => {
     const textarea = screen.getByLabelText(
       'Description'
     ) as HTMLTextAreaElement;
-    expect(textarea.disabled).toBe(true);
+    expect(textarea).toBeDisabled();
   });
 
   it('shows required indicator for textarea', () => {
@@ -306,6 +306,6 @@ describe('FormInput (Web)', () => {
     const textarea = screen.getByLabelText(
       'Description'
     ) as HTMLTextAreaElement;
-    expect(textarea.required).toBe(true);
+    expect(textarea).toBeRequired();
   });
 });

@@ -87,7 +87,7 @@ describe('useAvatarUpload — coverage gaps', () => {
   });
 
   it('covers arrayBuffer-like metadata guard without byteLength', async () => {
-    const { mockClient } = createMockSupabaseClient();
+    const { mockClient, mockBucket } = createMockSupabaseClient();
     const { result } = renderHook(() =>
       useAvatarUpload(mockClient, 'user-id-1')
     );
@@ -98,12 +98,10 @@ describe('useAvatarUpload — coverage gaps', () => {
     });
 
     await act(async () => {
-      try {
-        await result.current.uploadAvatar(invalidBufferLike as ArrayBuffer);
-      } catch {
-        // expected validation failure
-      }
+      await result.current.uploadAvatar(invalidBufferLike as ArrayBuffer);
     });
+
+    expect(mockBucket.upload).toHaveBeenCalled();
   });
 
   it('defaults unknown File MIME types to jpg extension for File inputs', async () => {

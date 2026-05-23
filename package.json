@@ -40,7 +40,7 @@
   "author": "Artificer Innovations, LLC",
   "license": "MIT",
   "engines": {
-    "node": ">=18.0.0",
+    "node": ">=20.19.0",
     "npm": ">=9.0.0"
   },
   "contributors": [
@@ -111,7 +111,7 @@
     "test:coverage:logger": "cd packages/logger && npm run test:coverage",
     "test:coverage:observability": "cd packages/observability && npm run test:coverage",
     "test:coverage:merge": "node scripts/merge-coverage.js",
-    "test:unit:scripts": "node --test scripts/__tests__/rename-project.test.mjs scripts/__tests__/detect-repo-identity.test.mjs scripts/__tests__/setup-aws-discover.test.mjs scripts/__tests__/setup-dotenv.test.mjs scripts/__tests__/setup-manifest-github-sync.test.mjs scripts/__tests__/setup-secret-input.test.mjs scripts/__tests__/setup-supabase-pick-recommend.test.mjs scripts/__tests__/billing-webhook-guards.test.mjs scripts/__tests__/setup-stripe.test.mjs scripts/__tests__/ensure-stripe-webhook.test.mjs scripts/__tests__/merge-coverage.test.mjs scripts/__tests__/format-supabase-test-summary.test.mjs scripts/__tests__/setup-route53-email-records.test.mjs scripts/__tests__/setup-resend-api.test.mjs scripts/__tests__/setup-resend-keys.test.mjs scripts/__tests__/setup-google-oauth.test.mjs scripts/__tests__/email-config-subjects.test.mjs scripts/__tests__/sync-edge-shared.test.mjs && ./scripts/ci/classify-pr-push-changes.sh --self-test && ./scripts/pr-preview/check-preview-deploy-needed.sh --self-test",
+    "test:unit:scripts": "node --test scripts/__tests__/rename-project.test.mjs scripts/__tests__/detect-repo-identity.test.mjs scripts/__tests__/setup-aws-discover.test.mjs scripts/__tests__/setup-dotenv.test.mjs scripts/__tests__/setup-manifest-github-sync.test.mjs scripts/__tests__/setup-secret-input.test.mjs scripts/__tests__/setup-supabase-pick-recommend.test.mjs scripts/__tests__/billing-webhook-guards.test.mjs scripts/__tests__/setup-stripe.test.mjs scripts/__tests__/ensure-stripe-webhook.test.mjs scripts/__tests__/merge-coverage.test.mjs scripts/__tests__/merge-istanbul-coverage.test.mjs scripts/__tests__/format-supabase-test-summary.test.mjs scripts/__tests__/setup-route53-email-records.test.mjs scripts/__tests__/setup-resend-api.test.mjs scripts/__tests__/setup-resend-keys.test.mjs scripts/__tests__/setup-google-oauth.test.mjs scripts/__tests__/email-config-subjects.test.mjs scripts/__tests__/sync-edge-shared.test.mjs && ./scripts/ci/classify-pr-push-changes.sh --self-test && ./scripts/pr-preview/check-preview-deploy-needed.sh --self-test",
     "lint": "npm run lint:mobile && npm run lint:web && npm run lint:shared && npm run lint:billing && npm run lint:admin && npm run lint:lifecycle-events && npm run lint:waitlist && npm run lint:email && npm run lint:marketing-email && npm run lint:logger && npm run lint:observability && npm run lint:repo && npm run lint:supabase",
     "lint:mobile": "eslint apps/mobile/src --ext ts,tsx --report-unused-disable-directives",
     "lint:web": "eslint apps/web/src --ext ts,tsx --report-unused-disable-directives",
@@ -186,10 +186,14 @@
     "@types/node": "^20.10.0",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
+    "@vitest/eslint-plugin": "^1.6.17",
     "babel-plugin-module-resolver": "^5.0.2",
     "concurrently": "^8.2.2",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-jest": "^28.14.0",
+    "eslint-plugin-jest-dom": "^5.5.0",
+    "eslint-plugin-testing-library": "^7.16.2",
     "husky": "^8.0.3",
     "jest": "^29.7.0",
     "lint-staged": "^15.5.2",

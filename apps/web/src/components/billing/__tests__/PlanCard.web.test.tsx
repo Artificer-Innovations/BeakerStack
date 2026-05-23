@@ -117,7 +117,7 @@ describe('PlanCard', () => {
     expect(screen.getByText('You will lose a feature')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Downgrade to Pro' })
-    ).not.toBeDisabled();
+    ).toBeEnabled();
   });
 
   it('renders supplemental badge and savings callout when provided', () => {

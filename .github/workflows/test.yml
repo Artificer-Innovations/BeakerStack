@@ -165,6 +165,9 @@ jobs:
           - shard: marketing-email
             script: test:coverage:marketing-email
             coverage_path: packages/marketing-email/coverage
+          - shard: logger
+            script: test:coverage:logger
+            coverage_path: packages/logger/coverage
           - shard: observability
             script: test:coverage:observability
             coverage_path: packages/observability/coverage
@@ -432,7 +435,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          shards=(mobile web shared billing admin lifecycle-events waitlist email marketing-email observability)
+          shards=(mobile web shared billing admin lifecycle-events waitlist email marketing-email logger observability)
           for shard in "${shards[@]}"; do
             echo "Downloading unit-coverage-reports-${shard}"
             gh run download "${GITHUB_RUN_ID}" \
@@ -446,7 +449,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          shards=(mobile web shared billing admin lifecycle-events waitlist email marketing-email observability scripts)
+          shards=(mobile web shared billing admin lifecycle-events waitlist email marketing-email logger observability scripts)
           for shard in "${shards[@]}"; do
             gh run download "${GITHUB_RUN_ID}" \
               --repo "${GITHUB_REPOSITORY}" \
@@ -595,6 +598,7 @@ jobs:
             packages/email/coverage
             packages/marketing-email/coverage
             packages/lifecycle-events/coverage
+            packages/logger/coverage
             packages/observability/coverage
           if-no-files-found: warn
 

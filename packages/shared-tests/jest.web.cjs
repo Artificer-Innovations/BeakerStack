@@ -35,6 +35,8 @@ module.exports = {
     '!<rootDir>/packages/shared/src/index.ts',
     '!<rootDir>/packages/shared/src/**/index.web.ts',
     '!<rootDir>/packages/shared/src/**/index.native.ts',
+    '!<rootDir>/packages/shared/src/**/*.native.ts',
+    '!<rootDir>/packages/shared/src/**/*.native.tsx',
     '!<rootDir>/packages/shared/src/types/**',
     // Pure data files — auto-generated or constant objects with no logic to test
     '!<rootDir>/packages/shared/src/generated/**',
@@ -43,7 +45,7 @@ module.exports = {
     '!<rootDir>/packages/shared/src/constants/auth.ts',
   ],
   coveragePathIgnorePatterns: ['/node_modules/', '/__tests__/', '/__mocks__/'],
-  coverageDirectory: path.join(__dirname, 'coverage'),
+  coverageDirectory: path.join(__dirname, 'coverage', 'web'),
   coverageReporters:
     process.env.COVERAGE_MERGE === '1'
       ? ['text', 'json']
@@ -54,4 +56,12 @@ module.exports = {
     '!**/__tests__/**/*.native*.test.{ts,tsx}',
   ],
   coverageProvider: 'v8',
+  coverageThreshold: {
+    global: {
+      statements: 95,
+      branches: 95,
+      functions: 95,
+      lines: 95,
+    },
+  },
 };

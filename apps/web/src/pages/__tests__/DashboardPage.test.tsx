@@ -247,25 +247,18 @@ describe('DashboardPage', () => {
     const user = userEvent.setup();
     await renderWithAuth(<DashboardPage />);
 
-    const avatar =
-      screen.getByRole('button', { name: /user menu/i }) ||
-      screen.getByRole('img', { name: /avatar/i }) ||
-      screen.getByTestId('profile-avatar');
+    const avatar = screen.getByRole('button', { name: /user menu/i });
 
-    if (avatar) {
-      await user.click(avatar);
+    await user.click(avatar);
 
-      await waitFor(async () => {
-        const signOutButton = screen.getByRole('button', { name: /sign out/i });
-        await user.click(signOutButton);
-      });
+    await waitFor(async () => {
+      const signOutButton = screen.getByRole('button', { name: /sign out/i });
+      await user.click(signOutButton);
+    });
 
-      await waitFor(() => {
-        expect(supabase.auth.signOut).toHaveBeenCalled();
-      });
-    } else {
-      expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
-    }
+    await waitFor(() => {
+      expect(supabase.auth.signOut).toHaveBeenCalled();
+    });
   });
 
   it('shows loading state while signing out', async () => {

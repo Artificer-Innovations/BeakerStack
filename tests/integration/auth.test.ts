@@ -47,9 +47,8 @@ describe('Authentication Integration Tests', () => {
       Boolean(process.env.SMTP_PASS?.trim()) &&
       Boolean(process.env.SMTP_HOST?.trim());
 
-    (smtpConfigured ? it : it.skip)(
-      'should register via public signUp when SMTP is configured',
-      async () => {
+    if (smtpConfigured) {
+      it('should register via public signUp when SMTP is configured', async () => {
         const email = uniqueTestEmail();
         const password = `E2e_${Date.now()}_signUp_Aa1`;
         const { data, error } = await supabase.auth.signUp({
@@ -60,8 +59,8 @@ describe('Authentication Integration Tests', () => {
         expect(data.user?.id).toBeDefined();
         const admin = createServiceRoleClient();
         await admin.auth.admin.deleteUser(data.user!.id);
-      }
-    );
+      });
+    }
 
     it('should automatically create user profile on signup', async () => {
       await waitForUserProfile(supabase, testUserId);
@@ -85,11 +84,9 @@ describe('Authentication Integration Tests', () => {
         password: testPassword,
       });
 
-      if (data.user) {
-        expect(data.user.id).toBe(testUserId);
-      } else {
-        expect(error).toBeDefined();
-      }
+      const sameUserRetry = data.user?.id === testUserId;
+      const signupBlocked = error !== null && !data.user;
+      expect(sameUserRetry || signupBlocked).toBe(true);
     });
   });
 

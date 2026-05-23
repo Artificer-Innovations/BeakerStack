@@ -17,16 +17,22 @@ function mockResponse(status: number, body?: unknown) {
 }
 
 describe('isPermanentKitError', () => {
-  it.each(['kit_api_400', 'kit_api_404', 'kit_api_422', 'unknown_event_type', 'kit_tag_not_found'])(
-    'returns true for %s',
+  it.each([
+    'kit_api_400',
+    'kit_api_404',
+    'kit_api_422',
+    'unknown_event_type',
+    'kit_tag_not_found',
+  ])('returns true for %s', code => {
+    expect(isPermanentKitError(code)).toBe(true);
+  });
+
+  it.each(['kit_api_429', 'kit_api_500', 'other'])(
+    'returns false for %s',
     code => {
-      expect(isPermanentKitError(code)).toBe(true);
+      expect(isPermanentKitError(code)).toBe(false);
     }
   );
-
-  it.each(['kit_api_429', 'kit_api_500', 'other'])('returns false for %s', code => {
-    expect(isPermanentKitError(code)).toBe(false);
-  });
 });
 
 describe('isRateLimitError', () => {
@@ -79,27 +85,52 @@ describe('KitClient', () => {
       expect(fetchMock).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          headers: expect.objectContaining({ Authorization: 'Bearer test-api-key' }),
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-api-key',
+          }),
         })
       );
     });
 
     it('throws KitClientError on HTTP error', async () => {
       fetchMock.mockReturnValue(mockResponse(400, {}));
-      await expect(client.subscribeToForm('u@e.com', 'f')).rejects.toThrow(KitClientError);
+      await expect(client.subscribeToForm('u@e.com', 'f')).rejects.toThrow(
+        KitClientError
+      );
     });
 
     it('error code matches HTTP status', async () => {
       fetchMock.mockReturnValue(mockResponse(500, {}));
-      const err = await client.subscribeToForm('u@e.com', 'f').catch(e => e as KitClientError);
+      const err = await client
+        .subscribeToForm('u@e.com', 'f')
+        .catch(e => e as KitClientError);
       expect(err.code).toBe('kit_api_500');
+    });
+
+    it('omits response body suffix when error body is empty', async () => {
+      fetchMock.mockReturnValue(
+        Promise.resolve({
+          ok: false,
+          status: 400,
+          statusText: 'Bad Request',
+          text: () => Promise.resolve(''),
+        } as Response)
+      );
+      const err = await client
+        .subscribeToForm('u@e.com', 'f')
+        .catch(e => e as KitClientError);
+      expect(err.message).toBe(
+        'Kit API POST /forms/f/subscribers → 400 Bad Request'
+      );
     });
   });
 
   describe('applyTag', () => {
     it('finds tag and applies it', async () => {
       fetchMock
-        .mockReturnValueOnce(mockResponse(200, { tags: [{ id: 'tag-1', name: 'acme:tag' }] }))
+        .mockReturnValueOnce(
+          mockResponse(200, { tags: [{ id: 'tag-1', name: 'acme:tag' }] })
+        )
         .mockReturnValueOnce(mockResponse(200));
       await client.applyTag('user@example.com', 'acme:tag');
       expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -107,8 +138,18 @@ describe('KitClient', () => {
 
     it('throws kit_tag_not_found when tag is missing', async () => {
       fetchMock.mockReturnValue(mockResponse(200, { tags: [] }));
-      const err = await client.applyTag('u@e.com', 'missing').catch(e => e as KitClientError);
+      const err = await client
+        .applyTag('u@e.com', 'missing')
+        .catch(e => e as KitClientError);
       expect(err).toBeInstanceOf(KitClientError);
+      expect(err.code).toBe('kit_tag_not_found');
+    });
+
+    it('throws kit_tag_not_found when tags field is absent', async () => {
+      fetchMock.mockReturnValue(mockResponse(200, {}));
+      const err = await client
+        .applyTag('u@e.com', 'missing')
+        .catch(e => e as KitClientError);
       expect(err.code).toBe('kit_tag_not_found');
     });
   });
@@ -116,8 +157,12 @@ describe('KitClient', () => {
   describe('removeTag', () => {
     it('deletes tag subscription from subscriber', async () => {
       fetchMock
-        .mockReturnValueOnce(mockResponse(200, { tags: [{ id: 'tag-1', name: 'acme:tag' }] }))
-        .mockReturnValueOnce(mockResponse(200, { subscribers: [{ id: 'sub-1' }] }))
+        .mockReturnValueOnce(
+          mockResponse(200, { tags: [{ id: 'tag-1', name: 'acme:tag' }] })
+        )
+        .mockReturnValueOnce(
+          mockResponse(200, { subscribers: [{ id: 'sub-1' }] })
+        )
         .mockReturnValueOnce(mockResponse(204));
       await client.removeTag('user@example.com', 'acme:tag');
       expect(fetchMock).toHaveBeenCalledTimes(3);
@@ -131,8 +176,20 @@ describe('KitClient', () => {
 
     it('returns early when subscriber is not found', async () => {
       fetchMock
-        .mockReturnValueOnce(mockResponse(200, { tags: [{ id: 'tag-1', name: 'acme:tag' }] }))
+        .mockReturnValueOnce(
+          mockResponse(200, { tags: [{ id: 'tag-1', name: 'acme:tag' }] })
+        )
         .mockReturnValueOnce(mockResponse(200, { subscribers: [] }));
+      await client.removeTag('user@example.com', 'acme:tag');
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('returns early when subscribers field is absent', async () => {
+      fetchMock
+        .mockReturnValueOnce(
+          mockResponse(200, { tags: [{ id: 'tag-1', name: 'acme:tag' }] })
+        )
+        .mockReturnValueOnce(mockResponse(200, {}));
       await client.removeTag('user@example.com', 'acme:tag');
       expect(fetchMock).toHaveBeenCalledTimes(2);
     });
@@ -141,7 +198,9 @@ describe('KitClient', () => {
   describe('unsubscribeUser', () => {
     it('posts to unsubscribe endpoint', async () => {
       fetchMock
-        .mockReturnValueOnce(mockResponse(200, { subscribers: [{ id: 'sub-1' }] }))
+        .mockReturnValueOnce(
+          mockResponse(200, { subscribers: [{ id: 'sub-1' }] })
+        )
         .mockReturnValueOnce(mockResponse(200));
       await client.unsubscribeUser('user@example.com');
       expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -157,7 +216,9 @@ describe('KitClient', () => {
   describe('deleteUser', () => {
     it('deletes the subscriber', async () => {
       fetchMock
-        .mockReturnValueOnce(mockResponse(200, { subscribers: [{ id: 'sub-1' }] }))
+        .mockReturnValueOnce(
+          mockResponse(200, { subscribers: [{ id: 'sub-1' }] })
+        )
         .mockReturnValueOnce(mockResponse(204));
       await client.deleteUser('user@example.com');
       expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -173,7 +234,9 @@ describe('KitClient', () => {
   describe('204 No Content', () => {
     it('returns without throwing for 204', async () => {
       fetchMock.mockReturnValue(mockResponse(204));
-      await expect(client.subscribeToForm('u@e.com', 'f')).resolves.toBeUndefined();
+      await expect(
+        client.subscribeToForm('u@e.com', 'f')
+      ).resolves.toBeUndefined();
     });
   });
 });

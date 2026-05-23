@@ -583,5 +583,6 @@ describe('BillingProvider', () => {
     unmount();
     resolveSession({ data: { session: { user: { id: 'late-user' } } } });
     await Promise.resolve();
+    expect(db.maybeSingle).not.toHaveBeenCalled();
   });
 });

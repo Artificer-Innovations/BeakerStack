@@ -34,7 +34,7 @@ describe('FormButton (Web)', () => {
     render(<FormButton title='Submit' onPress={mockOnPress} loading />);
 
     const button = screen.getByRole('button') as HTMLButtonElement;
-    expect(button.disabled).toBe(true);
+    expect(button).toBeDisabled();
   });
 
   it('is disabled when disabled prop is true', () => {
@@ -42,7 +42,7 @@ describe('FormButton (Web)', () => {
     render(<FormButton title='Submit' onPress={mockOnPress} disabled />);
 
     const button = screen.getByRole('button') as HTMLButtonElement;
-    expect(button.disabled).toBe(true);
+    expect(button).toBeDisabled();
   });
 
   it('is enabled when not loading and not disabled', () => {
@@ -50,7 +50,7 @@ describe('FormButton (Web)', () => {
     render(<FormButton title='Submit' onPress={mockOnPress} />);
 
     const button = screen.getByRole('button') as HTMLButtonElement;
-    expect(button.disabled).toBe(false);
+    expect(button).toBeEnabled();
   });
 
   it('does not call onPress when disabled', () => {

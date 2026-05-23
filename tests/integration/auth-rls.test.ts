@@ -77,11 +77,9 @@ describe('Auth RLS integration', () => {
       .eq('user_id', userB.userId)
       .select();
 
-    if (error) {
-      expect(error).toBeDefined();
-    } else {
-      expect(data ?? []).toHaveLength(0);
-    }
+    const blockedByPolicy = error !== null;
+    const emptyUpdate = (data ?? []).length === 0;
+    expect(blockedByPolicy || emptyUpdate).toBe(true);
   });
 
   it('allows user to delete their own profile row', async () => {
