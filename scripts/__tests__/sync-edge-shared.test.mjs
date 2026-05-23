@@ -5,6 +5,7 @@ import {
   parseManifest,
   validateImportMapEntries,
   findBareImports,
+  extractImportSpecifiers,
   isAllowedImportSpecifier,
 } from '../sync-edge-shared.mjs';
 
@@ -147,5 +148,38 @@ describe('bare import detection', () => {
   it('allows npm-prefixed specifiers', () => {
     const content = `import { z } from "npm:zod@3.22.0";`;
     assert.deepEqual(findBareImports(content), []);
+  });
+
+  it('flags side-effect bare npm imports', () => {
+    const content = `import "zod";`;
+    assert.deepEqual(findBareImports(content), ['zod']);
+  });
+
+  it('flags dynamic bare npm imports', () => {
+    const content = `const mod = await import("zod");`;
+    assert.deepEqual(findBareImports(content), ['zod']);
+  });
+
+  it('allows side-effect and dynamic npm-prefixed specifiers', () => {
+    const content = `
+      import "npm:zod@3.22.0";
+      const mod = await import('npm:zod@3.22.0');
+    `;
+    assert.deepEqual(findBareImports(content), []);
+  });
+
+  it('extracts specifiers from all supported import forms', () => {
+    const content = `
+      import { z } from "zod";
+      import "side-effect";
+      export { foo } from "./local.js";
+      const mod = import("dynamic");
+    `;
+    assert.deepEqual(extractImportSpecifiers(content), [
+      'zod',
+      './local.js',
+      'side-effect',
+      'dynamic',
+    ]);
   });
 });

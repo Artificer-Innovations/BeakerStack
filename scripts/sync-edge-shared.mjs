@@ -175,7 +175,31 @@ function validateImportMap(ports) {
 
 // ── Bare import validation ────────────────────────────────────────────────────
 
+/** Static import/export … from "spec" forms. */
 const IMPORT_FROM_REGEX = /\bfrom\s+(['"])([^'"]+)\1/g;
+/** Side-effect imports: import "spec"; */
+const IMPORT_SIDE_EFFECT_REGEX = /\bimport\s+(['"])([^'"]+)\1\s*;/g;
+/** Dynamic imports: import("spec") */
+const IMPORT_DYNAMIC_REGEX = /\bimport\s*\(\s*(['"])([^'"]+)\1\s*\)/g;
+
+const IMPORT_SPECIFIER_PATTERNS = [
+  IMPORT_FROM_REGEX,
+  IMPORT_SIDE_EFFECT_REGEX,
+  IMPORT_DYNAMIC_REGEX,
+];
+
+/** Collect module specifiers from static, side-effect, and dynamic import syntax. */
+export function extractImportSpecifiers(fileContent) {
+  const specifiers = [];
+  for (const pattern of IMPORT_SPECIFIER_PATTERNS) {
+    pattern.lastIndex = 0;
+    let match;
+    while ((match = pattern.exec(fileContent)) !== null) {
+      specifiers.push(match[2]);
+    }
+  }
+  return specifiers;
+}
 
 /** Returns true when a module specifier is allowed in generated edge bundles. */
 export function isAllowedImportSpecifier(specifier) {
@@ -193,10 +217,7 @@ export function isAllowedImportSpecifier(specifier) {
 /** Pure helper: returns bare npm specifiers left unresolved in generated JS. */
 export function findBareImports(fileContent) {
   const violations = [];
-  let match;
-  IMPORT_FROM_REGEX.lastIndex = 0;
-  while ((match = IMPORT_FROM_REGEX.exec(fileContent)) !== null) {
-    const specifier = match[2];
+  for (const specifier of extractImportSpecifiers(fileContent)) {
     if (!isAllowedImportSpecifier(specifier)) {
       violations.push(specifier);
     }
