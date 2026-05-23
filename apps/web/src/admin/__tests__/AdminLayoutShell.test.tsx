@@ -12,7 +12,10 @@ vi.mock('@beakerstack/shared/contexts/AuthContext', () => ({
 }));
 
 vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  const actual =
+    await vi.importActual<typeof import('react-router-dom')>(
+      'react-router-dom'
+    );
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
@@ -66,7 +69,9 @@ describe('AdminLayoutShell', () => {
     const user = userEvent.setup();
     renderShell('/admin', 'admin', <p>Admin home</p>);
     const sidebar = screen.getByRole('complementary');
-    const signOutButton = within(sidebar).getByRole('button', { name: /sign out/i });
+    const signOutButton = within(sidebar).getByRole('button', {
+      name: /sign out/i,
+    });
     await user.click(signOutButton);
     await waitFor(() => {
       expect(mockSignOut).toHaveBeenCalledTimes(1);
@@ -78,21 +83,27 @@ describe('AdminLayoutShell', () => {
     it('Overview \u2192 Users for /users path', () => {
       renderShell('/users', 'users', <p>outlet</p>);
       const bc = screen.getByRole('navigation', { name: 'Breadcrumb' });
-      expect(within(bc).getByRole('link', { name: 'Overview' })).toHaveAttribute('href', '/admin');
+      expect(
+        within(bc).getByRole('link', { name: 'Overview' })
+      ).toHaveAttribute('href', '/admin');
       expect(within(bc).getByText('Users')).toBeInTheDocument();
     });
 
     it('Overview \u2192 Waitlist for /waitlist path', () => {
       renderShell('/waitlist', 'waitlist', <p>outlet</p>);
       const bc = screen.getByRole('navigation', { name: 'Breadcrumb' });
-      expect(within(bc).getByRole('link', { name: 'Overview' })).toHaveAttribute('href', '/admin');
+      expect(
+        within(bc).getByRole('link', { name: 'Overview' })
+      ).toHaveAttribute('href', '/admin');
       expect(within(bc).getByText('Waitlist')).toBeInTheDocument();
     });
 
     it('Overview \u2192 Waitlist Settings for /waitlist/settings path', () => {
       renderShell('/waitlist/settings', 'waitlist/settings', <p>outlet</p>);
       const bc = screen.getByRole('navigation', { name: 'Breadcrumb' });
-      expect(within(bc).getByRole('link', { name: 'Overview' })).toHaveAttribute('href', '/admin');
+      expect(
+        within(bc).getByRole('link', { name: 'Overview' })
+      ).toHaveAttribute('href', '/admin');
       expect(within(bc).getByText('Waitlist Settings')).toBeInTheDocument();
     });
 

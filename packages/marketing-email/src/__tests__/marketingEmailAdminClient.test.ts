@@ -17,7 +17,11 @@ describe('normalizeMarketingEmailAdminSettings', () => {
       product_id: 'acme',
       enabled: true,
       provider: 'kit',
-      config: { namespace: 'acme-ns', kitFormId: 'form-1', tierTagNames: ['pro'] },
+      config: {
+        namespace: 'acme-ns',
+        kitFormId: 'form-1',
+        tierTagNames: ['pro'],
+      },
       updated_at: '2026-01-01T00:00:00Z',
     });
     expect(result.product_id).toBe('acme');
@@ -92,7 +96,10 @@ describe('getAdminMarketingEmailSettings', () => {
   });
 
   it('returns null when settings payload is null', async () => {
-    const sb = makeSupabase({ data: { ok: true, settings: null }, error: null });
+    const sb = makeSupabase({
+      data: { ok: true, settings: null },
+      error: null,
+    });
     expect(await getAdminMarketingEmailSettings(sb)).toBeNull();
   });
 
@@ -138,7 +145,10 @@ describe('updateAdminMarketingEmailSettings', () => {
   });
 
   it('returns null when data contains an error key', async () => {
-    const sb = makeSupabase({ data: { error: 'invalid_namespace' }, error: null });
+    const sb = makeSupabase({
+      data: { error: 'invalid_namespace' },
+      error: null,
+    });
     expect(
       await updateAdminMarketingEmailSettings(sb, {
         product_id: 'beakerstack',
@@ -156,7 +166,11 @@ describe('updateAdminMarketingEmailSettings', () => {
           product_id: 'beakerstack',
           enabled: false,
           provider: 'kit',
-          config: { namespace: 'ns', kitFormId: 'form-2', tierTagNames: ['pro'] },
+          config: {
+            namespace: 'ns',
+            kitFormId: 'form-2',
+            tierTagNames: ['pro'],
+          },
           updated_at: '2026-01-02T00:00:00Z',
         },
       },

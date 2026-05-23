@@ -78,7 +78,9 @@ describe('AdminLayout', () => {
       </MemoryRouter>
     );
     expect(screen.getByTestId('sidebar-footer')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Sign out' })
+    ).toBeInTheDocument();
   });
 
   it('renders no footer section when sidebarFooter is omitted', () => {
