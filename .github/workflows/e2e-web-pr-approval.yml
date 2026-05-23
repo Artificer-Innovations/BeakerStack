@@ -154,34 +154,29 @@ jobs:
             tests/e2e/web/results/
           if-no-files-found: ignore
 
+      - name: Format E2E PR comment
+        id: e2e_comment
+        if: always() && steps.preview.outcome == 'success'
+        env:
+          WEB_URL: ${{ steps.preview.outputs.web_url }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          PLAYWRIGHT_OUTCOME: ${{ steps.playwright.outcome }}
+          PLAYWRIGHT_JSON_REPORT: tests/e2e/web/results/web-results.json
+        run: node scripts/ci/format-playwright-e2e-pr-comment.mjs
+
       - name: Post E2E results comment
         if: always() && steps.preview.outcome == 'success'
         uses: actions/github-script@v7
         env:
-          PLAYWRIGHT_OUTCOME: ${{ steps.playwright.outcome }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          WEB_URL: ${{ steps.preview.outputs.web_url }}
+          COMMENT_BODY: ${{ steps.e2e_comment.outputs.body }}
         with:
           script: |
             const marker = '<!-- e2e-web-results -->';
-            const outcome = process.env.PLAYWRIGHT_OUTCOME || 'skipped';
-            const runUrl = process.env.RUN_URL;
-            const webUrl = process.env.WEB_URL;
-            const icon =
-              outcome === 'success' ? '✅' :
-              outcome === 'failure' ? '❌' :
-              outcome === 'cancelled' ? '🚫' : '⏭️';
-            const body = `${marker}
-            ## ${icon} Web E2E (Playwright)
-
-            Triggered by approval from @ZappoMan against [${webUrl}](${webUrl}).
-
-            | Check | Result |
-            | --- | --- |
-            | Playwright suite | ${icon} ${outcome} |
-            | Workflow | [View run](${runUrl}) |
-
-            _Updated at: ${new Date().toISOString()}_`;
+            const body = process.env.COMMENT_BODY;
+            if (!body?.includes(marker)) {
+              core.setFailed('E2E comment body missing marker.');
+              return;
+            }
 
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,

@@ -17,6 +17,7 @@ export default defineConfig({
     ['list'],
     ['html', { outputFolder: reportDir, open: 'never' }],
     ['junit', { outputFile: path.join(resultsDir, 'web-results.xml') }],
+    ['json', { outputFile: path.join(resultsDir, 'web-results.json') }],
   ],
   globalSetup: path.join(configDir, 'global-setup.ts'),
   globalTeardown: path.join(configDir, 'global-teardown.ts'),

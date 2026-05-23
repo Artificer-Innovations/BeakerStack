@@ -1,0 +1,74 @@
+{
+  "stats": {
+    "duration": 168000,
+    "expected": 3,
+    "skipped": 1,
+    "unexpected": 1,
+    "flaky": 1
+  },
+  "suites": [
+    {
+      "title": "",
+      "file": "auth/login.spec.ts",
+      "specs": [],
+      "suites": [
+        {
+          "title": "Login",
+          "file": "auth/login.spec.ts",
+          "specs": [
+            {
+              "title": "signs in seeded user and lands on dashboard",
+              "tests": [
+                {
+                  "results": [{ "status": "passed", "duration": 840 }]
+                }
+              ]
+            },
+            {
+              "title": "flaky login example",
+              "tests": [
+                {
+                  "results": [
+                    { "status": "failed", "duration": 400 },
+                    { "status": "passed", "duration": 900 }
+                  ]
+                }
+              ]
+            }
+          ],
+          "suites": []
+        }
+      ]
+    },
+    {
+      "title": "",
+      "file": "auth/signup.spec.ts",
+      "specs": [],
+      "suites": [
+        {
+          "title": "Signup",
+          "file": "auth/signup.spec.ts",
+          "specs": [
+            {
+              "title": "creates an account",
+              "tests": [
+                {
+                  "results": [{ "status": "skipped", "duration": 0 }]
+                }
+              ]
+            },
+            {
+              "title": "shows validation error",
+              "tests": [
+                {
+                  "results": [{ "status": "failed", "duration": 1200 }]
+                }
+              ]
+            }
+          ],
+          "suites": []
+        }
+      ]
+    }
+  ]
+}
