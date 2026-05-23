@@ -16,6 +16,7 @@ export default defineConfig({
         '**/*.d.ts',
         '**/dist/**',
         '**/vitest.config.*',
+        '**/tsup.config.*',
         '**/*.{test,spec}.ts',
       ],
       thresholds: {
