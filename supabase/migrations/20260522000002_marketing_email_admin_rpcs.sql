@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION public.admin_get_marketing_email_settings(
 )
 RETURNS jsonb
 LANGUAGE plpgsql
-VOLATILE
+STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
@@ -133,7 +133,7 @@ GRANT EXECUTE ON FUNCTION public.admin_update_marketing_email_settings(text, boo
 CREATE OR REPLACE FUNCTION public.admin_get_marketing_email_queue_stats()
 RETURNS jsonb
 LANGUAGE plpgsql
-VOLATILE
+STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
