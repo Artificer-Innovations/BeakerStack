@@ -24,6 +24,11 @@ async function deleteSeedUser(statePath: string): Promise<void> {
 }
 
 async function globalTeardown(): Promise<void> {
+  if (process.env.E2E_SKIP_GLOBAL_TEARDOWN === '1') {
+    console.log('Skipping E2E global teardown (deferred to final CI job).');
+    return;
+  }
+
   applyE2eSupabaseEnv();
   await deleteSeedUser(e2eStatePath);
   await deleteSeedUser(e2eAdminStatePath);

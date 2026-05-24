@@ -2,14 +2,23 @@
 
 import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import {
+  E2E_CATEGORIES,
+  categoryFromSpecFile,
+  formatCategorySummaryLabel,
+  summarizeByCategory,
+} from './playwright-e2e-categories.mjs';
 
 export const MARKER = '<!-- e2e-web-results -->';
+
+/** Background for category section rows in the Details HTML table. */
+export const CATEGORY_SECTION_ROW_BG = '#d4e4f7';
 
 /**
  * @param {import('@playwright/test/reporter').JSONReport} report
  */
 export function parsePlaywrightJson(report) {
-  /** @type {Array<{ file: string, title: string, status: 'passed' | 'passedAfterRetry' | 'skipped' | 'failed', durationMs: number }>} */
+  /** @type {Array<{ file: string, category: ReturnType<typeof categoryFromSpecFile>, title: string, status: 'passed' | 'passedAfterRetry' | 'skipped' | 'failed', durationMs: number }>} */
   const cases = [];
 
   /**
@@ -55,8 +64,10 @@ export function parsePlaywrightJson(report) {
           failedAttempt && results.length > 1 ? 'passedAfterRetry' : 'passed';
       }
 
+      const file = suite.file ?? 'unknown.spec.ts';
       cases.push({
-        file: suite.file ?? 'unknown.spec.ts',
+        file,
+        category: categoryFromSpecFile(file),
         title: [...nextPath, spec.title].filter(Boolean).join(' › '),
         status,
         durationMs,
@@ -88,9 +99,6 @@ export function formatMinutes(durationMs) {
   return `${(durationMs / 60_000).toFixed(2)} min`;
 }
 
-/** Background for full-width spec file section rows in the Details HTML table. */
-export const FILE_SECTION_ROW_BG = '#eaeef2';
-
 /** @param {string} value */
 export function escapeHtml(value) {
   return String(value)
@@ -117,20 +125,43 @@ export function formatStatusLabel(status) {
 /**
  * @param {ReturnType<typeof parsePlaywrightJson>['cases']} cases
  */
-export function buildDetailsTable(cases) {
-  const byFile = new Map();
-  for (const testCase of cases) {
-    const fileName = testCase.file;
-    if (!byFile.has(fileName)) {
-      byFile.set(fileName, []);
-    }
-    byFile.get(fileName).push(testCase);
+export function buildCategorySummaryTable(cases) {
+  const byCategory = summarizeByCategory(cases);
+  if (byCategory.size === 0) {
+    return '';
   }
 
-  if (byFile.size === 0) {
+  const rows = [
+    '### By category',
+    '',
+    '| Category | Passed | Failed | Skipped |',
+    '| --- | --- | --- | --- |',
+  ];
+
+  const categories = [...E2E_CATEGORIES, 'other'].filter(category =>
+    byCategory.has(category)
+  );
+
+  for (const category of categories) {
+    const counts = byCategory.get(category);
+    rows.push(
+      `| ${category} | ${counts.passed + counts.passedAfterRetry} | ${counts.failed} | ${counts.skipped} |`
+    );
+  }
+
+  rows.push('');
+  return rows.join('\n');
+}
+
+/**
+ * @param {ReturnType<typeof parsePlaywrightJson>['cases']} cases
+ */
+export function buildDetailsTable(cases) {
+  if (cases.length === 0) {
     return '_No individual test results available._';
   }
 
+  const byCategory = summarizeByCategory(cases);
   const rows = [
     '<table>',
     '<thead>',
@@ -143,18 +174,30 @@ export function buildDetailsTable(cases) {
     '<tbody>',
   ];
 
-  for (const [fileName, fileCases] of [...byFile.entries()].sort(([a], [b]) =>
-    a.localeCompare(b)
-  )) {
+  const categories = [...E2E_CATEGORIES, 'other'].filter(category =>
+    byCategory.has(category)
+  );
+
+  for (const category of categories) {
+    const counts = byCategory.get(category);
     rows.push(
       '<tr>',
-      `<td colspan="3" bgcolor="${FILE_SECTION_ROW_BG}"><strong>${escapeHtml(fileName)}</strong></td>`,
+      `<td colspan="3" bgcolor="${CATEGORY_SECTION_ROW_BG}"><strong>${escapeHtml(category)}</strong> (${escapeHtml(formatCategorySummaryLabel(counts))})</td>`,
       '</tr>'
     );
-    for (const testCase of fileCases) {
+
+    const categoryCases = cases
+      .filter(testCase => testCase.category === category)
+      .sort((a, b) => {
+        const fileCompare = a.file.localeCompare(b.file);
+        return fileCompare !== 0 ? fileCompare : a.title.localeCompare(b.title);
+      });
+
+    for (const testCase of categoryCases) {
+      const displayTitle = `${testCase.file} › ${testCase.title}`;
       rows.push(
         '<tr>',
-        `<td>${escapeHtml(testCase.title)}</td>`,
+        `<td>${escapeHtml(displayTitle)}</td>`,
         `<td>${escapeHtml(formatStatusLabel(testCase.status))}</td>`,
         `<td>${escapeHtml(formatMinutes(testCase.durationMs))}</td>`,
         '</tr>'
@@ -196,11 +239,14 @@ export function buildComment({
     `| ❌ Failed | ${summary.failed} |`,
     `| ⏱️ Total Duration | ${formatMinutes(summary.totalDurationMs)} |`,
     '',
-    '## Test Environment',
-    '',
-    `🌐 Domain: ${webUrl}`,
-    '',
   ];
+
+  const categorySummary = buildCategorySummaryTable(cases);
+  if (categorySummary) {
+    lines.push(categorySummary);
+  }
+
+  lines.push('## Test Environment', '', `🌐 Domain: ${webUrl}`, '');
 
   if (runUrl) {
     lines.push(`[View workflow run](${runUrl})`, '');

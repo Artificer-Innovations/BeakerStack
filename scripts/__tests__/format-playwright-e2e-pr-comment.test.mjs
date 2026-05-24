@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   MARKER,
-  FILE_SECTION_ROW_BG,
+  CATEGORY_SECTION_ROW_BG,
   buildComment,
   buildDetailsTable,
   escapeHtml,
@@ -14,11 +14,22 @@ import {
   formatMinutes,
   parsePlaywrightJson,
 } from '../ci/format-playwright-e2e-pr-comment.mjs';
+import { categoryFromSpecFile } from '../ci/playwright-e2e-categories.mjs';
 
 const FIXTURES = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
   'fixtures'
 );
+
+test('categoryFromSpecFile derives category from specs subdirectory', () => {
+  assert.equal(categoryFromSpecFile('admin/access.spec.ts'), 'admin');
+  assert.equal(categoryFromSpecFile('specs/billing/plans.spec.ts'), 'billing');
+  assert.equal(
+    categoryFromSpecFile('tests/e2e/web/specs/waitlist/public-signup.spec.ts'),
+    'waitlist'
+  );
+  assert.equal(categoryFromSpecFile('unknown.spec.ts'), 'other');
+});
 
 test('formatMinutes converts ms to minutes', () => {
   assert.equal(formatMinutes(13_800), '0.23 min');
@@ -40,6 +51,10 @@ test('parsePlaywrightJson classifies passed, retry, skipped, and failed', () => 
     cases.find(c => c.title.includes('flaky login'))?.status,
     'passedAfterRetry'
   );
+  assert.equal(
+    cases.every(testCase => testCase.category === 'auth'),
+    true
+  );
 });
 
 test('buildComment matches PR summary layout', () => {
@@ -57,16 +72,18 @@ test('buildComment matches PR summary layout', () => {
   assert.match(body, /# End 2 End - Test Results/);
   assert.match(body, /\| ✅ Passed \| 1 \|/);
   assert.match(body, /\| ☑️ Passed after retry \| 1 \|/);
+  assert.match(body, /\| Category \| Passed \| Failed \| Skipped \|/);
+  assert.match(body, /\| auth \| 2 \| 1 \| 1 \|/);
   assert.match(body, /🌐 Domain: https:\/\/deploy\.example\.com\/pr-42\//);
   assert.match(body, /<table>/);
-  assert.match(body, new RegExp(`bgcolor="${FILE_SECTION_ROW_BG}"`));
-  assert.match(body, /colspan="3"/);
-  assert.match(body, /<strong>auth\/login\.spec\.ts<\/strong>/);
+  assert.match(body, new RegExp(`bgcolor="${CATEGORY_SECTION_ROW_BG}"`));
+  assert.match(body, /<strong>auth<\/strong>/);
+  assert.match(body, /auth\/login\.spec\.ts › Login › signs in seeded user/);
   assert.match(body, /☑️ passed after retry/);
   assert.match(body, /✅ passed/);
   assert.match(body, /⚠️ skipped/);
   assert.match(body, /❌ failed/);
-  assert.doesNotMatch(body, /\| \*\*auth\/login\.spec\.ts\*\*/);
+  assert.doesNotMatch(body, /<strong>auth\/login\.spec\.ts<\/strong>/);
 });
 
 test('formatStatusLabel includes summary icons', () => {
@@ -80,6 +97,7 @@ test('buildDetailsTable escapes HTML in test titles', () => {
   const html = buildDetailsTable([
     {
       file: 'auth/login.spec.ts',
+      category: 'auth',
       title: 'Login › uses <input> & "quotes"',
       status: 'passed',
       durationMs: 1000,

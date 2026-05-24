@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { chromium, type FullConfig } from '@playwright/test';
 import { grantTestAdmin } from '../../utils/integration-fixtures';
 import { generateE2ETestEmail } from '../../utils/test-emails';
@@ -44,14 +44,32 @@ async function loginAndSaveStorageState(
   await browser.close();
 }
 
-async function globalSetup(_config: FullConfig): Promise<void> {
+export async function runE2eGlobalSetup(): Promise<void> {
   applyE2eSupabaseEnv();
+  console.log('[e2e] Starting global setup', {
+    target: process.env.E2E_TARGET ?? 'local',
+    baseUrl: getWebBaseUrl(),
+    bootstrap: Boolean(process.env.E2E_BOOTSTRAP_URL?.trim()),
+  });
 
   mkdirSync(e2eAuthDir, { recursive: true });
 
+  if (
+    process.env.E2E_SKIP_GLOBAL_SETUP === '1' &&
+    existsSync(e2eStatePath) &&
+    existsSync(e2eStorageStatePath) &&
+    existsSync(e2eAdminStatePath) &&
+    existsSync(e2eAdminStorageStatePath)
+  ) {
+    console.log('Skipping E2E global setup (auth artifacts already present).');
+    return;
+  }
+
+  console.log('[e2e] Preparing preview auth and waitlist mode…');
   await preparePreviewAuthForE2e();
   await prepareWaitlistModeForE2e();
 
+  console.log('[e2e] Creating seed users…');
   const supabase = createWebTestClient();
   const password =
     process.env.TEST_PASSWORD ||
@@ -80,6 +98,7 @@ async function globalSetup(_config: FullConfig): Promise<void> {
   writeFileSync(e2eStatePath, JSON.stringify(seed, null, 2));
   writeFileSync(e2eAdminStatePath, JSON.stringify(adminSeed, null, 2));
 
+  console.log('[e2e] Logging in and saving Playwright storage state…');
   const bootstrapUrl = process.env.E2E_BOOTSTRAP_URL?.trim();
   await loginAndSaveStorageState(
     e2eStorageStatePath,
@@ -97,6 +116,11 @@ async function globalSetup(_config: FullConfig): Promise<void> {
   process.env.E2E_SEED_EMAIL = email;
   process.env.E2E_SEED_PASSWORD = password;
   process.env.E2E_BASE_URL = getWebBaseUrl();
+  console.log('[e2e] Global setup complete.');
+}
+
+async function globalSetup(_config: FullConfig): Promise<void> {
+  await runE2eGlobalSetup();
 }
 
 export default globalSetup;
