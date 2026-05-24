@@ -582,11 +582,23 @@ jobs:
         with:
           script: |
             const marker = '<!-- e2e-web-results -->';
-            const body = process.env.COMMENT_BODY;
+            let body = process.env.COMMENT_BODY;
             if (!body?.includes(marker)) {
               core.setFailed('E2E comment body missing marker.');
               return;
             }
+
+            const now = new Date();
+            const pacificTime = now.toLocaleString('en-US', {
+              timeZone: 'America/Los_Angeles',
+              dateStyle: 'long',
+              timeStyle: 'short'
+            });
+            const timezone = now.toLocaleString('en-US', {
+              timeZone: 'America/Los_Angeles',
+              timeZoneName: 'short'
+            }).split(' ').pop();
+            body = `${body}\n\n---\n\n_Updated at: ${pacificTime} ${timezone}_`;
 
             const issueNumber = Number(process.env.PR_NUMBER);
             const { data: comments } = await github.rest.issues.listComments({
