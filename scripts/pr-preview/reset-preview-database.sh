@@ -448,6 +448,13 @@ sync_link_artifacts() {
   fi
 
   mkdir -p "${repo_temp_dir}"
+  local link_resolved repo_resolved
+  link_resolved="$(cd "${link_temp_dir}" && pwd -P)"
+  repo_resolved="$(cd "${repo_temp_dir}" && pwd -P)"
+  if [[ "${link_resolved}" == "${repo_resolved}" ]]; then
+    return
+  fi
+
   cp -a "${link_temp_dir}/." "${repo_temp_dir}/"
 }
 
@@ -470,14 +477,32 @@ apply_adopter_migrations() {
 
 unlink_supabase() {
   log "INFO" "Unlinking Supabase project..."
+  if [[ "${DRY_RUN}" == true ]]; then
+    log "DRY" "cd ${SUPABASE_RUNTIME_DIR} && supabase unlink --yes"
+    return 0
+  fi
+
+  local tmp
+  tmp="$(mktemp)"
+  local status=0
   (
     cd "${SUPABASE_RUNTIME_DIR}"
-    supabase_run --allow-fail "Supabase unlink" env \
-      SUPABASE_DISABLE_KEYRING=1 \
+    env SUPABASE_DISABLE_KEYRING=1 \
       SUPABASE_ACCESS_TOKEN="${SUPABASE_ACCESS_TOKEN}" \
-      supabase unlink \
-        --yes
-  )
+      supabase unlink --yes
+  ) >"${tmp}" 2>&1 || status=$?
+
+  cat "${tmp}"
+
+  if (( status != 0 )); then
+    if grep -qiE 'Cannot find project ref|failed to delete credentials' "${tmp}"; then
+      log "WARN" "Supabase unlink non-fatal: project already unlinked or keyring unavailable in CI."
+    else
+      log "WARN" "Supabase unlink failed (exit ${status}); continuing."
+    fi
+  fi
+
+  rm -f "${tmp}"
 }
 
 cleanup() {
