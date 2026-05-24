@@ -1,4 +1,9 @@
-import { test, expect, gotoRoute } from '../../fixtures/auth.fixture';
+import {
+  test,
+  expect,
+  gotoRoute,
+  expectPasswordResetConfirmation,
+} from '../../fixtures/auth.fixture';
 
 test.describe('Forgot password', () => {
   test('submits reset request and shows confirmation message', async ({
@@ -13,8 +18,7 @@ test.describe('Forgot password', () => {
     await page.locator('input[name="email"]').fill(seedUser.email);
     await page.getByRole('button', { name: 'Send reset link' }).click();
 
-    await expect(page.getByText(/If an account exists for/i)).toBeVisible();
-    await expect(page.getByText(seedUser.email)).toBeVisible();
+    await expectPasswordResetConfirmation(page, seedUser.email);
   });
 
   test('validates email is required', async ({ page }) => {

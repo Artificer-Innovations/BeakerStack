@@ -83,3 +83,45 @@ export async function signOut(page: Page): Promise<void> {
   await openUserMenu(page);
   await page.getByRole('button', { name: 'Sign Out' }).click();
 }
+
+/** Wait for post-signup navigation or email-confirmation screen (preview can be slow). */
+export async function expectSignupOutcome(page: Page): Promise<void> {
+  await expect(async () => {
+    if (page.url().includes('/dashboard')) {
+      return;
+    }
+    if (
+      await page.getByRole('heading', { name: 'Check your email' }).isVisible()
+    ) {
+      return;
+    }
+    const error = page.locator(
+      '.text-red-800, .text-red-300, .dark\\:text-red-300'
+    );
+    if (await error.first().isVisible()) {
+      throw new Error(`Signup failed: ${await error.first().textContent()}`);
+    }
+    throw new Error('Expected dashboard or email confirmation after signup');
+  }).toPass({ timeout: 30_000 });
+}
+
+/** Wait for non-enumerating password reset confirmation. */
+export async function expectPasswordResetConfirmation(
+  page: Page,
+  email: string
+): Promise<void> {
+  await expect(async () => {
+    if (await page.getByText(/If an account exists for/i).isVisible()) {
+      return;
+    }
+    if (
+      await page
+        .getByText('Something went wrong. Please try again.')
+        .isVisible()
+    ) {
+      throw new Error('Password reset request failed in the UI');
+    }
+    throw new Error('Expected password reset confirmation message');
+  }).toPass({ timeout: 30_000 });
+  await expect(page.getByText(email)).toBeVisible();
+}

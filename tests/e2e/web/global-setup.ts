@@ -1,6 +1,9 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { chromium, type FullConfig } from '@playwright/test';
-import { grantTestAdmin } from '../../utils/integration-fixtures';
+import {
+  grantTestAdmin,
+  setWaitlistMode,
+} from '../../utils/integration-fixtures';
 import { generateE2ETestEmail } from '../../utils/test-emails';
 import { createTestUser, waitForUserProfile } from '../../utils/test-helpers';
 import { createWebTestClient } from '../../utils/test-clients';
@@ -46,6 +49,8 @@ async function globalSetup(_config: FullConfig): Promise<void> {
   applyE2eSupabaseEnv();
 
   mkdirSync(e2eAuthDir, { recursive: true });
+
+  await setWaitlistMode('open');
 
   const supabase = createWebTestClient();
   const password =

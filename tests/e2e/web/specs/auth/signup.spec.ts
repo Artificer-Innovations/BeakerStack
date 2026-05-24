@@ -5,6 +5,7 @@ import {
   expect,
   gotoRoute,
   fillSignupForm,
+  expectSignupOutcome,
 } from '../../fixtures/auth.fixture';
 
 test.describe('Signup', () => {
@@ -20,16 +21,6 @@ test.describe('Signup', () => {
     await fillSignupForm(page, email, password);
     await page.getByRole('button', { name: 'Create account' }).click();
 
-    const outcome = await Promise.race([
-      page
-        .waitForURL(/\/dashboard/, { timeout: 15_000 })
-        .then(() => 'dashboard' as const),
-      page
-        .getByRole('heading', { name: 'Check your email' })
-        .waitFor({ timeout: 15_000 })
-        .then(() => 'confirm' as const),
-    ]).catch(() => null);
-
-    expect(outcome).not.toBeNull();
+    await expectSignupOutcome(page);
   });
 });
