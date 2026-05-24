@@ -22,7 +22,7 @@ export function isPostgresUrl(url) {
 export function assertPostgresUrl(url) {
   if (!isPostgresUrl(url)) {
     throw new Error(
-      'Resolved database URL is not a Postgres connection string'
+      `Resolved database URL is not a Postgres connection string: ${String(url).slice(0, 80)}`
     );
   }
   return url;
@@ -33,6 +33,8 @@ export function assertPostgresUrl(url) {
  * @returns {{ projectRef?: string; dbPassword?: string }}
  */
 export function resolveLinkedCredentials(env = process.env) {
+  // PREVIEW_SUPABASE_* is intentionally omitted — PR preview does not run adopter
+  // migrations today. Add a pair here if that workflow starts calling --linked.
   const pairs = [
     ['SUPABASE_PROJECT_REF', 'SUPABASE_DB_PASSWORD'],
     ['STAGING_SUPABASE_PROJECT_REF', 'STAGING_SUPABASE_DB_PASSWORD'],
@@ -41,7 +43,7 @@ export function resolveLinkedCredentials(env = process.env) {
 
   for (const [refKey, passwordKey] of pairs) {
     const projectRef = env[refKey]?.trim();
-    const dbPassword = env[passwordKey];
+    const dbPassword = env[passwordKey]?.trim();
     if (projectRef && dbPassword) {
       return { projectRef, dbPassword };
     }
@@ -51,11 +53,14 @@ export function resolveLinkedCredentials(env = process.env) {
 }
 
 /**
+ * Local-dev fallback after `supabase link`: read project ref from disk and pair
+ * with SUPABASE_DB_PASSWORD only (not STAGING_/PRODUCTION_ variants).
+ *
  * @param {string} repoRoot
  * @param {NodeJS.ProcessEnv} env
  * @returns {string | undefined}
  */
-export function readLinkedProjectRef(repoRoot, env = process.env) {
+export function readLinkedConnectionUri(repoRoot, env = process.env) {
   const refPath = path.join(repoRoot, 'supabase', '.temp', 'project-ref');
   if (!existsSync(refPath)) {
     return undefined;
@@ -66,9 +71,11 @@ export function readLinkedProjectRef(repoRoot, env = process.env) {
     return undefined;
   }
 
-  const dbPassword = env.SUPABASE_DB_PASSWORD;
+  const dbPassword = env.SUPABASE_DB_PASSWORD?.trim();
   if (!dbPassword) {
-    return undefined;
+    throw new Error(
+      'Found supabase/.temp/project-ref from supabase link but SUPABASE_DB_PASSWORD is not set. The file fallback uses the generic password var only — set SUPABASE_DB_PASSWORD or use STAGING_/PRODUCTION_ env pairs instead.'
+    );
   }
 
   return postgresConnectionUri(projectRef, dbPassword);
@@ -96,7 +103,7 @@ export function resolveAdopterDatabaseUrl(options = {}) {
       return assertPostgresUrl(postgresConnectionUri(projectRef, dbPassword));
     }
 
-    const linkedUrl = readLinkedProjectRef(repoRoot, env);
+    const linkedUrl = readLinkedConnectionUri(repoRoot, env);
     if (linkedUrl) {
       return assertPostgresUrl(linkedUrl);
     }

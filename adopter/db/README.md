@@ -32,6 +32,6 @@ A `9*` prefix is **optional** for adopter migrations (visual hint only). Templat
 2. `SUPABASE_PROJECT_REF` + `SUPABASE_DB_PASSWORD`
 3. `STAGING_SUPABASE_PROJECT_REF` + `STAGING_SUPABASE_DB_PASSWORD`
 4. `PRODUCTION_SUPABASE_PROJECT_REF` + `PRODUCTION_SUPABASE_DB_PASSWORD`
-5. Local fallback after `supabase link`: `supabase/.temp/project-ref` + `SUPABASE_DB_PASSWORD`
+5. Local fallback after `supabase link`: `supabase/.temp/project-ref` + `SUPABASE_DB_PASSWORD` (generic var only — not staging/production variants)
 
 Deploy workflows inject the staging/production project ref and DB password secrets on the adopter migration step. Run after `supabase db push` in deploy workflows.

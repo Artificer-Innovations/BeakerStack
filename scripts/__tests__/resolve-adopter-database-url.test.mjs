@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import {
   assertPostgresUrl,
   isPostgresUrl,
-  readLinkedProjectRef,
+  isScriptMain,
+  readLinkedConnectionUri,
   resolveAdopterDatabaseUrl,
   resolveLinkedCredentials,
 } from '../lib/resolve-adopter-database-url.mjs';
@@ -20,7 +22,7 @@ test('isPostgresUrl accepts postgres and postgresql schemes', () => {
 test('assertPostgresUrl rejects non-Postgres values', () => {
   assert.throws(
     () => assertPostgresUrl('Manage remote databases'),
-    /not a Postgres connection string/
+    /not a Postgres connection string: Manage remote databases/
   );
 });
 
@@ -56,6 +58,17 @@ test('resolveLinkedCredentials uses production env vars', () => {
   assert.deepEqual(creds, {
     projectRef: 'prod-ref',
     dbPassword: 'prod-pass',
+  });
+});
+
+test('resolveLinkedCredentials trims dbPassword whitespace', () => {
+  const creds = resolveLinkedCredentials({
+    SUPABASE_PROJECT_REF: 'abc123',
+    SUPABASE_DB_PASSWORD: '  secret\n',
+  });
+  assert.deepEqual(creds, {
+    projectRef: 'abc123',
+    dbPassword: 'secret',
   });
 });
 
@@ -113,8 +126,9 @@ test('resolveAdopterDatabaseUrl prefers DATABASE_URL override', () => {
 });
 
 test('resolveAdopterDatabaseUrl linked throws when credentials missing', () => {
+  const repoRoot = mkdtempSync(path.join(os.tmpdir(), 'adopter-db-empty-'));
   assert.throws(
-    () => resolveAdopterDatabaseUrl({ linked: true, env: {} }),
+    () => resolveAdopterDatabaseUrl({ linked: true, env: {}, repoRoot }),
     /Failed to resolve remote database URL for --linked/
   );
 });
@@ -126,7 +140,7 @@ test('resolveAdopterDatabaseUrl linked rejects invalid DATABASE_URL', () => {
         linked: true,
         env: { DATABASE_URL: 'not-a-postgres-url' },
       }),
-    /not a Postgres connection string/
+    /not a Postgres connection string: not-a-postgres-url/
   );
 });
 
@@ -145,18 +159,30 @@ test('resolveAdopterDatabaseUrl local uses SUPABASE_DB_URL', () => {
   assert.equal(url, 'postgresql://postgres:local@127.0.0.1:54322/postgres');
 });
 
-test('readLinkedProjectRef uses supabase/.temp/project-ref fallback', () => {
+test('readLinkedConnectionUri uses supabase/.temp/project-ref fallback', () => {
   const repoRoot = mkdtempSync(path.join(os.tmpdir(), 'adopter-db-'));
   const tempDir = path.join(repoRoot, 'supabase', '.temp');
   mkdirSync(tempDir, { recursive: true });
   writeFileSync(path.join(tempDir, 'project-ref'), 'linked-ref\n');
 
-  const url = readLinkedProjectRef(repoRoot, {
+  const url = readLinkedConnectionUri(repoRoot, {
     SUPABASE_DB_PASSWORD: 'linked-pass',
   });
   assert.equal(
     url,
     'postgresql://postgres:linked-pass@db.linked-ref.supabase.co:5432/postgres'
+  );
+});
+
+test('readLinkedConnectionUri throws when project-ref exists without password', () => {
+  const repoRoot = mkdtempSync(path.join(os.tmpdir(), 'adopter-db-'));
+  const tempDir = path.join(repoRoot, 'supabase', '.temp');
+  mkdirSync(tempDir, { recursive: true });
+  writeFileSync(path.join(tempDir, 'project-ref'), 'linked-ref\n');
+
+  assert.throws(
+    () => readLinkedConnectionUri(repoRoot, {}),
+    /SUPABASE_DB_PASSWORD is not set/
   );
 });
 
@@ -175,4 +201,17 @@ test('resolveAdopterDatabaseUrl linked falls back to linked project ref file', (
     url,
     'postgresql://postgres:linked-pass@db.linked-ref.supabase.co:5432/postgres'
   );
+});
+
+test('isScriptMain returns true when argv matches import meta url', () => {
+  const scriptPath = fileURLToPath(import.meta.url);
+  assert.equal(isScriptMain(import.meta.url, scriptPath), true);
+});
+
+test('isScriptMain returns false for a different path', () => {
+  assert.equal(isScriptMain(import.meta.url, '/some/other/script.mjs'), false);
+});
+
+test('isScriptMain returns false when argv is missing', () => {
+  assert.equal(isScriptMain(import.meta.url, ''), false);
 });
