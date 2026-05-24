@@ -51,7 +51,7 @@ supabase db push
 npm run db:apply-adopter -- --linked
 ```
 
-`--linked` resolves the remote Postgres URL from `DATABASE_URL` or paired project-ref + DB password env vars (`SUPABASE_*`, `STAGING_SUPABASE_*`, `PRODUCTION_SUPABASE_*`). When `supabase link` has written `supabase/.temp/pooler-url`, the resolver uses the Supavisor session pooler (IPv4-compatible on GitHub Actions) instead of direct `db.{ref}.supabase.co`. Deploy workflows already inject the staging/production secrets on this step.
+`--linked` resolves the remote Postgres URL from `DATABASE_URL` or paired project-ref + DB password env vars (`SUPABASE_*`, `SUPABASE_PREVIEW_*`, `STAGING_SUPABASE_*`, `PRODUCTION_SUPABASE_*`). When `supabase link` has written `supabase/.temp/pooler-url`, the resolver uses the Supavisor session pooler (IPv4-compatible on GitHub Actions) instead of direct `db.{ref}.supabase.co`. Deploy workflows inject staging/production secrets on this step; PR preview runs it from `reset-preview-database.sh` after template migrations (and after every full reset, since reset drops the `app` schema).
 
 ## Type generation
 

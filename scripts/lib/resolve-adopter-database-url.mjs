@@ -36,10 +36,9 @@ export function assertPostgresUrl(url) {
  * @returns {{ projectRef?: string; dbPassword?: string }}
  */
 export function resolveLinkedCredentials(env = process.env) {
-  // PREVIEW_SUPABASE_* is intentionally omitted — PR preview does not run adopter
-  // migrations today. Add a pair here if that workflow starts calling --linked.
   const pairs = [
     ['SUPABASE_PROJECT_REF', 'SUPABASE_DB_PASSWORD'],
+    ['SUPABASE_PREVIEW_PROJECT_REF', 'SUPABASE_PREVIEW_DB_PASSWORD'],
     ['STAGING_SUPABASE_PROJECT_REF', 'STAGING_SUPABASE_DB_PASSWORD'],
     ['PRODUCTION_SUPABASE_PROJECT_REF', 'PRODUCTION_SUPABASE_DB_PASSWORD'],
   ];
@@ -146,7 +145,7 @@ export function resolveAdopterDatabaseUrl(options = {}) {
     }
 
     throw new Error(
-      'Failed to resolve remote database URL for --linked. Set DATABASE_URL or project ref + DB password env vars (SUPABASE_*, STAGING_SUPABASE_*, or PRODUCTION_SUPABASE_*).'
+      'Failed to resolve remote database URL for --linked. Set DATABASE_URL or project ref + DB password env vars (SUPABASE_*, SUPABASE_PREVIEW_*, STAGING_SUPABASE_*, or PRODUCTION_SUPABASE_*).'
     );
   }
 

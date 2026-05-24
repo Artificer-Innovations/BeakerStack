@@ -157,9 +157,10 @@ Triggered for `opened`, `reopened`, `synchronize`, `ready_for_review`.
    - Syncs shared error page and exports outputs.
 4. Run `scripts/pr-preview/reset-preview-database.sh`
    - Links to preview Supabase project.
-   - Resets migrations + seed data.
-   - Generates TypeScript types for all packages.
-   - Uses `--skip-if-unchanged` to avoid contacting Supabase when no migrations changed.
+   - Resets template migrations + seed data when `supabase/` changed.
+   - Applies adopter migrations (`npm run db:apply-adopter -- --linked`) when `adopter/db/` changed or after a full reset.
+   - Generates TypeScript types for all packages when template migrations ran.
+   - Uses `--skip-if-unchanged` to avoid contacting Supabase when neither `supabase/` nor `adopter/db/` changed.
 5. Deploy billing Edge functions for preview:
    - Sets preview project Edge secrets (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`).
    - Deploys `stripe-webhook` and `billing-stripe`.
@@ -188,13 +189,13 @@ Triggered when a PR is `closed` (merged or abandoned).
 
 ## Helper Scripts
 
-| Script                      | Purpose                                                              |
-| --------------------------- | -------------------------------------------------------------------- |
-| `bootstrap-aws-stack.sh`    | Deploys/validates CloudFormation stack and exports outputs.          |
-| `reset-preview-database.sh` | Resets Supabase preview project (migrations, seeds, types).          |
-| `deploy-web.sh`             | Builds web app, uploads to S3, invalidates CloudFront, verifies URL. |
-| `deploy-mobile.sh`          | Publishes Expo EAS update to PR-specific channel.                    |
-| `teardown.sh`               | Deletes S3 prefix, CloudFront cache, Supabase schema, Expo channel.  |
+| Script                      | Purpose                                                                                  |
+| --------------------------- | ---------------------------------------------------------------------------------------- |
+| `bootstrap-aws-stack.sh`    | Deploys/validates CloudFormation stack and exports outputs.                              |
+| `reset-preview-database.sh` | Resets Supabase preview project (template migrations, adopter migrations, seeds, types). |
+| `deploy-web.sh`             | Builds web app, uploads to S3, invalidates CloudFront, verifies URL.                     |
+| `deploy-mobile.sh`          | Publishes Expo EAS update to PR-specific channel.                                        |
+| `teardown.sh`               | Deletes S3 prefix, CloudFront cache, Supabase schema, Expo channel.                      |
 
 All scripts support `--dry-run` and write outputs to `GITHUB_OUTPUT` (CI) or
 `--env-file` (local usage).

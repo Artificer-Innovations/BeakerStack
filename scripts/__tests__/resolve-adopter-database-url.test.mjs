@@ -42,6 +42,46 @@ test('resolveLinkedCredentials prefers generic env vars', () => {
   });
 });
 
+test('resolveLinkedCredentials uses preview env vars', () => {
+  const creds = resolveLinkedCredentials({
+    SUPABASE_PREVIEW_PROJECT_REF: 'preview-ref',
+    SUPABASE_PREVIEW_DB_PASSWORD: 'preview-pass',
+  });
+  assert.deepEqual(creds, {
+    projectRef: 'preview-ref',
+    dbPassword: 'preview-pass',
+  });
+});
+
+test('resolveLinkedCredentials prefers generic env vars over preview', () => {
+  const creds = resolveLinkedCredentials({
+    SUPABASE_PROJECT_REF: 'generic-ref',
+    SUPABASE_DB_PASSWORD: 'generic-pass',
+    SUPABASE_PREVIEW_PROJECT_REF: 'preview-ref',
+    SUPABASE_PREVIEW_DB_PASSWORD: 'preview-pass',
+  });
+  assert.deepEqual(creds, {
+    projectRef: 'generic-ref',
+    dbPassword: 'generic-pass',
+  });
+});
+
+test('resolveAdopterDatabaseUrl linked uses preview secrets', () => {
+  const repoRoot = mkdtempSync(path.join(os.tmpdir(), 'adopter-db-'));
+  const url = resolveAdopterDatabaseUrl({
+    linked: true,
+    repoRoot,
+    env: {
+      SUPABASE_PREVIEW_PROJECT_REF: 'abc123preview',
+      SUPABASE_PREVIEW_DB_PASSWORD: 'secret',
+    },
+  });
+  assert.equal(
+    url,
+    'postgresql://postgres:secret@db.abc123preview.supabase.co:5432/postgres?sslmode=require'
+  );
+});
+
 test('resolveLinkedCredentials uses staging env vars', () => {
   const creds = resolveLinkedCredentials({
     STAGING_SUPABASE_PROJECT_REF: 'staging-ref',
