@@ -9,6 +9,7 @@ export default {
     './src/**/*.{js,ts,jsx,tsx}',
     '../../packages/shared/src/components/**/*.{js,ts,jsx,tsx}',
     '../../packages/shared/src/config/**/*.{js,ts}',
+    '../../adopter/web/**/*.{js,ts,jsx,tsx}',
   ],
   safelist: [
     // Emitted from layoutWidth.ts (shared config); ensure JIT includes width tokens
