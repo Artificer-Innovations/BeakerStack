@@ -292,7 +292,7 @@ npx playwright test --config tests/e2e/web/playwright.config.ts specs/marketing
 
 **Stripe billing E2E** (`specs/billing/billing-stripe.spec.ts`):
 
-- Uses real Stripe Checkout in test mode (card `4242 4242 4242 4242`) in a single serial describe (upgrade → downgrade → cadence → invoices).
+- Uses real Stripe Checkout in test mode (card `4242 4242 4242 4242`) in a single serial describe (upgrade → annual switch → invoices → downgrade).
 - Runs in the `shared-state` Playwright project (not parallel chromium) to avoid checkout races on the seeded user.
 - Runs automatically in CI/preview (`E2E_TARGET=preview`).
 - Local runs require full stack: `supabase start`, Edge functions with `STRIPE_*`, webhook forwarding (`stripe listen`), and `export E2E_STRIPE_READY=1`.
@@ -309,7 +309,7 @@ npx playwright test --config tests/e2e/web/playwright.config.ts specs/marketing
 
 **Shared-state specs** (`specs/profile/`, `specs/billing/metered-usage.spec.ts`, `specs/billing/billing-stripe.spec.ts`, `specs/admin/users.spec.ts`, `specs/admin/waitlist.spec.ts`) run serially in a second Playwright project to avoid conflicting edits on the seeded user.
 
-**CI parallelism:** Preview E2E runs in three jobs — prepare (global setup once), parallel `chromium` (`PLAYWRIGHT_WORKERS=4`), then a serial job for shared-state/waitlist specs. Playwright Chromium binaries are cached under `~/.cache/ms-playwright`. Local runs still use `workers: 1` unless you set `PLAYWRIGHT_WORKERS`.
+**CI parallelism:** Preview E2E runs in four jobs — prepare (global setup once), parallel `chromium` (`PLAYWRIGHT_WORKERS=4`), serial `shared-state` + `signup-mode` (`--workers=1`), then report/teardown. Playwright Chromium binaries are cached under `~/.cache/ms-playwright`. Local runs use Playwright’s default worker count for `chromium`; `shared-state` and `signup-mode` always pin `workers: 1` to avoid seed-user races. Override with `PLAYWRIGHT_WORKERS` or `npx playwright test --workers=N`.
 
 **Structure:**
 
@@ -323,7 +323,7 @@ tests/e2e/web/
     ├── auth/login.spec.ts
     ├── auth/signup.spec.ts
     ├── auth/protected-routes.spec.ts
-    └── profile/profile-edit.spec.ts
+    └── profile/profile.spec.ts
 ```
 
 Shared utilities in `tests/e2e/shared/` and `tests/utils/` are imported from TypeScript specs (selectors, test emails, Supabase seed helpers).

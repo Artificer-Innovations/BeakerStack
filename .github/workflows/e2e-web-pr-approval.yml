@@ -513,6 +513,20 @@ jobs:
           path: tests/e2e/web/results/
           merge-multiple: true
 
+      - name: Download E2E auth artifacts
+        if: needs.e2e-prepare.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-auth-state
+          path: tests/e2e/web/.auth/
+
+      - name: Verify E2E auth artifacts for teardown
+        if: needs.e2e-prepare.result == 'success'
+        run: |
+          set -euo pipefail
+          test -s tests/e2e/web/.auth/state.json
+          test -s tests/e2e/web/.auth/admin-state.json
+
       - name: Merge Playwright JSON reports
         id: merge_reports
         run: |
