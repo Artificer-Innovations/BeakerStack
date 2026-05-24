@@ -16,16 +16,21 @@ jobs:
     if: |
       github.event.issue.pull_request &&
       github.event.comment.user.type != 'Bot' &&
-      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
-      (github.event.comment.body == 'Run e2e' ||
-       github.event.comment.body == 'run e2e' ||
-       github.event.comment.body == 'RUN E2E')
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
     runs-on: ubuntu-latest
     steps:
       - name: Dispatch Playwright E2E workflow
         uses: actions/github-script@v7
         with:
           script: |
+            const body = context.payload.comment.body.trim();
+            if (!/^run e2e$/i.test(body)) {
+              core.notice(
+                `Ignoring comment (expected "Run e2e", got: ${JSON.stringify(body)})`
+              );
+              return;
+            }
+
             const { owner, repo } = context.repo;
             const issueNumber = context.issue.number;
 
