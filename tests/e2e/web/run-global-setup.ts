@@ -1,8 +1,7 @@
-import type { FullConfig } from '@playwright/test';
-import globalSetup from './global-setup';
+import { runE2eGlobalSetup } from './global-setup';
 
 async function main(): Promise<void> {
-  await globalSetup({} as FullConfig);
+  await runE2eGlobalSetup();
 }
 
 main().catch(err => {

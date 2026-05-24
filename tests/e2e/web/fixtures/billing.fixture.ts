@@ -1,5 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 import {
+  BILLING_FREE_PLAN_ID,
   BILLING_PRODUCT_ID,
   BILLING_USAGE_EVENT,
 } from '../../../utils/billing-fixtures';
@@ -42,6 +43,36 @@ export async function resetDemoCollectionsForUser(
     .eq('product_id', BILLING_PRODUCT_ID);
   if (error) {
     throw new Error(`reset demo collections failed: ${error.message}`);
+  }
+}
+
+/** Revert seeded user subscription to Free after Stripe E2E (scheduled downgrades stay on Pro in DB). */
+export async function resetBillingPlanForUser(userId: string): Promise<void> {
+  const admin = createServiceRoleClient();
+  const periodStart = new Date().toISOString();
+  const periodEnd = new Date(
+    Date.now() + 30 * 24 * 60 * 60 * 1000
+  ).toISOString();
+  const { error } = await admin.from('billing_subscriptions').upsert(
+    {
+      user_id: userId,
+      product_id: BILLING_PRODUCT_ID,
+      plan_id: BILLING_FREE_PLAN_ID,
+      status: 'free',
+      stripe_customer_id: null,
+      stripe_subscription_id: null,
+      stripe_price_id: null,
+      cancel_at_period_end: false,
+      canceled_at: null,
+      trial_start: null,
+      trial_end: null,
+      current_period_start: periodStart,
+      current_period_end: periodEnd,
+    },
+    { onConflict: 'user_id,product_id' }
+  );
+  if (error) {
+    throw new Error(`reset billing plan failed: ${error.message}`);
   }
 }
 

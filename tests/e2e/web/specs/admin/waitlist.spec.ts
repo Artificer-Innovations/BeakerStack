@@ -18,16 +18,18 @@ test.describe('Admin waitlist', () => {
     await page.getByLabel('Email address').fill(email);
     await page.getByRole('button', { name: 'Send invite' }).click();
 
-    await expect(page.getByText(`Invite created for ${email}`)).toBeVisible({
-      timeout: 15_000,
-    });
-    await expect(
-      page.getByRole('button', { name: 'Copy invite link' })
-    ).toBeVisible();
-
-    const entry = await findWaitlistEntryByEmail(email);
-    if (entry) {
-      await deleteWaitlistEntry(entry.id);
+    try {
+      await expect(page.getByText(`Invite created for ${email}`)).toBeVisible({
+        timeout: 15_000,
+      });
+      await expect(
+        page.getByRole('button', { name: 'Copy invite link' })
+      ).toBeVisible();
+    } finally {
+      const entry = await findWaitlistEntryByEmail(email);
+      if (entry) {
+        await deleteWaitlistEntry(entry.id);
+      }
     }
   });
 

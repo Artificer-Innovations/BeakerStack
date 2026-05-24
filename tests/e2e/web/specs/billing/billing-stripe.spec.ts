@@ -1,5 +1,14 @@
-import { e2eStorageStatePath } from '../../env';
+import { readFileSync } from 'node:fs';
+import {
+  e2eStatePath,
+  e2eStorageStatePath,
+  type E2eSeedState,
+} from '../../env';
 import { test, expect, gotoRoute } from '../../fixtures/auth.fixture';
+import {
+  expectCurrentPlan,
+  resetBillingPlanForUser,
+} from '../../fixtures/billing.fixture';
 import {
   completeStripeCheckout,
   expectPlanActive,
@@ -42,6 +51,14 @@ test.describe('Billing Stripe flows', () => {
     }
   });
 
+  test.afterAll(async () => {
+    if (!stripeCheckoutReady) {
+      return;
+    }
+    const seed = JSON.parse(readFileSync(e2eStatePath, 'utf8')) as E2eSeedState;
+    await resetBillingPlanForUser(seed.userId);
+  });
+
   test.beforeEach(({ authenticatedPage: _page }, testInfo) => {
     testInfo.skip(!stripeCheckoutReady, stripeCheckoutSkipReason);
   });
@@ -54,10 +71,40 @@ test.describe('Billing Stripe flows', () => {
     await expectPlanActive(page, 'Pro');
   });
 
+  test('shows annual switch option for paid plan', async ({
+    authenticatedPage: page,
+  }) => {
+    await gotoRoute(page, '/billing/plans');
+    await expectCurrentPlan(page, 'Pro');
+    await page.getByRole('button', { name: /Annually/i }).click();
+    await expect(
+      page.locator('#plan-card-beakerstack_pro').getByRole('button', {
+        name: /Switch to annual/i,
+      })
+    ).toBeVisible();
+  });
+
+  test('loads invoices page after upgrade', async ({
+    authenticatedPage: page,
+  }) => {
+    await gotoRoute(page, '/billing/plans');
+    await expectCurrentPlan(page, 'Pro');
+    await gotoRoute(page, '/billing/invoices');
+    await expect(
+      page.getByRole('heading', { name: 'Invoices', level: 2 })
+    ).toBeVisible();
+    await expect(
+      page
+        .getByRole('link', { name: 'Explore plans' })
+        .or(page.locator('table'))
+    ).toBeVisible();
+  });
+
   test('schedules downgrade to Free after Pro subscription', async ({
     authenticatedPage: page,
   }) => {
     await gotoRoute(page, '/billing/plans');
+    await expectCurrentPlan(page, 'Pro');
     await page
       .locator('#plan-card-beakerstack_free')
       .getByRole('button', { name: 'Downgrade to Free' })
@@ -70,31 +117,5 @@ test.describe('Billing Stripe flows', () => {
     await expect(page.getByText(/downgrade|scheduled|cancel/i)).toBeVisible({
       timeout: 15_000,
     });
-  });
-
-  test('shows annual switch option for paid plan', async ({
-    authenticatedPage: page,
-  }) => {
-    await gotoRoute(page, '/billing/plans');
-    await page.getByRole('button', { name: /Annually/i }).click();
-    await expect(
-      page.locator('#plan-card-beakerstack_pro').getByRole('button', {
-        name: /Switch to annual/i,
-      })
-    ).toBeVisible();
-  });
-
-  test('loads invoices page after upgrade', async ({
-    authenticatedPage: page,
-  }) => {
-    await gotoRoute(page, '/billing/invoices');
-    await expect(
-      page.getByRole('heading', { name: 'Invoices', level: 2 })
-    ).toBeVisible();
-    await expect(
-      page
-        .getByRole('link', { name: 'Explore plans' })
-        .or(page.locator('table'))
-    ).toBeVisible();
   });
 });

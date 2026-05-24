@@ -15,12 +15,13 @@ function resolveJsonReportPath(): string {
   if (path.isAbsolute(configured)) {
     return configured;
   }
+  const normalized = configured.replace(/\\/g, '/');
   // CI/npm often pass repo-root paths (tests/e2e/web/results/...).
-  if (configured.startsWith('tests/')) {
-    return path.resolve(process.cwd(), configured);
+  if (normalized.startsWith('tests/')) {
+    return path.resolve(process.cwd(), normalized);
   }
   // Paths relative to this config file (e.g. results/chromium-results.json).
-  return path.join(configDir, configured);
+  return path.join(configDir, normalized);
 }
 
 const jsonReportPath = resolveJsonReportPath();
@@ -35,7 +36,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: isCi,
   retries: isCi ? 1 : 0,
-  workers: isCi ? ciWorkers : 1,
+  workers: isCi ? ciWorkers : undefined,
   reporter: [
     ['list'],
     ['html', { outputFolder: reportDir, open: 'never' }],

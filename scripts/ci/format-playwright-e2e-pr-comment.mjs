@@ -99,9 +99,6 @@ export function formatMinutes(durationMs) {
   return `${(durationMs / 60_000).toFixed(2)} min`;
 }
 
-/** @deprecated Use CATEGORY_SECTION_ROW_BG; kept for existing tests during transition. */
-export const FILE_SECTION_ROW_BG = CATEGORY_SECTION_ROW_BG;
-
 /** @param {string} value */
 export function escapeHtml(value) {
   return String(value)

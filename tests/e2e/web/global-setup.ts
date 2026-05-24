@@ -44,7 +44,7 @@ async function loginAndSaveStorageState(
   await browser.close();
 }
 
-async function globalSetup(_config: FullConfig): Promise<void> {
+export async function runE2eGlobalSetup(): Promise<void> {
   applyE2eSupabaseEnv();
   console.log('[e2e] Starting global setup', {
     target: process.env.E2E_TARGET ?? 'local',
@@ -117,6 +117,10 @@ async function globalSetup(_config: FullConfig): Promise<void> {
   process.env.E2E_SEED_PASSWORD = password;
   process.env.E2E_BASE_URL = getWebBaseUrl();
   console.log('[e2e] Global setup complete.');
+}
+
+async function globalSetup(_config: FullConfig): Promise<void> {
+  await runE2eGlobalSetup();
 }
 
 export default globalSetup;

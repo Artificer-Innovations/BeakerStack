@@ -23,7 +23,6 @@ test.describe('Waitlist pricing CTA', () => {
       .getByRole('button', { name: 'Join the waitlist for Pro' })
       .click();
 
-    await expect(page).toHaveURL(/\/signup/);
-    await expect(page.url()).toMatch(/plan=beakerstack_pro|plan=pro/i);
+    await expect(page).toHaveURL(/\/signup.*plan=(beakerstack_pro|pro)/i);
   });
 });

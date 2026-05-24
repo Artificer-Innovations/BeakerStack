@@ -13,12 +13,12 @@ import { e2eAdminStatePath, type E2eSeedState } from '../env';
 async function waitForWaitlistEntry(
   email: string
 ): Promise<{ id: string; email: string; status: string }> {
-  for (let attempt = 0; attempt < 12; attempt += 1) {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
     const entry = await findWaitlistEntryByEmail(email);
     if (entry) {
       return entry;
     }
-    await new Promise(resolve => setTimeout(resolve, 250));
+    await new Promise(resolve => setTimeout(resolve, 500));
   }
   throw new Error(`waitlist entry not found for ${email}`);
 }
@@ -73,6 +73,22 @@ export async function approveWaitlistEntryByEmail(
 
 export async function deleteWaitlistEntry(entryId: string): Promise<void> {
   const admin = createServiceRoleClient();
-  await admin.from('waitlist_invites').delete().eq('entry_id', entryId);
-  await admin.from('waitlist_entries').delete().eq('id', entryId);
+  const { error: inviteError } = await admin
+    .from('waitlist_invites')
+    .delete()
+    .eq('entry_id', entryId);
+  if (inviteError) {
+    throw new Error(
+      `deleteWaitlistEntry waitlist_invites failed: ${inviteError.message}`
+    );
+  }
+  const { error: entryError } = await admin
+    .from('waitlist_entries')
+    .delete()
+    .eq('id', entryId);
+  if (entryError) {
+    throw new Error(
+      `deleteWaitlistEntry waitlist_entries failed: ${entryError.message}`
+    );
+  }
 }

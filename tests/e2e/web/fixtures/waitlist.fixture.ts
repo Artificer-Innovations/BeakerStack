@@ -45,7 +45,7 @@ export function isWaitlistEdgeReady(): boolean {
   if (process.env.E2E_WAITLIST_READY === '1') {
     return true;
   }
-  if (process.env.E2E_TARGET === 'preview' || process.env.CI === 'true') {
+  if (process.env.E2E_TARGET === 'preview' || Boolean(process.env.CI)) {
     return true;
   }
   return false;
