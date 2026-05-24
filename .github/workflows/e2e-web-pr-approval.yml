@@ -3,8 +3,14 @@ name: E2E Web (PR Approval)
 on:
   pull_request_review:
     types: [submitted]
-  issue_comment:
-    types: [created]
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to run E2E against
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -12,7 +18,7 @@ permissions:
   deployments: read
 
 concurrency:
-  group: e2e-web-pr-${{ github.event.pull_request.number || github.event.issue.number }}
+  group: e2e-web-pr-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
   cancel-in-progress: true
 
 jobs:
@@ -23,12 +29,12 @@ jobs:
        github.event.review.user.login == 'ZappoMan' &&
        github.event.pull_request.base.ref == 'develop' &&
        github.event.pull_request.head.repo.full_name == github.repository) ||
-      (github.event_name == 'issue_comment' &&
-       github.event.issue.pull_request &&
-       github.event.comment.user.type != 'Bot' &&
-       (github.event.comment.body == 'Run e2e' ||
-        github.event.comment.body == 'run e2e' ||
-        github.event.comment.body == 'RUN E2E'))
+      (github.event_name == 'pull_request' &&
+       github.event.action == 'labeled' &&
+       github.event.label.name == 'run-e2e' &&
+       github.event.pull_request.base.ref == 'develop' &&
+       github.event.pull_request.head.repo.full_name == github.repository) ||
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       PREVIEW_DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
@@ -40,23 +46,32 @@ jobs:
         with:
           script: |
             const isReview = context.eventName === 'pull_request_review';
-            const isComment = context.eventName === 'issue_comment';
+            const isLabel = context.eventName === 'pull_request';
+            const isDispatch = context.eventName === 'workflow_dispatch';
             let pr;
 
             if (isReview) {
               pr = context.payload.pull_request;
-            } else if (isComment) {
-              const body = context.payload.comment.body.trim();
-              if (!/^run e2e$/i.test(body)) {
-                core.info(
-                  `Ignoring comment (expected exactly "Run e2e", got: ${JSON.stringify(body)})`
-                );
+            } else if (isLabel) {
+              if (
+                context.payload.action !== 'labeled' ||
+                context.payload.label?.name !== 'run-e2e'
+              ) {
+                core.info('Ignoring pull_request event (not run-e2e label).');
+                return;
+              }
+              pr = context.payload.pull_request;
+            } else if (isDispatch) {
+              const raw = context.payload.inputs?.pr_number;
+              const prNumber = Number(raw);
+              if (!Number.isInteger(prNumber) || prNumber < 1) {
+                core.setFailed(`Invalid pr_number input: ${JSON.stringify(raw)}`);
                 return;
               }
               const { data } = await github.rest.pulls.get({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                pull_number: context.issue.number,
+                pull_number: prNumber,
               });
               pr = data;
             } else {
@@ -148,7 +163,7 @@ jobs:
 
             if (!matched) {
               core.setFailed(
-                `Preview is not deployed for commit ${headSha.slice(0, 7)}. Push again or wait for PR Preview to complete, then approve or comment "Run e2e".`
+                `Preview is not deployed for commit ${headSha.slice(0, 7)}. Push again or wait for PR Preview to complete, then approve, add the run-e2e label, or comment "Run e2e".`
               );
             }
 

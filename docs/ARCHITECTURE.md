@@ -2034,7 +2034,7 @@ jobs:
 
 #### Web E2E (Playwright, on PR approval or comment)
 
-Web E2E runs when **@ZappoMan approves** a PR targeting `develop`, or when someone comments **`Run e2e`** on the PR (case insensitive). The workflow verifies the PR preview deployment matches HEAD, then runs Playwright against `https://deploy.<domain>/pr-<N>/`.
+Web E2E runs when **@ZappoMan approves** a PR targeting `develop`, when the PR is labeled **`run-e2e`**, or when someone comments **`Run e2e`** on the PR (comment handled by a dispatcher workflow on `main`). The workflow verifies the PR preview deployment matches HEAD, then runs Playwright against `https://deploy.<domain>/pr-<N>/`.
 
 ```yaml
 # .github/workflows/e2e-web-pr-approval.yml
@@ -2042,14 +2042,18 @@ Web E2E runs when **@ZappoMan approves** a PR targeting `develop`, or when someo
 on:
   pull_request_review:
     types: [submitted]
-  issue_comment:
-    types: [created]
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      pr_number: ...
 
 jobs:
   e2e-web:
     if: |
       (approved by @ZappoMan on develop) ||
-      (issue_comment body is "Run e2e" on a develop PR)
+      (labeled run-e2e on a develop PR) ||
+      (workflow_dispatch)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
