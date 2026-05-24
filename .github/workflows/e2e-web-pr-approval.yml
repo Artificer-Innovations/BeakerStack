@@ -233,7 +233,7 @@ jobs:
 
             if (!matchedDeployment) {
               core.setFailed(
-                `Preview is not deployed for commit ${headSha.slice(0, 7)}. Push again or wait for PR Preview to complete, then approve, add the run-e2e label, or comment "Run e2e".`
+                `Preview is not deployed for commit ${headSha.slice(0, 7)}. Push again or wait for PR Preview to complete, then approve or add the run-e2e label.`
               );
             }
 

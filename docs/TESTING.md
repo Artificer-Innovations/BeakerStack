@@ -332,7 +332,7 @@ Shared utilities in `tests/e2e/shared/` and `tests/utils/` are imported from Typ
 
 - **@ZappoMan approves** a PR targeting `develop`, or
 - The PR is labeled **`run-e2e`**, or
-- Someone comments **`Run e2e`** on the PR (case insensitive, exact phrase — handled by [`.github/workflows/e2e-web-pr-comment-trigger.yml`](../.github/workflows/e2e-web-pr-comment-trigger.yml) on `main`, which dispatches the Playwright workflow)
+- Someone manually re-runs the workflow from Actions → **E2E Web (PR Approval)** → Run workflow (requires the `pr_number` input)
 
 Tests run against the deployed PR preview URL after verifying the preview deployment matches the PR HEAD commit.
 
@@ -757,7 +757,7 @@ test('signs in seeded user and lands on dashboard', async ({
 
 **Problem:** CI E2E did not run after approval
 
-- **Solution:** E2E runs when @ZappoMan approves PRs to `develop`, when the PR is labeled `run-e2e`, or when someone comments `Run e2e` (comment trigger requires the workflow on `main`). Ensure PR Preview deployed the same HEAD commit first.
+- **Solution:** E2E runs when @ZappoMan approves PRs to `develop` or when the PR is labeled `run-e2e`. You can also re-run manually from Actions → **E2E Web (PR Approval)**. Ensure PR Preview deployed the same HEAD commit first.
 
 **Problem:** Assertions fail — element not found
 
@@ -830,7 +830,7 @@ test('signs in seeded user and lands on dashboard', async ({
 Tests are automatically run in CI/CD:
 
 - **On every PR:** Unit tests (parallel `unit-coverage-shard` matrix per workspace in `.github/workflows/test.yml`), integration tests, database tests
-- **When @ZappoMan approves a PR to `develop`, the PR is labeled `run-e2e`, or the PR receives a `Run e2e` comment:** Playwright web E2E against the PR preview (`.github/workflows/e2e-web-pr-approval.yml`; comments via `.github/workflows/e2e-web-pr-comment-trigger.yml` on `main`)
+- **When @ZappoMan approves a PR to `develop` or the PR is labeled `run-e2e`:** Playwright web E2E against the PR preview (`.github/workflows/e2e-web-pr-approval.yml`; manual re-runs via workflow_dispatch are also supported)
 - **On merge to develop / main:** Standard test workflows; staging/production smoke E2E are optional follow-ups
 
 See `.github/workflows/test.yml` and `.github/workflows/e2e-web-pr-approval.yml`.
