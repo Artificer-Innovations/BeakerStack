@@ -8,12 +8,15 @@ on:
 
 permissions:
   actions: write
+  contents: read
+  pull-requests: read
 
 jobs:
   dispatch:
     if: |
       github.event.issue.pull_request &&
       github.event.comment.user.type != 'Bot' &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
       (github.event.comment.body == 'Run e2e' ||
        github.event.comment.body == 'run e2e' ||
        github.event.comment.body == 'RUN E2E')
@@ -33,14 +36,16 @@ jobs:
             });
 
             if (pr.base.ref !== 'develop') {
-              core.setFailed(
-                `E2E only runs for PRs targeting develop (base: ${pr.base.ref}).`
+              core.notice(
+                `Skipping E2E dispatch: PR #${pr.number} targets ${pr.base.ref}, not develop.`
               );
               return;
             }
 
             if (pr.head.repo.full_name !== `${owner}/${repo}`) {
-              core.setFailed('E2E does not run for fork PRs.');
+              core.notice(
+                `Skipping E2E dispatch: PR #${pr.number} is from a fork (${pr.head.repo.full_name}).`
+              );
               return;
             }
 
