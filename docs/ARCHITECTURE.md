@@ -2032,9 +2032,9 @@ jobs:
         run: supabase stop
 ```
 
-#### Web E2E (Playwright, on PR approval or comment)
+#### Web E2E (Playwright, on PR approval or label)
 
-Web E2E runs when **@ZappoMan approves** a PR targeting `develop`, when the PR is labeled **`run-e2e`**, or when someone comments **`Run e2e`** on the PR (comment handled by a dispatcher workflow on `main`). The workflow verifies the PR preview deployment matches HEAD, then runs Playwright against `https://deploy.<domain>/pr-<N>/`.
+Web E2E runs when **@ZappoMan approves** a PR targeting `develop`, when the PR is labeled **`run-e2e`**, or when the workflow is manually re-run from the Actions tab (`workflow_dispatch` with a `pr_number` input). The workflow verifies the PR preview deployment matches HEAD, then runs Playwright against `https://deploy.<domain>/pr-<N>/`.
 
 ```yaml
 # .github/workflows/e2e-web-pr-approval.yml
