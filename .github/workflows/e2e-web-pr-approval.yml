@@ -286,6 +286,7 @@ jobs:
           sleep 5
 
       - name: Run E2E global setup
+        id: global_setup
         if: steps.pr_context.outputs.qualified == 'true' && steps.preview.outcome == 'success'
         env:
           CI: true
@@ -300,14 +301,25 @@ jobs:
           SUPABASE_PREVIEW_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
         run: npm run test:e2e:web:setup
 
+      - name: Verify E2E auth artifacts
+        if: steps.global_setup.outcome == 'success'
+        run: |
+          set -euo pipefail
+          ls -la tests/e2e/web/.auth/
+          test -s tests/e2e/web/.auth/state.json
+          test -s tests/e2e/web/.auth/user.json
+          test -s tests/e2e/web/.auth/admin-state.json
+          test -s tests/e2e/web/.auth/admin.json
+
       - name: Upload E2E auth artifacts
-        if: steps.pr_context.outputs.qualified == 'true' && steps.preview.outcome == 'success'
+        if: steps.global_setup.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: e2e-auth-state
           path: tests/e2e/web/.auth/
           retention-days: 1
           if-no-files-found: error
+          include-hidden-files: true
 
   e2e-chromium:
     needs: e2e-prepare
