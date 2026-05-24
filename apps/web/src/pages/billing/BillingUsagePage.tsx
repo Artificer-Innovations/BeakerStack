@@ -5,15 +5,15 @@ import {
 } from '@beakerstack/billing';
 import { UsageIndicator } from '@beakerstack/billing/web';
 import {
-  beakerstackBillingConfig,
+  billingConfig as adopterBillingConfig,
   BEAKERSTACK_METER_AI_SUMMARIZE,
-} from '../../billing/beakerstackBillingConfig';
+} from '@adopter/config/billing';
 import {
   booleanFeatureLabel,
   mergeUsageLimitsCopy,
   mergeUsageMeterCopy,
 } from '@beakerstack/billing/presentation';
-import { useDemoCollectionCount } from '../../billing/useDemoCollectionCount';
+import { useDemoCollectionCount } from '@adopter/web/billing/useDemoCollectionCount';
 import { Banner } from '../../components/billing/Banner.web';
 import { BillingPageShell } from '../../components/billing/BillingPageShell.web';
 import { BillingTabs } from '../../components/billing/BillingTabs.web';
@@ -21,14 +21,13 @@ import { FeatureLimitRow } from '../../components/billing/FeatureLimitRow.web';
 import { PlanFeatureRow } from '../../components/billing/PlanFeatureRow.web';
 
 export default function BillingUsagePage() {
-  const billingConfig = useBillingConfig<typeof beakerstackBillingConfig>();
+  const billingConfig = useBillingConfig<typeof adopterBillingConfig>();
   const meterCopy = mergeUsageMeterCopy(billingConfig);
   const limitsCopy = mergeUsageLimitsCopy(billingConfig);
   const featureALabel = booleanFeatureLabel(billingConfig, 'feature_a');
   const featureBLabel = booleanFeatureLabel(billingConfig, 'feature_b');
-  const { data: plan } = usePlan<typeof beakerstackBillingConfig>();
-  const { kind, subscription } =
-    useBillingState<typeof beakerstackBillingConfig>();
+  const { data: plan } = usePlan<typeof billingConfig>();
+  const { kind, subscription } = useBillingState<typeof billingConfig>();
   const { count: colCount = 0, maxItemsInAnyCollection = 0 } =
     useDemoCollectionCount();
   if (!plan) {
@@ -74,7 +73,7 @@ export default function BillingUsagePage() {
           </h2>
           {Object.keys(plan.usage_limits).map(m => (
             <div key={m} className='mt-3'>
-              <UsageIndicator<typeof beakerstackBillingConfig>
+              <UsageIndicator<typeof billingConfig>
                 meter={m as typeof BEAKERSTACK_METER_AI_SUMMARIZE}
                 variant='expanded'
                 label={meterCopy[m]?.label ?? m}

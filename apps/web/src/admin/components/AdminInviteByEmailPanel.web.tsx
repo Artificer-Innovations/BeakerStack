@@ -6,7 +6,7 @@ import {
   inviteWaitlistEmail,
 } from '@beakerstack/waitlist';
 import { supabase } from '../../lib/supabase';
-import { beakerstackWaitlistConfig } from '../../waitlist/beakerstackWaitlistConfig';
+import { waitlistConfig } from '@adopter/config/waitlist';
 
 function mapInviteError(code: string): string {
   switch (code) {
@@ -41,17 +41,17 @@ export function AdminInviteByEmailPanel({
   }, []);
 
   const sendInviteEmail = async (inviteUrl: string, to: string) => {
-    const logoUrl = `${beakerstackWaitlistConfig.appOrigin}/email-logo.png`;
-    const html = beakerstackWaitlistConfig.emailTemplates.inviteHtml.replace(
+    const logoUrl = `${waitlistConfig.appOrigin}/email-logo.png`;
+    const html = waitlistConfig.emailTemplates.inviteHtml.replace(
       /{{logoUrl}}/g,
       logoUrl
     );
-    await supabase.functions.invoke(beakerstackWaitlistConfig.opsFunctionName, {
+    await supabase.functions.invoke(waitlistConfig.opsFunctionName, {
       body: {
         action: 'send_invite_email',
         email: to,
         inviteUrl,
-        subject: beakerstackWaitlistConfig.emailTemplates.inviteSubject,
+        subject: waitlistConfig.emailTemplates.inviteSubject,
         html,
       },
     });
@@ -73,7 +73,7 @@ export function AdminInviteByEmailPanel({
       }
 
       const link = buildInviteUrl(
-        beakerstackWaitlistConfig.appOrigin,
+        waitlistConfig.appOrigin,
         result.invite_token
       );
       setInvite({ link, email: result.email });

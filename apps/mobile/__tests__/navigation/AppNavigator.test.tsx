@@ -1,4 +1,9 @@
 import { render, waitFor } from '@testing-library/react-native';
+import {
+  configureAdopter,
+  resetAdopterConfigForTests,
+} from '@beakerstack/shared/config/adopterRuntime';
+import { adopterConfig } from '@adopter/config';
 import { AppNavigator } from '../../src/navigation/AppNavigator';
 import { useFeatureFlags } from '../../src/config/featureFlags';
 
@@ -35,13 +40,38 @@ jest.mock('../../src/screens/SignupScreen', () => {
   );
 });
 
-jest.mock('../../src/screens/DashboardScreen', () => {
+jest.mock('../../../../adopter/mobile/screens/DashboardScreen', () => {
   const { View, Text } = require('react-native');
   return () => (
     <View testID='dashboard-screen'>
       <Text>Dashboard Screen</Text>
     </View>
   );
+});
+
+jest.mock('../../../../adopter/mobile/screenExtensions', () => {
+  const { View, Text } = require('react-native');
+  const DashboardScreen = () => (
+    <View testID='dashboard-screen'>
+      <Text>Dashboard Screen</Text>
+    </View>
+  );
+  const PublicAdopterScreen = () => <View testID='public-adopter-screen' />;
+
+  return {
+    adopterStackScreens: [
+      {
+        name: 'PublicAdopter',
+        component: PublicAdopterScreen,
+        auth: 'public',
+      },
+      {
+        name: 'Dashboard',
+        component: DashboardScreen,
+        auth: 'protected',
+      },
+    ],
+  };
 });
 
 jest.mock('../../src/screens/ProfileScreen', () => {
@@ -133,6 +163,18 @@ describe('AppNavigator', () => {
 
     const { getByTestId } = render(<AppNavigator />);
     await waitFor(() => expect(getByTestId('home-screen')).toBeTruthy());
+  });
+
+  it('throws when postLoginPathMobile is not registered', () => {
+    resetAdopterConfigForTests();
+    configureAdopter({
+      ...adopterConfig,
+      postLoginPathMobile: 'MissingScreen',
+    });
+
+    expect(() => render(<AppNavigator />)).toThrow(
+      /postLoginPathMobile "MissingScreen" is not registered/
+    );
   });
 
   it('exposes navigation ref in dev mode', () => {

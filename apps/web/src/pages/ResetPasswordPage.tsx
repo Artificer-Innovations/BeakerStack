@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import { AppHeaderWithAdmin } from '../components/AppHeaderWithAdmin';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 import { MIN_PASSWORD_LENGTH } from '@beakerstack/shared/constants/auth';
@@ -75,7 +76,7 @@ export default function ResetPasswordPage() {
 
     try {
       await auth.updatePassword(password);
-      navigate('/dashboard', { replace: true });
+      navigate(getAdopterConfig().postLoginPath, { replace: true });
     } catch (err) {
       setError(
         err instanceof Error

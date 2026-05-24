@@ -1,13 +1,13 @@
 import { useInvoices } from '@beakerstack/billing';
 import { Link } from 'react-router-dom';
-import { beakerstackBillingConfig } from '../../billing/beakerstackBillingConfig';
+import { billingConfig } from '@adopter/config/billing';
 import { BillingPageShell } from '../../components/billing/BillingPageShell.web';
 import { BillingTabs } from '../../components/billing/BillingTabs.web';
 import { InvoiceTable } from '../../components/billing/InvoiceTable.web';
 
 export default function BillingInvoicesPage() {
   const { items, loading, hasMore, loadMore, error } = useInvoices<
-    typeof beakerstackBillingConfig
+    typeof billingConfig
   >({ pageSize: 20 });
   return (
     <BillingPageShell>

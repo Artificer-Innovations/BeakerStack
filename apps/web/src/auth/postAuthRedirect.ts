@@ -1,4 +1,5 @@
-import { beakerstackBillingConfig } from '../billing/beakerstackBillingConfig';
+import { billingConfig } from '@adopter/config/billing';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 
 /** Namespaced key — sessionStorage (OAuth) + localStorage (email confirmation). */
 export const POST_AUTH_REDIRECT_KEY = 'beakerstack:post_auth_redirect';
@@ -6,11 +7,15 @@ export const POST_AUTH_REDIRECT_KEY = 'beakerstack:post_auth_redirect';
 export const POST_AUTH_REDIRECT_TTL_MS = 30 * 60 * 1000;
 
 const PUBLIC_PLAN_IDS: Set<string> = new Set(
-  beakerstackBillingConfig.plans.filter(p => p.isPublic).map(p => p.id)
+  billingConfig.plans.filter(p => p.isPublic).map(p => p.id)
 );
 
 function configPlanById(planId: string) {
-  return beakerstackBillingConfig.plans.find(p => p.id === planId);
+  return billingConfig.plans.find(p => p.id === planId);
+}
+
+function defaultPostLoginPath(): string {
+  return getAdopterConfig().postLoginPath;
 }
 
 /**
@@ -37,16 +42,16 @@ export function validateInternalPostAuthPath(
 
 /**
  * Synchronous post-auth path from signup/login URL search params.
- * Unknown or free plan → /dashboard; paid public plan → /billing/plans?…
+ * Unknown or free plan → postLoginPath; paid public plan → /billing/plans?…
  */
 export function resolvePostAuthDestination(
   searchParams: URLSearchParams
 ): string {
   const planId = searchParams.get('plan');
-  if (!planId || !PUBLIC_PLAN_IDS.has(planId)) return '/dashboard';
+  if (!planId || !PUBLIC_PLAN_IDS.has(planId)) return defaultPostLoginPath();
 
   const cfg = configPlanById(planId);
-  if (!cfg || cfg.priceCents === 0) return '/dashboard';
+  if (!cfg || cfg.priceCents === 0) return defaultPostLoginPath();
 
   const cadence =
     searchParams.get('cadence') === 'annual' ? 'annual' : 'monthly';
@@ -108,5 +113,5 @@ export function readAndClearPostAuthRedirect(): string | null {
 }
 
 export function hasPaidPlanIntent(searchParams: URLSearchParams): boolean {
-  return resolvePostAuthDestination(searchParams) !== '/dashboard';
+  return resolvePostAuthDestination(searchParams) !== defaultPostLoginPath();
 }

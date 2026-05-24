@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-describe('beakerstackWaitlistConfig (SSR)', () => {
+describe('waitlistConfig (SSR)', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.resetModules();
@@ -8,8 +8,7 @@ describe('beakerstackWaitlistConfig (SSR)', () => {
 
   it('uses localhost origin when window is undefined', async () => {
     vi.stubGlobal('window', undefined);
-    const { beakerstackWaitlistConfig } =
-      await import('../beakerstackWaitlistConfig.js');
-    expect(beakerstackWaitlistConfig.appOrigin).toBe('http://localhost:5173');
+    const { waitlistConfig } = await import('@adopter/config/waitlist');
+    expect(waitlistConfig.appOrigin).toBe('http://localhost:5173');
   });
 });

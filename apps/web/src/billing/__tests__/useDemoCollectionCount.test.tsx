@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { useDemoCollectionCount } from '../useDemoCollectionCount';
+import { useDemoCollectionCount } from '@adopter/web/billing/useDemoCollectionCount';
 
 const { rpc, mockClient } = vi.hoisted(() => {
   const rpc = vi.fn();

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { BRANDING } from '@beakerstack/shared/config/branding';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import { ThemeProvider } from '../../contexts/ThemeContext';
 import { AppFooter } from '../AppFooter';
 
@@ -33,7 +33,9 @@ describe('AppFooter', () => {
   it('renders product name link to site root', () => {
     renderFooter();
     expect(
-      screen.getByRole('link', { name: BRANDING.displayName })
+      screen.getByRole('link', {
+        name: getAdopterConfig().branding.displayName,
+      })
     ).toHaveAttribute('href', '/');
   });
 

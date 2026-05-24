@@ -1,28 +1,32 @@
 import {
-  HOME_STRINGS,
+  getHomeStrings,
+  getHomeTitle,
+  getHomeSubtitle,
   DASHBOARD_STRINGS,
-  HOME_TITLE,
-  HOME_SUBTITLE,
   DASHBOARD_TITLE,
   DASHBOARD_SUBTITLE,
 } from '@beakerstack/shared/utils/strings';
-import { BRANDING } from '@beakerstack/shared/config/branding';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 
 describe('strings', () => {
-  describe('HOME_STRINGS', () => {
+  describe('getHomeStrings', () => {
     it('should contain title and subtitle', () => {
-      expect(HOME_STRINGS).toHaveProperty('title');
-      expect(HOME_STRINGS).toHaveProperty('subtitle');
+      const homeStrings = getHomeStrings();
+      expect(homeStrings).toHaveProperty('title');
+      expect(homeStrings).toHaveProperty('subtitle');
     });
 
     it('should include branding display name in title', () => {
-      expect(HOME_STRINGS.title).toContain(BRANDING.displayName);
+      expect(getHomeStrings().title).toContain(
+        getAdopterConfig().branding.displayName
+      );
     });
 
     it('should have a descriptive subtitle', () => {
-      expect(HOME_STRINGS.subtitle).toBeTruthy();
-      expect(typeof HOME_STRINGS.subtitle).toBe('string');
-      expect(HOME_STRINGS.subtitle.length).toBeGreaterThan(0);
+      const { subtitle } = getHomeStrings();
+      expect(subtitle).toBeTruthy();
+      expect(typeof subtitle).toBe('string');
+      expect(subtitle.length).toBeGreaterThan(0);
     });
   });
 
@@ -43,13 +47,13 @@ describe('strings', () => {
     });
   });
 
-  describe('individual string exports', () => {
-    it('should export HOME_TITLE matching HOME_STRINGS.title', () => {
-      expect(HOME_TITLE).toBe(HOME_STRINGS.title);
+  describe('home string accessors', () => {
+    it('should export getHomeTitle matching getHomeStrings().title', () => {
+      expect(getHomeTitle()).toBe(getHomeStrings().title);
     });
 
-    it('should export HOME_SUBTITLE matching HOME_STRINGS.subtitle', () => {
-      expect(HOME_SUBTITLE).toBe(HOME_STRINGS.subtitle);
+    it('should export getHomeSubtitle matching getHomeStrings().subtitle', () => {
+      expect(getHomeSubtitle()).toBe(getHomeStrings().subtitle);
     });
 
     it('should export DASHBOARD_TITLE matching DASHBOARD_STRINGS.title', () => {
@@ -58,14 +62,6 @@ describe('strings', () => {
 
     it('should export DASHBOARD_SUBTITLE matching DASHBOARD_STRINGS.subtitle', () => {
       expect(DASHBOARD_SUBTITLE).toBe(DASHBOARD_STRINGS.subtitle);
-    });
-  });
-
-  describe('string constants are readonly', () => {
-    it('should have readonly string objects', () => {
-      // TypeScript ensures these are readonly, but we can verify they're objects
-      expect(typeof HOME_STRINGS).toBe('object');
-      expect(typeof DASHBOARD_STRINGS).toBe('object');
     });
   });
 });

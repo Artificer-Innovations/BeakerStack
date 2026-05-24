@@ -5,7 +5,7 @@ import ProfileScreen from '../../src/screens/ProfileScreen';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { BRANDING } from '@beakerstack/shared/config/branding';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import { Logger } from '@beakerstack/logger';
 import { loadProfileEditorModule } from '../../src/screens/profileEditorLoader';
 
@@ -241,7 +241,7 @@ describe('ProfileScreen', () => {
     expect(
       await findByText('Edit Profile', {}, { timeout: 5000 })
     ).toBeTruthy();
-    const headerTitles = getAllByText(BRANDING.displayName);
+    const headerTitles = getAllByText(getAdopterConfig().branding.displayName);
     expect(headerTitles.length).toBeGreaterThan(0);
   });
 
@@ -263,7 +263,9 @@ describe('ProfileScreen', () => {
     expect(
       await findByText('Edit Profile', {}, { timeout: 5000 })
     ).toBeTruthy();
-    expect(getAllByText(BRANDING.displayName).length).toBeGreaterThan(0);
+    expect(
+      getAllByText(getAdopterConfig().branding.displayName).length
+    ).toBeGreaterThan(0);
   });
 
   it('shows Redirecting before navigating home when not authenticated', async () => {

@@ -12,7 +12,7 @@ import {
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { BillingOverviewScreen } from '../../../src/screens/billing/BillingOverviewScreen';
 import { BillingUsageScreen } from '../../../src/screens/billing/BillingUsageScreen';
-import { useDemoCollectionCount } from '../../../src/billing/useDemoCollectionCount';
+import { useDemoCollectionCount } from '@adopter/mobile/billing/useDemoCollectionCount';
 
 jest.mock('@react-navigation/native', () => {
   const actual = jest.requireActual('@react-navigation/native');
@@ -31,7 +31,7 @@ jest.mock('@beakerstack/shared/contexts/AuthContext', () => ({
   useAuthContext: jest.fn(),
 }));
 
-jest.mock('../../../src/billing/useDemoCollectionCount', () => ({
+jest.mock('@adopter/mobile/billing/useDemoCollectionCount', () => ({
   useDemoCollectionCount: jest.fn(),
 }));
 
@@ -167,7 +167,7 @@ function setupOverviewMocks(
       count?: number;
       maxItemsInAnyCollection?: number;
       loading?: boolean;
-      error?: Error | null;
+      error?: string | null;
     };
     authUser?: { created_at?: string } | null;
   } = {}
@@ -338,7 +338,7 @@ describe('BillingOverviewScreen', () => {
 
   it('shows error copy when collections fail to load', () => {
     setupOverviewMocks({
-      collections: { count: 0, error: new Error('db') },
+      collections: { count: 0, error: 'db' },
     });
     const { getByText } = renderWithNav(<BillingOverviewScreen />);
     expect(getByText('Unable to load')).toBeTruthy();
@@ -398,7 +398,7 @@ describe('BillingUsageScreen', () => {
 
   it('shows demo collection error banner', () => {
     setupOverviewMocks({
-      collections: { error: new Error('counts failed') },
+      collections: { error: 'counts failed' },
     });
     const { getByText } = renderWithNav(<BillingUsageScreen />);
     expect(getByText(/Could not load demo collection counts/i)).toBeTruthy();
@@ -457,5 +457,47 @@ describe('BillingUsageScreen', () => {
     });
     const { getAllByText } = renderWithNav(<BillingUsageScreen />);
     expect(getAllByText(/of unlimited/).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('shows near-cap collection usage', () => {
+    setupOverviewMocks({
+      plan: {
+        ...freePlan,
+        features: {
+          ...freePlan.features,
+          containers_per_account_max: 10,
+        },
+      },
+      collections: { count: 8, maxItemsInAnyCollection: 0 },
+    });
+    const { getByText } = renderWithNav(<BillingUsageScreen />);
+    expect(getByText('8 of 10')).toBeTruthy();
+  });
+
+  it('falls back to meter id when copy is missing', () => {
+    setupOverviewMocks({
+      plan: {
+        ...freePlan,
+        usage_limits: {
+          ai_summarize: 30,
+          custom_meter: 5,
+        } as typeof freePlan.usage_limits,
+      },
+    });
+    const { getByText } = renderWithNav(<BillingUsageScreen />);
+    expect(getByText('custom_meter')).toBeTruthy();
+  });
+
+  it('shows free-tier reset copy when subscription id is missing', () => {
+    setupOverviewMocks({
+      subscription: {
+        status: 'active',
+        stripe_subscription_id: null,
+      },
+    });
+    const { getByText } = renderWithNav(<BillingUsageScreen />);
+    expect(
+      getByText(/start of the next calendar month \(free tier\)/i)
+    ).toBeTruthy();
   });
 });

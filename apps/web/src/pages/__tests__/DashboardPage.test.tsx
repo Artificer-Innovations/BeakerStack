@@ -4,11 +4,12 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { BillingProvider } from '@beakerstack/billing';
-import DashboardPage from '../DashboardPage';
+import DashboardPage from '@adopter/web/pages/DashboardPage';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
-import { BRANDING, brandNameRegex } from '@beakerstack/shared/config/branding';
-import { beakerstackBillingConfig } from '@/billing/beakerstackBillingConfig';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
+import { brandNameRegex } from '@adopter/config/branding';
+import { billingConfig } from '@adopter/config/billing';
 import { supabase } from '@/lib/supabase';
 
 const mockNavigate = vi.fn();
@@ -170,9 +171,9 @@ function wrapDashboard(ui: ReactElement) {
     <BrowserRouter>
       <AuthProvider supabaseClient={supabase}>
         <ProfileProvider supabaseClient={supabase}>
-          <BillingProvider<typeof beakerstackBillingConfig>
+          <BillingProvider<typeof billingConfig>
             supabase={supabase}
-            config={beakerstackBillingConfig}
+            config={billingConfig}
             checkoutSuccessUrl={`${billingBase}/billing?checkout=success`}
             checkoutCancelUrl={`${billingBase}/billing/plans?checkout=cancel`}
             portalReturnUrl={`${billingBase}/billing`}
@@ -207,10 +208,15 @@ describe('DashboardPage', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: new RegExp(`${BRANDING.displayName}\\s+in action`, 'i'),
+        name: new RegExp(
+          `${getAdopterConfig().branding.displayName}\\s+in action`,
+          'i'
+        ),
       })
     ).toBeInTheDocument();
-    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+    expect(
+      screen.getByText(getAdopterConfig().branding.displayName)
+    ).toBeInTheDocument();
   });
 
   it('links to GitHub repo from demo banner', async () => {
@@ -226,14 +232,18 @@ describe('DashboardPage', () => {
     await renderWithAuth(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+      expect(
+        screen.getByText(getAdopterConfig().branding.displayName)
+      ).toBeInTheDocument();
     });
   });
 
   it('shows sign out button', async () => {
     await renderWithAuth(<DashboardPage />);
 
-    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+    expect(
+      screen.getByText(getAdopterConfig().branding.displayName)
+    ).toBeInTheDocument();
   });
 
   it('shows home link', async () => {
@@ -263,11 +273,15 @@ describe('DashboardPage', () => {
 
   it('shows loading state while signing out', async () => {
     await renderWithAuth(<DashboardPage />);
-    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+    expect(
+      screen.getByText(getAdopterConfig().branding.displayName)
+    ).toBeInTheDocument();
   });
 
   it('navigates even if sign out API call fails (graceful degradation)', async () => {
     await renderWithAuth(<DashboardPage />);
-    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+    expect(
+      screen.getByText(getAdopterConfig().branding.displayName)
+    ).toBeInTheDocument();
   });
 });

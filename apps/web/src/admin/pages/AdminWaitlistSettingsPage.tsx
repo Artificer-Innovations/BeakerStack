@@ -15,8 +15,8 @@ import {
   type WaitlistSignupCopyKey,
 } from '@beakerstack/waitlist';
 import { supabase } from '../../lib/supabase';
-import { beakerstackBillingConfig } from '../../billing/beakerstackBillingConfig';
-import { beakerstackWaitlistConfig } from '../../waitlist/beakerstackWaitlistConfig';
+import { billingConfig } from '@adopter/config/billing';
+import { waitlistConfig } from '@adopter/config/waitlist';
 
 export default function AdminWaitlistSettingsPage() {
   const [settings, setSettings] = useState<WaitlistAdminSettings | null>(null);
@@ -36,10 +36,7 @@ export default function AdminWaitlistSettingsPage() {
       setSettings(data);
       if (data) {
         setUseCaseField(
-          resolveUseCaseFieldEditorState(
-            data.metadata_schema,
-            beakerstackWaitlistConfig
-          )
+          resolveUseCaseFieldEditorState(data.metadata_schema, waitlistConfig)
         );
       }
       setLoading(false);
@@ -66,10 +63,7 @@ export default function AdminWaitlistSettingsPage() {
       if (!updated) throw new Error('Failed to save settings');
       setSettings(updated);
       setUseCaseField(
-        resolveUseCaseFieldEditorState(
-          updated.metadata_schema,
-          beakerstackWaitlistConfig
-        )
+        resolveUseCaseFieldEditorState(updated.metadata_schema, waitlistConfig)
       );
       setSaved(true);
     } catch (err) {
@@ -130,7 +124,7 @@ export default function AdminWaitlistSettingsPage() {
               setSettings({ ...settings, default_plan_id: e.target.value })
             }
           >
-            {beakerstackBillingConfig.plans.map(p => (
+            {billingConfig.plans.map(p => (
               <option key={p.id} value={p.id}>
                 {p.displayName} ({p.id})
               </option>

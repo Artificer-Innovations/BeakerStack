@@ -8,7 +8,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ProfileHeaderProps } from '@beakerstack/shared/components/profile/ProfileHeader.web';
 import type { ProfileStatsProps } from '@beakerstack/shared/components/profile/ProfileStats.web';
 import type { ProfileEditorProps } from '@beakerstack/shared/components/profile/ProfileEditor.web';
-import { BRANDING, brandNameRegex } from '@beakerstack/shared/config/branding';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
+import { brandNameRegex } from '@adopter/config/branding';
 
 const mockNavigate = vi.fn();
 
@@ -172,7 +173,9 @@ describe('ProfilePage', () => {
     await renderWithAuth(<ProfilePage />);
 
     // Profile page should render with header
-    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+    expect(
+      screen.getByText(getAdopterConfig().branding.displayName)
+    ).toBeInTheDocument();
     // Profile content should render
     await waitFor(() => {
       expect(screen.getByTestId('profile-header')).toBeInTheDocument();
@@ -195,7 +198,9 @@ describe('ProfilePage', () => {
     // Email is in the header's UserMenu dropdown, not directly visible
     // Check that the header is rendered instead
     await waitFor(() => {
-      expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+      expect(
+        screen.getByText(getAdopterConfig().branding.displayName)
+      ).toBeInTheDocument();
     });
   });
 
@@ -204,7 +209,9 @@ describe('ProfilePage', () => {
     await renderWithAuth(<ProfilePage />);
 
     // The page should render even during loading
-    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+    expect(
+      screen.getByText(getAdopterConfig().branding.displayName)
+    ).toBeInTheDocument();
   });
 
   it('renders profile components when profile exists', async () => {
@@ -240,7 +247,9 @@ describe('ProfilePage', () => {
     await renderWithAuth(<ProfilePage />);
 
     // Verify page renders - components will render once profile loads
-    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+    expect(
+      screen.getByText(getAdopterConfig().branding.displayName)
+    ).toBeInTheDocument();
 
     // Wait for profile to load
     await waitFor(() => {
@@ -252,7 +261,9 @@ describe('ProfilePage', () => {
     await renderWithAuth(<ProfilePage />);
 
     // Verify page renders
-    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+    expect(
+      screen.getByText(getAdopterConfig().branding.displayName)
+    ).toBeInTheDocument();
 
     // Wait for profile header to render (shows "No profile")
     await waitFor(() => {
@@ -265,7 +276,9 @@ describe('ProfilePage', () => {
 
     // The page should render regardless of profile loading state
     await waitFor(() => {
-      expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+      expect(
+        screen.getByText(getAdopterConfig().branding.displayName)
+      ).toBeInTheDocument();
     });
   });
 });

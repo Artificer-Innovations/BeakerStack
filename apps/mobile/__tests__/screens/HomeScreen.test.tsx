@@ -65,7 +65,10 @@ import HomeScreen from '../../src/screens/HomeScreen';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { HOME_TITLE, HOME_SUBTITLE } from '@beakerstack/shared/utils/strings';
+import {
+  getHomeTitle,
+  getHomeSubtitle,
+} from '@beakerstack/shared/utils/strings';
 
 describe('HomeScreen', () => {
   let mockSupabaseClient: Partial<SupabaseClient>;
@@ -164,10 +167,10 @@ describe('HomeScreen', () => {
 
     await waitFor(() => {
       // Title appears in both header and main content
-      const titles = getAllByText(HOME_TITLE);
+      const titles = getAllByText(getHomeTitle());
       expect(titles.length).toBeGreaterThan(0);
     });
-    expect(getByText(HOME_SUBTITLE)).toBeTruthy();
+    expect(getByText(getHomeSubtitle())).toBeTruthy();
   });
 
   it('shows sign in button when not authenticated', async () => {

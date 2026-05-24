@@ -9,7 +9,7 @@ import {
   type WaitlistEntryRow,
 } from '@beakerstack/waitlist';
 import { supabase } from '../../lib/supabase';
-import { beakerstackWaitlistConfig } from '../../waitlist/beakerstackWaitlistConfig';
+import { waitlistConfig } from '@adopter/config/waitlist';
 
 function formatDate(value: string | null | undefined) {
   if (!value) return '—';
@@ -51,25 +51,22 @@ export function AdminWaitlistDetailDrawer({
     email: string,
     entryId: string
   ) => {
-    const inviteUrl = buildInviteUrl(
-      beakerstackWaitlistConfig.appOrigin,
-      token
-    );
+    const inviteUrl = buildInviteUrl(waitlistConfig.appOrigin, token);
     setInviteLink(inviteUrl);
-    const logoUrl = `${beakerstackWaitlistConfig.appOrigin}/email-logo.png`;
-    const html = beakerstackWaitlistConfig.emailTemplates.inviteHtml.replace(
+    const logoUrl = `${waitlistConfig.appOrigin}/email-logo.png`;
+    const html = waitlistConfig.emailTemplates.inviteHtml.replace(
       /{{logoUrl}}/g,
       logoUrl
     );
     const { data, error: fnErr } = await supabase.functions.invoke(
-      beakerstackWaitlistConfig.opsFunctionName,
+      waitlistConfig.opsFunctionName,
       {
         body: {
           action: 'send_invite_email',
           entryId,
           email,
           inviteUrl,
-          subject: beakerstackWaitlistConfig.emailTemplates.inviteSubject,
+          subject: waitlistConfig.emailTemplates.inviteSubject,
           html,
         },
       }

@@ -20,6 +20,18 @@ module.exports = {
   },
   plugins: ['@typescript-eslint'],
   rules: {
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: ['@adopter/*'],
+            message:
+              'Import @adopter/* only from extension seam files (see docs/CUSTOMIZING.md).',
+          },
+        ],
+      },
+    ],
     // varsIgnorePattern covers _prefixed destructured variables (e.g. const { _unused, ...rest } = obj)
     '@typescript-eslint/no-unused-vars': [
       'error',
@@ -44,6 +56,21 @@ module.exports = {
   ],
   overrides: [
     {
+      files: [
+        'apps/web/src/main.tsx',
+        'apps/web/scripts/prerender-home.ts',
+        'apps/web/src/App.tsx',
+        'apps/mobile/src/navigation/AppNavigator.tsx',
+        'apps/mobile/App.tsx',
+        'apps/web/src/**/*.{ts,tsx}',
+        'apps/mobile/src/**/*.{ts,tsx}',
+        'adopter/**/*.{ts,tsx}',
+      ],
+      rules: {
+        'no-restricted-imports': 'off',
+      },
+    },
+    {
       files: ['**/*.cjs', 'scripts/**/*.js'],
       rules: {
         '@typescript-eslint/no-var-requires': 'off',
@@ -54,9 +81,11 @@ module.exports = {
         '**/__tests__/**/*.{ts,tsx}',
         '**/*.test.{ts,tsx}',
         '**/__mocks__/**/*.{ts,tsx}',
+        'packages/shared-tests/setup.adopter.ts',
       ],
       rules: {
         '@typescript-eslint/no-var-requires': 'off',
+        'no-restricted-imports': 'off',
       },
     },
     {

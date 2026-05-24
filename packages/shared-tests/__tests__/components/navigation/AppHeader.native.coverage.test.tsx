@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.native';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
-import { BRANDING } from '@beakerstack/shared/config/branding';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 jest.mock('@react-navigation/native', () => ({
@@ -108,8 +108,10 @@ describe('AppHeader.native — coverage gaps', () => {
       </AuthProvider>
     );
 
-    await screen.findByText(BRANDING.displayName);
-    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+    await screen.findByText(getAdopterConfig().branding.displayName);
+    expect(
+      screen.getByText(getAdopterConfig().branding.displayName)
+    ).toBeInTheDocument();
   });
 
   it('uses Android status bar height of zero when currentHeight is unset', async () => {
@@ -124,7 +126,9 @@ describe('AppHeader.native — coverage gaps', () => {
       </AuthProvider>
     );
 
-    await screen.findByText(BRANDING.displayName);
-    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+    await screen.findByText(getAdopterConfig().branding.displayName);
+    expect(
+      screen.getByText(getAdopterConfig().branding.displayName)
+    ).toBeInTheDocument();
   });
 });

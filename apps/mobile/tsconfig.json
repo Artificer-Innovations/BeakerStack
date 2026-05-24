@@ -8,6 +8,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
+      "@adopter/config": ["../../adopter/config/index.ts"],
+      "@adopter/config/*": ["../../adopter/config/*"],
+      "@adopter/mobile/*": ["../../adopter/mobile/*"],
       "@beakerstack/shared/*": ["../../packages/shared/src/*"],
       "@beakerstack/billing": ["../../packages/billing/src/index.ts"],
       "@beakerstack/billing/web": ["../../packages/billing/src/web.ts"],
@@ -29,6 +32,12 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    "../../adopter/config/index.ts",
+    "../../adopter/config/branding.ts",
+    "../../adopter/config/legal.ts",
+    "../../adopter/config/billing.ts",
+    "../../adopter/config/app-identity.ts",
+    "../../adopter/mobile/**/*",
     "../../packages/billing/src/**/*.ts",
     "../../packages/billing/src/**/*.tsx",
     "../../packages/observability/src/**/*.ts",

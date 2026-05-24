@@ -1,15 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { beakerstackWaitlistConfig } from '../beakerstackWaitlistConfig';
+import { waitlistConfig } from '@adopter/config/waitlist';
 
-describe('beakerstackWaitlistConfig', () => {
+describe('waitlistConfig', () => {
   it('exposes waitlist capture and ops function names', () => {
-    expect(beakerstackWaitlistConfig.captureFunctionName).toBe(
-      'waitlist-capture'
-    );
-    expect(beakerstackWaitlistConfig.opsFunctionName).toBe('waitlist-ops');
+    expect(waitlistConfig.captureFunctionName).toBe('waitlist-capture');
+    expect(waitlistConfig.opsFunctionName).toBe('waitlist-ops');
   });
 
   it('uses a browser origin when window is defined', () => {
-    expect(beakerstackWaitlistConfig.appOrigin).toMatch(/^https?:\/\//);
+    expect(waitlistConfig.appOrigin).toMatch(/^https?:\/\//);
   });
 });

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import type { LandingConfig } from '../../../config/landing';
+import type { LandingConfig } from '@adopter/config/landing';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 
 export interface CarouselSlide {

@@ -8,11 +8,11 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { BillingProvider } from '@beakerstack/billing';
-import DashboardPage from '../DashboardPage';
+import DashboardPage from '@adopter/web/pages/DashboardPage';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
-import { BRANDING } from '@beakerstack/shared/config/branding';
-import { beakerstackBillingConfig } from '@/billing/beakerstackBillingConfig';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
+import { billingConfig } from '@adopter/config/billing';
 
 // vi.mock is hoisted to top of file, so supabaseMock must be defined via vi.hoisted()
 // to avoid "Cannot access before initialization" TDZ errors.
@@ -98,9 +98,9 @@ function wrapDashboard(ui: ReactElement) {
     <BrowserRouter>
       <AuthProvider supabaseClient={supabaseMock as never}>
         <ProfileProvider supabaseClient={supabaseMock as never}>
-          <BillingProvider<typeof beakerstackBillingConfig>
+          <BillingProvider<typeof billingConfig>
             supabase={supabaseMock as never}
-            config={beakerstackBillingConfig}
+            config={billingConfig}
             checkoutSuccessUrl={`${billingBase}/billing?checkout=success`}
             checkoutCancelUrl={`${billingBase}/billing/plans?checkout=cancel`}
             portalReturnUrl={`${billingBase}/billing`}
@@ -211,7 +211,10 @@ describe('DashboardPage (coverage)', () => {
     await waitFor(() => {
       expect(
         screen.getByRole('heading', {
-          name: new RegExp(`${BRANDING.displayName}\\s+in action`, 'i'),
+          name: new RegExp(
+            `${getAdopterConfig().branding.displayName}\\s+in action`,
+            'i'
+          ),
         })
       ).toBeInTheDocument();
     });

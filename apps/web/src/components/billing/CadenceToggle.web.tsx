@@ -6,7 +6,7 @@ import {
 } from '@beakerstack/billing/presentation';
 import { useCallback, useMemo } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { beakerstackBillingConfig } from '../../billing/beakerstackBillingConfig';
+import { billingConfig } from '@adopter/config/billing';
 
 export function getCadenceFromSearch(search: URLSearchParams) {
   return search.get('cadence') === 'annual' ? 'annual' : 'monthly';
@@ -78,7 +78,7 @@ function CadenceToggleView({ plans }: { plans: Plan[] }) {
 }
 
 function CadenceToggleFromCatalog() {
-  const { plans } = usePlanCatalog<typeof beakerstackBillingConfig>();
+  const { plans } = usePlanCatalog<typeof billingConfig>();
   return <CadenceToggleView plans={plans} />;
 }
 

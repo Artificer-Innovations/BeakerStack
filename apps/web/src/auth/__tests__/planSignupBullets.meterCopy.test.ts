@@ -9,8 +9,8 @@ function mockConfig(overrides: {
     usageLimits?: { ai_summarize?: number };
   }>;
 }) {
-  vi.doMock('../../billing/beakerstackBillingConfig', () => ({
-    beakerstackBillingConfig: {
+  vi.doMock('@adopter/config/billing', () => ({
+    billingConfig: {
       plans: overrides.plans,
       planFeatureRows: [],
       usageMeterCopy: overrides.usageMeterCopy,
@@ -24,7 +24,7 @@ describe('planSignupBullets (AI meter label branches)', () => {
   });
 
   afterEach(() => {
-    vi.doUnmock('../../billing/beakerstackBillingConfig');
+    vi.doUnmock('@adopter/config/billing');
     vi.resetModules();
   });
 

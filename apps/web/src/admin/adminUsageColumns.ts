@@ -1,9 +1,9 @@
-import { beakerstackBillingConfig } from '../billing/beakerstackBillingConfig';
+import { billingConfig } from '@adopter/config/billing';
 
 /** Meter keys from billing config shown as usage columns on the admin Users table. */
 export function getAdminUsageMeterKeys(): string[] {
   const keys = new Set<string>();
-  for (const plan of beakerstackBillingConfig.plans) {
+  for (const plan of billingConfig.plans) {
     for (const key of Object.keys(plan.usageLimits)) {
       keys.add(key);
     }
@@ -11,4 +11,4 @@ export function getAdminUsageMeterKeys(): string[] {
   return [...keys].sort();
 }
 
-export const adminProductId = beakerstackBillingConfig.productId;
+export const adminProductId = billingConfig.productId;

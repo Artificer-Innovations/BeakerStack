@@ -2,7 +2,9 @@ import { lazy, Suspense, type ReactNode } from 'react';
 import { Routes, Route, Outlet } from 'react-router-dom';
 import { AdminRoute } from '@beakerstack/admin/web';
 import { ProtectedRoute } from '@beakerstack/shared/components/auth/ProtectedRoute.web';
+import { resolveAdopterRouteAuth } from '@beakerstack/shared/navigation/adopterExtensions';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
+import { adopterRouteExtensions } from '@adopter/web/routeExtensions';
 import { supabase } from './lib/supabase';
 import { AppFooter } from './components/AppFooter';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
@@ -21,7 +23,6 @@ const HomePage = lazy(() => import('./pages/HomePage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SignupPage = lazy(() => import('./pages/SignupPage'));
 const SignupInvitePage = lazy(() => import('./pages/SignupInvitePage'));
-const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage'));
 const AuthConfirmPage = lazy(() => import('./pages/AuthConfirmPage'));
@@ -37,7 +38,6 @@ const BillingInvoicesPage = lazy(
   () => import('./pages/billing/BillingInvoicesPage')
 );
 
-/** Deferred so `/` does not pull supabase-vendor via BillingProviderLayout. */
 const BillingProviderLayout = lazy(() =>
   import('./billing/BillingProviderLayout').then(m => ({
     default: m.BillingProviderLayout,
@@ -70,6 +70,18 @@ function AdminRouteGate({ children }: { children: ReactNode }) {
       {children}
     </AdminRoute>
   );
+}
+
+function AdopterRoute({
+  extension,
+}: {
+  extension: (typeof adopterRouteExtensions)[number];
+}) {
+  const auth = resolveAdopterRouteAuth(extension.auth);
+  if (auth === 'public') {
+    return <>{extension.element}</>;
+  }
+  return <ProtectedRoute>{extension.element}</ProtectedRoute>;
 }
 
 function App() {
@@ -150,7 +162,13 @@ function App() {
                       </Suspense>
                     }
                   >
-                    <Route path='/dashboard' element={<DashboardPage />} />
+                    {adopterRouteExtensions.map(extension => (
+                      <Route
+                        key={extension.path}
+                        path={extension.path}
+                        element={<AdopterRoute extension={extension} />}
+                      />
+                    ))}
                     <Route path='/billing' element={<BillingOverviewPage />} />
                     <Route
                       path='/billing/usage'

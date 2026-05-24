@@ -1,8 +1,8 @@
-import { beakerstackBillingConfig } from '../billing/beakerstackBillingConfig';
+import { billingConfig } from '@adopter/config/billing';
 
 /** Up to 3 human-readable lines for signup plan context (from template billing config). */
 export function planSignupBullets(planId: string): string[] {
-  const cfg = beakerstackBillingConfig.plans.find(p => p.id === planId);
+  const cfg = billingConfig.plans.find(p => p.id === planId);
   if (!cfg) return [];
 
   const out: string[] = [];
@@ -13,7 +13,7 @@ export function planSignupBullets(planId: string): string[] {
   }
 
   const feats = cfg.features as Record<string, number | boolean | undefined>;
-  for (const row of beakerstackBillingConfig.planFeatureRows) {
+  for (const row of billingConfig.planFeatureRows) {
     if (out.length >= 3) break;
     const val = feats[row.featureKey];
     if (row.kind === 'boolean') {
@@ -27,7 +27,7 @@ export function planSignupBullets(planId: string): string[] {
 
   const ai = cfg.usageLimits?.ai_summarize;
   if (out.length < 3 && typeof ai === 'number') {
-    const label = beakerstackBillingConfig.usageMeterCopy.ai_summarize?.label;
+    const label = billingConfig.usageMeterCopy.ai_summarize?.label;
     if (ai === -1) {
       out.push(label ? `Unlimited ${label}` : 'Unlimited AI summarize');
     } else {

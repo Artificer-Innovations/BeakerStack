@@ -2,13 +2,14 @@ import { BillingProvider } from '@beakerstack/billing';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import { AppHeaderWithAdmin } from '../components/AppHeaderWithAdmin';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 import { MIN_PASSWORD_LENGTH } from '@beakerstack/shared/constants/auth';
 import { supabase } from '@/lib/supabase';
 import { SocialLoginButton } from '../components/SocialLoginButton';
 import { SignupPlanSummary } from '../components/auth/SignupPlanSummary';
-import { beakerstackBillingConfig } from '../billing/beakerstackBillingConfig';
+import { billingConfig } from '@adopter/config/billing';
 import {
   clearPostAuthRedirectKeys,
   hasPaidPlanIntent,
@@ -22,14 +23,14 @@ import {
   SignupModeGate,
   useSignupMode,
 } from '@beakerstack/waitlist/web';
-import { beakerstackWaitlistConfig } from '../waitlist/beakerstackWaitlistConfig';
+import { waitlistConfig } from '@adopter/config/waitlist';
 
 function signupPlanMetadata(
   sp: URLSearchParams
 ): { plan_id: string } | undefined {
   const planId = sp.get('plan');
   if (!planId) return undefined;
-  const cfg = beakerstackBillingConfig.plans.find(p => p.id === planId);
+  const cfg = billingConfig.plans.find(p => p.id === planId);
   if (!cfg || cfg.priceCents === 0) return undefined;
   return { plan_id: planId };
 }
@@ -50,13 +51,15 @@ function SignupPageContent() {
     isWaitlist,
   } = useSignupMode(supabase);
 
+  const postLoginPath = getAdopterConfig().postLoginPath;
+
   const paidIntent = hasPaidPlanIntent(searchParams);
   const postAuthPath = resolvePostAuthDestination(searchParams);
   const loginSearch = searchParams.toString();
   const loginTo = loginSearch ? `/login?${loginSearch}` : '/login';
 
   const stashOAuthIntent = () => {
-    if (postAuthPath !== '/dashboard') {
+    if (postAuthPath !== postLoginPath) {
       sessionStorage.setItem(
         POST_AUTH_REDIRECT_KEY,
         serializePostAuthRedirectPayload(postAuthPath)
@@ -100,7 +103,7 @@ function SignupPageContent() {
         clearPostAuthRedirectKeys();
         navigate(postAuthPath, { replace: true });
       } else {
-        if (paidIntent && postAuthPath !== '/dashboard') {
+        if (paidIntent && postAuthPath !== postLoginPath) {
           localStorage.setItem(
             POST_AUTH_REDIRECT_KEY,
             serializePostAuthRedirectPayload(postAuthPath)
@@ -129,17 +132,17 @@ function SignupPageContent() {
   };
 
   const displayName =
-    beakerstackBillingConfig.plans.find(p => p.id === searchParams.get('plan'))
+    billingConfig.plans.find(p => p.id === searchParams.get('plan'))
       ?.displayName ?? 'this plan';
   const submitLabel = isLoading
     ? 'Creating account...'
-    : paidIntent && postAuthPath !== '/dashboard'
+    : paidIntent && postAuthPath !== postLoginPath
       ? `Continue with ${displayName}`
       : 'Create account';
 
   const showPlanAside =
     paidIntent &&
-    postAuthPath !== '/dashboard' &&
+    postAuthPath !== postLoginPath &&
     !signupModeLoading &&
     (isOpen || isWaitlist);
 
@@ -147,7 +150,7 @@ function SignupPageContent() {
     if (!isWaitlist || !paidIntent) return undefined;
     const planId = searchParams.get('plan');
     if (!planId) return undefined;
-    const cfg = beakerstackBillingConfig.plans.find(p => p.id === planId);
+    const cfg = billingConfig.plans.find(p => p.id === planId);
     if (!cfg || cfg.priceCents === 0) return undefined;
     // Include both stable plan_id (for kit-sync interest tagging and waitlist-ops approve)
     // and the display name (for human-readable metadata in the waitlist dashboard).
@@ -167,7 +170,7 @@ function SignupPageContent() {
               We sent a confirmation link to <strong>{email}</strong>. Click the
               link in that email to finish creating your account.
             </p>
-            {paidIntent && postAuthPath !== '/dashboard' && (
+            {paidIntent && postAuthPath !== postLoginPath && (
               <p className='mt-2 text-sm text-gray-600 dark:text-gray-300'>
                 We&apos;ll take you to billing to complete your plan when
                 you&apos;re signed in.
@@ -203,11 +206,11 @@ function SignupPageContent() {
             {!signupModeLoading && isOpen ? (
               <div>
                 <h2 className='mt-0 text-center text-3xl font-extrabold text-gray-900 dark:text-white md:text-left'>
-                  {paidIntent && postAuthPath !== '/dashboard'
+                  {paidIntent && postAuthPath !== postLoginPath
                     ? `Create your account to continue with ${displayName}`
                     : 'Create your account'}
                 </h2>
-                {paidIntent && postAuthPath !== '/dashboard' ? (
+                {paidIntent && postAuthPath !== postLoginPath ? (
                   <p className='mt-2 text-center text-sm text-gray-600 dark:text-gray-400 md:text-left'>
                     No charge until you finish checkout on the next step.
                   </p>
@@ -217,7 +220,7 @@ function SignupPageContent() {
 
             <SignupModeGate
               supabase={supabase}
-              config={beakerstackWaitlistConfig}
+              config={waitlistConfig}
               captureMetadata={waitlistCaptureMetadata}
             >
               <div className='space-y-3'>
@@ -334,9 +337,9 @@ function SignupPageContent() {
 export default function SignupPage() {
   const base = appBasePath();
   return (
-    <BillingProvider<typeof beakerstackBillingConfig>
+    <BillingProvider<typeof billingConfig>
       supabase={supabase}
-      config={beakerstackBillingConfig}
+      config={billingConfig}
       checkoutSuccessUrl={`${base}/billing?checkout=success`}
       checkoutCancelUrl={`${base}/billing/plans?checkout=cancel`}
       portalReturnUrl={`${base}/billing`}

@@ -4,7 +4,7 @@ import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '../../src/lib/supabase';
-import DashboardScreen from '../../src/screens/DashboardScreen';
+import DashboardScreen from '../../../../adopter/mobile/screens/DashboardScreen';
 
 jest.mock('@beakerstack/billing', () => {
   return {

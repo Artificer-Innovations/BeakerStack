@@ -16,7 +16,7 @@ vi.mock('@beakerstack/billing/web', () => ({
   ),
 }));
 
-vi.mock('@/billing/useDemoCollectionCount', () => ({
+vi.mock('@adopter/web/billing/useDemoCollectionCount', () => ({
   useDemoCollectionCount: () => ({
     count: 3,
     maxItemsInAnyCollection: 12,

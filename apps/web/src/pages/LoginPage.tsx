@@ -7,12 +7,13 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import { AppHeaderWithAdmin } from '../components/AppHeaderWithAdmin';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 import { supabase } from '@/lib/supabase';
 import { SocialLoginButton } from '../components/SocialLoginButton';
 import { LoginPlanSummary } from '../components/auth/SignupPlanSummary';
-import { beakerstackBillingConfig } from '../billing/beakerstackBillingConfig';
+import { billingConfig } from '@adopter/config/billing';
 import {
   clearPostAuthRedirectKeys,
   POST_AUTH_REDIRECT_KEY,
@@ -31,12 +32,13 @@ function LoginPageContent() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const auth = useAuthContext();
+  const postLoginPath = getAdopterConfig().postLoginPath;
 
   const fromState = (location.state as { from?: string } | null)?.from;
   const fromRedirect =
     fromState &&
     validateInternalPostAuthPath(fromState) &&
-    fromState !== '/dashboard'
+    fromState !== postLoginPath
       ? fromState
       : null;
 
@@ -45,7 +47,7 @@ function LoginPageContent() {
   const signupTo = signupSearch ? `/signup?${signupSearch}` : '/signup';
 
   const stashOAuthIntent = () => {
-    if (postAuthPath !== '/dashboard') {
+    if (postAuthPath !== postLoginPath) {
       sessionStorage.setItem(
         POST_AUTH_REDIRECT_KEY,
         serializePostAuthRedirectPayload(postAuthPath)
@@ -88,7 +90,7 @@ function LoginPageContent() {
     }
   };
 
-  const showPlanAside = postAuthPath !== '/dashboard';
+  const showPlanAside = postAuthPath !== postLoginPath;
 
   return (
     <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
@@ -217,9 +219,9 @@ function LoginPageContent() {
 export default function LoginPage() {
   const base = appBasePath();
   return (
-    <BillingProvider<typeof beakerstackBillingConfig>
+    <BillingProvider<typeof billingConfig>
       supabase={supabase}
-      config={beakerstackBillingConfig}
+      config={billingConfig}
       checkoutSuccessUrl={`${base}/billing?checkout=success`}
       checkoutCancelUrl={`${base}/billing/plans?checkout=cancel`}
       portalReturnUrl={`${base}/billing`}

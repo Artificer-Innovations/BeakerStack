@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
-import { BRANDING } from '../../packages/shared/src/config/branding';
+import { branding } from '../../adopter/config/branding';
 
 const viteConfigDir = path.dirname(fileURLToPath(import.meta.url));
 const criticalThemePath = path.join(
@@ -23,10 +23,10 @@ export default defineConfig(({ mode }) => {
   const htmlBrandingPlugin: Plugin = {
     name: 'html-branding-transform',
     transformIndexHtml(html: string) {
-      const metaDescription = `${BRANDING.displayName} gives you auth, billing, and a cross-platform React foundation — ready to ship your SaaS.`;
-      const ogTitle = `${BRANDING.displayName} — Ship your SaaS faster.`;
+      const metaDescription = `${branding.displayName} gives you auth, billing, and a cross-platform React foundation — ready to ship your SaaS.`;
+      const ogTitle = `${branding.displayName} — Ship your SaaS faster.`;
       let transformed = html
-        .replace(/%APP_TITLE%/g, BRANDING.displayName)
+        .replace(/%APP_TITLE%/g, branding.displayName)
         .replace(/%META_DESCRIPTION%/g, metaDescription)
         .replace(/%OG_TITLE%/g, ogTitle);
 
@@ -75,6 +75,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
+        '@adopter': path.resolve(__dirname, '../../adopter'),
         '@beakerstack/shared': path.resolve(
           __dirname,
           '../../packages/shared/src'
@@ -140,9 +141,6 @@ export default defineConfig(({ mode }) => {
           '**/dist/',
           '**/build/',
           '**/types/**',
-          // Pure config/data files — no logic to test, always mocked in tests
-          'src/config/landing.ts',
-          'src/config/landing.example.alt.ts',
           // Build-time scripts — run by vite-node at build, not part of the app test suite
           'scripts/',
           // SSR-only landing component — structural duplicate of LandingPage used by the
@@ -151,14 +149,6 @@ export default defineConfig(({ mode }) => {
           // Thin composition wrappers — routing/providers tested independently
           'src/PublicShell.tsx',
           'src/AuthenticatedApp.tsx',
-          // Display-only dashboard showcase components — no business logic;
-          // annotated UI primitives covered visually by preview deployment
-          'src/components/dashboard/AnnotatedPrimitive.tsx',
-          'src/components/dashboard/BooleanFeatureTiles.tsx',
-          'src/components/dashboard/DemoBanner.tsx',
-          'src/components/dashboard/FeatureGateCard.tsx',
-          // Pure TypeScript interface file — no executable code to test
-          '**/components/dashboard/types.ts',
         ],
       },
     },

@@ -84,7 +84,7 @@ describe('PolicyPublicHeader', () => {
   });
 
   it('leaves non-hash nav hrefs untouched when prefixing base path', async () => {
-    const landingMod = await import('../../config/landing');
+    const landingMod = await import('@adopter/config/landing');
     const original = landingMod.landingConfig.nav.links;
     // Inject a non-hash link entry to exercise the alternate branch.
     landingMod.landingConfig.nav.links = [

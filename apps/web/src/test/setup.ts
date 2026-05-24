@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom';
+import '../../../../packages/shared-tests/setup.adopter';
 
 /** Node's experimental `--localstorage-file` / partial mocks can expose a broken Storage. */
 function createMemoryLocalStorage(): Storage {

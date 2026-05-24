@@ -58,7 +58,7 @@ vi.mock('@beakerstack/billing', async importOriginal => {
   };
 });
 
-vi.mock('../../config/landing', () => ({
+vi.mock('@adopter/config/landing', () => ({
   landingConfig: {
     brand: { name: 'Beaker Stack', tagline: 'Test tagline' },
     nav: { links: [], signInHref: '/login', signUpHref: '/signup' },

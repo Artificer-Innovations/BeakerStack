@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import { readAndClearPostAuthRedirect } from '../auth/postAuthRedirect';
 import {
   finalizeInviteSignup,
@@ -33,7 +34,9 @@ export default function AuthCallbackPage() {
   const completeInviteSignup = useCallback(
     (inviteToken: string, userId: string, userEmail: string | undefined) => {
       void finalizeInviteSignup(inviteToken, userId, userEmail)
-        .then(() => navigate('/dashboard', { replace: true }))
+        .then(() =>
+          navigate(getAdopterConfig().postLoginPath, { replace: true })
+        )
         .catch(() => {
           setError(
             'Could not complete invite signup. Try the invite link again.'
@@ -114,7 +117,7 @@ export default function AuthCallbackPage() {
         return;
       }
       const stored = readAndClearPostAuthRedirect();
-      navigate(stored ?? '/dashboard', { replace: true });
+      navigate(stored ?? getAdopterConfig().postLoginPath, { replace: true });
       return;
     }
 
@@ -130,7 +133,7 @@ export default function AuthCallbackPage() {
       if (a.user && !a.loading) {
         navigatedRef.current = true;
         const stored = readAndClearPostAuthRedirect();
-        navigate(stored ?? '/dashboard', { replace: true });
+        navigate(stored ?? getAdopterConfig().postLoginPath, { replace: true });
       } else if (!a.loading) {
         setError(
           'Authentication completed but session not established. Please try again.'

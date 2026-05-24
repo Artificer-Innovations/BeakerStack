@@ -189,7 +189,7 @@ jest.mock('../src/navigation/BillingNavigator', () => {
   };
 });
 
-jest.mock('../src/screens/DashboardScreen', () => {
+jest.mock('../../../adopter/mobile/screens/DashboardScreen', () => {
   const { View, Text } = require('react-native');
   return {
     __esModule: true,
@@ -252,7 +252,10 @@ jest.mock('../src/screens/SignupPendingScreen', () => {
 import { render } from '@testing-library/react-native';
 import { describe, it, expect } from '@jest/globals';
 import App from '../App';
-import { HOME_TITLE, HOME_SUBTITLE } from '@beakerstack/shared/utils/strings';
+import {
+  getHomeTitle,
+  getHomeSubtitle,
+} from '@beakerstack/shared/utils/strings';
 
 describe('Mobile App', () => {
   it('renders without crashing', () => {
@@ -260,7 +263,7 @@ describe('Mobile App', () => {
 
     // Check if the app content is rendered
     // Title appears in both header and main content
-    const titles = getAllByText(HOME_TITLE);
+    const titles = getAllByText(getHomeTitle());
     expect(titles.length).toBeGreaterThan(0);
   });
 
@@ -268,6 +271,6 @@ describe('Mobile App', () => {
     const { getByText } = render(<App />);
 
     // Check if subtitle is present using the shared string constant
-    expect(getByText(HOME_SUBTITLE)).toBeTruthy();
+    expect(getByText(getHomeSubtitle())).toBeTruthy();
   });
 });

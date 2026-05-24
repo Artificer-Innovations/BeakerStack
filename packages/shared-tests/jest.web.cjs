@@ -7,10 +7,18 @@ module.exports = {
   testEnvironment: 'jsdom',
   roots: [path.join(__dirname, '__tests__'), sharedSrcPath],
   rootDir: root,
-  setupFilesAfterEnv: [path.join(__dirname, 'jest.setup.web.ts')],
+  setupFilesAfterEnv: [
+    path.join(__dirname, 'jest.setup.web.ts'),
+    path.join(__dirname, 'setup.adopter.ts'),
+  ],
   moduleNameMapper: {
     '^@beakerstack/shared/(.*)$': path.join(sharedSrcPath, '$1'),
     '^@beakerstack/logger$': path.join(loggerSrcPath, 'index.ts'),
+    '^@beakerstack/test-utils/(.*)$': path.join(
+      root,
+      'packages/test-utils/src/$1'
+    ),
+    '^@adopter/(.*)$': path.join(root, 'adopter/$1'),
     '^react-native$': 'react-native-web',
     '^react-router-dom$': path.join(
       __dirname,
@@ -40,7 +48,6 @@ module.exports = {
     '!<rootDir>/packages/shared/src/types/**',
     // Pure data files — auto-generated or constant objects with no logic to test
     '!<rootDir>/packages/shared/src/generated/**',
-    '!<rootDir>/packages/shared/src/config/legal.ts',
     '!<rootDir>/packages/shared/src/config/auth.ts',
     '!<rootDir>/packages/shared/src/constants/auth.ts',
   ],
