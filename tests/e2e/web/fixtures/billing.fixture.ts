@@ -46,7 +46,7 @@ export async function resetDemoCollectionsForUser(
   }
 }
 
-/** Revert seeded user subscription to Free after Stripe E2E (scheduled downgrades stay on Pro in DB). */
+/** Revert seeded user subscription to Free after Stripe E2E (clears scheduled downgrade state). */
 export async function resetBillingPlanForUser(userId: string): Promise<void> {
   const admin = createServiceRoleClient();
   const periodStart = new Date().toISOString();
@@ -64,6 +64,7 @@ export async function resetBillingPlanForUser(userId: string): Promise<void> {
       stripe_price_id: null,
       cancel_at_period_end: false,
       canceled_at: null,
+      pending_target_plan_id: null,
       trial_start: null,
       trial_end: null,
       current_period_start: periodStart,
