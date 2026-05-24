@@ -163,7 +163,7 @@ Triggered for `opened`, `reopened`, `synchronize`, `ready_for_review`.
    - Uses `--skip-if-unchanged` to avoid contacting Supabase when neither `supabase/` nor `adopter/db/` changed.
 5. Deploy billing Edge functions for preview:
    - Sets preview project Edge secrets (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`).
-   - Deploys `stripe-webhook` and `billing-stripe`.
+   - Deploys `stripe-webhook`, `billing-stripe`, `waitlist-capture`, `waitlist-ops`, `kit-sync`, and `kit-webhook`.
 
 6. Run `scripts/pr-preview/deploy-web.sh`
    - Builds Vite web app with `VITE_BASE_PATH="/pr-<number>"`.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Link preview Supabase, set billing Edge secrets, deploy stripe-webhook + billing-stripe.
+# Link preview Supabase, set Edge secrets, deploy billing + waitlist + Kit functions.
 # Retries transient Supabase API failures (e.g. 504 on project status).
 #
 # Required environment:
@@ -12,6 +12,7 @@
 #   PR_TESTING_SUPABASE_SERVICE_ROLE_KEY (or BILLING_SUPABASE_SERVICE_ROLE_KEY)
 # Optional:
 #   PREVIEW_BILLING_ALLOWED_ORIGINS (default https://deploy.beakerstack.com)
+#   KIT_API_KEY / KIT_CRON_SECRET / KIT_WEBHOOK_SECRET (shared; legacy PREVIEW_KIT_* fallback)
 #   SUPABASE_MAX_RETRIES (default 5)
 
 set -euo pipefail
@@ -30,6 +31,9 @@ BILLING_URL="${PREVIEW_SUPABASE_URL:-${BILLING_SUPABASE_URL:-}}"
 BILLING_ANON="${PREVIEW_SUPABASE_ANON_KEY:-${BILLING_SUPABASE_ANON_KEY:-}}"
 BILLING_SERVICE="${PR_TESTING_SUPABASE_SERVICE_ROLE_KEY:-${BILLING_SUPABASE_SERVICE_ROLE_KEY:-}}"
 BILLING_ORIGINS="${PREVIEW_BILLING_ALLOWED_ORIGINS:-${BILLING_ALLOWED_ORIGINS:-https://deploy.beakerstack.com}}"
+KIT_API_KEY="${KIT_API_KEY:-${PREVIEW_KIT_API_KEY:-}}"
+KIT_CRON_SECRET="${KIT_CRON_SECRET:-${PREVIEW_KIT_CRON_SECRET:-}}"
+KIT_WEBHOOK_SECRET="${KIT_WEBHOOK_SECRET:-${PREVIEW_KIT_WEBHOOK_SECRET:-}}"
 
 missing=()
 [[ -n "${PROJECT_REF}" ]] || missing+=("SUPABASE_PREVIEW_PROJECT_REF")
@@ -62,8 +66,15 @@ supabase_run "Set preview billing Edge secrets" \
   BILLING_SUPABASE_SERVICE_ROLE_KEY="${BILLING_SERVICE}" \
   BILLING_ALLOWED_ORIGINS="${BILLING_ORIGINS}"
 
-supabase_run "Deploy preview billing edge functions" \
-  supabase functions deploy stripe-webhook billing-stripe \
+[[ -n "${KIT_API_KEY}" ]] && supabase_run "Set KIT_API_KEY" \
+  supabase secrets set KIT_API_KEY="${KIT_API_KEY}"
+[[ -n "${KIT_CRON_SECRET}" ]] && supabase_run "Set KIT_CRON_SECRET" \
+  supabase secrets set KIT_CRON_SECRET="${KIT_CRON_SECRET}"
+[[ -n "${KIT_WEBHOOK_SECRET}" ]] && supabase_run "Set KIT_WEBHOOK_SECRET" \
+  supabase secrets set KIT_WEBHOOK_SECRET="${KIT_WEBHOOK_SECRET}"
+
+supabase_run "Deploy preview edge functions" \
+  supabase functions deploy stripe-webhook billing-stripe waitlist-capture waitlist-ops kit-sync kit-webhook \
   --project-ref "${PROJECT_REF}"
 
-log "INFO" "Preview billing edge functions deployed for project ${PROJECT_REF}"
+log "INFO" "Preview edge functions deployed for project ${PROJECT_REF}"

@@ -26,6 +26,17 @@ test('listMissingRequiredGithubForCi omits Stripe when SETUP_STRIPE_SKIPPED', ()
   assert.ok(!missing.some(m => m.name.includes('STRIPE')));
 });
 
+test('collectGithubSecretPayload includes optional KIT_* when set', () => {
+  const payload = collectGithubSecretPayload({
+    KIT_API_KEY: 'k',
+    KIT_CRON_SECRET: 'c',
+    KIT_WEBHOOK_SECRET: 'w',
+  });
+  assert.equal(payload.KIT_API_KEY, 'k');
+  assert.equal(payload.KIT_CRON_SECRET, 'c');
+  assert.equal(payload.KIT_WEBHOOK_SECRET, 'w');
+});
+
 test('listMissingRequiredGithubCiDetails includes primaryEnvKey and groups core before aws', () => {
   const details = listMissingRequiredGithubCiDetails({});
   assert.ok(details.length > 0);
