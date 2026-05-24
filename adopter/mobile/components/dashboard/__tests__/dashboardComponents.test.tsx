@@ -202,6 +202,13 @@ describe('CollectionsGrid', () => {
     await waitFor(() => expect(getByText('Action failed.')).toBeTruthy());
   });
 
+  it('shows delete error message when deleteCollection rejects with Error', async () => {
+    deleteCollection.mockRejectedValue(new Error('Delete denied'));
+    const { getByLabelText, getByText } = renderGrid([makeCol('col-del')]);
+    fireEvent.press(getByLabelText('Delete collection'));
+    await waitFor(() => expect(getByText('Delete denied')).toBeTruthy());
+  });
+
   it('deletes collection and fires onActivity', async () => {
     const { getByLabelText } = renderGrid([makeCol('col-del')]);
     fireEvent.press(getByLabelText('Delete collection'));
@@ -425,6 +432,60 @@ describe('UsageStrip', () => {
     await waitFor(() =>
       expect(getByText('Fake summary from test')).toBeTruthy()
     );
+  });
+
+  it('falls back to fake AI when edge function returns blank text', async () => {
+    process.env.EXPO_PUBLIC_DEMO_USE_REAL_AI = 'true';
+    mockInvoke.mockResolvedValue({
+      data: { text: '   ' },
+      error: null,
+    });
+
+    const { getByText } = render(<UsageStrip />);
+    fireEvent.press(getByText('Simulate AI summarize'));
+
+    await waitFor(() =>
+      expect(getByText('Fake summary from test')).toBeTruthy()
+    );
+  });
+
+  it('falls back to fake AI when edge function returns null data', async () => {
+    process.env.EXPO_PUBLIC_DEMO_USE_REAL_AI = 'true';
+    mockInvoke.mockResolvedValue({
+      data: null,
+      error: null,
+    });
+
+    const { getByText } = render(<UsageStrip />);
+    fireEvent.press(getByText('Simulate AI summarize'));
+
+    await waitFor(() =>
+      expect(getByText('Fake summary from test')).toBeTruthy()
+    );
+  });
+
+  it('ignores duplicate simulate presses while a request is in flight', async () => {
+    let resolveRpc!: (v: { data: null; error: null }) => void;
+    mockRpc.mockImplementation(
+      () =>
+        new Promise(res => {
+          resolveRpc = res;
+        })
+    );
+
+    const { getByText } = render(<UsageStrip />);
+    fireEvent.press(getByText('Simulate AI summarize'));
+    await waitFor(() => {
+      expect(getByText('…')).toBeTruthy();
+    });
+
+    fireEvent.press(getByText('…'));
+    expect(mockRpc).toHaveBeenCalledTimes(1);
+
+    resolveRpc({ data: null, error: null });
+    await waitFor(() => {
+      expect(getByText('Fake summary from test')).toBeTruthy();
+    });
   });
 });
 

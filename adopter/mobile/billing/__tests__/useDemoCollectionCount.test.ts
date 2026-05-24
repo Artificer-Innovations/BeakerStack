@@ -35,17 +35,6 @@ describe('useDemoCollectionCount', () => {
     expect(result.current.maxItemsInAnyCollection).toBe(8);
   });
 
-  it('returns 0 when RPC errors', async () => {
-    mockRpc.mockResolvedValue({ data: null, error: { message: 'fail' } });
-    const { result } = renderHook(() => useDemoCollectionCount());
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-    expect(result.current.count).toBe(0);
-    expect(result.current.maxItemsInAnyCollection).toBe(0);
-    expect(result.current.error).toBe('[object Object]');
-  });
-
   it('refresh refetches and updates max items', async () => {
     mockRpc
       .mockResolvedValueOnce({
@@ -72,5 +61,70 @@ describe('useDemoCollectionCount', () => {
     });
     expect(result.current.count).toBe(2);
     expect(result.current.maxItemsInAnyCollection).toBe(15);
+  });
+
+  it('returns zero max when RPC returns no rows', async () => {
+    mockRpc.mockResolvedValue({ data: [], error: null });
+    const { result } = renderHook(() => useDemoCollectionCount());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(result.current.count).toBe(0);
+    expect(result.current.maxItemsInAnyCollection).toBe(0);
+  });
+
+  it('coerces missing item_count values to zero for max calculation', async () => {
+    mockRpc.mockResolvedValue({
+      data: [
+        { id: '1', item_count: undefined },
+        { id: '2', item_count: 4 },
+      ],
+      error: null,
+    });
+    const { result } = renderHook(() => useDemoCollectionCount());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(result.current.maxItemsInAnyCollection).toBe(4);
+  });
+
+  it('returns 0 when RPC errors', async () => {
+    mockRpc.mockResolvedValue({ data: null, error: { message: 'fail' } });
+    const { result } = renderHook(() => useDemoCollectionCount());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(result.current.count).toBe(0);
+    expect(result.current.maxItemsInAnyCollection).toBe(0);
+    expect(result.current.error).toBe('[object Object]');
+  });
+
+  it('treats null RPC data as an empty collection list', async () => {
+    mockRpc.mockResolvedValue({ data: null, error: null });
+    const { result } = renderHook(() => useDemoCollectionCount());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(result.current.count).toBe(0);
+    expect(result.current.maxItemsInAnyCollection).toBe(0);
+    expect(result.current.error).toBeNull();
+  });
+
+  it('surfaces string errors from rejected refresh calls', async () => {
+    mockRpc.mockRejectedValue('offline');
+    const { result } = renderHook(() => useDemoCollectionCount());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(result.current.error).toBe('offline');
+  });
+
+  it('surfaces Error messages from rejected refresh calls', async () => {
+    mockRpc.mockRejectedValue(new Error('network down'));
+    const { result } = renderHook(() => useDemoCollectionCount());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(result.current.error).toBe('network down');
   });
 });

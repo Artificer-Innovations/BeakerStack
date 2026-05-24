@@ -301,6 +301,29 @@ describe('CollectionDetail', () => {
     resolveRpc({ data: null, error: null });
   });
 
+  it('ignores duplicate summarize presses while the same item is busy', async () => {
+    let resolveRpc!: (v: { data: null; error: null }) => void;
+    mockRpc.mockImplementation(
+      () =>
+        new Promise(res => {
+          resolveRpc = res;
+        })
+    );
+
+    const { getByLabelText, getByText } = renderDetail(
+      makeCollection({ item_count: 1 })
+    );
+    fireEvent.press(getByLabelText('Summarize'));
+    await waitFor(() => {
+      expect(getByText('…')).toBeTruthy();
+    });
+
+    fireEvent.press(getByLabelText('Summarize'));
+    expect(mockRpc).toHaveBeenCalledTimes(1);
+
+    resolveRpc({ data: null, error: null });
+  });
+
   it('resets summaries when collection changes', async () => {
     mockRandomUuid.mockReturnValue('key-1');
     const { getByLabelText, getByText, rerender } = renderDetail(

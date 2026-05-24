@@ -858,4 +858,148 @@ describe('DashboardScreen', () => {
       expect(getByText('Item limit reached')).toBeTruthy();
     });
   });
+
+  it('shows demo plan loading ellipsis and em dash when plan is missing', async () => {
+    process.env.EXPO_PUBLIC_BILLING_DEMO_MODE = 'true';
+    const billing = jest.requireMock('@beakerstack/billing') as {
+      usePlan: jest.Mock;
+    };
+    billing.usePlan.mockImplementation(() => ({
+      data: null,
+      loading: true,
+      error: null,
+    }));
+
+    const { getByText } = renderWithProviders(
+      <DashboardScreen navigation={mockNavigation} />
+    );
+
+    await waitFor(() => {
+      expect(getByText(/Current plan: …/)).toBeTruthy();
+    });
+
+    billing.usePlan.mockImplementation(() => ({
+      data: null,
+      loading: false,
+      error: null,
+    }));
+
+    const { getByText: getByTextAfter } = renderWithProviders(
+      <DashboardScreen navigation={mockNavigation} />
+    );
+
+    await waitFor(() => {
+      expect(getByTextAfter(/Current plan: —/)).toBeTruthy();
+    });
+  });
+
+  it('disables other plan buttons while a demo upgrade is pending', async () => {
+    process.env.EXPO_PUBLIC_BILLING_DEMO_MODE = 'true';
+    let resolveUpgrade!: (v: { data: null; error: null }) => void;
+    (supabase.rpc as jest.Mock).mockImplementation((name: string) => {
+      if (name === 'billing_demo_simulate_upgrade') {
+        return new Promise(res => {
+          resolveUpgrade = res;
+        });
+      }
+      if (name === 'billing_record_usage_event') {
+        return Promise.resolve({ data: null, error: null });
+      }
+      if (name === 'billing_demo_get_collections') {
+        return Promise.resolve({ data: [], error: null });
+      }
+      if (name === 'billing_demo_reset_usage') {
+        return Promise.resolve({ data: null, error: null });
+      }
+      if (name === 'ensure_billing_subscription') {
+        return Promise.resolve({ data: null, error: null });
+      }
+      if (name === 'billing_get_remaining_usage') {
+        return Promise.resolve({
+          data: {
+            used: 0,
+            limit: 30,
+            remaining: 30,
+            periodEnd: '',
+            periodStart: '',
+          },
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const { getByText } = renderWithProviders(
+      <DashboardScreen navigation={mockNavigation} />
+    );
+
+    await waitFor(() => {
+      expect(getByText('To Pro')).toBeTruthy();
+    });
+
+    fireEvent.press(getByText('To Pro'));
+
+    await waitFor(() => {
+      expect(getByText('To Max')).toBeTruthy();
+    });
+    fireEvent.press(getByText('To Max'));
+    expect(
+      (supabase.rpc as jest.Mock).mock.calls.filter(
+        call => call[0] === 'billing_demo_simulate_upgrade'
+      )
+    ).toHaveLength(1);
+
+    resolveUpgrade({ data: null, error: null });
+  });
+
+  it('shows demo control error when reset usage RPC fails', async () => {
+    process.env.EXPO_PUBLIC_BILLING_DEMO_MODE = 'true';
+    (supabase.rpc as jest.Mock).mockImplementation((name: string) => {
+      if (name === 'billing_demo_reset_usage') {
+        return Promise.resolve({
+          data: null,
+          error: { message: 'reset failed' },
+        });
+      }
+      if (name === 'billing_record_usage_event') {
+        return Promise.resolve({ data: null, error: null });
+      }
+      if (name === 'billing_demo_get_collections') {
+        return Promise.resolve({ data: [], error: null });
+      }
+      if (name === 'billing_demo_simulate_upgrade') {
+        return Promise.resolve({ data: null, error: null });
+      }
+      if (name === 'ensure_billing_subscription') {
+        return Promise.resolve({ data: null, error: null });
+      }
+      if (name === 'billing_get_remaining_usage') {
+        return Promise.resolve({
+          data: {
+            used: 0,
+            limit: 30,
+            remaining: 30,
+            periodEnd: '',
+            periodStart: '',
+          },
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const { getByText } = renderWithProviders(
+      <DashboardScreen navigation={mockNavigation} />
+    );
+
+    await waitFor(() => {
+      expect(getByText('Reset all usage counters')).toBeTruthy();
+    });
+
+    fireEvent.press(getByText('Reset all usage counters'));
+
+    await waitFor(() => {
+      expect(getByText('Failed')).toBeTruthy();
+    });
+  });
 });

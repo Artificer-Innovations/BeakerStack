@@ -163,4 +163,52 @@ describe('useDemoCollections', () => {
     expect(result.current.collections).toEqual([]);
     expect(result.current.error).toBeNull();
   });
+
+  it('throws when addCollection RPC returns error', async () => {
+    mockRpc
+      .mockResolvedValueOnce({ data: [], error: null })
+      .mockResolvedValueOnce({ data: null, error: { message: 'add failed' } });
+    const { result } = renderHook(() => useDemoCollections());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    await expect(result.current.addCollection()).rejects.toEqual({
+      message: 'add failed',
+    });
+  });
+
+  it('throws when deleteCollection RPC returns error', async () => {
+    mockRpc
+      .mockResolvedValueOnce({
+        data: [{ id: 'x', item_count: 1 }],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: { message: 'delete failed' },
+      });
+    const { result } = renderHook(() => useDemoCollections());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    await expect(result.current.deleteCollection('x')).rejects.toEqual({
+      message: 'delete failed',
+    });
+  });
+
+  it('throws when addItem RPC returns error', async () => {
+    mockRpc
+      .mockResolvedValueOnce({
+        data: [{ id: 'col', item_count: 0 }],
+        error: null,
+      })
+      .mockResolvedValueOnce({ data: null, error: { message: 'item failed' } });
+    const { result } = renderHook(() => useDemoCollections());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    await expect(result.current.addItem('col')).rejects.toEqual({
+      message: 'item failed',
+    });
+  });
 });
