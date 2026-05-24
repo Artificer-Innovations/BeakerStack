@@ -36,6 +36,8 @@ export function assertPostgresUrl(url) {
  * @returns {{ projectRef?: string; dbPassword?: string }}
  */
 export function resolveLinkedCredentials(env = process.env) {
+  // Generic SUPABASE_* wins for local/dev ergonomics. Preview CI clears those vars
+  // before calling --linked so SUPABASE_PREVIEW_* is used (see reset-preview-database.sh).
   const pairs = [
     ['SUPABASE_PROJECT_REF', 'SUPABASE_DB_PASSWORD'],
     ['SUPABASE_PREVIEW_PROJECT_REF', 'SUPABASE_PREVIEW_DB_PASSWORD'],
@@ -69,6 +71,36 @@ export function readPoolerUrlTemplate(repoRoot) {
 }
 
 /**
+ * @param {string} repoRoot
+ * @returns {string | undefined}
+ */
+export function readLinkedProjectRef(repoRoot) {
+  const refPath = path.join(repoRoot, 'supabase', '.temp', 'project-ref');
+  if (!existsSync(refPath)) {
+    return undefined;
+  }
+
+  const projectRef = readFileSync(refPath, 'utf8').trim();
+  return projectRef || undefined;
+}
+
+/**
+ * Supavisor session pooler usernames are `postgres.{projectRef}`.
+ *
+ * @param {string} poolerUrlTemplate
+ * @param {string} projectRef
+ * @returns {boolean}
+ */
+export function poolerTemplateMatchesProjectRef(poolerUrlTemplate, projectRef) {
+  try {
+    const url = new URL(poolerUrlTemplate.trim());
+    return url.username === `postgres.${projectRef}`;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Prefer Supavisor pooler URL (IPv4-compatible) when `supabase link` wrote
  * supabase/.temp/pooler-url; fall back to direct db.{ref}.supabase.co.
  *
@@ -79,7 +111,13 @@ export function readPoolerUrlTemplate(repoRoot) {
  */
 export function buildLinkedConnectionUri(repoRoot, dbPassword, projectRef) {
   const poolerTemplate = readPoolerUrlTemplate(repoRoot);
-  if (poolerTemplate) {
+  const linkedRef = readLinkedProjectRef(repoRoot);
+  const linkedRefMatches = !linkedRef || linkedRef === projectRef;
+  const poolerMatches =
+    poolerTemplate &&
+    poolerTemplateMatchesProjectRef(poolerTemplate, projectRef);
+
+  if (poolerTemplate && poolerMatches && linkedRefMatches) {
     return applyPoolerPassword(poolerTemplate, dbPassword);
   }
 
@@ -95,12 +133,7 @@ export function buildLinkedConnectionUri(repoRoot, dbPassword, projectRef) {
  * @returns {string | undefined}
  */
 export function readLinkedConnectionUri(repoRoot, env = process.env) {
-  const refPath = path.join(repoRoot, 'supabase', '.temp', 'project-ref');
-  if (!existsSync(refPath)) {
-    return undefined;
-  }
-
-  const projectRef = readFileSync(refPath, 'utf8').trim();
+  const projectRef = readLinkedProjectRef(repoRoot);
   if (!projectRef) {
     return undefined;
   }

@@ -9,6 +9,7 @@ import {
   buildLinkedConnectionUri,
   isPostgresUrl,
   isScriptMain,
+  poolerTemplateMatchesProjectRef,
   readLinkedConnectionUri,
   readPoolerUrlTemplate,
   resolveAdopterDatabaseUrl,
@@ -282,6 +283,69 @@ test('applyPoolerPassword injects password and sslmode', () => {
     url,
     'postgresql://postgres.linked-ref:p%40ss%26word@aws-1-us-east-2.pooler.supabase.com:5432/postgres?sslmode=require'
   );
+});
+
+test('applyPoolerPassword preserves postgres:// scheme from template', () => {
+  const url = applyPoolerPassword(
+    'postgres://postgres.linked-ref@aws-1-us-east-2.pooler.supabase.com:5432/postgres',
+    'secret'
+  );
+  assert.match(url, /^postgres:\/\//);
+  assert.match(url, /sslmode=require/);
+});
+
+test('applyPoolerPassword throws when pooler template is invalid', () => {
+  assert.throws(
+    () => applyPoolerPassword('not-a-url', 'secret'),
+    /Invalid pooler URL template from supabase link/
+  );
+});
+
+test('poolerTemplateMatchesProjectRef matches Supavisor username', () => {
+  assert.equal(
+    poolerTemplateMatchesProjectRef(
+      'postgresql://postgres.abc123@aws-1-us-east-2.pooler.supabase.com:5432/postgres',
+      'abc123'
+    ),
+    true
+  );
+  assert.equal(
+    poolerTemplateMatchesProjectRef(
+      'postgresql://postgres.other-ref@aws-1-us-east-2.pooler.supabase.com:5432/postgres',
+      'abc123'
+    ),
+    false
+  );
+});
+
+test('buildLinkedConnectionUri ignores stale pooler-url for a different project', () => {
+  const repoRoot = mkdtempSync(path.join(os.tmpdir(), 'adopter-db-'));
+  const tempDir = path.join(repoRoot, 'supabase', '.temp');
+  mkdirSync(tempDir, { recursive: true });
+  writeFileSync(
+    path.join(tempDir, 'pooler-url'),
+    'postgresql://postgres.other-ref@aws-1-us-east-2.pooler.supabase.com:5432/postgres'
+  );
+  writeFileSync(path.join(tempDir, 'project-ref'), 'target-ref\n');
+
+  const url = buildLinkedConnectionUri(repoRoot, 'secret', 'target-ref');
+  assert.match(url, /db\.target-ref\.supabase\.co/);
+  assert.doesNotMatch(url, /pooler\.supabase\.com/);
+});
+
+test('buildLinkedConnectionUri ignores pooler when project-ref file disagrees with env ref', () => {
+  const repoRoot = mkdtempSync(path.join(os.tmpdir(), 'adopter-db-'));
+  const tempDir = path.join(repoRoot, 'supabase', '.temp');
+  mkdirSync(tempDir, { recursive: true });
+  writeFileSync(
+    path.join(tempDir, 'pooler-url'),
+    'postgresql://postgres.target-ref@aws-1-us-east-2.pooler.supabase.com:5432/postgres'
+  );
+  writeFileSync(path.join(tempDir, 'project-ref'), 'stale-ref\n');
+
+  const url = buildLinkedConnectionUri(repoRoot, 'secret', 'target-ref');
+  assert.match(url, /db\.target-ref\.supabase\.co/);
+  assert.doesNotMatch(url, /pooler\.supabase\.com/);
 });
 
 test('readPoolerUrlTemplate reads supabase/.temp/pooler-url', () => {

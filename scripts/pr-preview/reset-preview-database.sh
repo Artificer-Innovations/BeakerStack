@@ -126,9 +126,11 @@ ensure_prereqs() {
     log "ERROR" "node is required."
     exit 1
   }
+}
 
+ensure_psql_prereq() {
   command -v psql >/dev/null 2>&1 || {
-    log "ERROR" "psql is required for adopter database migrations."
+    log "ERROR" "psql is required for adopter database migrations (db-apply-adopter.mjs shells out to psql)."
     exit 1
   }
 }
@@ -465,13 +467,16 @@ apply_adopter_migrations() {
     return 0
   fi
 
+  ensure_psql_prereq
   sync_link_artifacts
 
   (
     cd "${REPO_ROOT}"
-    SUPABASE_PREVIEW_PROJECT_REF="${PROJECT_REF}" \
-    SUPABASE_PREVIEW_DB_PASSWORD="${DB_PASSWORD}" \
-    npm run db:apply-adopter -- --linked
+    # Clear generic SUPABASE_* so resolveLinkedCredentials uses preview creds below.
+    env -u SUPABASE_PROJECT_REF -u SUPABASE_DB_PASSWORD \
+      SUPABASE_PREVIEW_PROJECT_REF="${PROJECT_REF}" \
+      SUPABASE_PREVIEW_DB_PASSWORD="${DB_PASSWORD}" \
+      npm run db:apply-adopter -- --linked
   )
 }
 
@@ -587,6 +592,7 @@ main() {
       fi
     fi
 
+    # Re-apply adopter schema after any Supabase reset (reset drops app.*), not only when adopter/db changed.
     if [[ "${supabase_ok}" == true && ( "${ADOPTER_HAS_CHANGES}" == true || "${SUPABASE_HAS_CHANGES}" == true ) ]]; then
       if apply_adopter_migrations; then
         log "INFO" "Adopter database migrations applied successfully."

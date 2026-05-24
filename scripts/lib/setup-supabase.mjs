@@ -41,11 +41,7 @@ export function runCmd(cmd, args, opts = {}) {
  */
 export function postgresConnectionUri(projectRef, dbPassword) {
   const enc = encodeURIComponent(dbPassword);
-  const url = new URL(
-    `postgresql://postgres:${enc}@db.${projectRef}.supabase.co:5432/postgres`
-  );
-  url.searchParams.set('sslmode', 'require');
-  return url.toString();
+  return `postgresql://postgres:${enc}@db.${projectRef}.supabase.co:5432/postgres?sslmode=require`;
 }
 
 /**
@@ -54,10 +50,18 @@ export function postgresConnectionUri(projectRef, dbPassword) {
  * @param {string} dbPassword
  */
 export function applyPoolerPassword(poolerUrlTemplate, dbPassword) {
-  const url = new URL(poolerUrlTemplate.trim());
+  let url;
+  try {
+    url = new URL(poolerUrlTemplate.trim());
+  } catch {
+    throw new Error(
+      `Invalid pooler URL template from supabase link: ${String(poolerUrlTemplate).slice(0, 80)}`
+    );
+  }
   const enc = encodeURIComponent(dbPassword);
   url.searchParams.set('sslmode', 'require');
-  return `postgresql://${url.username}:${enc}@${url.host}${url.pathname}${url.search}`;
+  // url.username is percent-decoded; Supabase pooler usernames (postgres.{ref}) are alphanumeric.
+  return `${url.protocol}//${url.username}:${enc}@${url.host}${url.pathname}${url.search}`;
 }
 
 /**
