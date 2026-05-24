@@ -130,9 +130,30 @@ jobs:
             core.setOutput('web_base_path', basePath);
             core.setOutput('web_preview_url', previewUrl);
 
+            const isWebDeployPath = filename => {
+              if (filename.startsWith('apps/web/')) return true;
+              if (
+                filename === 'package.json' ||
+                filename === 'package-lock.json' ||
+                filename.endsWith('/package.json')
+              ) {
+                return true;
+              }
+              const runtimePackage = filename.match(
+                /^packages\/(shared|billing|logger|observability|admin|email|waitlist|lifecycle-events)\/src\//
+              );
+              if (!runtimePackage) return false;
+              if (filename.includes('/__tests__/')) return false;
+              return !/\.(test|coverage\.test)\.(ts|tsx|mjs|js)$/.test(filename);
+            };
+
+            const hasSuccessfulStatus = statuses =>
+              statuses.some(status => status.state === 'success');
+
+            const { owner, repo } = context.repo;
             const { data: deployments } = await github.rest.repos.listDeployments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
+              owner,
+              repo,
               environment,
               per_page: 20,
             });
@@ -143,25 +164,65 @@ jobs:
               return;
             }
 
-            let matched = false;
+            let matchedDeployment = null;
+
             for (const deployment of deployments) {
               if (deployment.sha !== headSha) {
                 continue;
               }
               const { data: statuses } = await github.rest.repos.listDeploymentStatuses({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
+                owner,
+                repo,
                 deployment_id: deployment.id,
                 per_page: 5,
               });
-              const success = statuses.find(s => s.state === 'success');
-              if (success) {
-                matched = true;
+              if (hasSuccessfulStatus(statuses)) {
+                matchedDeployment = deployment;
                 break;
               }
             }
 
-            if (!matched) {
+            if (!matchedDeployment) {
+              for (const deployment of deployments) {
+                const { data: statuses } = await github.rest.repos.listDeploymentStatuses({
+                  owner,
+                  repo,
+                  deployment_id: deployment.id,
+                  per_page: 5,
+                });
+                if (!hasSuccessfulStatus(statuses)) {
+                  continue;
+                }
+
+                const { data: compare } = await github.rest.repos.compareCommitsWithBasehead({
+                  owner,
+                  repo,
+                  basehead: `${deployment.sha}...${headSha}`,
+                });
+
+                if (compare.status === 'diverged' || compare.status === 'behind') {
+                  continue;
+                }
+
+                const webChanged = (compare.files ?? []).some(file =>
+                  isWebDeployPath(file.filename)
+                );
+                if (webChanged) {
+                  core.setFailed(
+                    `Preview is not deployed for commit ${headSha.slice(0, 7)} and web-relevant files changed since ${deployment.sha.slice(0, 7)}. Wait for PR Preview to finish, then re-trigger E2E.`
+                  );
+                  return;
+                }
+
+                core.notice(
+                  `Using preview deployed at ${deployment.sha.slice(0, 7)}; HEAD ${headSha.slice(0, 7)} has no web changes since that deploy.`
+                );
+                matchedDeployment = deployment;
+                break;
+              }
+            }
+
+            if (!matchedDeployment) {
               core.setFailed(
                 `Preview is not deployed for commit ${headSha.slice(0, 7)}. Push again or wait for PR Preview to complete, then approve, add the run-e2e label, or comment "Run e2e".`
               );
