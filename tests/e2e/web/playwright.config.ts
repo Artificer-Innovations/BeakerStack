@@ -12,7 +12,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: isCi,
   retries: isCi ? 1 : 0,
-  workers: isCi ? 2 : undefined,
+  workers: 1,
   reporter: [
     ['list'],
     ['html', { outputFolder: reportDir, open: 'never' }],
@@ -31,6 +31,33 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testIgnore: [
+        /specs\/waitlist\//,
+        /admin\/waitlist-settings\.spec\.ts/,
+        /specs\/profile\//,
+        /specs\/billing\/metered-usage\.spec\.ts/,
+        /admin\/users\.spec\.ts/,
+        /admin\/waitlist\.spec\.ts/,
+      ],
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'shared-state',
+      testMatch: [
+        /specs\/profile\//,
+        /specs\/billing\/metered-usage\.spec\.ts/,
+        /admin\/users\.spec\.ts/,
+        /admin\/waitlist\.spec\.ts/,
+      ],
+      fullyParallel: false,
+      dependencies: ['chromium'],
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'signup-mode',
+      testMatch: [/specs\/waitlist\//, /admin\/waitlist-settings\.spec\.ts/],
+      fullyParallel: false,
+      dependencies: ['shared-state'],
       use: { ...devices['Desktop Chrome'] },
     },
   ],

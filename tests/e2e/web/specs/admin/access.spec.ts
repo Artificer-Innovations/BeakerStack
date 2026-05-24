@@ -41,4 +41,23 @@ test.describe('Admin access', () => {
       page.getByRole('heading', { name: 'Users', level: 2 })
     ).toBeVisible();
   });
+
+  test('overview shows operator cards', async ({ adminPage: page }) => {
+    await gotoRoute(page, '/admin');
+
+    await expect(
+      page.getByRole('link', { name: 'Users', exact: true })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: 'Waitlist', exact: true })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: /Waitlist Settings/ })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('link', {
+        name: /Marketing email Not configured|Marketing email Enabled|Marketing email Disabled/,
+      })
+    ).toBeVisible();
+  });
 });

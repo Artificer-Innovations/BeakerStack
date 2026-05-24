@@ -285,6 +285,12 @@ jobs:
           SUPABASE_PREVIEW_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
         run: npm run test:e2e:web
 
+      - name: Build category E2E report
+        if: always() && steps.pr_context.outputs.qualified == 'true' && steps.playwright.outcome != 'skipped'
+        env:
+          PLAYWRIGHT_JSON_REPORT: tests/e2e/web/results/web-results.json
+        run: npm run test:e2e:web:report
+
       - name: Upload Playwright report
         if: always() && steps.pr_context.outputs.qualified == 'true' && steps.playwright.outcome != 'skipped'
         uses: actions/upload-artifact@v4

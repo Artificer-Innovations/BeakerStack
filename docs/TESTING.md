@@ -272,7 +272,41 @@ export E2E_TARGET=preview
 npm run test:e2e:web
 ```
 
-**Coverage:** 16 spec files, 26 test cases under `tests/e2e/web/specs/` (auth, billing, admin, marketing, navigation, profile).
+**Coverage:** Specs are grouped by folder under `tests/e2e/web/specs/` — each subdirectory is a report category (`admin`, `auth`, `billing`, `marketing`, `navigation`, `profile`, `waitlist`).
+
+**Run a category subset:**
+
+```bash
+npm run test:e2e:web:admin
+npm run test:e2e:web:billing
+npm run test:e2e:web:waitlist
+# or directly:
+npx playwright test --config tests/e2e/web/playwright.config.ts specs/marketing
+```
+
+**Reports:**
+
+- Default HTML report: `tests/e2e/web/report/`
+- Category summary (cross-file grouping): `npm run test:e2e:web:report` → `tests/e2e/web/report/categories.html`
+- PR comments group results by category; each test row includes its spec file path.
+
+**Stripe billing E2E** (`specs/billing/plan-upgrade.spec.ts`, `plan-downgrade.spec.ts`, `cadence.spec.ts`, `invoices.spec.ts`):
+
+- Uses real Stripe Checkout in test mode (card `4242 4242 4242 4242`).
+- Runs automatically in CI/preview (`E2E_TARGET=preview`).
+- Local runs require full stack: `supabase start`, Edge functions with `STRIPE_*`, webhook forwarding (`stripe listen`), and `export E2E_STRIPE_READY=1`.
+- Without Stripe/webhook, those specs are skipped locally.
+
+**Waitlist / signup-mode specs** run in a dedicated Playwright project (`signup-mode`) after the main suite to avoid conflicting with auth signup tests that require `open` mode.
+
+**Waitlist edge-function E2E** (`specs/waitlist/public-signup.spec.ts` submit step, `invite-signup.spec.ts`):
+
+- Requires deployed `waitlist-capture` and `waitlist-ops` edge functions.
+- Runs automatically in CI/preview (`E2E_TARGET=preview`).
+- Local runs need `supabase functions serve` (or equivalent) and `export E2E_WAITLIST_READY=1`.
+- Without edge functions, waitlist form/mode UI specs still run; submit and invite-signup flows are skipped locally.
+
+**Shared-state specs** (`specs/profile/`, `specs/billing/metered-usage.spec.ts`, `specs/admin/users.spec.ts`, `specs/admin/waitlist.spec.ts`) run serially in a second Playwright project to avoid conflicting edits on the seeded user.
 
 **Structure:**
 
