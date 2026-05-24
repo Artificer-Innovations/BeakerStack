@@ -281,6 +281,8 @@ jobs:
           PREVIEW_SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
           PREVIEW_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
           PR_TESTING_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PR_TESTING_SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PREVIEW_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
         run: npm run test:e2e:web
 
       - name: Upload Playwright report

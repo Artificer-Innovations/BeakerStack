@@ -18,6 +18,7 @@ import {
   webPath,
   type E2eSeedState,
 } from './env';
+import { preparePreviewAuthForE2e } from './preview-auth-config';
 
 async function loginAndSaveStorageState(
   storagePath: string,
@@ -50,6 +51,7 @@ async function globalSetup(_config: FullConfig): Promise<void> {
 
   mkdirSync(e2eAuthDir, { recursive: true });
 
+  await preparePreviewAuthForE2e();
   await setWaitlistMode('open');
 
   const supabase = createWebTestClient();

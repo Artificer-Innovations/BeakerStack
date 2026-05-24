@@ -6,6 +6,7 @@ import {
   type E2eSeedState,
 } from './env';
 import { createServiceRoleClient } from '../../utils/test-clients';
+import { restorePreviewAuthAfterE2e } from './preview-auth-config';
 
 async function deleteSeedUser(statePath: string): Promise<void> {
   try {
@@ -25,6 +26,7 @@ async function globalTeardown(): Promise<void> {
   applyE2eSupabaseEnv();
   await deleteSeedUser(e2eStatePath);
   await deleteSeedUser(e2eAdminStatePath);
+  await restorePreviewAuthAfterE2e();
 }
 
 export default globalTeardown;

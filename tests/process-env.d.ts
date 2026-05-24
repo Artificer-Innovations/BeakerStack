@@ -19,6 +19,8 @@ declare global {
       PREVIEW_SUPABASE_URL?: string;
       PREVIEW_SUPABASE_ANON_KEY?: string;
       PR_TESTING_SUPABASE_SERVICE_ROLE_KEY?: string;
+      SUPABASE_ACCESS_TOKEN?: string;
+      SUPABASE_PREVIEW_PROJECT_REF?: string;
       SUPABASE_URL?: string;
       SUPABASE_ANON_KEY?: string;
       SUPABASE_SERVICE_ROLE_KEY?: string;
