@@ -1,18 +1,22 @@
 import { applyE2eSupabaseEnv } from '../env';
 import {
-  findWaitlistEntryByEmail,
   getWaitlistMode,
   setWaitlistMode,
   type SignupMode,
 } from '../../../utils/integration-fixtures';
-import { createWebTestClient } from '../../../utils/test-clients';
-import { deleteWaitlistEntry } from './waitlist-data.fixture';
+import { generateE2ETestEmail } from '../../../utils/test-emails';
+import {
+  deleteWaitlistEntry,
+  deleteWaitlistEntryByEmail,
+  findWaitlistEntryWithRetry,
+} from './waitlist-data.fixture';
 
 /** Set signup mode for a test block and restore afterward. */
 export async function withSignupMode<T>(
   mode: SignupMode,
   fn: () => Promise<T>
 ): Promise<T> {
+  // Application default when waitlist_settings row is missing is open (see supabase/seed.sql).
   const previous = (await getWaitlistMode()) ?? 'open';
   if (previous !== mode) {
     await setWaitlistMode(mode);
@@ -61,13 +65,31 @@ export type WaitlistEdgeProbeResult = {
 };
 
 function getWaitlistFunctionsBaseUrl(): string | null {
-  applyE2eSupabaseEnv();
   const supabaseUrl =
     process.env.SUPABASE_URL ?? process.env.PREVIEW_SUPABASE_URL;
   if (!supabaseUrl?.trim()) {
     return null;
   }
   return `${supabaseUrl.replace(/\/$/, '')}/functions/v1`;
+}
+
+async function cleanupWaitlistProbeCanary(
+  canaryEmail: string,
+  canaryEntryId: string | null
+): Promise<void> {
+  try {
+    if (canaryEntryId) {
+      await deleteWaitlistEntry(canaryEntryId);
+      return;
+    }
+    await deleteWaitlistEntryByEmail(canaryEmail);
+  } catch (error) {
+    console.warn(
+      `[e2e] waitlist probe canary cleanup failed (best-effort): ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
 }
 
 /** POST canary to waitlist-capture and validate waitlist-ops without using the browser. */
@@ -80,6 +102,8 @@ export async function probeWaitlistEdgeReady(): Promise<WaitlistEdgeProbeResult>
     };
   }
 
+  applyE2eSupabaseEnv();
+
   const base = getWaitlistFunctionsBaseUrl();
   if (!base) {
     return {
@@ -89,7 +113,18 @@ export async function probeWaitlistEdgeReady(): Promise<WaitlistEdgeProbeResult>
     };
   }
 
-  const canaryEmail = `e2e-waitlist-probe-${Date.now()}@example.com`;
+  const anonKey =
+    process.env.SUPABASE_ANON_KEY ?? process.env.PREVIEW_SUPABASE_ANON_KEY;
+  if (!anonKey?.trim()) {
+    return {
+      ready: false,
+      reason:
+        'Waitlist edge probe missing SUPABASE_ANON_KEY / PREVIEW_SUPABASE_ANON_KEY.',
+    };
+  }
+
+  const canaryEmail = generateE2ETestEmail();
+  let canaryEntryId: string | null = null;
 
   try {
     const captureResponse = await fetch(`${base}/waitlist-capture`, {
@@ -125,31 +160,36 @@ export async function probeWaitlistEdgeReady(): Promise<WaitlistEdgeProbeResult>
       };
     }
 
-    const entry = await findWaitlistEntryByEmail(canaryEmail);
-    if (entry) {
-      await deleteWaitlistEntry(entry.id);
-    }
+    const entry = await findWaitlistEntryWithRetry(canaryEmail, 8, 250);
+    canaryEntryId = entry?.id ?? null;
 
-    const client = createWebTestClient();
-    const { data, error } = await client.functions.invoke('waitlist-ops', {
-      body: { action: 'validate', token: 'e2e-waitlist-probe-invalid' },
-    });
-    if (error) {
+    let opsResponse: Response;
+    try {
+      opsResponse = await fetch(`${base}/waitlist-ops`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${anonKey}`,
+          apikey: anonKey,
+        },
+        body: JSON.stringify({
+          action: 'validate',
+          token: 'e2e-waitlist-probe-invalid',
+        }),
+        signal: AbortSignal.timeout(10_000),
+      });
+    } catch (error) {
       return {
         ready: false,
-        reason: `waitlist-ops probe failed: ${error.message}`,
-      };
-    }
-    if (typeof (data as { valid?: boolean })?.valid !== 'boolean') {
-      return {
-        ready: false,
-        reason: `waitlist-ops probe returned unexpected payload: ${JSON.stringify(data).slice(0, 300)}`,
+        reason: `waitlist-ops probe unreachable: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       };
     }
 
     return {
       ready: true,
-      reason: 'waitlist-capture and waitlist-ops responded successfully.',
+      reason: `waitlist-capture ok; waitlist-ops responded (${opsResponse.status}).`,
     };
   } catch (error) {
     return {
@@ -158,6 +198,8 @@ export async function probeWaitlistEdgeReady(): Promise<WaitlistEdgeProbeResult>
         error instanceof Error ? error.message : String(error)
       }`,
     };
+  } finally {
+    await cleanupWaitlistProbeCanary(canaryEmail, canaryEntryId);
   }
 }
 

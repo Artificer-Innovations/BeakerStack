@@ -13,14 +13,34 @@ import { e2eAdminStatePath, type E2eSeedState } from '../env';
 async function waitForWaitlistEntry(
   email: string
 ): Promise<{ id: string; email: string; status: string }> {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
+  const entry = await findWaitlistEntryWithRetry(email, 40, 500);
+  if (!entry) {
+    throw new Error(`waitlist entry not found for ${email}`);
+  }
+  return entry;
+}
+
+/** Poll for a waitlist row (used by probes with shorter timeouts than full tests). */
+export async function findWaitlistEntryWithRetry(
+  email: string,
+  attempts = 40,
+  delayMs = 500
+): Promise<{ id: string; email: string; status: string } | null> {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
     const entry = await findWaitlistEntryByEmail(email);
     if (entry) {
       return entry;
     }
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, delayMs));
   }
-  throw new Error(`waitlist entry not found for ${email}`);
+  return null;
+}
+
+export async function deleteWaitlistEntryByEmail(email: string): Promise<void> {
+  const entry = await findWaitlistEntryWithRetry(email, 8, 250);
+  if (entry) {
+    await deleteWaitlistEntry(entry.id);
+  }
 }
 
 export async function seedWaitlistEntry(

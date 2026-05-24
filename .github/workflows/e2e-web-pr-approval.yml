@@ -459,6 +459,8 @@ jobs:
           SUPABASE_PREVIEW_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
         run: |
           mkdir -p tests/e2e/web/results
+          # --no-deps bypasses Playwright project dependencies; flag order is load-bearing
+          # and must match playwright.config.ts: shared-state before signup-mode.
           npx playwright test --config tests/e2e/web/playwright.config.ts \
             --project=shared-state \
             --project=signup-mode \
