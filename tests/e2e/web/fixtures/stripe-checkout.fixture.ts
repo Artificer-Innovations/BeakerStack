@@ -40,7 +40,7 @@ export async function startProUpgradeCheckout(page: Page): Promise<void> {
 
   const upgradeButton = page
     .locator('#plan-card-beakerstack_pro')
-    .getByRole('button', { name: 'Upgrade to Pro' });
+    .getByRole('button', { name: /Upgrade to Pro|Start .* free trial/i });
   await expect(upgradeButton).toBeVisible({ timeout: 15_000 });
   await expect(upgradeButton).toBeEnabled({ timeout: 15_000 });
 
@@ -92,19 +92,50 @@ export async function startProUpgradeCheckout(page: Page): Promise<void> {
   await page.waitForURL(/checkout\.stripe\.com/, { timeout: 60_000 });
 }
 
+export type StripeCheckoutProbeResult = {
+  ready: boolean;
+  reason: string;
+};
+
 /** Returns false when preview billing-stripe cannot start checkout (plans not synced, etc.). */
-export async function probeStripeCheckoutReady(page: Page): Promise<boolean> {
+export async function probeStripeCheckoutReady(
+  page: Page
+): Promise<StripeCheckoutProbeResult> {
   if (!isStripeCheckoutReady()) {
-    return false;
+    return {
+      ready: false,
+      reason:
+        'E2E Stripe checkout is disabled (set E2E_STRIPE_READY=1 or run in CI/preview).',
+    };
   }
 
   await gotoRoute(page, '/billing/plans');
 
-  const upgradeButton = page
-    .locator('#plan-card-beakerstack_pro')
-    .getByRole('button', { name: 'Upgrade to Pro' });
+  const proCard = page.locator('#plan-card-beakerstack_pro');
+  try {
+    await expect(proCard).toBeVisible({ timeout: 15_000 });
+  } catch {
+    return {
+      ready: false,
+      reason:
+        'Pro plan card did not appear on /billing/plans (billing catalog may still be loading or unavailable).',
+    };
+  }
+
+  const upgradeButton = proCard.getByRole('button', {
+    name: /Upgrade to Pro|Start .* free trial/i,
+  });
   if (!(await upgradeButton.count())) {
-    return false;
+    const buttonLabels = await proCard.getByRole('button').allTextContents();
+    return {
+      ready: false,
+      reason: `No upgrade/trial button on Pro plan card (found: ${
+        buttonLabels
+          .map(label => label.trim())
+          .filter(Boolean)
+          .join(', ') || 'none'
+      }).`,
+    };
   }
 
   try {
@@ -118,21 +149,38 @@ export async function probeStripeCheckoutReady(page: Page): Promise<boolean> {
     );
     await upgradeButton.click();
     const response = await checkoutResponse;
+    const responseBody = await response.text();
     if (!response.ok()) {
-      console.warn(
-        `[e2e] Stripe checkout probe failed (${response.status()}): ${(await response.text()).slice(0, 300)}`
-      );
-      return false;
+      return {
+        ready: false,
+        reason: `billing-stripe checkout failed (${response.status()}): ${responseBody.slice(0, 300)}`,
+      };
     }
-    const payload = (await response.json()) as { checkoutUrl?: string };
-    return Boolean(payload.checkoutUrl);
+    let payload: { checkoutUrl?: string } | null = null;
+    try {
+      payload = JSON.parse(responseBody) as { checkoutUrl?: string };
+    } catch {
+      return {
+        ready: false,
+        reason: `billing-stripe checkout returned non-JSON: ${responseBody.slice(0, 300)}`,
+      };
+    }
+    if (!payload?.checkoutUrl) {
+      return {
+        ready: false,
+        reason: `billing-stripe checkout missing checkoutUrl: ${responseBody.slice(0, 300)}`,
+      };
+    }
+    return { ready: true, reason: 'billing-stripe returned checkoutUrl.' };
   } catch (error) {
-    console.warn(
-      `[e2e] Stripe checkout probe error: ${
-        error instanceof Error ? error.message : String(error)
-      }`
-    );
-    return false;
+    const uiError = await readBillingStripeCheckoutFailure(page);
+    const detail = error instanceof Error ? error.message : String(error);
+    return {
+      ready: false,
+      reason: uiError
+        ? `billing-stripe checkout request did not complete: ${uiError} (${detail})`
+        : `billing-stripe checkout request did not complete within 20s (${detail}). Check preview billing-stripe deploy, STRIPE_* secrets, synced plans, and BILLING_ALLOWED_ORIGINS.`,
+    };
   }
 }
 

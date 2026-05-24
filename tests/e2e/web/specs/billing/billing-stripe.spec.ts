@@ -13,9 +13,17 @@ test.describe('Billing Stripe flows', () => {
   test.setTimeout(120_000);
 
   let stripeCheckoutReady = isStripeCheckoutReady();
+  let stripeCheckoutSkipReason =
+    'Requires preview billing-stripe checkout (STRIPE_* secrets, synced plans, BILLING_ALLOWED_ORIGINS)';
 
   test.beforeAll(async ({ browser }) => {
     if (!isStripeCheckoutReady()) {
+      stripeCheckoutSkipReason =
+        'E2E Stripe checkout is disabled for this run (not CI/preview and E2E_STRIPE_READY is unset).';
+      stripeCheckoutReady = false;
+      console.log(
+        `[e2e] Stripe checkout probe skipped: ${stripeCheckoutSkipReason}`
+      );
       return;
     }
     const context = await browser.newContext({
@@ -23,17 +31,19 @@ test.describe('Billing Stripe flows', () => {
     });
     const page = await context.newPage();
     try {
-      stripeCheckoutReady = await probeStripeCheckoutReady(page);
+      const probe = await probeStripeCheckoutReady(page);
+      stripeCheckoutReady = probe.ready;
+      stripeCheckoutSkipReason = probe.reason;
+      console.log(
+        `[e2e] Stripe checkout probe: ${probe.ready ? 'ready' : 'not ready'} — ${probe.reason}`
+      );
     } finally {
       await context.close();
     }
   });
 
   test.beforeEach(({ authenticatedPage: _page }, testInfo) => {
-    testInfo.skip(
-      !stripeCheckoutReady,
-      'Requires preview billing-stripe checkout (STRIPE_* secrets, synced plans, BILLING_ALLOWED_ORIGINS)'
-    );
+    testInfo.skip(!stripeCheckoutReady, stripeCheckoutSkipReason);
   });
 
   test('upgrades Free to Pro via Stripe Checkout', async ({
