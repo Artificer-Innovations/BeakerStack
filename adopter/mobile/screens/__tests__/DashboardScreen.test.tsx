@@ -3,8 +3,12 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { supabase } from '../../src/lib/supabase';
-import DashboardScreen from '../../../../adopter/mobile/screens/DashboardScreen';
+import { supabase } from '@mobile/lib/supabase';
+import DashboardScreen from '../DashboardScreen';
+
+type DashboardScreenNavigationProp = React.ComponentProps<
+  typeof DashboardScreen
+>['navigation'];
 
 jest.mock('@beakerstack/billing', () => {
   return {
@@ -67,7 +71,7 @@ jest.mock('@beakerstack/shared/components/navigation/AppHeader.native', () => ({
   AppHeader: () => null,
 }));
 
-jest.mock('../../src/lib/supabase', () => {
+jest.mock('@mobile/lib/supabase', () => {
   const mockRpc = jest.fn((name: string) => {
     if (name === 'billing_record_usage_event') {
       return Promise.resolve({ data: null, error: null });
@@ -158,7 +162,7 @@ const mockNavigate = jest.fn();
 const mockNavigation = {
   replace: mockReplace,
   navigate: mockNavigate,
-} as any;
+} as unknown as DashboardScreenNavigationProp;
 
 const renderWithProviders = (component: React.ReactElement) => {
   return render(
@@ -738,10 +742,18 @@ describe('DashboardScreen', () => {
     });
 
     const collectionCards = getAllByText('Collection');
-    fireEvent.press(collectionCards[collectionCards.length - 1]!);
+    const lastCollectionCard = collectionCards.at(-1);
+    if (!lastCollectionCard) {
+      throw new Error('expected at least one collection card');
+    }
+    fireEvent.press(lastCollectionCard);
 
     const deleteButtons = getAllByLabelText('Delete collection');
-    fireEvent.press(deleteButtons[deleteButtons.length - 1]!);
+    const lastDeleteButton = deleteButtons.at(-1);
+    if (!lastDeleteButton) {
+      throw new Error('expected at least one delete button');
+    }
+    fireEvent.press(lastDeleteButton);
 
     await waitFor(() => {
       expect(queryByText(/gonecol2/)).toBeNull();

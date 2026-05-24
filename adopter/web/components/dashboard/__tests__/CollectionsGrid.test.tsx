@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CollectionsGrid } from '../CollectionsGrid';
-import type { DemoCollectionRow } from '@/billing/useDemoCollections';
+import type { DemoCollectionRow } from '@adopter/web/billing/useDemoCollections';
 
 const hp = vi.hoisted(() => ({
   maxCollectionsValue: 2 as number | boolean | null,

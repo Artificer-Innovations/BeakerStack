@@ -6,6 +6,9 @@ import react from '@vitejs/plugin-react';
 import { branding } from '../../adopter/config/branding';
 
 const viteConfigDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(viteConfigDir, '../..');
+const adopterWebRoot = path.join(repoRoot, 'adopter/web');
+const adopterConfigRoot = path.join(repoRoot, 'adopter/config');
 const criticalThemePath = path.join(
   viteConfigDir,
   'src/styles/critical-theme.css'
@@ -111,9 +114,14 @@ export default defineConfig(({ mode }) => {
       external: ['react-router', 'react-router-dom', '@remix-run/router'],
     },
     test: {
+      root: repoRoot,
       globals: true,
       environment: 'jsdom',
-      setupFiles: ['./src/test/setup.ts'],
+      setupFiles: [path.join(viteConfigDir, 'src/test/setup.ts')],
+      include: [
+        'apps/web/src/**/*.{test,spec}.{ts,tsx}',
+        'adopter/web/**/*.{test,spec}.{ts,tsx}',
+      ],
       // Placeholder Supabase env when unset (jsdom imports supabase.ts at module load).
       // CI integration exports real credentials via GITHUB_ENV — those take precedence.
       env: {
@@ -124,6 +132,8 @@ export default defineConfig(({ mode }) => {
       },
       coverage: {
         provider: 'v8',
+        all: true,
+        reportsDirectory: path.join(viteConfigDir, 'coverage'),
         reporter:
           process.env.COVERAGE_MERGE === '1'
             ? ['text', 'json']
@@ -133,22 +143,30 @@ export default defineConfig(({ mode }) => {
           statements: 99,
           lines: 99,
         },
+        include: [
+          'apps/web/src/**/*.{ts,tsx}',
+          'adopter/web/**/*.{ts,tsx}',
+          'adopter/config/**/*.{ts,tsx}',
+        ],
         exclude: [
           'node_modules/',
-          'src/test/',
+          'apps/web/src/test/',
           '**/*.d.ts',
           '**/*.config.*',
           '**/dist/',
           '**/build/',
           '**/types/**',
           // Build-time scripts — run by vite-node at build, not part of the app test suite
-          'scripts/',
+          'apps/web/scripts/',
           // SSR-only landing component — structural duplicate of LandingPage used by the
           // prerender script only; covered by the build-time prerender smoke check
-          'src/components/landing/LandingPageSSR.tsx',
+          'apps/web/src/components/landing/LandingPageSSR.tsx',
           // Thin composition wrappers — routing/providers tested independently
-          'src/PublicShell.tsx',
-          'src/AuthenticatedApp.tsx',
+          'apps/web/src/PublicShell.tsx',
+          'apps/web/src/AuthenticatedApp.tsx',
+          'adopter/web/**/__tests__/**',
+          'adopter/web/**/types.ts',
+          'adopter/config/landing.example.alt.ts',
         ],
       },
     },

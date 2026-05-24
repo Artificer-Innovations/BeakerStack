@@ -3,8 +3,8 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { useBillingContext, useFeature, useUsage } from '@beakerstack/billing';
 import { CollectionDetail } from '../CollectionDetail';
 import type { DemoCollectionRow } from '../../../billing/useDemoCollections';
-import { supabase } from '../../../../../apps/mobile/src/lib/supabase';
-import { randomUuid } from '../../../../../apps/mobile/src/lib/randomUuid';
+import { supabase } from '@mobile/lib/supabase';
+import { randomUuid } from '@mobile/lib/randomUuid';
 
 jest.mock('@beakerstack/billing', () => ({
   mapUnknownError: (e: unknown) => ({
@@ -25,17 +25,17 @@ jest.mock('@beakerstack/billing', () => ({
   useFeature: jest.fn(),
 }));
 
-jest.mock('../../../lib/supabase', () => ({
+jest.mock('@mobile/lib/supabase', () => ({
   supabase: { rpc: jest.fn() },
 }));
 
 type RpcResult = { data: unknown; error: { message: string } | null };
 
-jest.mock('../../../lib/fakeAi', () => ({
+jest.mock('@mobile/lib/fakeAi', () => ({
   nextFakeAiSummary: () => 'Fake AI summary text',
 }));
 
-jest.mock('../../../lib/randomUuid', () => ({
+jest.mock('@mobile/lib/randomUuid', () => ({
   randomUuid: jest.fn(),
 }));
 

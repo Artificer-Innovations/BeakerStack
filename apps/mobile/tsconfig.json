@@ -8,6 +8,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
+      "@mobile/lib/*": ["./src/lib/*"],
       "@adopter/config": ["../../adopter/config/index.ts"],
       "@adopter/config/*": ["../../adopter/config/*"],
       "@adopter/mobile/*": ["../../adopter/mobile/*"],

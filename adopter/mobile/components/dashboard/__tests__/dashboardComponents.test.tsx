@@ -7,8 +7,8 @@ import { BooleanFeatureTiles } from '../BooleanFeatureTiles';
 import { UsageStrip } from '../UsageStrip';
 import { AnnotatedPrimitive } from '../AnnotatedPrimitive';
 import type { DemoCollectionRow } from '../../../billing/useDemoCollections';
-import { supabase } from '../../../../../apps/mobile/src/lib/supabase';
-import { randomUuid } from '../../../../../apps/mobile/src/lib/randomUuid';
+import { supabase } from '@mobile/lib/supabase';
+import { randomUuid } from '@mobile/lib/randomUuid';
 
 jest.mock('@beakerstack/billing', () => ({
   defineBillingConfig: (c: unknown) => c,
@@ -29,7 +29,7 @@ jest.mock('@beakerstack/billing', () => ({
   useFeature: jest.fn(),
 }));
 
-jest.mock('../../../lib/supabase', () => ({
+jest.mock('@mobile/lib/supabase', () => ({
   supabase: {
     rpc: jest.fn(),
     functions: { invoke: jest.fn() },
@@ -38,11 +38,11 @@ jest.mock('../../../lib/supabase', () => ({
 
 type RpcResult = { data: unknown; error: { message: string } | null };
 
-jest.mock('../../../lib/fakeAi', () => ({
+jest.mock('@mobile/lib/fakeAi', () => ({
   nextFakeAiSummary: () => 'Fake summary from test',
 }));
 
-jest.mock('../../../lib/randomUuid', () => ({
+jest.mock('@mobile/lib/randomUuid', () => ({
   randomUuid: jest.fn(),
 }));
 

@@ -18,7 +18,7 @@ import { useBillingContext, usePlan, useUsage } from '@beakerstack/billing';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.native';
 import { colors } from '@beakerstack/shared/theme/colors';
-import { supabase } from '../../../apps/mobile/src/lib/supabase';
+import { supabase } from '@mobile/lib/supabase';
 import { billingConfig, METER_AI_SUMMARIZE } from '@adopter/config/billing';
 import { useDemoCollections } from '../billing/useDemoCollections';
 import {

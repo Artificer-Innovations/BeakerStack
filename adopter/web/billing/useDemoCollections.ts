@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { supabaseRpc } from '../../../apps/web/src/lib/supabase';
+import { supabaseRpc } from '@/lib/supabase';
 import { appIdentity } from '@adopter/config/app-identity';
 
 export type DemoCollectionRow = {

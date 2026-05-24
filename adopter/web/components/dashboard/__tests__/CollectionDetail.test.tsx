@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CollectionDetail } from '../CollectionDetail';
-import type { DemoCollectionRow } from '@/billing/useDemoCollections';
+import type { DemoCollectionRow } from '@adopter/web/billing/useDemoCollections';
 
 const hp = vi.hoisted(() => ({
   usageExceeded: false,
@@ -61,7 +61,7 @@ vi.mock('@/lib/supabase', () => ({
   supabaseRpc: { rpc: mockRpc },
 }));
 
-vi.mock('@/lib/fakeAi', () => ({
+vi.mock('@adopter/web/lib/fakeAi', () => ({
   nextFakeAiSummary: () => 'Fake AI summary text',
 }));
 

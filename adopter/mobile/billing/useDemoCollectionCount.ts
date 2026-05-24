@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '../../../apps/mobile/src/lib/supabase';
+import { supabase } from '@mobile/lib/supabase';
 import { appIdentity } from '@adopter/config/app-identity';
 
 const PRODUCT_ID = appIdentity.productId;

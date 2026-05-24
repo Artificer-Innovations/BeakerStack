@@ -7,13 +7,13 @@ import {
 } from '@beakerstack/billing';
 import type { BillingError } from '@beakerstack/billing';
 import { colors } from '@beakerstack/shared/theme/colors';
-import { supabase } from '../../../../apps/mobile/src/lib/supabase';
+import { supabase } from '@mobile/lib/supabase';
 import {
   billingConfig,
   BEAKERSTACK_METER_AI_SUMMARIZE,
 } from '@adopter/config/billing';
-import { nextFakeAiSummary } from '../../../../apps/mobile/src/lib/fakeAi';
-import { randomUuid } from '../../../../apps/mobile/src/lib/randomUuid';
+import { nextFakeAiSummary } from '@mobile/lib/fakeAi';
+import { randomUuid } from '@mobile/lib/randomUuid';
 import type { ActivityEntry } from './types';
 
 function readDemoUseRealAi(): boolean {
