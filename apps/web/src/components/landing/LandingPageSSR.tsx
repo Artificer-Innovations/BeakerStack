@@ -1,4 +1,4 @@
-import { landingConfig } from '../../config/landing';
+import { landingConfig } from '@adopter/config/landing';
 import { Nav } from './sections/Nav';
 import { Hero, buildCarouselSlides } from './sections/Hero';
 import { FeatureGrid } from './sections/FeatureGrid';

@@ -1,3 +1,6 @@
+import { configureAdopter } from '@beakerstack/shared/config/adopterRuntime';
+import { adopterConfig } from '@adopter/config';
+import { billingConfig } from '@adopter/config/billing';
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
@@ -11,12 +14,18 @@ import { configureGoogleSignIn } from '@beakerstack/shared/hooks/useAuth.native'
 import { Logger } from '@beakerstack/logger';
 import { AppErrorBoundary } from './src/components/AppErrorBoundary';
 import { ObservabilityUserSync } from './src/components/ObservabilityUserSync';
-import { beakerstackBillingConfig } from './src/billing/beakerstackBillingConfig';
+
+configureAdopter(adopterConfig);
 import { beakerstackObservabilityConfig } from './src/config/observability';
 import { getMobileBillingProviderUrls } from './src/billing/mobileBillingUrls';
 import { supabase } from './src/lib/supabase';
-import { AppNavigator } from './src/navigation/AppNavigator';
+import {
+  AppNavigator,
+  validatePostLoginPathMobile,
+} from './src/navigation/AppNavigator';
 import { navigationRef } from './src/navigation/navigationRef';
+
+validatePostLoginPathMobile();
 
 const mobileBillingUrls = getMobileBillingProviderUrls();
 
@@ -121,9 +130,9 @@ export default function App() {
         <AuthProvider supabaseClient={supabase}>
           <ObservabilityUserSync />
           <ProfileProvider supabaseClient={supabase}>
-            <BillingProvider<typeof beakerstackBillingConfig>
+            <BillingProvider<typeof billingConfig>
               supabase={supabase}
-              config={beakerstackBillingConfig}
+              config={billingConfig}
               checkoutSuccessUrl={mobileBillingUrls.checkoutSuccessUrl}
               checkoutCancelUrl={mobileBillingUrls.checkoutCancelUrl}
               portalReturnUrl={mobileBillingUrls.portalReturnUrl}

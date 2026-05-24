@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { UseSignupModeResult } from '@beakerstack/waitlist';
-import type { LandingConfig } from '../../../../config/landing';
+import type { LandingConfig } from '@adopter/config/landing';
 import { PricingSection } from '../PricingSection';
 
 const mockNavigate = vi.hoisted(() => vi.fn());

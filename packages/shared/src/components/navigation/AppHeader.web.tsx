@@ -4,7 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useProfileContext } from '../../contexts/ProfileContext';
 import { UserMenu } from './UserMenu.web';
-import { BRANDING } from '../../config/branding';
+import { getAdopterConfig } from '../../config/adopterRuntime';
 import { ContentContainer } from '../layout/ContentContainer.web';
 
 export interface AppHeaderProps {
@@ -45,8 +45,8 @@ export function AppHeader({
     const basePathMatch = window.location.pathname.match(/^(\/pr-\d+)/);
     return basePathMatch ? basePathMatch[1] + '/' : '/';
   };
-
   const basePath = getBasePath();
+  const { branding } = getAdopterConfig();
 
   return (
     <header
@@ -63,7 +63,7 @@ export function AppHeader({
             <Link to='/' className='flex items-center'>
               <img
                 src={`${basePath}demo-flask-icon.svg`}
-                alt={BRANDING.displayName}
+                alt={branding.displayName}
                 className='w-8 h-8'
               />
             </Link>
@@ -71,7 +71,7 @@ export function AppHeader({
               to='/'
               className='text-xl font-semibold text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
             >
-              {BRANDING.displayName}
+              {branding.displayName}
             </Link>
           </div>
 

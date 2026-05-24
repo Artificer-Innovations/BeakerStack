@@ -19,13 +19,13 @@ Compare git refs and write boolean flags to GITHUB_OUTPUT (when set) or stdout.
 
 Flags:
   app_code              apps/**, packages/**, tests/**, lint/tsconfig deps
-  supabase_schema       supabase migrations, functions, config (excludes templates)
+  supabase_schema       supabase migrations, functions, config; adopter/db/**; adopter db scripts
   integration_tests     tests/integration/**, tests/utils/**, integration Jest configs
   email_templates       supabase/templates/** and email personalization scripts
   auth_deploy_scripts   scripts/sync-supabase-auth-config.sh
   billing_deploy        stripe webhook / billing deploy scripts
-  web_deploy            apps/web/** and runtime packages/**/src (excluding tests)
-  mobile_deploy         apps/mobile/** and mobile runtime packages/**/src (excluding tests)
+  web_deploy            apps/web/**, adopter/web/**, adopter/config/**, adopter/assets/**, runtime packages/**/src (excluding tests)
+  mobile_deploy         apps/mobile/**, adopter/mobile/**, adopter/config/**, adopter/assets/**, mobile runtime packages/**/src (excluding tests)
   deploy_infra          infra/aws/**, scripts/pr-preview/**, deploy workflows
   tested_scripts        scripts covered by test:unit:scripts
   dependencies          package.json / package-lock.json changes
@@ -125,6 +125,23 @@ classify_path() {
   match_dependencies=false
 
   case "$f" in
+    adopter/mobile/*)
+      match_app_code=true
+      match_mobile_deploy=true
+      ;;
+    adopter/web/*)
+      match_app_code=true
+      match_web_deploy=true
+      ;;
+    adopter/config/* | adopter/assets/*)
+      match_app_code=true
+      match_web_deploy=true
+      match_mobile_deploy=true
+      ;;
+    adopter/db/*)
+      match_app_code=true
+      match_supabase_schema=true
+      ;;
     apps/web/*)
       match_app_code=true
       match_web_deploy=true
@@ -138,6 +155,9 @@ classify_path() {
       match_integration_tests=true
       ;;
     apps/* | tests/*)
+      match_app_code=true
+      ;;
+    packages/adopter-tests/*)
       match_app_code=true
       ;;
     packages/*)
@@ -169,6 +189,10 @@ classify_path() {
       ;;
     scripts/sync-supabase-auth-config.sh)
       match_auth_deploy=true
+      ;;
+    scripts/db-apply-adopter.mjs | scripts/db-init-adopter.mjs | scripts/lib/resolve-adopter-database-url.mjs)
+      match_supabase_schema=true
+      match_tested_scripts=true
       ;;
     scripts/personalize-email-templates.mjs | scripts/materialize-email-config.mjs)
       match_email_templates=true
@@ -427,6 +451,9 @@ self_test() {
         run_supabase_reset) [[ "${result_run_supabase_reset}" == true ]] && got=true ;;
         run_unit) [[ "${result_run_unit}" == true ]] && got=true ;;
         run_migration_filenames) [[ "${result_run_migration_filenames}" == true ]] && got=true ;;
+        run_mobile) [[ "${result_run_mobile}" == true ]] && got=true ;;
+        run_web) [[ "${result_run_web}" == true ]] && got=true ;;
+        run_deploy) [[ "${result_run_deploy}" == true ]] && got=true ;;
         integration_tests) [[ "${result_integration_tests}" == true ]] && got=true ;;
         supabase_schema) [[ "${result_supabase_schema}" == true ]] && got=true ;;
         *)
@@ -454,6 +481,33 @@ self_test() {
   assert_classify scripts/lib/email-config-subjects.mjs app_code false
   assert_classify apps/web/src/App.tsx web_deploy true
   assert_classify apps/mobile/app/index.tsx mobile_deploy true
+  assert_classify adopter/mobile/screens/DashboardScreen.tsx mobile_deploy true
+  assert_classify adopter/mobile/screens/DashboardScreen.tsx app_code true
+  assert_classify adopter/mobile/screens/DashboardScreen.tsx web_deploy false
+  assert_classify adopter/web/pages/DashboardPage.tsx web_deploy true
+  assert_classify adopter/web/pages/DashboardPage.tsx mobile_deploy false
+  assert_classify adopter/config/billing.ts web_deploy true
+  assert_classify adopter/config/billing.ts mobile_deploy true
+  assert_classify adopter/config/billing.ts app_code true
+  assert_classify adopter/db/init.sql supabase_schema true
+  assert_classify adopter/db/init.sql app_code true
+  assert_classify adopter/db/migrations/001.sql supabase_schema true
+  assert_classify scripts/db-apply-adopter.mjs supabase_schema true
+  assert_classify scripts/db-apply-adopter.mjs tested_scripts true
+  assert_classify scripts/db-init-adopter.mjs supabase_schema true
+  assert_classify scripts/lib/resolve-adopter-database-url.mjs supabase_schema true
+  assert_derived adopter-db-script-push \
+    run_supabase true run_migration_filenames true \
+    -- scripts/db-apply-adopter.mjs scripts/lib/resolve-adopter-database-url.mjs
+  assert_derived adopter-db-init-sql \
+    run_supabase true run_migration_filenames true run_supabase_reset true \
+    supabase_schema true \
+    -- adopter/db/init.sql
+  assert_classify packages/adopter-tests/jest.mobile.cjs app_code true
+  assert_classify packages/adopter-tests/jest.mobile.cjs mobile_deploy false
+  assert_derived adopter-mobile-test-only-push \
+    run_mobile true run_web false run_deploy true \
+    -- adopter/mobile/screens/__tests__/DashboardScreen.test.tsx
   assert_classify supabase/migrations/001.sql supabase_schema true
   assert_classify supabase/templates/generated/foo.html email_templates true
   assert_classify supabase/templates/generated/foo.html supabase_schema false

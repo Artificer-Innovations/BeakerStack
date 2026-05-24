@@ -8,7 +8,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { HOME_TITLE, HOME_SUBTITLE } from '@beakerstack/shared/utils/strings';
+import {
+  getHomeTitle,
+  getHomeSubtitle,
+} from '@beakerstack/shared/utils/strings';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.native';
 import { colors } from '@beakerstack/shared/theme/colors';
@@ -61,8 +64,8 @@ export default function HomeScreen({ navigation }: Props) {
       {/* Main Content */}
       <View style={styles.content}>
         <View style={styles.titleSection}>
-          <Text style={styles.title}>{HOME_TITLE}</Text>
-          <Text style={styles.subtitle}>{HOME_SUBTITLE}</Text>
+          <Text style={styles.title}>{getHomeTitle()}</Text>
+          <Text style={styles.subtitle}>{getHomeSubtitle()}</Text>
         </View>
 
         <View style={styles.buttonContainer}>

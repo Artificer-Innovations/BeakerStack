@@ -1,7 +1,7 @@
 import type { BillingPlanConfig, Plan } from '@beakerstack/billing';
 import { useBillingConfig } from '@beakerstack/billing';
 import { Button } from '@beakerstack/shared/components/primitives/Button.web';
-import { beakerstackBillingConfig } from '../../billing/beakerstackBillingConfig';
+import { billingConfig as adopterBillingConfig } from '@adopter/config/billing';
 import type { DowngradeBlockersResult } from '@beakerstack/billing/presentation';
 import { annualListCentsFromSync } from '@beakerstack/billing/presentation';
 import { ConstraintWarning } from './ConstraintWarning.web';
@@ -45,7 +45,7 @@ export function PlanCard({
   supplementalBadge?: string;
 }): JSX.Element {
   void mode;
-  const billingConfig = useBillingConfig<typeof beakerstackBillingConfig>();
+  const billingConfig = useBillingConfig<typeof adopterBillingConfig>();
   const cfgPlan = billingConfig.plans.find(p => p.id === plan.id) as
     | BillingPlanConfig
     | undefined;

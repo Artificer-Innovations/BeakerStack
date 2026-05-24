@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom';
-import { BRANDING } from '@beakerstack/shared/config/branding';
-import { LEGAL_CONFIG } from '@beakerstack/shared/config/legal';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 import { ThemeToggle } from './ThemeToggle';
 
 export function AppFooter() {
   const year = new Date().getFullYear();
+  const { branding, legal } = getAdopterConfig();
 
   return (
     <footer className='border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'>
@@ -16,7 +16,7 @@ export function AppFooter() {
               to='/'
               className='font-medium text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white transition-colors'
             >
-              {BRANDING.displayName}
+              {branding.displayName}
             </Link>
             <span
               aria-hidden='true'
@@ -25,7 +25,7 @@ export function AppFooter() {
               ·
             </span>
             <p suppressHydrationWarning>
-              &copy; {year} {LEGAL_CONFIG.legalEntityName}. All rights reserved.
+              &copy; {year} {legal.legalEntityName}. All rights reserved.
             </p>
           </div>
           <nav

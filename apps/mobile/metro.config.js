@@ -29,8 +29,16 @@ config.resolver.sourceExts = [
   ...otherExts,
 ];
 
+const adopterDir = path.resolve(projectRoot, '../../adopter');
+
 // Only watch what we need
-config.watchFolders = [loggerPkg, sharedPkg, billingPkg, observabilityPkg];
+config.watchFolders = [
+  loggerPkg,
+  sharedPkg,
+  billingPkg,
+  observabilityPkg,
+  adopterDir,
+];
 
 // Resolve node_modules (mobile first, then root)
 config.resolver.nodeModulesPaths = [
@@ -67,6 +75,24 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       filePath: path.resolve(projectRoot, 'shims/expo-virtual-env.js'),
       type: 'sourceFile',
     };
+  }
+
+  if (typeof moduleName === 'string' && moduleName.startsWith('@adopter/')) {
+    const subpath = moduleName.slice('@adopter/'.length);
+    const base = path.join(adopterDir, subpath);
+    const candidates = [
+      `${base}.ts`,
+      `${base}.tsx`,
+      `${base}.native.ts`,
+      `${base}.native.tsx`,
+      path.join(base, 'index.ts'),
+      path.join(base, 'index.tsx'),
+    ];
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate)) {
+        return { filePath: candidate, type: 'sourceFile' };
+      }
+    }
   }
 
   const workspacePackageAliases = {

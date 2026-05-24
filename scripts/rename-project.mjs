@@ -804,7 +804,7 @@ async function main() {
     args.toLegal,
     annotated
   );
-  const files = await walkDirectory(repoRoot);
+  const files = await walkDirectory(path.join(repoRoot, 'adopter'));
 
   const stats = {
     filesChanged: 0,

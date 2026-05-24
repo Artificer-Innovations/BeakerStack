@@ -28,6 +28,16 @@ test('all SQL migrations use the expected timestamped filename format', async ()
   );
 });
 
+test('template migrations must not use reserved 9* version prefix', async () => {
+  const files = await getSqlMigrationFiles();
+  const reserved = files.filter(name => /^9\d{13}_/.test(name));
+  assert.deepEqual(
+    reserved,
+    [],
+    `Template migration(s) use reserved adopter namespace prefix 9*: ${reserved.join(', ')}`
+  );
+});
+
 test('migration version prefixes are unique', async () => {
   const files = await getSqlMigrationFiles();
   const seen = new Map();

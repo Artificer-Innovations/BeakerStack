@@ -2,12 +2,21 @@ import { lazy, Suspense, type ReactNode } from 'react';
 import { Routes, Route, Outlet } from 'react-router-dom';
 import { AdminRoute } from '@beakerstack/admin/web';
 import { ProtectedRoute } from '@beakerstack/shared/components/auth/ProtectedRoute.web';
+import { resolveAdopterRouteAuth } from '@beakerstack/shared/navigation/adopterExtensions';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
+import { adopterRouteExtensions } from '@adopter/web/routeExtensions';
 import { supabase } from './lib/supabase';
 import { AppFooter } from './components/AppFooter';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { ScrollToTop } from './components/ScrollToTop';
 import { LAYOUT } from './lib/layoutConstants';
+
+const publicAdopterRouteExtensions = adopterRouteExtensions.filter(
+  extension => resolveAdopterRouteAuth(extension.auth) === 'public'
+);
+const protectedAdopterRouteExtensions = adopterRouteExtensions.filter(
+  extension => resolveAdopterRouteAuth(extension.auth) === 'protected'
+);
 
 function PageFallback() {
   return (
@@ -21,7 +30,6 @@ const HomePage = lazy(() => import('./pages/HomePage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SignupPage = lazy(() => import('./pages/SignupPage'));
 const SignupInvitePage = lazy(() => import('./pages/SignupInvitePage'));
-const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage'));
 const AuthConfirmPage = lazy(() => import('./pages/AuthConfirmPage'));
@@ -37,7 +45,6 @@ const BillingInvoicesPage = lazy(
   () => import('./pages/billing/BillingInvoicesPage')
 );
 
-/** Deferred so `/` does not pull supabase-vendor via BillingProviderLayout. */
 const BillingProviderLayout = lazy(() =>
   import('./billing/BillingProviderLayout').then(m => ({
     default: m.BillingProviderLayout,
@@ -59,7 +66,7 @@ function RootLayout() {
   );
 }
 
-function AdminRouteGate({ children }: { children: ReactNode }) {
+export function AdminRouteGate({ children }: { children: ReactNode }) {
   const auth = useAuthContext();
   return (
     <AdminRoute
@@ -70,6 +77,18 @@ function AdminRouteGate({ children }: { children: ReactNode }) {
       {children}
     </AdminRoute>
   );
+}
+
+export function AdopterRoute({
+  extension,
+}: {
+  extension: (typeof adopterRouteExtensions)[number];
+}) {
+  const auth = resolveAdopterRouteAuth(extension.auth);
+  if (auth === 'public') {
+    return <>{extension.element}</>;
+  }
+  return <ProtectedRoute>{extension.element}</ProtectedRoute>;
 }
 
 function App() {
@@ -136,6 +155,13 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                {publicAdopterRouteExtensions.map(extension => (
+                  <Route
+                    key={extension.path}
+                    path={extension.path}
+                    element={extension.element}
+                  />
+                ))}
                 <Route
                   element={
                     <ProtectedRoute>
@@ -150,7 +176,13 @@ function App() {
                       </Suspense>
                     }
                   >
-                    <Route path='/dashboard' element={<DashboardPage />} />
+                    {protectedAdopterRouteExtensions.map(extension => (
+                      <Route
+                        key={extension.path}
+                        path={extension.path}
+                        element={extension.element}
+                      />
+                    ))}
                     <Route path='/billing' element={<BillingOverviewPage />} />
                     <Route
                       path='/billing/usage'

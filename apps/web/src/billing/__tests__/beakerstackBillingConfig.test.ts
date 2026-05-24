@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   BEAKERSTACK_METER_AI_SUMMARIZE,
-  beakerstackBillingConfig,
-} from '../beakerstackBillingConfig';
+  billingConfig,
+} from '@adopter/config/billing';
 
-describe('beakerstackBillingConfig', () => {
+describe('billingConfig', () => {
   it('defines a parsed product with public plans', () => {
-    expect(beakerstackBillingConfig.productId).toBe('beakerstack');
-    expect(beakerstackBillingConfig.plans.length).toBeGreaterThanOrEqual(1);
-    const ids = beakerstackBillingConfig.plans.map(p => p.id);
+    expect(billingConfig.productId).toBe('beakerstack');
+    expect(billingConfig.plans.length).toBeGreaterThanOrEqual(1);
+    const ids = billingConfig.plans.map(p => p.id);
     expect(ids).toContain('beakerstack_free');
   });
 

@@ -1,5 +1,5 @@
 import type { Plan, BillingPlanConfig } from '@beakerstack/billing';
-import { beakerstackBillingConfig } from './beakerstackBillingConfig';
+import { billingConfig } from '@adopter/config/billing';
 
 export function configPlanToStaticPlan(
   plan: BillingPlanConfig,
@@ -7,7 +7,7 @@ export function configPlanToStaticPlan(
 ): Plan {
   return {
     id: plan.id,
-    product_id: beakerstackBillingConfig.productId,
+    product_id: billingConfig.productId,
     display_name: plan.displayName,
     description: plan.description ?? null,
     price_cents: plan.priceCents,
@@ -24,7 +24,7 @@ export function configPlanToStaticPlan(
 }
 
 export function getStaticPlans(): Plan[] {
-  return (beakerstackBillingConfig.plans as BillingPlanConfig[])
+  return (billingConfig.plans as BillingPlanConfig[])
     .filter(p => p.isPublic !== false)
     .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
     .map((p, i) => configPlanToStaticPlan(p, i));

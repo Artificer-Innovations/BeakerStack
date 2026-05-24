@@ -5,7 +5,7 @@ import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.n
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { BRANDING } from '@beakerstack/shared/config/branding';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import * as AuthContext from '@beakerstack/shared/contexts/AuthContext';
 import * as ProfileContext from '@beakerstack/shared/contexts/ProfileContext';
 import type { User } from '@supabase/supabase-js';
@@ -157,7 +157,9 @@ describe('AppHeader (Native)', () => {
     renderWithProviders(
       <AppHeader supabaseClient={createMockSupabaseClient()} />
     );
-    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+    expect(
+      screen.getByText(getAdopterConfig().branding.displayName)
+    ).toBeInTheDocument();
   });
 
   it('renders app icon', () => {
@@ -172,7 +174,7 @@ describe('AppHeader (Native)', () => {
       <AppHeader supabaseClient={createMockSupabaseClient()} />
     );
     // Find the TouchableOpacity that contains the title
-    const title = screen.getByText(BRANDING.displayName);
+    const title = screen.getByText(getAdopterConfig().branding.displayName);
     const logoButton = title.closest('button') || title.parentElement;
     if (logoButton) {
       fireEvent.click(logoButton);
@@ -271,8 +273,10 @@ describe('AppHeader (Native)', () => {
     renderWithProviders(
       <AppHeader supabaseClient={createMockSupabaseClient()} />
     );
-    await screen.findByText(BRANDING.displayName);
-    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+    await screen.findByText(getAdopterConfig().branding.displayName);
+    expect(
+      screen.getByText(getAdopterConfig().branding.displayName)
+    ).toBeInTheDocument();
   });
 
   it('renders on Android with explicit status bar height', async () => {
@@ -281,8 +285,10 @@ describe('AppHeader (Native)', () => {
     renderWithProviders(
       <AppHeader supabaseClient={createMockSupabaseClient()} />
     );
-    await screen.findByText(BRANDING.displayName);
-    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+    await screen.findByText(getAdopterConfig().branding.displayName);
+    expect(
+      screen.getByText(getAdopterConfig().branding.displayName)
+    ).toBeInTheDocument();
   });
 
   it('renders on Android when status bar height is zero', async () => {
@@ -291,7 +297,9 @@ describe('AppHeader (Native)', () => {
     renderWithProviders(
       <AppHeader supabaseClient={createMockSupabaseClient()} />
     );
-    await screen.findByText(BRANDING.displayName);
-    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+    await screen.findByText(getAdopterConfig().branding.displayName);
+    expect(
+      screen.getByText(getAdopterConfig().branding.displayName)
+    ).toBeInTheDocument();
   });
 });

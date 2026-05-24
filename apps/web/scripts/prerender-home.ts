@@ -1,11 +1,8 @@
+/* eslint-disable no-console -- build script */
 import { readFileSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { join, dirname } from 'path';
 
-// Shim WebSocket for Node < 22 before any app module loads.
-// supabase-js checks globalThis.WebSocket at createClient() time (module load, not runtime).
-// renderToStaticMarkup never opens a socket, but the check throws on Node 20 without this.
-// Dynamic imports below ensure this assignment runs first (static imports are hoisted).
 if (typeof globalThis.WebSocket === 'undefined') {
   (globalThis as any).WebSocket = class WebSocket {
     constructor(_url: string) {}
@@ -15,25 +12,23 @@ if (typeof globalThis.WebSocket === 'undefined') {
   };
 }
 
+const { configureAdopter } =
+  await import('../../../packages/shared/src/config/adopterRuntime');
+const { adopterConfig } = await import('../../../adopter/config/index');
+
+configureAdopter(adopterConfig);
+
 const { createElement } = await import('react');
 const { renderToStaticMarkup } = await import('react-dom/server');
-// MemoryRouter comes from the same react-router-dom instance as <Link> and other
-// router-aware components in LandingPage, so they share the same NavigationContext.
-// StaticRouter (from react-router-dom/server) is a separate sub-package with its
-// own bundled context, causing a null-context mismatch in vite-node's module graph.
 const { MemoryRouter } = await import('react-router-dom');
-// ThemeProvider needed because AppFooter renders ThemeToggle which calls useTheme().
 const { ThemeProvider } = await import('../src/contexts/ThemeContext');
 const { AppFooter } = await import('../src/components/AppFooter');
-// LandingPageSSR eagerly imports all sections. LandingPage uses React.lazy() for
-// below-fold sections, which resolve as empty Suspense fallbacks under renderToStaticMarkup.
 const { LandingPageSSR } =
   await import('../src/components/landing/LandingPageSSR');
 const { LAYOUT } = await import('../src/lib/layoutConstants');
 
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-// Public home URL for canonical / og:url (set by deploy-web.sh per environment).
 const siteOrigin = (
   process.env.VITE_PUBLIC_SITE_ORIGIN ?? 'https://beakerstack.com'
 ).replace(/\/$/, '');
@@ -46,8 +41,6 @@ const publicHomeUrl = `${siteOrigin}${homePath === '/' ? '/' : homePath}`;
 const routerBasename =
   basePath === '' || basePath === '/' ? undefined : basePath;
 
-// MemoryRouter matches locations against basename: with basename "/pr-N", "/" does not
-// match (RR warns and renders nothing). Use the same pathname as publicHomeUrl path.
 const initialEntries = [homePath];
 
 const html = renderToStaticMarkup(
@@ -75,8 +68,6 @@ const html = renderToStaticMarkup(
   )
 );
 
-// Structural smoke check — catches a broken render without hardcoding copy text.
-// Fails the build if LandingPageSSR produced no heading element.
 if (!html.includes('<h1')) {
   console.error(
     'pre-render smoke check: no <h1> in output — LandingPageSSR did not render'
@@ -86,8 +77,6 @@ if (!html.includes('<h1')) {
 
 const template = readFileSync(join(webRoot, 'dist', 'index.html'), 'utf8');
 
-// canonical and og:url are home-only; inject here rather than in the base
-// template which is also served as the SPA fallback for all other routes.
 const withHomeMeta = template.replace(
   '</head>',
   [
@@ -113,8 +102,6 @@ const out = withHomeMeta.replace(
   `<div id="root">${html}</div>`
 );
 
-// Verify the mount-point injection landed — catches a silent no-op if the
-// root div markup ever changes (e.g. id renamed from "root" to "app").
 if (out.includes('<div id="root"></div>')) {
   console.error(
     'pre-render smoke check: mount point injection failed — <div id="root"></div> still empty in output'

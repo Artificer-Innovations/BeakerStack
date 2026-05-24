@@ -798,9 +798,9 @@ test('signs in seeded user and lands on dashboard', async ({
 
 ### Database Tests
 
-**Problem:** Tests fail with "relation does not exist"
+**Problem:** Tests fail with "relation does not exist" or RPC/function does not exist
 
-- **Solution:** Ensure migrations are applied: `supabase db reset`
+- **Solution:** `npm run test:db` applies pending template migrations automatically. If the local stack is stale or broken, reset it: `supabase db reset`
 
 **Problem:** Tests fail with permission errors
 

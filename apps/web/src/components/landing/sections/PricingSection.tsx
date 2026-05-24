@@ -6,7 +6,7 @@ import {
   resolveWaitlistModeCopy,
   useSignupMode,
 } from '@beakerstack/waitlist';
-import { beakerstackBillingConfig } from '../../../billing/beakerstackBillingConfig';
+import { billingConfig } from '@adopter/config/billing';
 import { getStaticPlans } from '../../../billing/staticPlanAdapter';
 import { PlanCard } from '../../billing/PlanCard.web';
 import {
@@ -18,10 +18,10 @@ import {
   planAnnualSavingsCopy,
   formatSavingsCalloutFromCopy,
 } from '@beakerstack/billing/presentation';
-import type { LandingConfig } from '../../../config/landing';
+import type { LandingConfig } from '@adopter/config/landing';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 import { supabase } from '../../../lib/supabase';
-import { beakerstackWaitlistConfig } from '../../../waitlist/beakerstackWaitlistConfig';
+import { waitlistConfig } from '@adopter/config/waitlist';
 import type { SignupMode } from '@beakerstack/waitlist';
 
 interface PricingSectionProps {
@@ -123,10 +123,7 @@ function StaticPricingTable({
 
 export function PricingSection({ config }: PricingSectionProps) {
   const { mode, settings, loading } = useSignupMode(supabase);
-  const modeCopy = resolveWaitlistModeCopy(
-    settings?.copy,
-    beakerstackWaitlistConfig.copy
-  );
+  const modeCopy = resolveWaitlistModeCopy(settings?.copy, waitlistConfig.copy);
 
   if (!loading && mode === 'closed') {
     return null;
@@ -151,7 +148,7 @@ export function PricingSection({ config }: PricingSectionProps) {
             <div className='inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-indigo-600' />
           </div>
         ) : (
-          <BillingConfigProvider config={beakerstackBillingConfig}>
+          <BillingConfigProvider config={billingConfig}>
             <StaticPricingTable mode={mode} modeCopy={modeCopy} />
           </BillingConfigProvider>
         )}

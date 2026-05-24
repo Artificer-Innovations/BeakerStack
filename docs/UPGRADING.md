@@ -60,4 +60,49 @@ Read the package's GitHub Release notes for that version — package release not
 
 1. Re-run `npm install` to sync lockfile.
 2. Check the release notes for any new required GitHub Actions secrets or variables.
-3. Run `npm run type-check && npm run test` to catch regressions before pushing.
+3. Run `npm run upgrade:check` to verify adopter zone wiring (`.gitattributes`, config bootstrap).
+4. Run `npm run type-check && npm run test` to catch regressions before pushing.
+
+## Adopter-owned zones
+
+Fork customization lives under `adopter/` — see [CUSTOMIZING.md](CUSTOMIZING.md). `.gitattributes` sets `adopter/** merge=ours` so upstream merges keep your product code.
+
+| Zone              | Path                                  |
+| ----------------- | ------------------------------------- |
+| Config & identity | `adopter/config/`                     |
+| Marketing content | `adopter/content/`, `adopter/assets/` |
+| Your app UI       | `adopter/web/`, `adopter/mobile/`     |
+| Your DB schema    | `adopter/db/`                         |
+
+After pulling template migrations (`supabase db push`), apply adopter DDL:
+
+```bash
+npm run db:init-adopter
+npm run db:apply-adopter
+```
+
+Production deploy workflows run `db:apply-adopter -- --linked` after `supabase db push`.
+
+## Reusable workflow pins
+
+Forks may add a thin wrapper that calls the template reusable workflow:
+
+```yaml
+jobs:
+  adopter:
+    uses: Artificer-Innovations/BeakerStack/.github/workflows/adopter-tests-reusable.yml@v2026.NNN
+```
+
+Bump the `@v` tag when upgrading to a template release that changes the reusable workflow inputs.
+
+## `@beakerstack/shared` major migration (v2)
+
+If upgrading across the adopter-zones release:
+
+| Removed                                                | Replacement                                                 |
+| ------------------------------------------------------ | ----------------------------------------------------------- |
+| `BRANDING` from `@beakerstack/shared/config/branding`  | `getAdopterConfig().branding` or `@adopter/config/branding` |
+| `LEGAL_CONFIG` from `@beakerstack/shared/config/legal` | `getAdopterConfig().legal` or `@adopter/config/legal`       |
+| `HOME_TITLE` constant                                  | `getHomeTitle()` after `configureAdopter()`                 |
+
+Call `configureAdopter(adopterConfig)` in app entry points before rendering shared components.

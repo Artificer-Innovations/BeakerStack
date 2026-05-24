@@ -6,7 +6,7 @@ import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.w
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { BRANDING } from '@beakerstack/shared/config/branding';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import * as AuthContext from '@beakerstack/shared/contexts/AuthContext';
 import * as ProfileContext from '@beakerstack/shared/contexts/ProfileContext';
 import type { User } from '@supabase/supabase-js';
@@ -60,8 +60,10 @@ describe('AppHeader (Web)', () => {
       </BrowserRouter>
     );
 
-    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
-    const icon = screen.getByAltText(BRANDING.displayName);
+    expect(
+      screen.getByText(getAdopterConfig().branding.displayName)
+    ).toBeInTheDocument();
+    const icon = screen.getByAltText(getAdopterConfig().branding.displayName);
     expect(icon).toBeInTheDocument();
     expect(icon).toHaveAttribute('src', '/demo-flask-icon.svg');
   });
@@ -101,7 +103,9 @@ describe('AppHeader (Web)', () => {
       </BrowserRouter>
     );
 
-    const titleLink = screen.getByText(BRANDING.displayName).closest('a');
+    const titleLink = screen
+      .getByText(getAdopterConfig().branding.displayName)
+      .closest('a');
     expect(titleLink).toHaveAttribute('href', '/');
   });
 
@@ -135,7 +139,7 @@ describe('AppHeader (Web)', () => {
     window.history.pushState({}, '', '/pr-42/dashboard');
     try {
       renderAppHeader();
-      const icon = screen.getByAltText(BRANDING.displayName);
+      const icon = screen.getByAltText(getAdopterConfig().branding.displayName);
       expect(icon).toHaveAttribute('src', '/pr-42/demo-flask-icon.svg');
     } finally {
       window.history.pushState({}, '', originalPath || '/');

@@ -5,7 +5,7 @@ import '@testing-library/jest-dom';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
-import { BRANDING } from '@beakerstack/shared/config/branding';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 import * as AuthContext from '@beakerstack/shared/contexts/AuthContext';
 import * as ProfileContext from '@beakerstack/shared/contexts/ProfileContext';
@@ -46,10 +46,9 @@ describe('AppHeader.web — coverage gaps', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByAltText(BRANDING.displayName)).toHaveAttribute(
-      'src',
-      '/pr-42/demo-flask-icon.svg'
-    );
+    expect(
+      screen.getByAltText(getAdopterConfig().branding.displayName)
+    ).toHaveAttribute('src', '/pr-42/demo-flask-icon.svg');
   });
 
   it('passes showAdminLink to UserMenu when authenticated', () => {

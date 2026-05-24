@@ -2,9 +2,9 @@ import { usePlanCatalog } from '@beakerstack/billing';
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { resolveWaitlistModeCopy, useSignupMode } from '@beakerstack/waitlist';
-import { beakerstackBillingConfig } from '../../billing/beakerstackBillingConfig';
+import { billingConfig } from '@adopter/config/billing';
 import { supabase } from '../../lib/supabase';
-import { beakerstackWaitlistConfig } from '../../waitlist/beakerstackWaitlistConfig';
+import { waitlistConfig } from '@adopter/config/waitlist';
 import {
   annualListCentsFromSync,
   formatSavingsCalloutFromCopy,
@@ -28,7 +28,7 @@ export function PlanIntentSummary({
   const [search] = useSearchParams();
   const planId = search.get('plan');
   const cadence = getCadenceFromSearch(search);
-  const { plans, loading } = usePlanCatalog<typeof beakerstackBillingConfig>();
+  const { plans, loading } = usePlanCatalog<typeof billingConfig>();
   const {
     mode: signupMode,
     settings,
@@ -36,10 +36,7 @@ export function PlanIntentSummary({
     isInviteOnly,
     isClosed,
   } = useSignupMode(supabase);
-  const modeCopy = resolveWaitlistModeCopy(
-    settings?.copy,
-    beakerstackWaitlistConfig.copy
-  );
+  const modeCopy = resolveWaitlistModeCopy(settings?.copy, waitlistConfig.copy);
 
   const catalogPlan = useMemo(
     () => (planId ? plans.find(p => p.id === planId) : undefined),

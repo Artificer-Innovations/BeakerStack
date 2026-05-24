@@ -7,7 +7,7 @@ import type {
   Plan,
   SubscriptionRow,
 } from '@beakerstack/billing';
-import { beakerstackBillingConfig } from '@/billing/beakerstackBillingConfig';
+import { billingConfig } from '@adopter/config/billing';
 import BillingPlansPage from '../BillingPlansPage';
 
 const plansState = vi.hoisted(() => {
@@ -137,7 +137,7 @@ vi.mock('@beakerstack/billing', async importOriginal => {
   const actual = await importOriginal<typeof import('@beakerstack/billing')>();
   return {
     ...actual,
-    useBillingConfig: () => beakerstackBillingConfig,
+    useBillingConfig: () => billingConfig,
     usePlanCatalog: () => ({
       plans: plansState.catalogOverride ?? [
         plansState.freePlan,
@@ -191,7 +191,7 @@ vi.mock('@beakerstack/billing', async importOriginal => {
   };
 });
 
-vi.mock('@/billing/useDemoCollectionCount', () => ({
+vi.mock('@adopter/web/billing/useDemoCollectionCount', () => ({
   useDemoCollectionCount: () => ({
     count: hookState.demoCount,
     maxItemsInAnyCollection: hookState.demoMaxItems,

@@ -3,7 +3,7 @@ import {
   POLICIES,
   type PolicyKey,
 } from '@beakerstack/shared/generated/policies';
-import { BRANDING } from '@beakerstack/shared/config/branding';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import { PolicyPublicHeader } from '../components/PolicyPublicHeader';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 
@@ -19,13 +19,14 @@ interface PolicyPageProps {
 
 export default function PolicyPage({ policy }: PolicyPageProps) {
   const html = POLICIES[policy];
+  const { branding } = getAdopterConfig();
 
   useEffect(() => {
-    document.title = `${TITLES[policy]} | ${BRANDING.displayName}`;
+    document.title = `${TITLES[policy]} | ${branding.displayName}`;
     return () => {
-      document.title = BRANDING.displayName;
+      document.title = branding.displayName;
     };
-  }, [policy]);
+  }, [policy, branding.displayName]);
 
   return (
     <>

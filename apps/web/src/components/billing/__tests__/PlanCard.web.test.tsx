@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { Plan } from '@beakerstack/billing';
-import { beakerstackBillingConfig } from '@/billing/beakerstackBillingConfig';
+import { billingConfig } from '@adopter/config/billing';
 import { PlanCard, listPriceForPlan } from '../PlanCard.web';
 
 vi.mock('@beakerstack/billing', async importOriginal => {
   const actual = await importOriginal<typeof import('@beakerstack/billing')>();
   return {
     ...actual,
-    useBillingConfig: () => beakerstackBillingConfig,
+    useBillingConfig: () => billingConfig,
   };
 });
 

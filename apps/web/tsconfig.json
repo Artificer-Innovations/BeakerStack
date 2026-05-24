@@ -18,11 +18,18 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
+      "@adopter/config": ["../../adopter/config/index.ts"],
+      "@adopter/config/*": ["../../adopter/config/*"],
+      "@adopter/web/*": ["../../adopter/web/*"],
       "@beakerstack/shared/*": ["../../packages/shared/src/*"]
     },
     "types": ["vite/client"]
   },
-  "include": ["src/**/*"],
+  "include": [
+    "src/**/*",
+    "../../adopter/config/**/*",
+    "../../adopter/web/**/*"
+  ],
   "references": [
     {
       "path": "./tsconfig.node.json"

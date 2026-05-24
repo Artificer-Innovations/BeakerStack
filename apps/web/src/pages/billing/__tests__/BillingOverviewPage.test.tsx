@@ -154,7 +154,7 @@ vi.mock('@beakerstack/shared/contexts/AuthContext', () => ({
   }),
 }));
 
-vi.mock('@/billing/useDemoCollectionCount', () => ({
+vi.mock('@adopter/web/billing/useDemoCollectionCount', () => ({
   useDemoCollectionCount: () => ({
     count: ov.collectionCount,
     loading: ov.collectionLoading,

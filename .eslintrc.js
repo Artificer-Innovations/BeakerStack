@@ -20,6 +20,18 @@ module.exports = {
   },
   plugins: ['@typescript-eslint'],
   rules: {
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: ['@adopter/web/*', '@adopter/mobile/*'],
+            message:
+              'Import @adopter/web/* and @adopter/mobile/* only from extension seam files (see docs/CUSTOMIZING.md). @adopter/config/* is allowed in template code.',
+          },
+        ],
+      },
+    ],
     // varsIgnorePattern covers _prefixed destructured variables (e.g. const { _unused, ...rest } = obj)
     '@typescript-eslint/no-unused-vars': [
       'error',
@@ -44,6 +56,24 @@ module.exports = {
   ],
   overrides: [
     {
+      files: [
+        'apps/web/src/main.tsx',
+        'apps/web/scripts/prerender-home.ts',
+        'apps/web/src/App.tsx',
+        'apps/web/src/pages/billing/BillingOverviewPage.tsx',
+        'apps/web/src/pages/billing/BillingUsagePage.tsx',
+        'apps/web/src/pages/billing/BillingPlansPage.tsx',
+        'apps/mobile/src/navigation/AppNavigator.tsx',
+        'apps/mobile/App.tsx',
+        'apps/mobile/src/screens/billing/BillingOverviewScreen.tsx',
+        'apps/mobile/src/screens/billing/BillingUsageScreen.tsx',
+        'adopter/**/*.{ts,tsx}',
+      ],
+      rules: {
+        'no-restricted-imports': 'off',
+      },
+    },
+    {
       files: ['**/*.cjs', 'scripts/**/*.js'],
       rules: {
         '@typescript-eslint/no-var-requires': 'off',
@@ -54,9 +84,11 @@ module.exports = {
         '**/__tests__/**/*.{ts,tsx}',
         '**/*.test.{ts,tsx}',
         '**/__mocks__/**/*.{ts,tsx}',
+        'packages/shared-tests/setup.adopter.ts',
       ],
       rules: {
         '@typescript-eslint/no-var-requires': 'off',
+        'no-restricted-imports': 'off',
       },
     },
     {

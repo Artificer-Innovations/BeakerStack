@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import { AppHeaderWithAdmin } from '../components/AppHeaderWithAdmin';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 import { MIN_PASSWORD_LENGTH } from '@beakerstack/shared/config/auth';
 import { emitLifecycleEvent } from '@beakerstack/waitlist';
-import { beakerstackWaitlistConfig } from '../waitlist/beakerstackWaitlistConfig';
-import { beakerstackBillingConfig } from '../billing/beakerstackBillingConfig';
+import { waitlistConfig } from '@adopter/config/waitlist';
+import { billingConfig } from '@adopter/config/billing';
 import { supabase } from '../lib/supabase';
 import { SocialLoginButton } from '../components/SocialLoginButton';
 
@@ -25,14 +26,14 @@ export async function finalizeInviteSignup(
   userEmail: string | undefined
 ): Promise<void> {
   const { data, error } = await supabase.functions.invoke(
-    beakerstackWaitlistConfig.opsFunctionName,
+    waitlistConfig.opsFunctionName,
     {
       body: {
         action: 'consume',
         token,
         userId,
         userEmail: userEmail ?? null,
-        productId: beakerstackBillingConfig.productId,
+        productId: billingConfig.productId,
       },
     }
   );
@@ -82,7 +83,7 @@ export default function SignupInvitePage() {
 
     void (async () => {
       const { data, error: fnErr } = await supabase.functions.invoke(
-        beakerstackWaitlistConfig.opsFunctionName,
+        waitlistConfig.opsFunctionName,
         { body: { action: 'validate', token: t } }
       );
       if (fnErr || !(data as { valid?: boolean })?.valid) {
@@ -121,7 +122,7 @@ export default function SignupInvitePage() {
         session.user.id,
         session.user.email ?? inviteEmail
       );
-      navigate('/dashboard', { replace: true });
+      navigate(getAdopterConfig().postLoginPath, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed');
     } finally {

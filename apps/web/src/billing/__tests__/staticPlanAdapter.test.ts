@@ -1,17 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { BillingPlanConfig } from '@beakerstack/billing';
 
-vi.mock('../beakerstackBillingConfig', () => ({
-  beakerstackBillingConfig: {
+vi.mock('@adopter/config/billing', () => ({
+  billingConfig: {
     productId: 'beakerstack',
     plans: [] as BillingPlanConfig[],
   },
 }));
 
 import { configPlanToStaticPlan, getStaticPlans } from '../staticPlanAdapter';
-import { beakerstackBillingConfig } from '../beakerstackBillingConfig';
+import { billingConfig } from '@adopter/config/billing';
 
-const mockedConfig = beakerstackBillingConfig as unknown as {
+const mockedConfig = billingConfig as unknown as {
   productId: string;
   plans: Partial<BillingPlanConfig>[];
 };

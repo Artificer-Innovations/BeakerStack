@@ -10,13 +10,13 @@ import {
 } from '@beakerstack/billing';
 import { formatMonthYear } from '@beakerstack/billing/presentation';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
-import { BRANDING } from '@beakerstack/shared/config/branding';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import {
-  beakerstackBillingConfig,
+  billingConfig,
   BEAKERSTACK_METER_AI_SUMMARIZE,
-} from '../../billing/beakerstackBillingConfig';
+} from '@adopter/config/billing';
 import { numericPlanFeature } from '../../billing/planFeatureValue';
-import { useDemoCollectionCount } from '../../billing/useDemoCollectionCount';
+import { useDemoCollectionCount } from '@adopter/mobile/billing/useDemoCollectionCount';
 import { BillingLayout } from './BillingLayout';
 import { billingColors, billingStyles } from './styles';
 
@@ -79,7 +79,7 @@ function OverviewBanners({
       <Banner
         variant='error'
         title='Payment problem'
-        body={`Your last payment did not go through. Update your payment method in the ${BRANDING.displayName} web app.`}
+        body={`Your last payment did not go through. Update your payment method in the ${getAdopterConfig().branding.displayName} web app.`}
       />
     );
   }
@@ -122,7 +122,7 @@ function formatCollectionsStat(
   count: number,
   cap: number,
   loading: boolean,
-  error: Error | null
+  error: string | null
 ): string {
   if (loading) return '—';
   if (error) return 'Unable to load';
@@ -131,20 +131,17 @@ function formatCollectionsStat(
 }
 
 export function BillingOverviewScreen(): ReactElement {
-  const { kind, subscription } =
-    useBillingState<typeof beakerstackBillingConfig>();
-  const { plans: catalogPlans } =
-    usePlanCatalog<typeof beakerstackBillingConfig>();
+  const { kind, subscription } = useBillingState<typeof billingConfig>();
+  const { plans: catalogPlans } = usePlanCatalog<typeof billingConfig>();
   const { data: currentPlan, loading: planLoad } =
-    usePlan<typeof beakerstackBillingConfig>();
+    usePlan<typeof billingConfig>();
   const {
     used,
     limit,
     loading: usageLoad,
-  } = useUsage<
-    typeof beakerstackBillingConfig,
-    typeof BEAKERSTACK_METER_AI_SUMMARIZE
-  >(BEAKERSTACK_METER_AI_SUMMARIZE);
+  } = useUsage<typeof billingConfig, typeof BEAKERSTACK_METER_AI_SUMMARIZE>(
+    BEAKERSTACK_METER_AI_SUMMARIZE
+  );
   const {
     count: colCount,
     loading: colLoad,

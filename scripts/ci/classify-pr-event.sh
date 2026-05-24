@@ -40,6 +40,13 @@ main() {
     && -n "${before_sha}" \
     && "${before_sha}" != "0000000000000000000000000000000000000000" ]] \
     && git cat-file -e "${before_sha}^{commit}" 2>/dev/null; then
+    local incremental_diff
+    incremental_diff="$(git diff --name-only "${before_sha}" "${head_sha}")"
+    if grep -qxE 'scripts/ci/classify-pr-(push-changes|event)\.sh' <<<"${incremental_diff}"; then
+      printf '[INFO] classifier script changed; classifying full PR %s..%s\n' \
+        "${base_git_ref}" "${head_sha}" >&2
+      exec "${CLASSIFIER}" "${base_git_ref}" "${head_sha}"
+    fi
     exec "${CLASSIFIER}" "${before_sha}" "${head_sha}"
   fi
 

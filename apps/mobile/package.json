@@ -98,9 +98,14 @@
       "node_modules/(?!(react-native|@react-native|@react-navigation|expo|@expo|expo-status-bar|react-native-safe-area-context|react-native-screens|react-native-svg)/)"
     ],
     "testEnvironment": "node",
+    "setupFilesAfterEnv": [
+      "<rootDir>/../../packages/shared-tests/setup.adopter.ts"
+    ],
     "moduleNameMapper": {
       "^@beakerstack/shared/(.*)$": "<rootDir>/../../packages/shared/src/$1",
       "^@beakerstack/logger$": "<rootDir>/../../packages/logger/src/index.ts",
+      "^@beakerstack/test-utils/(.*)$": "<rootDir>/../../packages/test-utils/src/$1",
+      "^@adopter/(.*)$": "<rootDir>/../../adopter/$1",
       "^react-native-svg$": "<rootDir>/__mocks__/react-native-svg.ts",
       "^expo/virtual/env$": "<rootDir>/jest/expo-virtual-env-mock.cjs"
     },
@@ -109,7 +114,8 @@
       "!src/**/*.d.ts",
       "!src/**/__tests__/**",
       "!src/**/__mocks__/**",
-      "!src/**/types/**"
+      "!src/**/types/**",
+      "!src/navigation/types.ts"
     ],
     "coverageDirectory": "coverage",
     "coverageReporters": [

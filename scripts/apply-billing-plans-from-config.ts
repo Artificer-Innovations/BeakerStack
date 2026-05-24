@@ -26,12 +26,13 @@ async function loadBillingConfig(spec: string): Promise<ProductBillingConfig> {
   const href = pathToFileURL(resolved).href;
   const mod = await import(href);
   const c =
+    (mod as { billingConfig?: ProductBillingConfig }).billingConfig ??
     (mod as { beakerstackBillingConfig?: ProductBillingConfig })
       .beakerstackBillingConfig ??
     (mod as { default?: ProductBillingConfig }).default;
   if (!c?.productId || !Array.isArray(c.plans)) {
     throw new Error(
-      `Module ${spec} must export beakerstackBillingConfig (or default) with productId and plans[]`
+      `Module ${spec} must export billingConfig (or default) with productId and plans[]`
     );
   }
   return c;
@@ -43,8 +44,7 @@ async function main() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   const configPath =
-    process.env.BILLING_PLAN_CONFIG_MODULE ??
-    'apps/web/src/billing/beakerstackBillingConfig.ts';
+    process.env.BILLING_PLAN_CONFIG_MODULE ?? 'adopter/config/billing.ts';
   const config = await loadBillingConfig(configPath);
   const productId = config.productId;
 

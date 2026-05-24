@@ -1,19 +1,20 @@
+/* eslint-disable no-console -- build script */
 import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { marked } from 'marked';
-import { LEGAL_CONFIG } from '../src/config/legal.js';
+import { legal } from '../../../adopter/config/legal.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const CONTENT_DIR = join(__dirname, '../src/content');
+const CONTENT_DIR = join(__dirname, '../../../adopter/content');
 const OUTPUT_FILE = join(__dirname, '../src/generated/policies.ts');
 
 function substituteTokens(content: string): string {
   return content
-    .replace(/\{\{brandName\}\}/g, LEGAL_CONFIG.brandName)
-    .replace(/\{\{brandUrl\}\}/g, LEGAL_CONFIG.brandUrl)
-    .replace(/\{\{legalEntityName\}\}/g, LEGAL_CONFIG.legalEntityName)
-    .replace(/\{\{contactEmail\}\}/g, LEGAL_CONFIG.contactEmail);
+    .replace(/\{\{brandName\}\}/g, legal.brandName)
+    .replace(/\{\{brandUrl\}\}/g, legal.brandUrl)
+    .replace(/\{\{legalEntityName\}\}/g, legal.legalEntityName)
+    .replace(/\{\{contactEmail\}\}/g, legal.contactEmail);
 }
 
 async function buildPolicy(filename: string): Promise<string> {

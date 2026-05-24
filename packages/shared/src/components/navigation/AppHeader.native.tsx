@@ -13,7 +13,7 @@ import Svg, { Circle, Path, Rect, Line } from 'react-native-svg';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useProfileContext } from '../../contexts/ProfileContext';
 import { UserMenu } from './UserMenu.native';
-import { BRANDING } from '../../config/branding';
+import { getAdopterConfig } from '../../config/adopterRuntime';
 import { colors } from '../../theme/colors';
 
 export interface AppHeaderProps {
@@ -39,6 +39,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
   const navigation = useNavigation<NavigationProp>();
   const auth = useAuthContext();
   const profile = useProfileContext();
+  const { branding } = getAdopterConfig();
 
   // Get status bar height for Android
   const statusBarHeight =
@@ -55,7 +56,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
           style={styles.leftSection}
         >
           <View style={styles.iconContainer}>
-            {/* @ts-expect-error - react-native-svg types have JSX compatibility issues in monorepo setup, but runtime works correctly */}
+            {/* @ts-expect-error - react-native-svg types have JSX compatibility issues in monorepo setup */}
             <Svg width={32} height={32} viewBox='0 0 200 200'>
               {/* Background circle for app icon */}
               <Circle cx='100' cy='100' r='90' fill={colors.iconBg} />
@@ -160,7 +161,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
               />
             </Svg>
           </View>
-          <Text style={styles.title}>{BRANDING.displayName}</Text>
+          <Text style={styles.title}>{branding.displayName}</Text>
         </TouchableOpacity>
 
         {/* Right side: Auth buttons or user menu */}

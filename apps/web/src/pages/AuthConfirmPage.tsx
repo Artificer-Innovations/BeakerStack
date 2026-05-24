@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import { readAndClearPostAuthRedirect } from '@/auth/postAuthRedirect';
 
 type OtpType = 'signup' | 'recovery' | 'magiclink' | 'email_change' | 'invite';
@@ -51,7 +52,9 @@ export default function AuthConfirmPage() {
           navigate('/reset-password', { replace: true });
         } else {
           const stored = readAndClearPostAuthRedirect();
-          navigate(stored ?? '/dashboard', { replace: true });
+          navigate(stored ?? getAdopterConfig().postLoginPath, {
+            replace: true,
+          });
         }
       })
       .catch(() => {

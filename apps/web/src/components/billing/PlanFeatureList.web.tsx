@@ -1,7 +1,7 @@
 import { Check, X } from 'lucide-react';
 import type { Plan } from '@beakerstack/billing';
 import { useBillingConfig } from '@beakerstack/billing';
-import { beakerstackBillingConfig } from '../../billing/beakerstackBillingConfig';
+import { billingConfig as adopterBillingConfig } from '@adopter/config/billing';
 import {
   mergePlanFeatureRows,
   planFeatureLine,
@@ -9,7 +9,7 @@ import {
 
 /**
  * “What’s included” list for a plan card (or future public pricing).
- * Rows and labels come from `beakerstackBillingConfig.planFeatureRows` with
+ * Rows and labels come from `billingConfig.planFeatureRows` with
  * defaults in `@beakerstack/billing/presentation` (`planPresentation`).
  */
 export function PlanFeatureList({
@@ -20,7 +20,7 @@ export function PlanFeatureList({
   mode?: 'authenticated' | 'public';
 }): JSX.Element {
   void mode;
-  const billingConfig = useBillingConfig<typeof beakerstackBillingConfig>();
+  const billingConfig = useBillingConfig<typeof adopterBillingConfig>();
   const rows = mergePlanFeatureRows(billingConfig);
 
   return (
