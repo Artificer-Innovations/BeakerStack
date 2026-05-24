@@ -24,8 +24,8 @@ Flags:
   email_templates       supabase/templates/** and email personalization scripts
   auth_deploy_scripts   scripts/sync-supabase-auth-config.sh
   billing_deploy        stripe webhook / billing deploy scripts
-  web_deploy            apps/web/** and runtime packages/**/src (excluding tests)
-  mobile_deploy         apps/mobile/** and mobile runtime packages/**/src (excluding tests)
+  web_deploy            apps/web/**, adopter/web/**, adopter/config/**, adopter/assets/**, runtime packages/**/src (excluding tests)
+  mobile_deploy         apps/mobile/**, adopter/mobile/**, adopter/config/**, adopter/assets/**, mobile runtime packages/**/src (excluding tests)
   deploy_infra          infra/aws/**, scripts/pr-preview/**, deploy workflows
   tested_scripts        scripts covered by test:unit:scripts
   dependencies          package.json / package-lock.json changes
@@ -125,6 +125,19 @@ classify_path() {
   match_dependencies=false
 
   case "$f" in
+    adopter/mobile/*)
+      match_app_code=true
+      match_mobile_deploy=true
+      ;;
+    adopter/web/*)
+      match_app_code=true
+      match_web_deploy=true
+      ;;
+    adopter/config/* | adopter/assets/*)
+      match_app_code=true
+      match_web_deploy=true
+      match_mobile_deploy=true
+      ;;
     apps/web/*)
       match_app_code=true
       match_web_deploy=true
@@ -138,6 +151,9 @@ classify_path() {
       match_integration_tests=true
       ;;
     apps/* | tests/*)
+      match_app_code=true
+      ;;
+    packages/adopter-tests/*)
       match_app_code=true
       ;;
     packages/*)
@@ -427,6 +443,9 @@ self_test() {
         run_supabase_reset) [[ "${result_run_supabase_reset}" == true ]] && got=true ;;
         run_unit) [[ "${result_run_unit}" == true ]] && got=true ;;
         run_migration_filenames) [[ "${result_run_migration_filenames}" == true ]] && got=true ;;
+        run_mobile) [[ "${result_run_mobile}" == true ]] && got=true ;;
+        run_web) [[ "${result_run_web}" == true ]] && got=true ;;
+        run_deploy) [[ "${result_run_deploy}" == true ]] && got=true ;;
         integration_tests) [[ "${result_integration_tests}" == true ]] && got=true ;;
         supabase_schema) [[ "${result_supabase_schema}" == true ]] && got=true ;;
         *)
@@ -454,6 +473,19 @@ self_test() {
   assert_classify scripts/lib/email-config-subjects.mjs app_code false
   assert_classify apps/web/src/App.tsx web_deploy true
   assert_classify apps/mobile/app/index.tsx mobile_deploy true
+  assert_classify adopter/mobile/screens/DashboardScreen.tsx mobile_deploy true
+  assert_classify adopter/mobile/screens/DashboardScreen.tsx app_code true
+  assert_classify adopter/mobile/screens/DashboardScreen.tsx web_deploy false
+  assert_classify adopter/web/pages/DashboardPage.tsx web_deploy true
+  assert_classify adopter/web/pages/DashboardPage.tsx mobile_deploy false
+  assert_classify adopter/config/billing.ts web_deploy true
+  assert_classify adopter/config/billing.ts mobile_deploy true
+  assert_classify adopter/config/billing.ts app_code true
+  assert_classify packages/adopter-tests/jest.mobile.cjs app_code true
+  assert_classify packages/adopter-tests/jest.mobile.cjs mobile_deploy false
+  assert_derived adopter-mobile-test-only-push \
+    run_mobile true run_web false run_deploy true \
+    -- adopter/mobile/screens/__tests__/DashboardScreen.test.tsx
   assert_classify supabase/migrations/001.sql supabase_schema true
   assert_classify supabase/templates/generated/foo.html email_templates true
   assert_classify supabase/templates/generated/foo.html supabase_schema false
