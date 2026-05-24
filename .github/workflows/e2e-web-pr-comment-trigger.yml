@@ -1,0 +1,76 @@
+name: E2E Web (Comment Trigger)
+
+# issue_comment workflows only run from the repository default branch (main).
+# This dispatches the Playwright workflow on the PR branch or develop.
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  actions: write
+
+jobs:
+  dispatch:
+    if: |
+      github.event.issue.pull_request &&
+      github.event.comment.user.type != 'Bot' &&
+      (github.event.comment.body == 'Run e2e' ||
+       github.event.comment.body == 'run e2e' ||
+       github.event.comment.body == 'RUN E2E')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch Playwright E2E workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issueNumber = context.issue.number;
+
+            const { data: pr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: issueNumber,
+            });
+
+            if (pr.base.ref !== 'develop') {
+              core.setFailed(
+                `E2E only runs for PRs targeting develop (base: ${pr.base.ref}).`
+              );
+              return;
+            }
+
+            if (pr.head.repo.full_name !== `${owner}/${repo}`) {
+              core.setFailed('E2E does not run for fork PRs.');
+              return;
+            }
+
+            const prNumber = String(pr.number);
+            const candidateRefs = [pr.head.ref, 'develop'];
+
+            let dispatched = false;
+            let lastError;
+            for (const ref of candidateRefs) {
+              try {
+                await github.rest.actions.createWorkflowDispatch({
+                  owner,
+                  repo,
+                  workflow_id: 'e2e-web-pr-approval.yml',
+                  ref,
+                  inputs: { pr_number: prNumber },
+                });
+                core.info(
+                  `Dispatched e2e-web-pr-approval.yml on ${ref} for PR #${prNumber}.`
+                );
+                dispatched = true;
+                break;
+              } catch (error) {
+                lastError = error;
+                core.warning(`Could not dispatch on ${ref}: ${error.message}`);
+              }
+            }
+
+            if (!dispatched) {
+              core.setFailed(
+                `Failed to dispatch E2E workflow. Last error: ${lastError?.message ?? 'unknown'}`
+              );
+            }
