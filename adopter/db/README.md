@@ -15,7 +15,7 @@ Adopter-owned PostgreSQL schema and migrations live here — separate from templ
 ```bash
 npm run db:init-adopter      # idempotent bootstrap
 npm run db:apply-adopter     # apply pending migrations locally
-npm run db:apply-adopter -- --linked   # production via supabase db remote connection-string
+npm run db:apply-adopter -- --linked   # remote hosted DB via env secrets
 ```
 
 ## Filename convention
@@ -26,10 +26,12 @@ A `9*` prefix is **optional** for adopter migrations (visual hint only). Templat
 
 ## Production credentials
 
-`--linked` uses `supabase db remote connection-string` with:
+`--linked` builds a Postgres connection string from environment variables (in priority order):
 
-- `SUPABASE_ACCESS_TOKEN`
-- Project ref secret (`STAGING_SUPABASE_PROJECT_REF`, `PRODUCTION_SUPABASE_PROJECT_REF`, etc.)
-- `SUPABASE_DB_PASSWORD` or environment-specific `*_SUPABASE_DB_PASSWORD`
+1. `DATABASE_URL` — explicit override
+2. `SUPABASE_PROJECT_REF` + `SUPABASE_DB_PASSWORD`
+3. `STAGING_SUPABASE_PROJECT_REF` + `STAGING_SUPABASE_DB_PASSWORD`
+4. `PRODUCTION_SUPABASE_PROJECT_REF` + `PRODUCTION_SUPABASE_DB_PASSWORD`
+5. Local fallback after `supabase link`: `supabase/.temp/project-ref` + `SUPABASE_DB_PASSWORD`
 
-Run after `supabase db push` in deploy workflows.
+Deploy workflows inject the staging/production project ref and DB password secrets on the adopter migration step. Run after `supabase db push` in deploy workflows.
