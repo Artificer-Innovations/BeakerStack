@@ -245,4 +245,54 @@ describe('DashboardPage (coverage)', () => {
       );
     });
   });
+
+  it('re-selects the first collection when the selected id disappears (lines 52-53)', async () => {
+    collectionsData = [
+      { id: 'keep-col', item_count: 0 },
+      { id: 'gone-col', item_count: 0 },
+    ];
+    const user = userEvent.setup();
+    await act(async () => {
+      render(wrapDashboard(<DashboardPage />));
+      await new Promise(resolve => setTimeout(resolve, 50));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('gone-col…')).toBeInTheDocument();
+    });
+
+    const collectionCards = screen.getAllByText('Collection');
+    const goneCard = collectionCards.find(card =>
+      card.parentElement?.textContent?.includes('gone-col')
+    );
+    expect(goneCard).toBeTruthy();
+    if (goneCard) {
+      await user.click(goneCard);
+    }
+
+    mockRpc.mockImplementation((name: string) => {
+      if (name === 'billing_demo_delete_collection') {
+        return Promise.resolve({ data: null, error: null });
+      }
+      if (name === 'billing_demo_get_collections') {
+        return Promise.resolve({
+          data: [{ id: 'keep-col', item_count: 0 }],
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const deleteButtons = screen.getAllByLabelText('Delete collection');
+    const goneDelete = deleteButtons.at(-1);
+    expect(goneDelete).toBeTruthy();
+    if (goneDelete) {
+      await user.click(goneDelete);
+    }
+
+    await waitFor(() => {
+      expect(screen.getByText('keep-col…')).toBeInTheDocument();
+      expect(screen.queryByText('gone-col…')).not.toBeInTheDocument();
+    });
+  });
 });

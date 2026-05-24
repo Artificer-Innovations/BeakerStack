@@ -121,6 +121,7 @@ export default defineConfig(({ mode }) => {
       include: [
         'apps/web/src/**/*.{test,spec}.{ts,tsx}',
         'adopter/web/**/*.{test,spec}.{ts,tsx}',
+        'adopter/config/**/*.{test,spec}.{ts,tsx}',
       ],
       // Placeholder Supabase env when unset (jsdom imports supabase.ts at module load).
       // CI integration exports real credentials via GITHUB_ENV — those take precedence.

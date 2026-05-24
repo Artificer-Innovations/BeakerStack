@@ -59,7 +59,7 @@ function RootLayout() {
   );
 }
 
-function AdminRouteGate({ children }: { children: ReactNode }) {
+export function AdminRouteGate({ children }: { children: ReactNode }) {
   const auth = useAuthContext();
   return (
     <AdminRoute
@@ -72,7 +72,7 @@ function AdminRouteGate({ children }: { children: ReactNode }) {
   );
 }
 
-function AdopterRoute({
+export function AdopterRoute({
   extension,
 }: {
   extension: (typeof adopterRouteExtensions)[number];
