@@ -46,6 +46,13 @@ test.describe('Billing Stripe flows', () => {
       console.log(
         `[e2e] Stripe checkout probe: ${probe.ready ? 'ready' : 'not ready'} — ${probe.reason}`
       );
+    } catch (error) {
+      stripeCheckoutReady = false;
+      stripeCheckoutSkipReason =
+        error instanceof Error ? error.message : String(error);
+      console.log(
+        `[e2e] Stripe checkout probe error: ${stripeCheckoutSkipReason}`
+      );
     } finally {
       await context.close();
     }

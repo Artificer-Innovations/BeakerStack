@@ -356,6 +356,15 @@ jobs:
           name: e2e-auth-state
           path: tests/e2e/web/.auth/
 
+      - name: Verify E2E auth artifacts
+        run: |
+          set -euo pipefail
+          ls -la tests/e2e/web/.auth/
+          test -s tests/e2e/web/.auth/state.json
+          test -s tests/e2e/web/.auth/user.json
+          test -s tests/e2e/web/.auth/admin-state.json
+          test -s tests/e2e/web/.auth/admin.json
+
       - name: Run Playwright chromium project
         id: playwright
         env:
