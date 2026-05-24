@@ -34,4 +34,4 @@ A `9*` prefix is **optional** for adopter migrations (visual hint only). Templat
 4. `PRODUCTION_SUPABASE_PROJECT_REF` + `PRODUCTION_SUPABASE_DB_PASSWORD`
 5. Local fallback after `supabase link`: `supabase/.temp/project-ref` + `SUPABASE_DB_PASSWORD` (generic var only — not staging/production variants)
 
-Deploy workflows inject the staging/production project ref and DB password secrets on the adopter migration step. Run after `supabase db push` in deploy workflows.
+Deploy workflows inject the staging/production project ref and DB password secrets on the adopter migration step (after `supabase link`, which writes `supabase/.temp/pooler-url`). When that pooler template exists, `--linked` uses the Supavisor session pooler (IPv4-compatible) instead of the direct `db.{ref}.supabase.co` host. Run after `supabase db push` in deploy workflows.

@@ -2,7 +2,10 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { postgresConnectionUri } from './setup-supabase.mjs';
+import {
+  applyPoolerPassword,
+  postgresConnectionUri,
+} from './setup-supabase.mjs';
 
 const LOCAL_DEFAULT_URL =
   'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
@@ -53,6 +56,38 @@ export function resolveLinkedCredentials(env = process.env) {
 }
 
 /**
+ * @param {string} repoRoot
+ * @returns {string | undefined}
+ */
+export function readPoolerUrlTemplate(repoRoot) {
+  const poolerPath = path.join(repoRoot, 'supabase', '.temp', 'pooler-url');
+  if (!existsSync(poolerPath)) {
+    return undefined;
+  }
+
+  const template = readFileSync(poolerPath, 'utf8').trim();
+  return template || undefined;
+}
+
+/**
+ * Prefer Supavisor pooler URL (IPv4-compatible) when `supabase link` wrote
+ * supabase/.temp/pooler-url; fall back to direct db.{ref}.supabase.co.
+ *
+ * @param {string} repoRoot
+ * @param {string} dbPassword
+ * @param {string} projectRef
+ * @returns {string}
+ */
+export function buildLinkedConnectionUri(repoRoot, dbPassword, projectRef) {
+  const poolerTemplate = readPoolerUrlTemplate(repoRoot);
+  if (poolerTemplate) {
+    return applyPoolerPassword(poolerTemplate, dbPassword);
+  }
+
+  return postgresConnectionUri(projectRef, dbPassword);
+}
+
+/**
  * Local-dev fallback after `supabase link`: read project ref from disk and pair
  * with SUPABASE_DB_PASSWORD only (not STAGING_/PRODUCTION_ variants).
  *
@@ -78,7 +113,7 @@ export function readLinkedConnectionUri(repoRoot, env = process.env) {
     );
   }
 
-  return postgresConnectionUri(projectRef, dbPassword);
+  return buildLinkedConnectionUri(repoRoot, dbPassword, projectRef);
 }
 
 /**
@@ -100,7 +135,9 @@ export function resolveAdopterDatabaseUrl(options = {}) {
   if (linked) {
     const { projectRef, dbPassword } = resolveLinkedCredentials(env);
     if (projectRef && dbPassword) {
-      return assertPostgresUrl(postgresConnectionUri(projectRef, dbPassword));
+      return assertPostgresUrl(
+        buildLinkedConnectionUri(repoRoot, dbPassword, projectRef)
+      );
     }
 
     const linkedUrl = readLinkedConnectionUri(repoRoot, env);
