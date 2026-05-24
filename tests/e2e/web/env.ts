@@ -28,6 +28,16 @@ export function normalizeBasePath(value: string | undefined): string {
   return withLeading.replace(/\/$/, '') || '/';
 }
 
+/** Marketing landing route, including PR preview base paths (/pr-N with optional trailing slash). */
+export function isLandingPathname(pathname: string): boolean {
+  const normalized = pathname.replace(/\/$/, '') || '/';
+  const basePath = normalizeBasePath(process.env.WEB_BASE_PATH);
+  if (basePath === '/') {
+    return normalized === '/';
+  }
+  return normalized === basePath;
+}
+
 /** Map preview CI secrets onto integration test env names. */
 export function applyE2eSupabaseEnv(): void {
   if (process.env.PREVIEW_SUPABASE_URL) {

@@ -5,6 +5,7 @@ import {
   signOut,
   fillLoginForm,
 } from '../../fixtures/auth.fixture';
+import { isLandingPathname } from '../../env';
 
 test.describe('Logout', () => {
   test('signs out from user menu and returns to landing', async ({
@@ -16,7 +17,7 @@ test.describe('Logout', () => {
 
     await signOut(page);
 
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(url => isLandingPathname(url.pathname));
     await expect(
       page.getByText('Everything you need to ship a real product.')
     ).toBeVisible();
