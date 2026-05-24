@@ -122,7 +122,7 @@ jobs:
         continue-on-error: true
         env:
           KIT_API_KEY: ${{ secrets.KIT_API_KEY }}
-          KIT_WEBHOOK_URL: ${{ secrets.STAGING_SUPABASE_URL }}/functions/v1/kit-webhook
+          KIT_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
           WEBHOOK_DESCRIPTION: BeakerStack staging kit-webhook (${{ secrets.STAGING_SUPABASE_PROJECT_REF }})
         run: |
           [[ -z "${KIT_API_KEY:-}" ]] && { echo "KIT_API_KEY not set — skipping Kit webhook ensure"; exit 0; }

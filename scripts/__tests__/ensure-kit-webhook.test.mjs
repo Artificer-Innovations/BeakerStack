@@ -11,8 +11,11 @@ import {
   normalizeKitWebhookUrl,
 } from '../lib/ensure-kit-webhook.mjs';
 
-test('normalizeKitWebhookUrl trims trailing slashes', () => {
-  assert.equal(normalizeKitWebhookUrl('https://a/'), 'https://a');
+test('normalizeKitWebhookUrl collapses duplicate slashes in path', () => {
+  assert.equal(
+    normalizeKitWebhookUrl('https://a.supabase.co//functions/v1/kit-webhook/'),
+    'https://a.supabase.co/functions/v1/kit-webhook'
+  );
 });
 
 test('kitWebhookUrlFromSupabaseUrl handles project host', () => {

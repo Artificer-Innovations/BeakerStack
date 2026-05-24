@@ -7,6 +7,7 @@ import {
   hasKitCredentials,
   isKitGithubSecretDef,
   listKitWebhookTargets,
+  listMissingKitEnvKeys,
   setupKitKeysDeferred,
   SETUP_KIT_SKIPPED_ENV,
 } from '../lib/setup-kit.mjs';
@@ -59,7 +60,7 @@ test('collectKitEnvKeys skip leaves acc unchanged', async () => {
   assert.equal(acc.KIT_API_KEY, undefined);
 });
 
-test('collectKitEnvKeys auto-generates cron secret when credentials present', async () => {
+test('collectKitEnvKeys dry-run does not write generated cron secret', async () => {
   const acc = {
     KIT_API_KEY: 'key',
     KIT_WEBHOOK_SECRET: 'wh',
@@ -71,8 +72,7 @@ test('collectKitEnvKeys auto-generates cron secret when credentials present', as
     question: async () => '',
     readSecret: async () => '',
   });
-  assert.ok(acc.KIT_CRON_SECRET);
-  assert.equal(acc.KIT_CRON_SECRET.length, 64);
+  assert.equal(acc.KIT_CRON_SECRET, undefined);
 });
 
 test('collectKitEnvKeys stores entered secrets', async () => {
@@ -91,11 +91,38 @@ test('collectKitEnvKeys stores entered secrets', async () => {
   assert.ok(acc.KIT_CRON_SECRET.length >= 32);
 });
 
-test('normalizeKitWebhookUrl strips trailing slash', () => {
+test('normalizeKitWebhookUrl collapses duplicate path slashes', () => {
   assert.equal(
-    normalizeKitWebhookUrl('https://x.supabase.co/functions/v1/kit-webhook/'),
+    normalizeKitWebhookUrl('https://x.supabase.co//functions/v1/kit-webhook'),
     'https://x.supabase.co/functions/v1/kit-webhook'
   );
+});
+
+test('listMissingKitEnvKeys lists unset KIT_* keys', () => {
+  assert.deepEqual(listMissingKitEnvKeys({}), [
+    'KIT_API_KEY',
+    'KIT_CRON_SECRET',
+    'KIT_WEBHOOK_SECRET',
+  ]);
+  assert.deepEqual(
+    listMissingKitEnvKeys({ [SETUP_KIT_SKIPPED_ENV]: 'true' }),
+    []
+  );
+});
+
+test('collectKitEnvKeys abort restores pre-existing credentials', async () => {
+  const acc = { KIT_API_KEY: 'old-key' };
+  await collectKitEnvKeys(acc, {
+    yes: true,
+    logInfo: () => {},
+    logWarn: () => {},
+    question: async () => '',
+    readSecret: async () => '',
+  });
+  assert.equal(acc.KIT_API_KEY, 'old-key');
+  assert.equal(acc.KIT_CRON_SECRET, undefined);
+  assert.equal(acc.KIT_WEBHOOK_SECRET, undefined);
+  assert.equal(acc[SETUP_KIT_SKIPPED_ENV], 'true');
 });
 
 test('generated cron secret matches crypto.randomBytes hex length', () => {

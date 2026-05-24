@@ -25,10 +25,7 @@ import {
   KIT_ENV_KEYS,
   SETUP_KIT_SKIPPED_ENV,
 } from './lib/setup-kit.mjs';
-import {
-  parseDotEnv,
-  escapeDotEnvDoubleQuotedValue,
-} from './lib/setup-dotenv.mjs';
+import { parseDotEnv, stringifySetupDotEnv } from './lib/setup-dotenv.mjs';
 import { readMaskedLineIfTty } from './lib/setup-secret-input.mjs';
 import { collectGithubSecretPayload } from './lib/setup-manifest.mjs';
 import {
@@ -75,6 +72,7 @@ export async function phaseKit(flags, rl, acc, deps = {}) {
   const readSecret =
     deps.readSecret ??
     (async prompt => {
+      if (flags.plainSecretPrompts) return rl.question(prompt);
       const masked = await readMaskedLineIfTty(rl, input, output, prompt);
       return masked ?? rl.question(prompt);
     });
@@ -88,8 +86,11 @@ export async function phaseKit(flags, rl, acc, deps = {}) {
     readSecret,
   });
 
-  if (flags.standalone && !flags.dryRun && !flags.skipGithub) {
+  if (flags.standalone && !flags.dryRun) {
     await mergeKitEnvFiles(acc);
+  }
+
+  if (flags.standalone && !flags.dryRun && !flags.skipGithub) {
     await syncKitGithubSecrets({
       rl,
       acc,
@@ -112,12 +113,6 @@ function mergeRecords(base, overlay) {
   return { ...base, ...overlay };
 }
 
-function stringifyDotEnv(obj) {
-  return `${Object.entries(obj)
-    .map(([k, v]) => `${k}="${escapeDotEnvDoubleQuotedValue(v)}"`)
-    .join('\n')}\n`;
-}
-
 async function mergeKitEnvFiles(acc) {
   const kitOnly = /** @type {Record<string, string>} */ ({});
   for (const key of KIT_ENV_KEYS) {
@@ -129,7 +124,7 @@ async function mergeKitEnvFiles(acc) {
   const local = await readEnvFileIfExists(LOCAL_ENV_PATH);
   await fs.writeFile(
     LOCAL_ENV_PATH,
-    stringifyDotEnv(mergeRecords(local, kitOnly)),
+    stringifySetupDotEnv(mergeRecords(local, kitOnly)),
     'utf8'
   );
   logInfo(
@@ -139,7 +134,7 @@ async function mergeKitEnvFiles(acc) {
   const cloud = await readEnvFileIfExists(CLOUD_ENV_PATH);
   await fs.writeFile(
     CLOUD_ENV_PATH,
-    stringifyDotEnv(mergeRecords(cloud, kitOnly)),
+    stringifySetupDotEnv(mergeRecords(cloud, kitOnly)),
     'utf8'
   );
   logInfo(
@@ -216,12 +211,14 @@ async function syncKitGithubSecrets({ rl, acc, dryRun, repoOverride = '' }) {
   }
 
   for (const [name, value] of Object.entries(secrets)) {
-    ghSecretSetSync(repo, name, value, dryRun);
-    logInfo(
-      dryRun
-        ? `[dry-run] would set secret ${name}`
-        : `GitHub secret set: ${name}`
-    );
+    const status = ghSecretSetSync(repo, name, value, dryRun);
+    if (status === 0) {
+      logInfo(
+        dryRun
+          ? `[dry-run] would set secret ${name}`
+          : `GitHub secret set: ${name}`
+      );
+    }
   }
 }
 

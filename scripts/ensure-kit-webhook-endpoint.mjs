@@ -4,7 +4,8 @@
  *
  * Env:
  *   KIT_API_KEY (required)
- *   KIT_WEBHOOK_URL (required) — full URL, e.g. https://<ref>.supabase.co/functions/v1/kit-webhook
+ *   KIT_SUPABASE_URL — project URL; webhook path is derived (preferred in CI)
+ *   KIT_WEBHOOK_URL — full URL (legacy / manual override)
  *   WEBHOOK_DESCRIPTION (optional) — log label only
  *
  * Note: Kit does not return the webhook signing secret via API. Set KIT_WEBHOOK_SECRET
@@ -12,14 +13,25 @@
  */
 import process from 'node:process';
 
-import { ensureKitWebhook } from './lib/ensure-kit-webhook.mjs';
+import {
+  ensureKitWebhook,
+  kitWebhookUrlFromSupabaseUrl,
+} from './lib/ensure-kit-webhook.mjs';
+
+function resolveKitWebhookUrl() {
+  const explicit = String(process.env.KIT_WEBHOOK_URL ?? '').trim();
+  if (explicit) return explicit;
+  const supabaseUrl = String(process.env.KIT_SUPABASE_URL ?? '').trim();
+  if (!supabaseUrl) return '';
+  return kitWebhookUrlFromSupabaseUrl(supabaseUrl);
+}
 
 async function main() {
   const apiKey = process.env.KIT_API_KEY;
-  const url = process.env.KIT_WEBHOOK_URL;
+  const url = resolveKitWebhookUrl();
   if (!apiKey || !url) {
     console.error(
-      'Missing KIT_API_KEY or KIT_WEBHOOK_URL (full …/functions/v1/kit-webhook URL)'
+      'Missing KIT_API_KEY or KIT_SUPABASE_URL / KIT_WEBHOOK_URL (…/functions/v1/kit-webhook)'
     );
     process.exit(1);
   }

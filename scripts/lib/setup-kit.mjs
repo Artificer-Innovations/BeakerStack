@@ -7,6 +7,7 @@ import crypto from 'node:crypto';
 import {
   ensureKitWebhook,
   kitWebhookUrlFromSupabaseUrl,
+  listKitWebhooks,
 } from './ensure-kit-webhook.mjs';
 
 export const KIT_ENV_KEYS = [
@@ -53,6 +54,39 @@ export function hasKitCredentials(acc) {
   const apiKey = String(acc.KIT_API_KEY ?? '').trim();
   const webhookSecret = String(acc.KIT_WEBHOOK_SECRET ?? '').trim();
   return Boolean(apiKey && webhookSecret);
+}
+
+/**
+ * @param {Record<string, string>} acc
+ * @returns {Partial<Record<(typeof KIT_ENV_KEYS)[number], string>>}
+ */
+function kitEnvSnapshot(acc) {
+  /** @type {Partial<Record<(typeof KIT_ENV_KEYS)[number], string>>} */
+  const snap = {};
+  for (const key of KIT_ENV_KEYS) {
+    if (acc[key] !== undefined) snap[key] = acc[key];
+  }
+  return snap;
+}
+
+/**
+ * @param {Record<string, string>} acc
+ * @param {Partial<Record<(typeof KIT_ENV_KEYS)[number], string>>} snap
+ */
+function restoreKitEnvSnapshot(acc, snap) {
+  for (const key of KIT_ENV_KEYS) {
+    if (snap[key] === undefined) delete acc[key];
+    else acc[key] = snap[key];
+  }
+}
+
+/**
+ * @param {Record<string, string>} env
+ * @returns {string[]}
+ */
+export function listMissingKitEnvKeys(env) {
+  if (setupKitKeysDeferred(env)) return [];
+  return KIT_ENV_KEYS.filter(key => !String(env[key] ?? '').trim());
 }
 
 /**
@@ -134,6 +168,18 @@ export async function ensureKitWebhooksForTiers(acc, opts = {}) {
     return;
   }
 
+  let webhooks;
+  if (!dryRun) {
+    try {
+      webhooks = await listKitWebhooks(apiKey);
+    } catch (e) {
+      logWarn(
+        `Could not list Kit webhooks: ${e instanceof Error ? e.message : String(e)}`
+      );
+      return;
+    }
+  }
+
   for (const t of targets) {
     if (dryRun) {
       logInfo(
@@ -146,6 +192,7 @@ export async function ensureKitWebhooksForTiers(acc, opts = {}) {
         apiKey,
         webhookUrl: t.webhookUrl,
         description: `BeakerStack ${t.label.toLowerCase()}`,
+        webhooks,
       });
       if (result.created) {
         logInfo(`Created Kit webhook for ${t.label} → ${t.webhookUrl}`);
@@ -181,8 +228,12 @@ export async function collectKitEnvKeys(acc, opts = {}) {
       'Kit credentials already present in session env (values not shown).'
     );
     if (!acc.KIT_CRON_SECRET?.trim()) {
-      acc.KIT_CRON_SECRET = crypto.randomBytes(32).toString('hex');
-      logInfo('Generated KIT_CRON_SECRET (value not printed).');
+      if (dryRun) {
+        logInfo('[dry-run] would generate KIT_CRON_SECRET.');
+      } else {
+        acc.KIT_CRON_SECRET = crypto.randomBytes(32).toString('hex');
+        logInfo('Generated KIT_CRON_SECRET (value not printed).');
+      }
     }
     await ensureKitWebhooksForTiers(acc, { dryRun, logInfo, logWarn });
     return;
@@ -198,6 +249,7 @@ export async function collectKitEnvKeys(acc, opts = {}) {
       .trim()
       .toLowerCase();
     if (skip === 'n' || skip === 'no') {
+      acc[SETUP_KIT_SKIPPED_ENV] = 'true';
       logWarn(
         'Skipped Kit setup — marketing email sync will not work until KIT_* secrets are configured.'
       );
@@ -210,11 +262,14 @@ export async function collectKitEnvKeys(acc, opts = {}) {
     return;
   }
 
+  const snap = kitEnvSnapshot(acc);
+
   const apiKeyRaw = yes
     ? String(acc.KIT_API_KEY ?? '').trim()
     : await readSecret('Kit Creator API v4 key (KIT_API_KEY): ');
   const apiKey = apiKeyRaw.trim() || String(acc.KIT_API_KEY ?? '').trim();
   if (!apiKey) {
+    acc[SETUP_KIT_SKIPPED_ENV] = 'true';
     logWarn('No API key entered — skipping Kit setup.');
     return;
   }
@@ -239,11 +294,11 @@ export async function collectKitEnvKeys(acc, opts = {}) {
   const webhookSecret =
     webhookSecretRaw.trim() || String(acc.KIT_WEBHOOK_SECRET ?? '').trim();
   if (!webhookSecret) {
+    restoreKitEnvSnapshot(acc, snap);
+    acc[SETUP_KIT_SKIPPED_ENV] = 'true';
     logWarn(
       'No webhook signing secret entered — inbound Kit unsubscribes will not verify until KIT_WEBHOOK_SECRET is set.'
     );
-    delete acc.KIT_API_KEY;
-    delete acc.KIT_CRON_SECRET;
     return;
   }
   acc.KIT_WEBHOOK_SECRET = webhookSecret;

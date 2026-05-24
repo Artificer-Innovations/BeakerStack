@@ -14,9 +14,15 @@ export const KIT_WEBHOOK_UNSUBSCRIBE_EVENT =
  * @returns {string}
  */
 export function normalizeKitWebhookUrl(url) {
-  return String(url || '')
-    .trim()
-    .replace(/\/+$/, '');
+  const raw = String(url || '').trim();
+  if (!raw) return '';
+  try {
+    const u = new URL(raw);
+    u.pathname = u.pathname.replace(/\/+/g, '/').replace(/\/+$/, '') || '/';
+    return u.toString().replace(/\/+$/, '');
+  } catch {
+    return raw.replace(/\/+$/, '');
+  }
 }
 
 /**
@@ -47,8 +53,9 @@ export function kitWebhookUrlFromSupabaseUrl(supabaseUrl) {
  * @param {string} apiKey
  * @param {string} path
  * @param {{ method?: string; body?: unknown }} [opts]
+ * @param {number} [attempt]
  */
-async function kitRequest(apiKey, path, opts = {}) {
+async function kitRequest(apiKey, path, opts = {}, attempt = 0) {
   const res = await fetch(`${KIT_API_BASE}${path}`, {
     method: opts.method || 'GET',
     headers: {
@@ -62,6 +69,10 @@ async function kitRequest(apiKey, path, opts = {}) {
     signal: AbortSignal.timeout(30_000),
   });
   if (!res.ok) {
+    if (res.status === 429 && attempt < 2) {
+      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+      return kitRequest(apiKey, path, opts, attempt + 1);
+    }
     const text = await res.text().catch(() => '');
     throw new Error(
       `Kit API ${opts.method || 'GET'} ${path} → ${res.status}${text ? ` — ${text.slice(0, 200)}` : ''}`
@@ -93,18 +104,27 @@ export async function listKitWebhooks(apiKey) {
 }
 
 /**
+ * @param {Array<{ id: number; target_url: string }>} webhooks
+ * @param {string} targetUrl
+ * @returns {{ id: number; target_url: string } | null}
+ */
+export function findKitWebhookByUrlInList(webhooks, targetUrl) {
+  const normalized = normalizeKitWebhookUrl(targetUrl);
+  if (!normalized) return null;
+  return (
+    webhooks.find(w => normalizeKitWebhookUrl(w.target_url) === normalized) ??
+    null
+  );
+}
+
+/**
  * @param {string} apiKey
  * @param {string} targetUrl
  * @returns {Promise<{ id: number; target_url: string } | null>}
  */
 export async function findKitWebhookByUrl(apiKey, targetUrl) {
-  const normalized = normalizeKitWebhookUrl(targetUrl);
-  if (!normalized) return null;
   const webhooks = await listKitWebhooks(apiKey);
-  return (
-    webhooks.find(w => normalizeKitWebhookUrl(w.target_url) === normalized) ??
-    null
-  );
+  return findKitWebhookByUrlInList(webhooks, targetUrl);
 }
 
 /**
@@ -140,6 +160,7 @@ export async function createKitUnsubscribeWebhook(apiKey, targetUrl) {
  *   apiKey: string;
  *   webhookUrl: string;
  *   description?: string;
+ *   webhooks?: Array<{ id: number; target_url: string }>;
  * }} opts
  * @returns {Promise<{ created: boolean; webhookId: number; targetUrl: string }>}
  */
@@ -149,7 +170,8 @@ export async function ensureKitWebhook(opts) {
   if (!apiKey) throw new Error('KIT_API_KEY is required');
   if (!targetUrl) throw new Error('KIT_WEBHOOK_URL is required');
 
-  const existing = await findKitWebhookByUrl(apiKey, targetUrl);
+  const webhooks = opts.webhooks ?? (await listKitWebhooks(apiKey));
+  const existing = findKitWebhookByUrlInList(webhooks, targetUrl);
   if (existing) {
     return {
       created: false,

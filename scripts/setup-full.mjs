@@ -97,7 +97,7 @@ import { phaseEmailDns } from './setup-email-dns.mjs';
 import { phaseKit } from './setup-kit.mjs';
 import {
   SETUP_KIT_SKIPPED_ENV,
-  isKitGithubSecretDef,
+  listMissingKitEnvKeys,
 } from './lib/setup-kit.mjs';
 
 const __filename = url.fileURLToPath(import.meta.url);
@@ -2374,10 +2374,10 @@ async function collectMissingGithubCiEnvIntoAcc(flags, rl, promptInput, acc) {
     );
   }
 
-  const kitMissing = details.filter(d => isKitGithubSecretDef(d.def));
+  const kitMissing = listMissingKitEnvKeys(acc);
   if (kitMissing.length) {
     logInfo(
-      `${kitMissing.length} Kit key(s) still missing — run \`npm run setup:kit\` or \`npm run setup:full -- --from=kit\` for guided collection, or enter below.`
+      `${kitMissing.length} optional Kit secret(s) not set (${kitMissing.join(', ')}) — run \`npm run setup:kit\` or \`npm run setup:full -- --from=kit\`.`
     );
   }
 
