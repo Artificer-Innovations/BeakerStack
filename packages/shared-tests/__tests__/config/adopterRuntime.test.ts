@@ -57,6 +57,32 @@ describe('adopterRuntime', () => {
     }
   });
 
+  it('warns when configureAdopter() is called twice without process.env', () => {
+    resetAdopterConfigForTests();
+    const originalEnv = process.env;
+    Object.defineProperty(process, 'env', {
+      configurable: true,
+      value: undefined,
+    });
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    try {
+      configureAdopter(adopterConfig);
+      configureAdopter(adopterConfig);
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy).toHaveBeenCalledWith(
+        'configureAdopter() called more than once; subsequent calls replace the config'
+      );
+    } finally {
+      Object.defineProperty(process, 'env', {
+        configurable: true,
+        value: originalEnv,
+      });
+      warnSpy.mockRestore();
+    }
+  });
+
   it('ensureAdopterConfigured() configures when unset', () => {
     resetAdopterConfigForTests();
 
