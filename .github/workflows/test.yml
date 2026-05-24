@@ -382,7 +382,7 @@ jobs:
     if: >-
       always() && !cancelled() &&
       (github.event.action != 'edited' || github.event.changes.base) &&
-      needs.test-scope.outputs.run_supabase == 'true'
+      needs.supabase-tests.result != 'skipped'
     runs-on: ubuntu-latest
     timeout-minutes: 2
 
@@ -399,15 +399,16 @@ jobs:
     if: >-
       always() && !cancelled() &&
       (github.event.action != 'edited' || github.event.changes.base) &&
-      needs.test-scope.outputs.run_supabase == 'true'
+      needs.supabase-tests.result != 'skipped'
     runs-on: ubuntu-latest
     timeout-minutes: 2
 
     steps:
       - name: Verify migration filenames and pgTAP tests passed
         run: |
-          if [ "${{ needs.migration-filenames.result }}" != "success" ]; then
-            echo "migration-filenames failed"
+          if [ "${{ needs.test-scope.outputs.run_migration_filenames }}" = "true" ] && \
+             [ "${{ needs.migration-filenames.result }}" != "success" ]; then
+            echo "migration-filenames did not pass (result: ${{ needs.migration-filenames.result }})"
             exit 1
           fi
           if [ "${{ needs.supabase-tests.result }}" != "success" ]; then
@@ -611,7 +612,7 @@ jobs:
     if: >-
       always() && !cancelled() &&
       (github.event.action != 'edited' || github.event.changes.base) &&
-      needs.test-scope.outputs.run_supabase == 'true'
+      needs.supabase-tests.result != 'skipped'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -735,5 +736,5 @@ jobs:
         if: |
           needs.supabase-tests.result == 'failure' ||
           needs.integration.result == 'failure' ||
-          needs.db-tests.result == 'failure'
+          (needs.db-tests.result != 'skipped' && needs.db-tests.result == 'failure')
         run: exit 1

@@ -377,36 +377,12 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          # secrets.* is not allowed in step `if:` — gate here (public preview when neither secret is set).
-          if [[ -z "${CLOUDFRONT_SIGNING_KEY:-}" && -z "${CLOUDFRONT_SIGNING_KEY_ID:-}" ]]; then
-            exit 0
-          fi
-          if [[ -z "${CLOUDFRONT_SIGNING_KEY:-}" || -z "${CLOUDFRONT_SIGNING_KEY_ID:-}" ]]; then
-            echo "::error::CLOUDFRONT_SIGNING_KEY and CLOUDFRONT_SIGNING_KEY_ID must both be set. Configure both secrets or neither."
-            exit 1
-          fi
-          PREVIEW_PREFIX_VALUE="${PREVIEW_PREFIX:-pr-}"
-          DEPLOY_DOMAIN="deploy.${PREVIEW_DOMAIN}"
-          DEST="/${PREVIEW_PREFIX_VALUE}${PR_NUMBER}/"
-          RESOURCE="https://${DEPLOY_DOMAIN}/${PREVIEW_PREFIX_VALUE}${PR_NUMBER}/*"
-          EXPIRY=$(date -u -d "+7 days" +%s)
-
-          POLICY_JSON=$(printf '{"Statement":[{"Resource":"%s","Condition":{"DateLessThan":{"AWS:EpochTime":%s}}}]}' \
-            "${RESOURCE}" "${EXPIRY}")
-
-          # CloudFront URL-safe base64: + → -, / → ~, = → _
-          CF_POLICY=$(printf '%s' "${POLICY_JSON}" | base64 -w0 | tr '+' '-' | tr '/' '~' | tr '=' '_')
-
-          # Sign with RSA-SHA1 (CloudFront signed cookies requirement)
-          KEY_FILE=$(mktemp); chmod 600 "${KEY_FILE}"
-          printf '%s' "${CLOUDFRONT_SIGNING_KEY}" > "${KEY_FILE}"
-          CF_SIGNATURE=$(printf '%s' "${POLICY_JSON}" | \
-            openssl dgst -sha1 -sign "${KEY_FILE}" | base64 -w0 | tr '+' '-' | tr '/' '~' | tr '=' '_')
-          rm -f "${KEY_FILE}"
-          ENCODED_DEST=$(printf '%s' "${DEST}" | python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.stdin.read().strip()))")
-          BOOTSTRAP_URL="https://${DEPLOY_DOMAIN}/_preview-auth?policy=${CF_POLICY}&sig=${CF_SIGNATURE}&kid=${CLOUDFRONT_SIGNING_KEY_ID}&dest=${ENCODED_DEST}"
-          echo "BOOTSTRAP_URL=${BOOTSTRAP_URL}" >> "${GITHUB_OUTPUT}"
-          echo "ACCESS_MODE=signed-cookies" >> "${GITHUB_OUTPUT}"
+          ./scripts/pr-preview/generate-preview-bootstrap-url.sh \
+            --domain "${PREVIEW_DOMAIN}" \
+            --preview-prefix "${PREVIEW_PREFIX:-pr-}" \
+            --pr-number "${PR_NUMBER}" \
+            --signing-key "${CLOUDFRONT_SIGNING_KEY:-}" \
+            --signing-key-id "${CLOUDFRONT_SIGNING_KEY_ID:-}"
 
       - name: Create GitHub Deployment (PR preview)
         uses: actions/github-script@v7

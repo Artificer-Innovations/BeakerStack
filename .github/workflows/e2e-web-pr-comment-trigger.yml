@@ -1,0 +1,86 @@
+name: E2E Web (Comment Trigger)
+
+# issue_comment workflows only run from the repository default branch (main).
+# This dispatches the Playwright workflow on the PR branch or develop.
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+
+jobs:
+  dispatch:
+    if: |
+      github.event.issue.pull_request &&
+      github.event.comment.user.type != 'Bot' &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch Playwright E2E workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.comment.body.trim();
+            if (!/^run e2e$/i.test(body)) {
+              core.notice(
+                `Ignoring comment (expected "Run e2e", got: ${JSON.stringify(body)})`
+              );
+              return;
+            }
+
+            const { owner, repo } = context.repo;
+            const issueNumber = context.issue.number;
+
+            const { data: pr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: issueNumber,
+            });
+
+            if (pr.base.ref !== 'develop') {
+              core.notice(
+                `Skipping E2E dispatch: PR #${pr.number} targets ${pr.base.ref}, not develop.`
+              );
+              return;
+            }
+
+            if (pr.head.repo.full_name !== `${owner}/${repo}`) {
+              core.notice(
+                `Skipping E2E dispatch: PR #${pr.number} is from a fork (${pr.head.repo.full_name}).`
+              );
+              return;
+            }
+
+            const prNumber = String(pr.number);
+            const candidateRefs = [pr.head.ref, 'develop'];
+
+            let dispatched = false;
+            let lastError;
+            for (const ref of candidateRefs) {
+              try {
+                await github.rest.actions.createWorkflowDispatch({
+                  owner,
+                  repo,
+                  workflow_id: 'e2e-web-pr-approval.yml',
+                  ref,
+                  inputs: { pr_number: prNumber },
+                });
+                core.info(
+                  `Dispatched e2e-web-pr-approval.yml on ${ref} for PR #${prNumber}.`
+                );
+                dispatched = true;
+                break;
+              } catch (error) {
+                lastError = error;
+                core.warning(`Could not dispatch on ${ref}: ${error.message}`);
+              }
+            }
+
+            if (!dispatched) {
+              core.setFailed(
+                `Failed to dispatch E2E workflow. Last error: ${lastError?.message ?? 'unknown'}`
+              );
+            }

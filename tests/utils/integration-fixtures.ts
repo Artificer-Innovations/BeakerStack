@@ -54,6 +54,19 @@ export async function setWaitlistMode(mode: SignupMode): Promise<void> {
   }
 }
 
+export async function getWaitlistMode(): Promise<SignupMode | null> {
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin
+    .from('waitlist_settings')
+    .select('signup_mode')
+    .eq('id', 1)
+    .maybeSingle();
+  if (error) {
+    throw new Error(`getWaitlistMode failed: ${error.message}`);
+  }
+  return (data?.signup_mode as SignupMode | undefined) ?? null;
+}
+
 export async function captureWaitlistEntry(
   email: string,
   metadata: Record<string, unknown> = {}

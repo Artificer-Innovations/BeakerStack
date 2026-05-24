@@ -275,10 +275,22 @@ supabase/logs
 # EAS
 .easignore
 
-# Maestro
+# Maestro (mobile E2E)
 maestro.log
 # takeScreenshot outputs (written to repo root by default when running e2e flows)
 after-signup.png
+
+# Playwright web E2E (see tests/e2e/web/playwright.config.ts)
+tests/e2e/web/.auth/
+tests/e2e/web/test-results/
+tests/e2e/web/report/
+tests/e2e/web/results/
+tests/e2e/web/blob-report/
+# Default Playwright output dirs (if config is run from an unexpected cwd)
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
 apps/mobile/google-services.json
 
 # Android build artifacts and keystores
