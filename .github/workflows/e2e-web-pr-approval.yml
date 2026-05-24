@@ -374,6 +374,7 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PREVIEW_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
         run: |
+          mkdir -p tests/e2e/web/results
           npx playwright test --config tests/e2e/web/playwright.config.ts \
             --project=chromium
 
@@ -448,6 +449,7 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PREVIEW_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
         run: |
+          mkdir -p tests/e2e/web/results
           npx playwright test --config tests/e2e/web/playwright.config.ts \
             --project=shared-state \
             --project=signup-mode \
@@ -483,6 +485,8 @@ jobs:
         run: npm ci
 
       - name: Download chromium JSON report
+        id: download_chromium_report
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: e2e-chromium-results
@@ -490,6 +494,8 @@ jobs:
           merge-multiple: true
 
       - name: Download serial JSON report
+        id: download_serial_report
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: e2e-serial-results
@@ -509,7 +515,7 @@ jobs:
             inputs+=("tests/e2e/web/results/serial-results.json")
           fi
           if [ "${#inputs[@]}" -eq 0 ]; then
-            echo "No Playwright JSON reports found to merge."
+            echo "::warning::No Playwright JSON reports found to merge."
             exit 0
           fi
           node scripts/ci/merge-playwright-json-reports.mjs "${inputs[@]}" \

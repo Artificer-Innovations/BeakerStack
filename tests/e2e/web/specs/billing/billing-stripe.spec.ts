@@ -1,8 +1,10 @@
+import { e2eStorageStatePath } from '../../env';
 import { test, expect, gotoRoute } from '../../fixtures/auth.fixture';
 import {
   completeStripeCheckout,
   expectPlanActive,
   isStripeCheckoutReady,
+  probeStripeCheckoutReady,
   startProUpgradeCheckout,
 } from '../../fixtures/stripe-checkout.fixture';
 
@@ -10,10 +12,27 @@ test.describe('Billing Stripe flows', () => {
   test.describe.configure({ mode: 'serial' });
   test.setTimeout(120_000);
 
+  let stripeCheckoutReady = isStripeCheckoutReady();
+
+  test.beforeAll(async ({ browser }) => {
+    if (!isStripeCheckoutReady()) {
+      return;
+    }
+    const context = await browser.newContext({
+      storageState: e2eStorageStatePath,
+    });
+    const page = await context.newPage();
+    try {
+      stripeCheckoutReady = await probeStripeCheckoutReady(page);
+    } finally {
+      await context.close();
+    }
+  });
+
   test.beforeEach(({ authenticatedPage: _page }, testInfo) => {
     testInfo.skip(
-      !isStripeCheckoutReady(),
-      'Requires Stripe test mode + webhook'
+      !stripeCheckoutReady,
+      'Requires preview billing-stripe checkout (STRIPE_* secrets, synced plans, BILLING_ALLOWED_ORIGINS)'
     );
   });
 

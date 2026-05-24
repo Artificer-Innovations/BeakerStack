@@ -6,9 +6,24 @@ const configDir = path.dirname(__filename);
 const isCi = Boolean(process.env.CI);
 const resultsDir = path.join(configDir, 'results');
 const reportDir = path.join(configDir, 'report');
-const jsonReportPath =
-  process.env.PLAYWRIGHT_JSON_REPORT ??
-  path.join(resultsDir, 'web-results.json');
+
+function resolveJsonReportPath(): string {
+  const configured = process.env.PLAYWRIGHT_JSON_REPORT?.trim();
+  if (!configured) {
+    return path.join(resultsDir, 'web-results.json');
+  }
+  if (path.isAbsolute(configured)) {
+    return configured;
+  }
+  // CI/npm often pass repo-root paths (tests/e2e/web/results/...).
+  if (configured.startsWith('tests/')) {
+    return path.resolve(process.cwd(), configured);
+  }
+  // Paths relative to this config file (e.g. results/chromium-results.json).
+  return path.join(configDir, configured);
+}
+
+const jsonReportPath = resolveJsonReportPath();
 const configuredWorkers = Number(process.env.PLAYWRIGHT_WORKERS);
 const ciWorkers =
   Number.isFinite(configuredWorkers) && configuredWorkers > 0
