@@ -22,14 +22,14 @@ export function runCmd(cmd, args, opts = {}) {
     });
     let stdout = '';
     let stderr = '';
-    child.stdout?.on('data', (d) => {
+    child.stdout?.on('data', d => {
       stdout += d.toString();
     });
-    child.stderr?.on('data', (d) => {
+    child.stderr?.on('data', d => {
       stderr += d.toString();
     });
     child.on('error', reject);
-    child.on('close', (code) => {
+    child.on('close', code => {
       resolve({ stdout, stderr, code: code ?? 1 });
     });
   });
@@ -41,7 +41,27 @@ export function runCmd(cmd, args, opts = {}) {
  */
 export function postgresConnectionUri(projectRef, dbPassword) {
   const enc = encodeURIComponent(dbPassword);
-  return `postgresql://postgres:${enc}@db.${projectRef}.supabase.co:5432/postgres`;
+  return `postgresql://postgres:${enc}@db.${projectRef}.supabase.co:5432/postgres?sslmode=require`;
+}
+
+/**
+ * Inject password into a Supavisor pooler URL template (from supabase link).
+ * @param {string} poolerUrlTemplate
+ * @param {string} dbPassword
+ */
+export function applyPoolerPassword(poolerUrlTemplate, dbPassword) {
+  let url;
+  try {
+    url = new URL(poolerUrlTemplate.trim());
+  } catch {
+    throw new Error(
+      `Invalid pooler URL template from supabase link: ${String(poolerUrlTemplate).slice(0, 80)}`
+    );
+  }
+  const enc = encodeURIComponent(dbPassword);
+  url.searchParams.set('sslmode', 'require');
+  // url.username is percent-decoded; Supabase pooler usernames (postgres.{ref}) are alphanumeric.
+  return `${url.protocol}//${url.username}:${enc}@${url.host}${url.pathname}${url.search}`;
 }
 
 /**
@@ -58,7 +78,10 @@ export function projectApiUrl(projectRef) {
 export function parseApiKeysJson(json) {
   const data = JSON.parse(json);
   if (data && typeof data === 'object' && !Array.isArray(data)) {
-    if (typeof data.anon === 'string' && typeof data.service_role === 'string') {
+    if (
+      typeof data.anon === 'string' &&
+      typeof data.service_role === 'string'
+    ) {
       return { anon: data.anon, service_role: data.service_role };
     }
   }
@@ -72,7 +95,8 @@ export function parseApiKeysJson(json) {
   }
   return {
     anon: out.anon || out['anon key'] || '',
-    service_role: out.service_role || out.serviceRole || out['service_role'] || '',
+    service_role:
+      out.service_role || out.serviceRole || out['service_role'] || '',
   };
 }
 
@@ -106,7 +130,9 @@ function normalizeSlugLike(s) {
  * @param {string} s
  */
 function compactAlnum(s) {
-  return String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+  return String(s)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
 }
 
 /**
@@ -129,7 +155,8 @@ export function scoreSupabaseProjectForTier(project, tier, slugBase) {
   const base = String(slugBase || '').toLowerCase();
   if (!base) return 0;
   const expected = `${base}-${tier}`;
-  const slugField = project.slug != null ? String(project.slug).trim().toLowerCase() : '';
+  const slugField =
+    project.slug != null ? String(project.slug).trim().toLowerCase() : '';
   if (slugField && slugField === expected) return 100;
 
   const displayName = String(project.name || '').trim();
@@ -175,10 +202,12 @@ export function pickRecommendedSupabaseProject(choices, tier, slugBase) {
 export function parseProjectsListJson(stdout) {
   const data = JSON.parse(stdout);
   if (!Array.isArray(data)) return [];
-  return data.map((p) => {
+  return data.map(p => {
     const rawSlug = p.slug;
     const slug =
-      typeof rawSlug === 'string' && rawSlug.trim() ? String(rawSlug).trim() : undefined;
+      typeof rawSlug === 'string' && rawSlug.trim()
+        ? String(rawSlug).trim()
+        : undefined;
     return {
       id: p.id || p.ref || p.project_id,
       name: p.name || p.slug || '',
@@ -195,7 +224,7 @@ export function parseProjectsListJson(stdout) {
 export function parseOrgsListJson(stdout) {
   const data = JSON.parse(stdout);
   if (!Array.isArray(data)) return [];
-  return data.map((o) => ({
+  return data.map(o => ({
     id: o.id,
     name: o.name || '',
   }));
@@ -212,6 +241,7 @@ export function parseProjectCreateJson(stdout) {
     data.project_id ||
     data.project_ref ||
     (data.project && (data.project.id || data.project.ref));
-  if (!id) throw new Error('Could not parse new project id from Supabase CLI output');
+  if (!id)
+    throw new Error('Could not parse new project id from Supabase CLI output');
   return { id: String(id), raw: data };
 }

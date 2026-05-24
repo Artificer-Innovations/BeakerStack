@@ -2,7 +2,10 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { postgresConnectionUri } from './setup-supabase.mjs';
+import {
+  applyPoolerPassword,
+  postgresConnectionUri,
+} from './setup-supabase.mjs';
 
 const LOCAL_DEFAULT_URL =
   'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
@@ -33,10 +36,11 @@ export function assertPostgresUrl(url) {
  * @returns {{ projectRef?: string; dbPassword?: string }}
  */
 export function resolveLinkedCredentials(env = process.env) {
-  // PREVIEW_SUPABASE_* is intentionally omitted — PR preview does not run adopter
-  // migrations today. Add a pair here if that workflow starts calling --linked.
+  // Generic SUPABASE_* wins for local/dev ergonomics. Preview CI clears those vars
+  // before calling --linked so SUPABASE_PREVIEW_* is used (see reset-preview-database.sh).
   const pairs = [
     ['SUPABASE_PROJECT_REF', 'SUPABASE_DB_PASSWORD'],
+    ['SUPABASE_PREVIEW_PROJECT_REF', 'SUPABASE_PREVIEW_DB_PASSWORD'],
     ['STAGING_SUPABASE_PROJECT_REF', 'STAGING_SUPABASE_DB_PASSWORD'],
     ['PRODUCTION_SUPABASE_PROJECT_REF', 'PRODUCTION_SUPABASE_DB_PASSWORD'],
   ];
@@ -53,6 +57,74 @@ export function resolveLinkedCredentials(env = process.env) {
 }
 
 /**
+ * @param {string} repoRoot
+ * @returns {string | undefined}
+ */
+export function readPoolerUrlTemplate(repoRoot) {
+  const poolerPath = path.join(repoRoot, 'supabase', '.temp', 'pooler-url');
+  if (!existsSync(poolerPath)) {
+    return undefined;
+  }
+
+  const template = readFileSync(poolerPath, 'utf8').trim();
+  return template || undefined;
+}
+
+/**
+ * @param {string} repoRoot
+ * @returns {string | undefined}
+ */
+export function readLinkedProjectRef(repoRoot) {
+  const refPath = path.join(repoRoot, 'supabase', '.temp', 'project-ref');
+  if (!existsSync(refPath)) {
+    return undefined;
+  }
+
+  const projectRef = readFileSync(refPath, 'utf8').trim();
+  return projectRef || undefined;
+}
+
+/**
+ * Supavisor session pooler usernames are `postgres.{projectRef}`.
+ *
+ * @param {string} poolerUrlTemplate
+ * @param {string} projectRef
+ * @returns {boolean}
+ */
+export function poolerTemplateMatchesProjectRef(poolerUrlTemplate, projectRef) {
+  try {
+    const url = new URL(poolerUrlTemplate.trim());
+    return url.username === `postgres.${projectRef}`;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Prefer Supavisor pooler URL (IPv4-compatible) when `supabase link` wrote
+ * supabase/.temp/pooler-url; fall back to direct db.{ref}.supabase.co.
+ *
+ * @param {string} repoRoot
+ * @param {string} dbPassword
+ * @param {string} projectRef
+ * @returns {string}
+ */
+export function buildLinkedConnectionUri(repoRoot, dbPassword, projectRef) {
+  const poolerTemplate = readPoolerUrlTemplate(repoRoot);
+  const linkedRef = readLinkedProjectRef(repoRoot);
+  const linkedRefMatches = !linkedRef || linkedRef === projectRef;
+  const poolerMatches =
+    poolerTemplate &&
+    poolerTemplateMatchesProjectRef(poolerTemplate, projectRef);
+
+  if (poolerTemplate && poolerMatches && linkedRefMatches) {
+    return applyPoolerPassword(poolerTemplate, dbPassword);
+  }
+
+  return postgresConnectionUri(projectRef, dbPassword);
+}
+
+/**
  * Local-dev fallback after `supabase link`: read project ref from disk and pair
  * with SUPABASE_DB_PASSWORD only (not STAGING_/PRODUCTION_ variants).
  *
@@ -61,12 +133,7 @@ export function resolveLinkedCredentials(env = process.env) {
  * @returns {string | undefined}
  */
 export function readLinkedConnectionUri(repoRoot, env = process.env) {
-  const refPath = path.join(repoRoot, 'supabase', '.temp', 'project-ref');
-  if (!existsSync(refPath)) {
-    return undefined;
-  }
-
-  const projectRef = readFileSync(refPath, 'utf8').trim();
+  const projectRef = readLinkedProjectRef(repoRoot);
   if (!projectRef) {
     return undefined;
   }
@@ -78,7 +145,7 @@ export function readLinkedConnectionUri(repoRoot, env = process.env) {
     );
   }
 
-  return postgresConnectionUri(projectRef, dbPassword);
+  return buildLinkedConnectionUri(repoRoot, dbPassword, projectRef);
 }
 
 /**
@@ -100,7 +167,9 @@ export function resolveAdopterDatabaseUrl(options = {}) {
   if (linked) {
     const { projectRef, dbPassword } = resolveLinkedCredentials(env);
     if (projectRef && dbPassword) {
-      return assertPostgresUrl(postgresConnectionUri(projectRef, dbPassword));
+      return assertPostgresUrl(
+        buildLinkedConnectionUri(repoRoot, dbPassword, projectRef)
+      );
     }
 
     const linkedUrl = readLinkedConnectionUri(repoRoot, env);
@@ -109,7 +178,7 @@ export function resolveAdopterDatabaseUrl(options = {}) {
     }
 
     throw new Error(
-      'Failed to resolve remote database URL for --linked. Set DATABASE_URL or project ref + DB password env vars (SUPABASE_*, STAGING_SUPABASE_*, or PRODUCTION_SUPABASE_*).'
+      'Failed to resolve remote database URL for --linked. Set DATABASE_URL or project ref + DB password env vars (SUPABASE_*, SUPABASE_PREVIEW_*, STAGING_SUPABASE_*, or PRODUCTION_SUPABASE_*).'
     );
   }
 
