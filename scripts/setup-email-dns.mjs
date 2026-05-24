@@ -28,7 +28,10 @@ import {
   verifyResendDomain,
 } from './lib/setup-resend-api.mjs';
 import { upsertEmailDnsRecords } from './lib/setup-route53-email-records.mjs';
-import { detectRepoIdentity } from './lib/detect-repo-identity.mjs';
+import {
+  detectRepoIdentity,
+  readBrandingSource,
+} from './lib/detect-repo-identity.mjs';
 import {
   parseDotEnv,
   escapeDotEnvDoubleQuotedValue,
@@ -725,17 +728,10 @@ export async function resolveApexHint(repoRoot, explicitHint = '') {
   const fromSetup = normalizeDomainInput(explicitHint);
   if (fromSetup) return fromSetup;
 
-  try {
-    const text = await fs.readFile(
-      path.join(repoRoot, 'packages', 'shared', 'src', 'config', 'branding.ts'),
-      'utf8'
-    );
-    const m = text.match(/flatName:\s*['"]([^'"]+)['"]/);
-    const flat = m?.[1]?.trim();
-    if (flat) return `${flat}.com`;
-  } catch {
-    // fall through
-  }
+  const text = await readBrandingSource(repoRoot);
+  const m = text?.match(/flatName:\s*['"]([^'"]+)['"]/);
+  const flat = m?.[1]?.trim();
+  if (flat) return `${flat}.com`;
   return '';
 }
 
