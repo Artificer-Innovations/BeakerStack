@@ -100,6 +100,20 @@ export function escapeHtml(value) {
     .replace(/"/g, '&quot;');
 }
 
+/** @param {'passed' | 'passedAfterRetry' | 'skipped' | 'failed'} status */
+export function formatStatusLabel(status) {
+  switch (status) {
+    case 'passed':
+      return '✅ passed';
+    case 'passedAfterRetry':
+      return '☑️ passed after retry';
+    case 'skipped':
+      return '⚠️ skipped';
+    default:
+      return '❌ failed';
+  }
+}
+
 /**
  * @param {ReturnType<typeof parsePlaywrightJson>['cases']} cases
  */
@@ -138,14 +152,10 @@ export function buildDetailsTable(cases) {
       '</tr>'
     );
     for (const testCase of fileCases) {
-      const statusLabel =
-        testCase.status === 'passedAfterRetry'
-          ? 'passed after retry'
-          : testCase.status;
       rows.push(
         '<tr>',
         `<td>${escapeHtml(testCase.title)}</td>`,
-        `<td>${escapeHtml(statusLabel)}</td>`,
+        `<td>${escapeHtml(formatStatusLabel(testCase.status))}</td>`,
         `<td>${escapeHtml(formatMinutes(testCase.durationMs))}</td>`,
         '</tr>'
       );

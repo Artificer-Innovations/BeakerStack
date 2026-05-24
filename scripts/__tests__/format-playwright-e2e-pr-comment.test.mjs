@@ -10,6 +10,7 @@ import {
   buildComment,
   buildDetailsTable,
   escapeHtml,
+  formatStatusLabel,
   formatMinutes,
   parsePlaywrightJson,
 } from '../ci/format-playwright-e2e-pr-comment.mjs';
@@ -61,8 +62,18 @@ test('buildComment matches PR summary layout', () => {
   assert.match(body, new RegExp(`bgcolor="${FILE_SECTION_ROW_BG}"`));
   assert.match(body, /colspan="3"/);
   assert.match(body, /<strong>auth\/login\.spec\.ts<\/strong>/);
-  assert.match(body, /passed after retry/);
+  assert.match(body, /☑️ passed after retry/);
+  assert.match(body, /✅ passed/);
+  assert.match(body, /⚠️ skipped/);
+  assert.match(body, /❌ failed/);
   assert.doesNotMatch(body, /\| \*\*auth\/login\.spec\.ts\*\*/);
+});
+
+test('formatStatusLabel includes summary icons', () => {
+  assert.equal(formatStatusLabel('passed'), '✅ passed');
+  assert.equal(formatStatusLabel('passedAfterRetry'), '☑️ passed after retry');
+  assert.equal(formatStatusLabel('skipped'), '⚠️ skipped');
+  assert.equal(formatStatusLabel('failed'), '❌ failed');
 });
 
 test('buildDetailsTable escapes HTML in test titles', () => {
