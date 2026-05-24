@@ -19,7 +19,7 @@ Compare git refs and write boolean flags to GITHUB_OUTPUT (when set) or stdout.
 
 Flags:
   app_code              apps/**, packages/**, tests/**, lint/tsconfig deps
-  supabase_schema       supabase migrations, functions, config (excludes templates)
+  supabase_schema       supabase migrations, functions, config; adopter/db/**; adopter db scripts
   integration_tests     tests/integration/**, tests/utils/**, integration Jest configs
   email_templates       supabase/templates/** and email personalization scripts
   auth_deploy_scripts   scripts/sync-supabase-auth-config.sh
@@ -138,6 +138,10 @@ classify_path() {
       match_web_deploy=true
       match_mobile_deploy=true
       ;;
+    adopter/db/*)
+      match_app_code=true
+      match_supabase_schema=true
+      ;;
     apps/web/*)
       match_app_code=true
       match_web_deploy=true
@@ -185,6 +189,10 @@ classify_path() {
       ;;
     scripts/sync-supabase-auth-config.sh)
       match_auth_deploy=true
+      ;;
+    scripts/db-apply-adopter.mjs | scripts/db-init-adopter.mjs | scripts/lib/resolve-adopter-database-url.mjs)
+      match_supabase_schema=true
+      match_tested_scripts=true
       ;;
     scripts/personalize-email-templates.mjs | scripts/materialize-email-config.mjs)
       match_email_templates=true
@@ -481,6 +489,20 @@ self_test() {
   assert_classify adopter/config/billing.ts web_deploy true
   assert_classify adopter/config/billing.ts mobile_deploy true
   assert_classify adopter/config/billing.ts app_code true
+  assert_classify adopter/db/init.sql supabase_schema true
+  assert_classify adopter/db/init.sql app_code true
+  assert_classify adopter/db/migrations/001.sql supabase_schema true
+  assert_classify scripts/db-apply-adopter.mjs supabase_schema true
+  assert_classify scripts/db-apply-adopter.mjs tested_scripts true
+  assert_classify scripts/db-init-adopter.mjs supabase_schema true
+  assert_classify scripts/lib/resolve-adopter-database-url.mjs supabase_schema true
+  assert_derived adopter-db-script-push \
+    run_supabase true run_migration_filenames true \
+    -- scripts/db-apply-adopter.mjs scripts/lib/resolve-adopter-database-url.mjs
+  assert_derived adopter-db-init-sql \
+    run_supabase true run_migration_filenames true run_supabase_reset true \
+    supabase_schema true \
+    -- adopter/db/init.sql
   assert_classify packages/adopter-tests/jest.mobile.cjs app_code true
   assert_classify packages/adopter-tests/jest.mobile.cjs mobile_deploy false
   assert_derived adopter-mobile-test-only-push \
