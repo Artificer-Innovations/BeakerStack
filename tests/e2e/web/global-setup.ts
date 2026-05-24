@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { chromium, type FullConfig } from '@playwright/test';
 import { grantTestAdmin } from '../../utils/integration-fixtures';
 import { generateE2ETestEmail } from '../../utils/test-emails';
@@ -48,6 +48,17 @@ async function globalSetup(_config: FullConfig): Promise<void> {
   applyE2eSupabaseEnv();
 
   mkdirSync(e2eAuthDir, { recursive: true });
+
+  if (
+    process.env.E2E_SKIP_GLOBAL_SETUP === '1' &&
+    existsSync(e2eStatePath) &&
+    existsSync(e2eStorageStatePath) &&
+    existsSync(e2eAdminStatePath) &&
+    existsSync(e2eAdminStorageStatePath)
+  ) {
+    console.log('Skipping E2E global setup (auth artifacts already present).');
+    return;
+  }
 
   await preparePreviewAuthForE2e();
   await prepareWaitlistModeForE2e();

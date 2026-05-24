@@ -19,8 +19,25 @@ export function isStripeCheckoutReady(): boolean {
   return false;
 }
 
+export async function startProUpgradeCheckout(page: Page): Promise<void> {
+  await gotoRoute(page, '/billing/plans');
+
+  const upgradeButton = page
+    .locator('#plan-card-beakerstack_pro')
+    .getByRole('button', { name: 'Upgrade to Pro' });
+  await expect(upgradeButton).toBeVisible({ timeout: 15_000 });
+  await expect(upgradeButton).toBeEnabled({ timeout: 15_000 });
+
+  await Promise.all([
+    page.waitForURL(/checkout\.stripe\.com/, { timeout: 60_000 }),
+    upgradeButton.click(),
+  ]);
+}
+
 export async function completeStripeCheckout(page: Page): Promise<void> {
-  await page.waitForURL(/checkout\.stripe\.com/, { timeout: 60_000 });
+  if (!/checkout\.stripe\.com/.test(page.url())) {
+    await page.waitForURL(/checkout\.stripe\.com/, { timeout: 60_000 });
+  }
 
   const cardFrame = page
     .frameLocator(

@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  e2e-web:
+  e2e-prepare:
     if: |
       (github.event_name == 'pull_request_review' &&
        github.event.review.state == 'approved' &&
@@ -37,6 +37,14 @@ jobs:
        github.event.pull_request.head.repo.full_name == github.repository) ||
       github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    outputs:
+      qualified: ${{ steps.pr_context.outputs.qualified }}
+      pr_number: ${{ steps.pr_context.outputs.pr_number }}
+      head_sha: ${{ steps.pr_context.outputs.head_sha }}
+      web_origin: ${{ steps.preview.outputs.web_origin }}
+      web_base_path: ${{ steps.preview.outputs.web_base_path }}
+      web_preview_url: ${{ steps.preview.outputs.web_preview_url }}
+      bootstrap_url: ${{ steps.signed_cookies.outputs.BOOTSTRAP_URL }}
     env:
       PREVIEW_DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
       PREVIEW_PREFIX: ${{ vars.PR_PREVIEW_PREFIX }}
@@ -240,6 +248,14 @@ jobs:
         if: steps.pr_context.outputs.qualified == 'true'
         run: npm ci
 
+      - name: Cache Playwright browsers
+        if: steps.pr_context.outputs.qualified == 'true'
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-chromium
+
       - name: Install Playwright Chromium
         if: steps.pr_context.outputs.qualified == 'true'
         run: npx playwright install --with-deps chromium
@@ -269,8 +285,7 @@ jobs:
           curl -sf --max-time 30 --retry 5 --retry-delay 5 --retry-all-errors "${URL}" -o /dev/null || true
           sleep 5
 
-      - name: Run Playwright web E2E tests
-        id: playwright
+      - name: Run E2E global setup
         if: steps.pr_context.outputs.qualified == 'true' && steps.preview.outcome == 'success'
         env:
           CI: true
@@ -283,41 +298,260 @@ jobs:
           PR_TESTING_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PR_TESTING_SUPABASE_SERVICE_ROLE_KEY }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PREVIEW_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
-        run: npm run test:e2e:web
+        run: npm run test:e2e:web:setup
 
-      - name: Build category E2E report
-        if: always() && steps.pr_context.outputs.qualified == 'true' && steps.playwright.outcome != 'skipped'
-        env:
-          PLAYWRIGHT_JSON_REPORT: tests/e2e/web/results/web-results.json
-        run: npm run test:e2e:web:report
-
-      - name: Upload Playwright report
-        if: always() && steps.pr_context.outputs.qualified == 'true' && steps.playwright.outcome != 'skipped'
+      - name: Upload E2E auth artifacts
+        if: steps.pr_context.outputs.qualified == 'true' && steps.preview.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-web-playwright-report-pr-${{ steps.pr_context.outputs.pr_number }}
+          name: e2e-auth-state
+          path: tests/e2e/web/.auth/
+          retention-days: 1
+          if-no-files-found: error
+
+  e2e-chromium:
+    needs: e2e-prepare
+    if: needs.e2e-prepare.outputs.qualified == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.e2e-prepare.outputs.head_sha }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-chromium
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Download E2E auth artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-auth-state
+          path: tests/e2e/web/.auth/
+
+      - name: Run Playwright chromium project
+        id: playwright
+        env:
+          CI: true
+          E2E_TARGET: preview
+          E2E_SKIP_GLOBAL_SETUP: '1'
+          E2E_SKIP_GLOBAL_TEARDOWN: '1'
+          PLAYWRIGHT_WORKERS: '4'
+          PLAYWRIGHT_JSON_REPORT: tests/e2e/web/results/chromium-results.json
+          WEB_URL: ${{ needs.e2e-prepare.outputs.web_origin }}
+          WEB_BASE_PATH: ${{ needs.e2e-prepare.outputs.web_base_path }}
+          E2E_BOOTSTRAP_URL: ${{ needs.e2e-prepare.outputs.bootstrap_url }}
+          PREVIEW_SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
+          PREVIEW_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
+          PR_TESTING_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PR_TESTING_SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PREVIEW_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
+        run: |
+          npx playwright test --config tests/e2e/web/playwright.config.ts \
+            --project=chromium
+
+      - name: Upload chromium JSON report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-chromium-results
+          path: tests/e2e/web/results/chromium-results.json
+          if-no-files-found: ignore
+          retention-days: 1
+
+  e2e-serial:
+    needs: [e2e-prepare, e2e-chromium]
+    if: always() && needs.e2e-prepare.outputs.qualified == 'true' && needs.e2e-prepare.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.e2e-prepare.outputs.head_sha }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-chromium
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Download E2E auth artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-auth-state
+          path: tests/e2e/web/.auth/
+
+      - name: Verify E2E auth artifacts
+        run: |
+          set -euo pipefail
+          ls -la tests/e2e/web/.auth/
+          test -s tests/e2e/web/.auth/state.json
+          test -s tests/e2e/web/.auth/user.json
+          test -s tests/e2e/web/.auth/admin-state.json
+          test -s tests/e2e/web/.auth/admin.json
+
+      - name: Run Playwright serial projects
+        id: playwright
+        env:
+          CI: true
+          E2E_TARGET: preview
+          E2E_SKIP_GLOBAL_SETUP: '1'
+          E2E_SKIP_GLOBAL_TEARDOWN: '1'
+          PLAYWRIGHT_WORKERS: '1'
+          PLAYWRIGHT_JSON_REPORT: tests/e2e/web/results/serial-results.json
+          WEB_URL: ${{ needs.e2e-prepare.outputs.web_origin }}
+          WEB_BASE_PATH: ${{ needs.e2e-prepare.outputs.web_base_path }}
+          E2E_BOOTSTRAP_URL: ${{ needs.e2e-prepare.outputs.bootstrap_url }}
+          PREVIEW_SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
+          PREVIEW_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
+          PR_TESTING_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PR_TESTING_SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PREVIEW_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
+        run: |
+          npx playwright test --config tests/e2e/web/playwright.config.ts \
+            --project=shared-state \
+            --project=signup-mode \
+            --no-deps \
+            --workers=1
+
+      - name: Upload serial JSON report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-serial-results
+          path: tests/e2e/web/results/serial-results.json
+          if-no-files-found: ignore
+          retention-days: 1
+
+  e2e-report:
+    needs: [e2e-prepare, e2e-chromium, e2e-serial]
+    if: always() && needs.e2e-prepare.outputs.qualified == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.e2e-prepare.outputs.head_sha }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download chromium JSON report
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-chromium-results
+          path: tests/e2e/web/results/
+          merge-multiple: true
+
+      - name: Download serial JSON report
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-serial-results
+          path: tests/e2e/web/results/
+          merge-multiple: true
+
+      - name: Merge Playwright JSON reports
+        id: merge_reports
+        run: |
+          set -euo pipefail
+          mkdir -p tests/e2e/web/results
+          inputs=()
+          if [ -f tests/e2e/web/results/chromium-results.json ]; then
+            inputs+=("tests/e2e/web/results/chromium-results.json")
+          fi
+          if [ -f tests/e2e/web/results/serial-results.json ]; then
+            inputs+=("tests/e2e/web/results/serial-results.json")
+          fi
+          if [ "${#inputs[@]}" -eq 0 ]; then
+            echo "No Playwright JSON reports found to merge."
+            exit 0
+          fi
+          node scripts/ci/merge-playwright-json-reports.mjs "${inputs[@]}" \
+            --output tests/e2e/web/results/web-results.json
+
+      - name: Run E2E global teardown
+        if: needs.e2e-prepare.result == 'success'
+        env:
+          CI: true
+          E2E_TARGET: preview
+          WEB_URL: ${{ needs.e2e-prepare.outputs.web_origin }}
+          WEB_BASE_PATH: ${{ needs.e2e-prepare.outputs.web_base_path }}
+          PREVIEW_SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
+          PREVIEW_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
+          PR_TESTING_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PR_TESTING_SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PREVIEW_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
+        run: npm run test:e2e:web:teardown
+
+      - name: Build category E2E report
+        if: steps.merge_reports.outcome == 'success'
+        env:
+          PLAYWRIGHT_JSON_REPORT: tests/e2e/web/results/web-results.json
+        run: |
+          if [ -f tests/e2e/web/results/web-results.json ]; then
+            npm run test:e2e:web:report
+          fi
+
+      - name: Upload Playwright report
+        if: steps.merge_reports.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-web-playwright-report-pr-${{ needs.e2e-prepare.outputs.pr_number }}
           path: |
             tests/e2e/web/report/
-            tests/e2e/web/test-results/
             tests/e2e/web/results/
           if-no-files-found: ignore
 
       - name: Format E2E PR comment
         id: e2e_comment
-        if: always() && steps.pr_context.outputs.qualified == 'true' && steps.preview.outcome == 'success'
+        if: needs.e2e-prepare.result == 'success'
         env:
-          WEB_URL: ${{ steps.preview.outputs.web_preview_url }}
+          WEB_URL: ${{ needs.e2e-prepare.outputs.web_preview_url }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          PLAYWRIGHT_OUTCOME: ${{ steps.playwright.outcome }}
+          PLAYWRIGHT_OUTCOME: ${{ (needs.e2e-chromium.result != 'success' || needs.e2e-serial.result != 'success') && 'failure' || 'success' }}
           PLAYWRIGHT_JSON_REPORT: tests/e2e/web/results/web-results.json
         run: node scripts/ci/format-playwright-e2e-pr-comment.mjs
 
       - name: Post E2E results comment
-        if: always() && steps.pr_context.outputs.qualified == 'true' && steps.preview.outcome == 'success'
+        if: needs.e2e-prepare.result == 'success'
         uses: actions/github-script@v7
         env:
           COMMENT_BODY: ${{ steps.e2e_comment.outputs.body }}
-          PR_NUMBER: ${{ steps.pr_context.outputs.pr_number }}
+          PR_NUMBER: ${{ needs.e2e-prepare.outputs.pr_number }}
         with:
           script: |
             const marker = '<!-- e2e-web-results -->';
@@ -351,3 +585,7 @@ jobs:
                 body,
               });
             }
+
+      - name: Fail job when Playwright tests failed
+        if: needs.e2e-chromium.result != 'success' || needs.e2e-serial.result != 'success'
+        run: exit 1

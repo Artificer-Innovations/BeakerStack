@@ -290,9 +290,10 @@ npx playwright test --config tests/e2e/web/playwright.config.ts specs/marketing
 - Category summary (cross-file grouping): `npm run test:e2e:web:report` → `tests/e2e/web/report/categories.html`
 - PR comments group results by category; each test row includes its spec file path.
 
-**Stripe billing E2E** (`specs/billing/plan-upgrade.spec.ts`, `plan-downgrade.spec.ts`, `cadence.spec.ts`, `invoices.spec.ts`):
+**Stripe billing E2E** (`specs/billing/billing-stripe.spec.ts`):
 
-- Uses real Stripe Checkout in test mode (card `4242 4242 4242 4242`).
+- Uses real Stripe Checkout in test mode (card `4242 4242 4242 4242`) in a single serial describe (upgrade → downgrade → cadence → invoices).
+- Runs in the `shared-state` Playwright project (not parallel chromium) to avoid checkout races on the seeded user.
 - Runs automatically in CI/preview (`E2E_TARGET=preview`).
 - Local runs require full stack: `supabase start`, Edge functions with `STRIPE_*`, webhook forwarding (`stripe listen`), and `export E2E_STRIPE_READY=1`.
 - Without Stripe/webhook, those specs are skipped locally.
@@ -306,7 +307,9 @@ npx playwright test --config tests/e2e/web/playwright.config.ts specs/marketing
 - Local runs need `supabase functions serve` (or equivalent) and `export E2E_WAITLIST_READY=1`.
 - Without edge functions, waitlist form/mode UI specs still run; submit and invite-signup flows are skipped locally.
 
-**Shared-state specs** (`specs/profile/`, `specs/billing/metered-usage.spec.ts`, `specs/admin/users.spec.ts`, `specs/admin/waitlist.spec.ts`) run serially in a second Playwright project to avoid conflicting edits on the seeded user.
+**Shared-state specs** (`specs/profile/`, `specs/billing/metered-usage.spec.ts`, `specs/billing/billing-stripe.spec.ts`, `specs/admin/users.spec.ts`, `specs/admin/waitlist.spec.ts`) run serially in a second Playwright project to avoid conflicting edits on the seeded user.
+
+**CI parallelism:** Preview E2E runs in three jobs — prepare (global setup once), parallel `chromium` (`PLAYWRIGHT_WORKERS=4`), then a serial job for shared-state/waitlist specs. Playwright Chromium binaries are cached under `~/.cache/ms-playwright`. Local runs still use `workers: 1` unless you set `PLAYWRIGHT_WORKERS`.
 
 **Structure:**
 
