@@ -1,44 +1,120 @@
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { postgresConnectionUri } from './setup-supabase.mjs';
+
+const LOCAL_DEFAULT_URL =
+  'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
+
+/**
+ * @param {string} url
+ * @returns {boolean}
+ */
+export function isPostgresUrl(url) {
+  return /^postgres(?:ql)?:\/\//.test(url);
+}
+
+/**
+ * @param {string} url
+ * @returns {string}
+ */
+export function assertPostgresUrl(url) {
+  if (!isPostgresUrl(url)) {
+    throw new Error(
+      `Resolved database URL is not a Postgres connection string: ${String(url).slice(0, 80)}`
+    );
+  }
+  return url;
+}
+
+/**
+ * @param {NodeJS.ProcessEnv} env
+ * @returns {{ projectRef?: string; dbPassword?: string }}
+ */
+export function resolveLinkedCredentials(env = process.env) {
+  // PREVIEW_SUPABASE_* is intentionally omitted — PR preview does not run adopter
+  // migrations today. Add a pair here if that workflow starts calling --linked.
+  const pairs = [
+    ['SUPABASE_PROJECT_REF', 'SUPABASE_DB_PASSWORD'],
+    ['STAGING_SUPABASE_PROJECT_REF', 'STAGING_SUPABASE_DB_PASSWORD'],
+    ['PRODUCTION_SUPABASE_PROJECT_REF', 'PRODUCTION_SUPABASE_DB_PASSWORD'],
+  ];
+
+  for (const [refKey, passwordKey] of pairs) {
+    const projectRef = env[refKey]?.trim();
+    const dbPassword = env[passwordKey]?.trim();
+    if (projectRef && dbPassword) {
+      return { projectRef, dbPassword };
+    }
+  }
+
+  return {};
+}
+
+/**
+ * Local-dev fallback after `supabase link`: read project ref from disk and pair
+ * with SUPABASE_DB_PASSWORD only (not STAGING_/PRODUCTION_ variants).
+ *
+ * @param {string} repoRoot
+ * @param {NodeJS.ProcessEnv} env
+ * @returns {string | undefined}
+ */
+export function readLinkedConnectionUri(repoRoot, env = process.env) {
+  const refPath = path.join(repoRoot, 'supabase', '.temp', 'project-ref');
+  if (!existsSync(refPath)) {
+    return undefined;
+  }
+
+  const projectRef = readFileSync(refPath, 'utf8').trim();
+  if (!projectRef) {
+    return undefined;
+  }
+
+  const dbPassword = env.SUPABASE_DB_PASSWORD?.trim();
+  if (!dbPassword) {
+    throw new Error(
+      'Found supabase/.temp/project-ref from supabase link but SUPABASE_DB_PASSWORD is not set. The file fallback uses the generic password var only — set SUPABASE_DB_PASSWORD or use STAGING_/PRODUCTION_ env pairs instead.'
+    );
+  }
+
+  return postgresConnectionUri(projectRef, dbPassword);
+}
 
 /**
  * Resolve Postgres URL for adopter db scripts.
- * @param {{ linked?: boolean; repoRoot?: string }} [options]
+ * @param {{ linked?: boolean; repoRoot?: string; env?: NodeJS.ProcessEnv }} [options]
  * @returns {string}
  */
 export function resolveAdopterDatabaseUrl(options = {}) {
-  const { linked = false, repoRoot = process.cwd() } = options;
+  const {
+    linked = false,
+    repoRoot = process.cwd(),
+    env = process.env,
+  } = options;
 
-  if (process.env.DATABASE_URL) {
-    return process.env.DATABASE_URL;
+  if (env.DATABASE_URL) {
+    return assertPostgresUrl(env.DATABASE_URL);
   }
 
   if (linked) {
-    const connection = spawnSync(
-      'supabase',
-      ['db', 'remote', 'connection-string'],
-      { cwd: repoRoot, encoding: 'utf8' }
+    const { projectRef, dbPassword } = resolveLinkedCredentials(env);
+    if (projectRef && dbPassword) {
+      return assertPostgresUrl(postgresConnectionUri(projectRef, dbPassword));
+    }
+
+    const linkedUrl = readLinkedConnectionUri(repoRoot, env);
+    if (linkedUrl) {
+      return assertPostgresUrl(linkedUrl);
+    }
+
+    throw new Error(
+      'Failed to resolve remote database URL for --linked. Set DATABASE_URL or project ref + DB password env vars (SUPABASE_*, STAGING_SUPABASE_*, or PRODUCTION_SUPABASE_*).'
     );
-    if (connection.status !== 0) {
-      throw new Error(
-        'Failed to resolve remote connection string via supabase CLI'
-      );
-    }
-    const url = connection.stdout.trim();
-    if (!url) {
-      throw new Error(
-        'supabase db remote connection-string returned empty output'
-      );
-    }
-    return url;
   }
 
-  return (
-    process.env.SUPABASE_DB_URL ??
-    'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
-  );
+  const localUrl = env.SUPABASE_DB_URL ?? LOCAL_DEFAULT_URL;
+  return assertPostgresUrl(localUrl);
 }
 
 /**
