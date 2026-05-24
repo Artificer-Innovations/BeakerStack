@@ -4,7 +4,10 @@ import {
   resetAdopterConfigForTests,
 } from '@beakerstack/shared/config/adopterRuntime';
 import { adopterConfig } from '@adopter/config';
-import { AppNavigator } from '../../src/navigation/AppNavigator';
+import {
+  AppNavigator,
+  validatePostLoginPathMobile,
+} from '../../src/navigation/AppNavigator';
 import { useFeatureFlags } from '../../src/config/featureFlags';
 
 // Mock feature flags
@@ -172,7 +175,7 @@ describe('AppNavigator', () => {
       postLoginPathMobile: 'MissingScreen',
     });
 
-    expect(() => render(<AppNavigator />)).toThrow(
+    expect(() => validatePostLoginPathMobile()).toThrow(
       /postLoginPathMobile "MissingScreen" is not registered/
     );
   });

@@ -25,9 +25,9 @@ module.exports = {
       {
         patterns: [
           {
-            group: ['@adopter/*'],
+            group: ['@adopter/web/*', '@adopter/mobile/*'],
             message:
-              'Import @adopter/* only from extension seam files (see docs/CUSTOMIZING.md).',
+              'Import @adopter/web/* and @adopter/mobile/* only from extension seam files (see docs/CUSTOMIZING.md). @adopter/config/* is allowed in template code.',
           },
         ],
       },
@@ -60,10 +60,13 @@ module.exports = {
         'apps/web/src/main.tsx',
         'apps/web/scripts/prerender-home.ts',
         'apps/web/src/App.tsx',
+        'apps/web/src/pages/billing/BillingOverviewPage.tsx',
+        'apps/web/src/pages/billing/BillingUsagePage.tsx',
+        'apps/web/src/pages/billing/BillingPlansPage.tsx',
         'apps/mobile/src/navigation/AppNavigator.tsx',
         'apps/mobile/App.tsx',
-        'apps/web/src/**/*.{ts,tsx}',
-        'apps/mobile/src/**/*.{ts,tsx}',
+        'apps/mobile/src/screens/billing/BillingOverviewScreen.tsx',
+        'apps/mobile/src/screens/billing/BillingUsageScreen.tsx',
         'adopter/**/*.{ts,tsx}',
       ],
       rules: {

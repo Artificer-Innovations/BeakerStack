@@ -11,6 +11,13 @@ import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { ScrollToTop } from './components/ScrollToTop';
 import { LAYOUT } from './lib/layoutConstants';
 
+const publicAdopterRouteExtensions = adopterRouteExtensions.filter(
+  extension => resolveAdopterRouteAuth(extension.auth) === 'public'
+);
+const protectedAdopterRouteExtensions = adopterRouteExtensions.filter(
+  extension => resolveAdopterRouteAuth(extension.auth) === 'protected'
+);
+
 function PageFallback() {
   return (
     <div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900'>
@@ -148,6 +155,13 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                {publicAdopterRouteExtensions.map(extension => (
+                  <Route
+                    key={extension.path}
+                    path={extension.path}
+                    element={extension.element}
+                  />
+                ))}
                 <Route
                   element={
                     <ProtectedRoute>
@@ -162,11 +176,11 @@ function App() {
                       </Suspense>
                     }
                   >
-                    {adopterRouteExtensions.map(extension => (
+                    {protectedAdopterRouteExtensions.map(extension => (
                       <Route
                         key={extension.path}
                         path={extension.path}
-                        element={<AdopterRoute extension={extension} />}
+                        element={extension.element}
                       />
                     ))}
                     <Route path='/billing' element={<BillingOverviewPage />} />

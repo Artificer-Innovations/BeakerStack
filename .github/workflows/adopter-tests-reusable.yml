@@ -1,5 +1,6 @@
 name: Adopter Tests (Reusable)
 
+# Called from .github/workflows/test.yml (job: adopter-checks).
 on:
   workflow_call:
     inputs:
@@ -24,6 +25,9 @@ jobs:
 
       - name: Adopter zone checks
         run: npm run test:adopter
+
+      - name: Upgrade compatibility check
+        run: npm run upgrade:check
 
       - name: Lint adopter tree
         run: npm run lint:adopter

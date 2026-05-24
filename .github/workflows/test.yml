@@ -10,6 +10,7 @@ on:
     paths:
       # Application code and tests
       - 'apps/**'
+      - 'adopter/**'
       - 'packages/**'
       - 'tests/**'
       # Database schema and migrations
@@ -107,6 +108,13 @@ jobs:
       - uses: ./.github/actions/setup-node
       - name: Type check
         run: npm run type-check
+
+  adopter-checks:
+    needs: test-scope
+    if: >-
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.test-scope.outputs.run_unit == 'true'
+    uses: ./.github/workflows/adopter-tests-reusable.yml
 
   email-templates:
     needs: test-scope

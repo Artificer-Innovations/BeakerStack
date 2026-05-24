@@ -4,7 +4,7 @@ import {
   initObservability,
   ObservabilityProvider,
 } from '@beakerstack/observability/web';
-import { ensureAdopterConfigured } from '@beakerstack/shared/config/adopterRuntime';
+import { configureAdopter } from '@beakerstack/shared/config/adopterRuntime';
 import { adopterConfig } from '@adopter/config';
 import { beakerstackObservabilityConfig } from './config/observability';
 import { setupLogging } from '@beakerstack/logger';
@@ -12,7 +12,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { PublicShell } from './PublicShell';
 import './index.css';
 
-ensureAdopterConfigured(adopterConfig);
+configureAdopter(adopterConfig);
 
 void initObservability(beakerstackObservabilityConfig);
 setupLogging();

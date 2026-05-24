@@ -13,9 +13,9 @@ export const brandingSchema = z.object({
 
 export const legalSchema = z.object({
   brandName: z.string(),
-  brandUrl: z.string(),
+  brandUrl: z.string().url(),
   legalEntityName: z.string(),
-  contactEmail: z.string(),
+  contactEmail: z.string().email(),
   mailingAddress: z.string(),
 });
 
@@ -23,10 +23,15 @@ export const adopterConfigSchema = z
   .object({
     branding: brandingSchema,
     legal: legalSchema,
-    postLoginPath: z.string(),
-    postLoginPathMobile: z.string(),
+    postLoginPath: z
+      .string()
+      .min(1)
+      .refine(value => value.startsWith('/'), {
+        message: 'postLoginPath must be a relative path starting with /',
+      }),
+    postLoginPathMobile: z.string().min(1),
   })
-  .strip();
+  .strict();
 
 export type BrandingConfig = z.infer<typeof brandingSchema>;
 export type LegalConfig = z.infer<typeof legalSchema>;

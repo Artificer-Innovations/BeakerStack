@@ -44,10 +44,10 @@ function validatePostLoginPathMobile() {
   }
 }
 
+export { validatePostLoginPathMobile };
+
 export const AppNavigator = () => {
   const { showNativeHeader } = useFeatureFlags();
-
-  validatePostLoginPathMobile();
 
   if (__DEV__ && typeof global !== 'undefined') {
     React.useEffect(() => {

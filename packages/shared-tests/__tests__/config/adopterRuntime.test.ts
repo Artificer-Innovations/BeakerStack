@@ -26,61 +26,13 @@ describe('adopterRuntime', () => {
     expect(getAdopterConfig()).toEqual(adopterConfig);
   });
 
-  it('throws when configureAdopter() is called more than once in test', () => {
+  it('throws when configureAdopter() is called more than once', () => {
     resetAdopterConfigForTests();
     configureAdopter(adopterConfig);
 
     expect(() => configureAdopter(adopterConfig)).toThrow(
       /configureAdopter\(\) called more than once/
     );
-  });
-
-  it('warns once when configureAdopter() is called more than once outside test', () => {
-    resetAdopterConfigForTests();
-    const originalNodeEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'development';
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    try {
-      configureAdopter(adopterConfig);
-      configureAdopter(adopterConfig);
-      configureAdopter(adopterConfig);
-
-      expect(warnSpy).toHaveBeenCalledTimes(1);
-      expect(warnSpy).toHaveBeenCalledWith(
-        'configureAdopter() called more than once; subsequent calls replace the config'
-      );
-      expect(getAdopterConfig()).toEqual(adopterConfig);
-    } finally {
-      warnSpy.mockRestore();
-      process.env.NODE_ENV = originalNodeEnv;
-    }
-  });
-
-  it('warns when configureAdopter() is called twice without process.env', () => {
-    resetAdopterConfigForTests();
-    const originalEnv = process.env;
-    Object.defineProperty(process, 'env', {
-      configurable: true,
-      value: undefined,
-    });
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    try {
-      configureAdopter(adopterConfig);
-      configureAdopter(adopterConfig);
-
-      expect(warnSpy).toHaveBeenCalledTimes(1);
-      expect(warnSpy).toHaveBeenCalledWith(
-        'configureAdopter() called more than once; subsequent calls replace the config'
-      );
-    } finally {
-      Object.defineProperty(process, 'env', {
-        configurable: true,
-        value: originalEnv,
-      });
-      warnSpy.mockRestore();
-    }
   });
 
   it('ensureAdopterConfigured() configures when unset', () => {

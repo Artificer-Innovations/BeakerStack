@@ -5,21 +5,14 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import {
+  isScriptMain,
+  resolveAdopterDatabaseUrl,
+} from './lib/resolve-adopter-database-url.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 const initSqlPath = path.join(repoRoot, 'adopter', 'db', 'init.sql');
-
-function resolveDatabaseUrl() {
-  if (process.env.DATABASE_URL) {
-    return process.env.DATABASE_URL;
-  }
-
-  const local =
-    process.env.SUPABASE_DB_URL ??
-    'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
-  return local;
-}
 
 function runPsql(databaseUrl, sqlFile) {
   const result = spawnSync(
@@ -33,30 +26,8 @@ function runPsql(databaseUrl, sqlFile) {
 }
 
 function main() {
-  const args = process.argv.slice(2);
-  const linked = args.includes('--linked');
-  let databaseUrl = resolveDatabaseUrl();
-
-  if (linked) {
-    const connection = spawnSync(
-      'supabase',
-      ['db', 'remote', 'connection-string'],
-      { cwd: repoRoot, encoding: 'utf8' }
-    );
-    if (connection.status !== 0) {
-      console.error(
-        'Failed to resolve remote connection string via supabase CLI'
-      );
-      process.exit(connection.status ?? 1);
-    }
-    databaseUrl = connection.stdout.trim();
-    if (!databaseUrl) {
-      console.error(
-        'supabase db remote connection-string returned empty output'
-      );
-      process.exit(1);
-    }
-  }
+  const linked = process.argv.includes('--linked');
+  const databaseUrl = resolveAdopterDatabaseUrl({ linked, repoRoot });
 
   if (!readFileSync(initSqlPath, 'utf8').trim()) {
     console.error('adopter/db/init.sql is empty');
@@ -68,4 +39,6 @@ function main() {
   console.log('db:init-adopter complete');
 }
 
-main();
+if (isScriptMain(import.meta.url)) {
+  main();
+}

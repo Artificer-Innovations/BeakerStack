@@ -6,6 +6,10 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import {
+  isScriptMain,
+  resolveAdopterDatabaseUrl,
+} from './lib/resolve-adopter-database-url.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
@@ -36,35 +40,6 @@ export function parseAppliedRows(psqlOutput) {
 export function pendingMigrations(allFiles, applied) {
   const appliedSet = new Set(applied);
   return allFiles.filter(file => !appliedSet.has(file));
-}
-
-function resolveDatabaseUrl(linked) {
-  if (process.env.DATABASE_URL) {
-    return process.env.DATABASE_URL;
-  }
-  if (linked) {
-    const connection = spawnSync(
-      'supabase',
-      ['db', 'remote', 'connection-string'],
-      { cwd: repoRoot, encoding: 'utf8' }
-    );
-    if (connection.status !== 0) {
-      throw new Error(
-        'Failed to resolve remote connection string via supabase CLI'
-      );
-    }
-    const url = connection.stdout.trim();
-    if (!url) {
-      throw new Error(
-        'supabase db remote connection-string returned empty output'
-      );
-    }
-    return url;
-  }
-  return (
-    process.env.SUPABASE_DB_URL ??
-    'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
-  );
 }
 
 function runPsql(databaseUrl, args, input) {
@@ -111,7 +86,8 @@ COMMIT;
 
 export function applyAdopterMigrations(options = {}) {
   const linked = options.linked ?? false;
-  const databaseUrl = resolveDatabaseUrl(linked);
+  const dryRun = options.dryRun ?? false;
+  const databaseUrl = resolveAdopterDatabaseUrl({ linked, repoRoot });
   ensureInit(databaseUrl);
 
   const allFiles = listMigrationFiles(options.migrationsDir);
@@ -119,6 +95,11 @@ export function applyAdopterMigrations(options = {}) {
   const pending = pendingMigrations(allFiles, applied);
 
   for (const filename of pending) {
+    if (dryRun) {
+      console.log(`Would apply ${filename}`);
+      continue;
+    }
+
     const filePath = path.join(
       options.migrationsDir ?? migrationsDir,
       filename
@@ -136,17 +117,17 @@ export function applyAdopterMigrations(options = {}) {
 
   if (pending.length === 0) {
     console.log('No pending adopter migrations');
+  } else if (dryRun) {
+    console.log(`Dry run complete — ${pending.length} pending migration(s)`);
   }
 }
 
 function main() {
   const linked = process.argv.includes('--linked');
-  applyAdopterMigrations({ linked });
+  const dryRun = process.argv.includes('--dry-run');
+  applyAdopterMigrations({ linked, dryRun });
 }
 
-if (
-  process.argv[1] &&
-  import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'))
-) {
+if (isScriptMain(import.meta.url)) {
   main();
 }

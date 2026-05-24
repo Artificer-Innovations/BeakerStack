@@ -2,11 +2,11 @@
 
 ## Layout
 
-| Path                     | Purpose                                                           |
-| ------------------------ | ----------------------------------------------------------------- |
-| `supabase/migrations/`   | Template schema (`public`, etc.)                                  |
-| `adopter/db/init.sql`    | Bootstrap: `CREATE SCHEMA app`, `adopter.schema_migrations` table |
-| `adopter/db/migrations/` | Adopter DDL in schema `app`                                       |
+| Path                     | Purpose                                                       |
+| ------------------------ | ------------------------------------------------------------- |
+| `supabase/migrations/`   | Template schema (`public`, etc.)                              |
+| `adopter/db/init.sql`    | Bootstrap: `CREATE SCHEMA app`, `app.schema_migrations` table |
+| `adopter/db/migrations/` | Adopter DDL in schema `app`                                   |
 
 ## Filename convention
 
@@ -24,7 +24,7 @@ Adopter migrations _may_ optionally use `9*` prefixes as a visual hint in `adopt
 
 ## `db:init-adopter`
 
-Idempotent bootstrap — creates `app` schema and `adopter.schema_migrations` tracking table.
+Idempotent bootstrap — creates `app` schema and `app.schema_migrations` tracking table.
 
 ```bash
 npm run db:init-adopter
@@ -33,7 +33,7 @@ npm run db:init-adopter
 ## `db:apply-adopter` algorithm
 
 1. List `adopter/db/migrations/*.sql` sorted lexicographically
-2. Query `adopter.schema_migrations` for applied filenames
+2. Query `app.schema_migrations` for applied filenames
 3. Apply each pending file in a transaction; record filename + checksum on success
 4. On failure: abort, leave DB at last good migration, print failed file + error
 

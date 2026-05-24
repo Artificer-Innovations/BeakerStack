@@ -132,11 +132,11 @@ export const METER_AI_SUMMARIZE = 'ai_summarize' as const;
 
 export type AdopterFeatureKey = InferFeatureKeys<typeof billingConfig>;
 
-/** @deprecated Use billingConfig */
+/** @deprecated Use billingConfig — remove in the next template major (2027.x). */
 export const beakerstackBillingConfig = billingConfig;
 
-/** @deprecated Use METER_AI_SUMMARIZE */
+/** @deprecated Use METER_AI_SUMMARIZE — remove in the next template major (2027.x). */
 export const BEAKERSTACK_METER_AI_SUMMARIZE = METER_AI_SUMMARIZE;
 
-/** @deprecated Use AdopterFeatureKey */
+/** @deprecated Use AdopterFeatureKey — remove in the next template major (2027.x). */
 export type BeakerstackFeatureKey = AdopterFeatureKey;

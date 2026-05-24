@@ -8,13 +8,21 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 
+function readGitattributes() {
+  try {
+    return readFileSync(path.join(repoRoot, '.gitattributes'), 'utf8');
+  } catch {
+    return null;
+  }
+}
+
 const checks = [
   {
     name: '.gitattributes adopter merge=ours',
-    ok: () =>
-      readFileSync(path.join(repoRoot, '.gitattributes'), 'utf8').includes(
-        'adopter/** merge=ours'
-      ),
+    ok: () => {
+      const contents = readGitattributes();
+      return contents?.includes('adopter/** merge=ours') ?? false;
+    },
   },
   {
     name: 'adopter/config/index.ts exists',
