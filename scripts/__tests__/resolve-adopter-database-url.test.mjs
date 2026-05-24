@@ -6,12 +6,15 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import {
   assertPostgresUrl,
+  buildLinkedConnectionUri,
   isPostgresUrl,
   isScriptMain,
   readLinkedConnectionUri,
+  readPoolerUrlTemplate,
   resolveAdopterDatabaseUrl,
   resolveLinkedCredentials,
 } from '../lib/resolve-adopter-database-url.mjs';
+import { applyPoolerPassword } from '../lib/setup-supabase.mjs';
 
 test('isPostgresUrl accepts postgres and postgresql schemes', () => {
   assert.equal(isPostgresUrl('postgresql://user:pass@host:5432/db'), true);
@@ -82,8 +85,10 @@ test('resolveLinkedCredentials returns empty object when incomplete', () => {
 });
 
 test('resolveAdopterDatabaseUrl linked uses staging secrets', () => {
+  const repoRoot = mkdtempSync(path.join(os.tmpdir(), 'adopter-db-'));
   const url = resolveAdopterDatabaseUrl({
     linked: true,
+    repoRoot,
     env: {
       STAGING_SUPABASE_PROJECT_REF: 'abc123staging',
       STAGING_SUPABASE_DB_PASSWORD: 'p@ss&word',
@@ -91,13 +96,38 @@ test('resolveAdopterDatabaseUrl linked uses staging secrets', () => {
   });
   assert.equal(
     url,
-    'postgresql://postgres:p%40ss%26word@db.abc123staging.supabase.co:5432/postgres'
+    'postgresql://postgres:p%40ss%26word@db.abc123staging.supabase.co:5432/postgres?sslmode=require'
+  );
+});
+
+test('resolveAdopterDatabaseUrl linked prefers Supavisor pooler URL from supabase link', () => {
+  const repoRoot = mkdtempSync(path.join(os.tmpdir(), 'adopter-db-'));
+  const tempDir = path.join(repoRoot, 'supabase', '.temp');
+  mkdirSync(tempDir, { recursive: true });
+  writeFileSync(
+    path.join(tempDir, 'pooler-url'),
+    'postgresql://postgres.abc123staging@aws-1-us-east-2.pooler.supabase.com:5432/postgres\n'
+  );
+
+  const url = resolveAdopterDatabaseUrl({
+    linked: true,
+    repoRoot,
+    env: {
+      STAGING_SUPABASE_PROJECT_REF: 'abc123staging',
+      STAGING_SUPABASE_DB_PASSWORD: 'p@ss&word',
+    },
+  });
+  assert.equal(
+    url,
+    'postgresql://postgres.abc123staging:p%40ss%26word@aws-1-us-east-2.pooler.supabase.com:5432/postgres?sslmode=require'
   );
 });
 
 test('resolveAdopterDatabaseUrl linked uses production secrets', () => {
+  const repoRoot = mkdtempSync(path.join(os.tmpdir(), 'adopter-db-'));
   const url = resolveAdopterDatabaseUrl({
     linked: true,
+    repoRoot,
     env: {
       PRODUCTION_SUPABASE_PROJECT_REF: 'abc123prod',
       PRODUCTION_SUPABASE_DB_PASSWORD: 'secret',
@@ -105,7 +135,7 @@ test('resolveAdopterDatabaseUrl linked uses production secrets', () => {
   });
   assert.equal(
     url,
-    'postgresql://postgres:secret@db.abc123prod.supabase.co:5432/postgres'
+    'postgresql://postgres:secret@db.abc123prod.supabase.co:5432/postgres?sslmode=require'
   );
 });
 
@@ -170,7 +200,7 @@ test('readLinkedConnectionUri uses supabase/.temp/project-ref fallback', () => {
   });
   assert.equal(
     url,
-    'postgresql://postgres:linked-pass@db.linked-ref.supabase.co:5432/postgres'
+    'postgresql://postgres:linked-pass@db.linked-ref.supabase.co:5432/postgres?sslmode=require'
   );
 });
 
@@ -199,8 +229,48 @@ test('resolveAdopterDatabaseUrl linked falls back to linked project ref file', (
   });
   assert.equal(
     url,
-    'postgresql://postgres:linked-pass@db.linked-ref.supabase.co:5432/postgres'
+    'postgresql://postgres:linked-pass@db.linked-ref.supabase.co:5432/postgres?sslmode=require'
   );
+});
+
+test('applyPoolerPassword injects password and sslmode', () => {
+  const url = applyPoolerPassword(
+    'postgresql://postgres.linked-ref@aws-1-us-east-2.pooler.supabase.com:5432/postgres',
+    'p@ss&word'
+  );
+  assert.equal(
+    url,
+    'postgresql://postgres.linked-ref:p%40ss%26word@aws-1-us-east-2.pooler.supabase.com:5432/postgres?sslmode=require'
+  );
+});
+
+test('readPoolerUrlTemplate reads supabase/.temp/pooler-url', () => {
+  const repoRoot = mkdtempSync(path.join(os.tmpdir(), 'adopter-db-'));
+  const tempDir = path.join(repoRoot, 'supabase', '.temp');
+  mkdirSync(tempDir, { recursive: true });
+  writeFileSync(
+    path.join(tempDir, 'pooler-url'),
+    'postgresql://postgres.linked-ref@aws-1-us-east-2.pooler.supabase.com:5432/postgres'
+  );
+
+  assert.equal(
+    readPoolerUrlTemplate(repoRoot),
+    'postgresql://postgres.linked-ref@aws-1-us-east-2.pooler.supabase.com:5432/postgres'
+  );
+});
+
+test('buildLinkedConnectionUri prefers pooler template when present', () => {
+  const repoRoot = mkdtempSync(path.join(os.tmpdir(), 'adopter-db-'));
+  const tempDir = path.join(repoRoot, 'supabase', '.temp');
+  mkdirSync(tempDir, { recursive: true });
+  writeFileSync(
+    path.join(tempDir, 'pooler-url'),
+    'postgresql://postgres.linked-ref@aws-1-us-east-2.pooler.supabase.com:5432/postgres'
+  );
+
+  const url = buildLinkedConnectionUri(repoRoot, 'secret', 'linked-ref');
+  assert.match(url, /pooler\.supabase\.com/);
+  assert.match(url, /sslmode=require/);
 });
 
 test('isScriptMain returns true when argv matches import meta url', () => {
