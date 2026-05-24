@@ -6,7 +6,10 @@ import { fileURLToPath } from 'node:url';
 
 import {
   MARKER,
+  FILE_SECTION_ROW_BG,
   buildComment,
+  buildDetailsTable,
+  escapeHtml,
   formatMinutes,
   parsePlaywrightJson,
 } from '../ci/format-playwright-e2e-pr-comment.mjs';
@@ -54,6 +57,31 @@ test('buildComment matches PR summary layout', () => {
   assert.match(body, /\| ✅ Passed \| 1 \|/);
   assert.match(body, /\| ☑️ Passed after retry \| 1 \|/);
   assert.match(body, /🌐 Domain: https:\/\/deploy\.example\.com\/pr-42\//);
-  assert.match(body, /### auth\/login\.spec\.ts/);
+  assert.match(body, /<table>/);
+  assert.match(body, new RegExp(`bgcolor="${FILE_SECTION_ROW_BG}"`));
+  assert.match(body, /colspan="3"/);
+  assert.match(body, /<strong>auth\/login\.spec\.ts<\/strong>/);
   assert.match(body, /passed after retry/);
+  assert.doesNotMatch(body, /\| \*\*auth\/login\.spec\.ts\*\*/);
+});
+
+test('buildDetailsTable escapes HTML in test titles', () => {
+  const html = buildDetailsTable([
+    {
+      file: 'auth/login.spec.ts',
+      title: 'Login › uses <input> & "quotes"',
+      status: 'passed',
+      durationMs: 1000,
+    },
+  ]);
+
+  assert.match(html, /uses &lt;input&gt; &amp; &quot;quotes&quot;/);
+  assert.doesNotMatch(html, /<input>/);
+});
+
+test('escapeHtml encodes special characters', () => {
+  assert.equal(
+    escapeHtml(`a & b <c> "d"`),
+    'a &amp; b &lt;c&gt; &quot;d&quot;'
+  );
 });

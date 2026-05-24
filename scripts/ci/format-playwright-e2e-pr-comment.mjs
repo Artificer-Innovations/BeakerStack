@@ -88,6 +88,74 @@ export function formatMinutes(durationMs) {
   return `${(durationMs / 60_000).toFixed(2)} min`;
 }
 
+/** Background for full-width spec file section rows in the Details HTML table. */
+export const FILE_SECTION_ROW_BG = '#eaeef2';
+
+/** @param {string} value */
+export function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * @param {ReturnType<typeof parsePlaywrightJson>['cases']} cases
+ */
+export function buildDetailsTable(cases) {
+  const byFile = new Map();
+  for (const testCase of cases) {
+    const fileName = testCase.file;
+    if (!byFile.has(fileName)) {
+      byFile.set(fileName, []);
+    }
+    byFile.get(fileName).push(testCase);
+  }
+
+  if (byFile.size === 0) {
+    return '_No individual test results available._';
+  }
+
+  const rows = [
+    '<table>',
+    '<thead>',
+    '<tr>',
+    '<th align="left">Test</th>',
+    '<th align="left">Status</th>',
+    '<th align="left">Duration</th>',
+    '</tr>',
+    '</thead>',
+    '<tbody>',
+  ];
+
+  for (const [fileName, fileCases] of [...byFile.entries()].sort(([a], [b]) =>
+    a.localeCompare(b)
+  )) {
+    rows.push(
+      '<tr>',
+      `<td colspan="3" bgcolor="${FILE_SECTION_ROW_BG}"><strong>${escapeHtml(fileName)}</strong></td>`,
+      '</tr>'
+    );
+    for (const testCase of fileCases) {
+      const statusLabel =
+        testCase.status === 'passedAfterRetry'
+          ? 'passed after retry'
+          : testCase.status;
+      rows.push(
+        '<tr>',
+        `<td>${escapeHtml(testCase.title)}</td>`,
+        `<td>${escapeHtml(statusLabel)}</td>`,
+        `<td>${escapeHtml(formatMinutes(testCase.durationMs))}</td>`,
+        '</tr>'
+      );
+    }
+  }
+
+  rows.push('</tbody>', '</table>');
+  return rows.join('\n');
+}
+
 /**
  * @param {{
  *   cases: ReturnType<typeof parsePlaywrightJson>['cases'],
@@ -135,37 +203,7 @@ export function buildComment({
     );
   }
 
-  lines.push('## Details', '');
-
-  const byFile = new Map();
-  for (const testCase of cases) {
-    const fileName = testCase.file;
-    if (!byFile.has(fileName)) {
-      byFile.set(fileName, []);
-    }
-    byFile.get(fileName).push(testCase);
-  }
-
-  if (byFile.size === 0) {
-    lines.push('_No individual test results available._', '');
-  } else {
-    for (const [fileName, fileCases] of [...byFile.entries()].sort(([a], [b]) =>
-      a.localeCompare(b)
-    )) {
-      lines.push(`### ${fileName}`, '');
-      lines.push('| Test | Status |', '| --- | --- |');
-      for (const testCase of fileCases) {
-        const statusLabel =
-          testCase.status === 'passedAfterRetry'
-            ? 'passed after retry'
-            : testCase.status;
-        lines.push(
-          `| ${testCase.title} (${formatMinutes(testCase.durationMs)}) | ${statusLabel} |`
-        );
-      }
-      lines.push('');
-    }
-  }
+  lines.push('## Details', '', buildDetailsTable(cases), '');
 
   return lines.join('\n');
 }
