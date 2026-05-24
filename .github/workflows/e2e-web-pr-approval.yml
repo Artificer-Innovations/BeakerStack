@@ -3,6 +3,8 @@ name: E2E Web (PR Approval)
 on:
   pull_request_review:
     types: [submitted]
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
@@ -10,36 +12,91 @@ permissions:
   deployments: read
 
 concurrency:
-  group: e2e-web-pr-${{ github.event.pull_request.number }}
+  group: e2e-web-pr-${{ github.event.pull_request.number || github.event.issue.number }}
   cancel-in-progress: true
 
 jobs:
   e2e-web:
     if: |
-      github.event.review.state == 'approved' &&
-      github.event.review.user.login == 'ZappoMan' &&
-      github.event.pull_request.base.ref == 'develop' &&
-      github.event.pull_request.head.repo.full_name == github.repository
+      (github.event_name == 'pull_request_review' &&
+       github.event.review.state == 'approved' &&
+       github.event.review.user.login == 'ZappoMan' &&
+       github.event.pull_request.base.ref == 'develop' &&
+       github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       github.event.comment.user.type != 'Bot' &&
+       (github.event.comment.body == 'Run e2e' ||
+        github.event.comment.body == 'run e2e' ||
+        github.event.comment.body == 'RUN E2E'))
     runs-on: ubuntu-latest
     env:
       PREVIEW_DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
       PREVIEW_PREFIX: ${{ vars.PR_PREVIEW_PREFIX }}
-      PR_NUMBER: ${{ github.event.pull_request.number }}
-      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
     steps:
+      - name: Resolve PR context
+        id: pr_context
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const isReview = context.eventName === 'pull_request_review';
+            const isComment = context.eventName === 'issue_comment';
+            let pr;
+
+            if (isReview) {
+              pr = context.payload.pull_request;
+            } else if (isComment) {
+              const body = context.payload.comment.body.trim();
+              if (!/^run e2e$/i.test(body)) {
+                core.info(
+                  `Ignoring comment (expected exactly "Run e2e", got: ${JSON.stringify(body)})`
+                );
+                return;
+              }
+              const { data } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+              });
+              pr = data;
+            } else {
+              core.setFailed(`Unsupported event: ${context.eventName}`);
+              return;
+            }
+
+            if (pr.base.ref !== 'develop') {
+              core.setFailed(
+                `E2E only runs for PRs targeting develop (base: ${pr.base.ref}).`
+              );
+              return;
+            }
+            if (
+              pr.head.repo.full_name !==
+              `${context.repo.owner}/${context.repo.repo}`
+            ) {
+              core.setFailed('E2E does not run for fork PRs.');
+              return;
+            }
+
+            core.setOutput('pr_number', String(pr.number));
+            core.setOutput('head_sha', pr.head.sha);
+            core.setOutput('qualified', 'true');
+
       - name: Checkout repository
+        if: steps.pr_context.outputs.qualified == 'true'
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ steps.pr_context.outputs.head_sha }}
 
       - name: Verify PR preview deployment matches HEAD
         id: preview
+        if: steps.pr_context.outputs.qualified == 'true'
         uses: actions/github-script@v7
         env:
           PREVIEW_DOMAIN: ${{ env.PREVIEW_DOMAIN }}
           PREVIEW_PREFIX: ${{ env.PREVIEW_PREFIX }}
-          PR_NUMBER: ${{ env.PR_NUMBER }}
-          HEAD_SHA: ${{ env.HEAD_SHA }}
+          PR_NUMBER: ${{ steps.pr_context.outputs.pr_number }}
+          HEAD_SHA: ${{ steps.pr_context.outputs.head_sha }}
         with:
           script: |
             const headSha = process.env.HEAD_SHA;
@@ -91,27 +148,31 @@ jobs:
 
             if (!matched) {
               core.setFailed(
-                `Preview is not deployed for commit ${headSha.slice(0, 7)}. Push again or wait for PR Preview to complete before approving.`
+                `Preview is not deployed for commit ${headSha.slice(0, 7)}. Push again or wait for PR Preview to complete, then approve or comment "Run e2e".`
               );
             }
 
       - name: Set up Node.js
+        if: steps.pr_context.outputs.qualified == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
       - name: Install dependencies
+        if: steps.pr_context.outputs.qualified == 'true'
         run: npm ci
 
       - name: Install Playwright Chromium
+        if: steps.pr_context.outputs.qualified == 'true'
         run: npx playwright install --with-deps chromium
 
       - name: Generate signed cookie bootstrap URL
         id: signed_cookies
-        if: steps.preview.outcome == 'success'
+        if: steps.pr_context.outputs.qualified == 'true' && steps.preview.outcome == 'success'
         shell: bash
         env:
+          PR_NUMBER: ${{ steps.pr_context.outputs.pr_number }}
           CLOUDFRONT_SIGNING_KEY: ${{ secrets.CLOUDFRONT_SIGNING_KEY }}
           CLOUDFRONT_SIGNING_KEY_ID: ${{ secrets.CLOUDFRONT_SIGNING_KEY_ID }}
         run: |
@@ -124,7 +185,7 @@ jobs:
             --signing-key-id "${CLOUDFRONT_SIGNING_KEY_ID:-}"
 
       - name: Warm up preview URL
-        if: steps.preview.outcome == 'success'
+        if: steps.pr_context.outputs.qualified == 'true' && steps.preview.outcome == 'success'
         run: |
           set -euo pipefail
           URL="${{ steps.preview.outputs.web_preview_url }}"
@@ -133,7 +194,7 @@ jobs:
 
       - name: Run Playwright web E2E tests
         id: playwright
-        if: steps.preview.outcome == 'success'
+        if: steps.pr_context.outputs.qualified == 'true' && steps.preview.outcome == 'success'
         env:
           CI: true
           E2E_TARGET: preview
@@ -146,10 +207,10 @@ jobs:
         run: npm run test:e2e:web
 
       - name: Upload Playwright report
-        if: always() && steps.playwright.outcome != 'skipped'
+        if: always() && steps.pr_context.outputs.qualified == 'true' && steps.playwright.outcome != 'skipped'
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-web-playwright-report-pr-${{ github.event.pull_request.number }}
+          name: e2e-web-playwright-report-pr-${{ steps.pr_context.outputs.pr_number }}
           path: |
             tests/e2e/web/report/
             tests/e2e/web/test-results/
@@ -158,7 +219,7 @@ jobs:
 
       - name: Format E2E PR comment
         id: e2e_comment
-        if: always() && steps.preview.outcome == 'success'
+        if: always() && steps.pr_context.outputs.qualified == 'true' && steps.preview.outcome == 'success'
         env:
           WEB_URL: ${{ steps.preview.outputs.web_preview_url }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -167,10 +228,11 @@ jobs:
         run: node scripts/ci/format-playwright-e2e-pr-comment.mjs
 
       - name: Post E2E results comment
-        if: always() && steps.preview.outcome == 'success'
+        if: always() && steps.pr_context.outputs.qualified == 'true' && steps.preview.outcome == 'success'
         uses: actions/github-script@v7
         env:
           COMMENT_BODY: ${{ steps.e2e_comment.outputs.body }}
+          PR_NUMBER: ${{ steps.pr_context.outputs.pr_number }}
         with:
           script: |
             const marker = '<!-- e2e-web-results -->';
@@ -180,10 +242,11 @@ jobs:
               return;
             }
 
+            const issueNumber = Number(process.env.PR_NUMBER);
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number: issueNumber,
             });
             const existing = comments.find(
               c => c.body?.includes(marker) && c.user?.type === 'Bot'
@@ -199,7 +262,7 @@ jobs:
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: context.issue.number,
+                issue_number: issueNumber,
                 body,
               });
             }
