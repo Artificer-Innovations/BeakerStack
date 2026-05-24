@@ -8,10 +8,15 @@ type AuthConfigResponse = {
   mailer_autoconfirm?: boolean;
 };
 
+type PatchedAuthField<K extends keyof AuthConfigResponse> = {
+  before: AuthConfigResponse[K];
+  after: NonNullable<AuthConfigResponse[K]>;
+};
+
 type PreviewAuthSnapshot = {
   projectRef: string;
-  rate_limit_email_sent?: number;
-  mailer_autoconfirm?: boolean;
+  rate_limit_email_sent?: PatchedAuthField<'rate_limit_email_sent'>;
+  mailer_autoconfirm?: PatchedAuthField<'mailer_autoconfirm'>;
 };
 
 const snapshotPath = `${e2eAuthDir}/preview-auth-config.snapshot.json`;
@@ -87,28 +92,36 @@ export async function preparePreviewAuthForE2e(): Promise<void> {
   const { token, projectRef } = credentials;
   const current = await fetchAuthConfig(token, projectRef);
 
-  const snapshot: PreviewAuthSnapshot = {
-    projectRef,
-    rate_limit_email_sent: current.rate_limit_email_sent,
-    mailer_autoconfirm: current.mailer_autoconfirm,
-  };
-  writeFileSync(snapshotPath, JSON.stringify(snapshot, null, 2));
+  const snapshot: PreviewAuthSnapshot = { projectRef };
+  const patch: Partial<AuthConfigResponse> = {};
 
   const desiredRateLimit = Math.max(
     current.rate_limit_email_sent ?? 2,
     E2E_EMAIL_RATE_LIMIT
   );
-  const needsAutoconfirm = current.mailer_autoconfirm !== true;
-  const needsRateBump = desiredRateLimit !== current.rate_limit_email_sent;
+  if (desiredRateLimit !== current.rate_limit_email_sent) {
+    snapshot.rate_limit_email_sent = {
+      before: current.rate_limit_email_sent,
+      after: desiredRateLimit,
+    };
+    patch.rate_limit_email_sent = desiredRateLimit;
+  }
 
-  if (!needsAutoconfirm && !needsRateBump) {
+  if (current.mailer_autoconfirm !== true) {
+    snapshot.mailer_autoconfirm = {
+      before: current.mailer_autoconfirm,
+      after: true,
+    };
+    patch.mailer_autoconfirm = true;
+  }
+
+  writeFileSync(snapshotPath, JSON.stringify(snapshot, null, 2));
+
+  if (Object.keys(patch).length === 0) {
     return;
   }
 
-  await patchAuthConfig(token, projectRef, {
-    ...(needsRateBump ? { rate_limit_email_sent: desiredRateLimit } : {}),
-    ...(needsAutoconfirm ? { mailer_autoconfirm: true } : {}),
-  });
+  await patchAuthConfig(token, projectRef, patch);
 }
 
 /** Restore preview auth settings captured during global setup. */
@@ -136,11 +149,11 @@ export async function restorePreviewAuthAfterE2e(): Promise<void> {
   }
 
   const patch: Partial<AuthConfigResponse> = {};
-  if (snapshot.rate_limit_email_sent !== undefined) {
-    patch.rate_limit_email_sent = snapshot.rate_limit_email_sent;
+  if (snapshot.rate_limit_email_sent) {
+    patch.rate_limit_email_sent = snapshot.rate_limit_email_sent.before;
   }
-  if (snapshot.mailer_autoconfirm !== undefined) {
-    patch.mailer_autoconfirm = snapshot.mailer_autoconfirm;
+  if (snapshot.mailer_autoconfirm) {
+    patch.mailer_autoconfirm = snapshot.mailer_autoconfirm.before;
   }
 
   if (Object.keys(patch).length === 0) {

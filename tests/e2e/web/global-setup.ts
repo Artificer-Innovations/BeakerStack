@@ -1,9 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { chromium, type FullConfig } from '@playwright/test';
-import {
-  grantTestAdmin,
-  setWaitlistMode,
-} from '../../utils/integration-fixtures';
+import { grantTestAdmin } from '../../utils/integration-fixtures';
 import { generateE2ETestEmail } from '../../utils/test-emails';
 import { createTestUser, waitForUserProfile } from '../../utils/test-helpers';
 import { createWebTestClient } from '../../utils/test-clients';
@@ -19,6 +16,7 @@ import {
   type E2eSeedState,
 } from './env';
 import { preparePreviewAuthForE2e } from './preview-auth-config';
+import { prepareWaitlistModeForE2e } from './waitlist-mode-snapshot';
 
 async function loginAndSaveStorageState(
   storagePath: string,
@@ -52,7 +50,7 @@ async function globalSetup(_config: FullConfig): Promise<void> {
   mkdirSync(e2eAuthDir, { recursive: true });
 
   await preparePreviewAuthForE2e();
-  await setWaitlistMode('open');
+  await prepareWaitlistModeForE2e();
 
   const supabase = createWebTestClient();
   const password =

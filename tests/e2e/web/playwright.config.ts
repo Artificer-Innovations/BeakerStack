@@ -34,13 +34,12 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer:
-    isCi && isPreviewTarget()
-      ? undefined
-      : {
-          command: 'npm run web',
-          url: `${(process.env.WEB_URL || 'http://localhost:5173').replace(/\/$/, '')}/`,
-          reuseExistingServer: true,
-          timeout: 120_000,
-        },
+  webServer: isPreviewTarget()
+    ? undefined
+    : {
+        command: 'npm run web',
+        url: `${(process.env.WEB_URL || 'http://localhost:5173').replace(/\/$/, '')}/`,
+        reuseExistingServer: true,
+        timeout: 120_000,
+      },
 });

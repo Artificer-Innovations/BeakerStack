@@ -7,6 +7,7 @@ import {
 } from './env';
 import { createServiceRoleClient } from '../../utils/test-clients';
 import { restorePreviewAuthAfterE2e } from './preview-auth-config';
+import { restoreWaitlistModeAfterE2e } from './waitlist-mode-snapshot';
 
 async function deleteSeedUser(statePath: string): Promise<void> {
   try {
@@ -26,6 +27,7 @@ async function globalTeardown(): Promise<void> {
   applyE2eSupabaseEnv();
   await deleteSeedUser(e2eStatePath);
   await deleteSeedUser(e2eAdminStatePath);
+  await restoreWaitlistModeAfterE2e();
   await restorePreviewAuthAfterE2e();
 }
 
