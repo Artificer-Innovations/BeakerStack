@@ -7,8 +7,6 @@ import { branding } from '../../adopter/config/branding';
 
 const viteConfigDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(viteConfigDir, '../..');
-const adopterWebRoot = path.join(repoRoot, 'adopter/web');
-const adopterConfigRoot = path.join(repoRoot, 'adopter/config');
 const criticalThemePath = path.join(
   viteConfigDir,
   'src/styles/critical-theme.css'
