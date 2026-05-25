@@ -87,7 +87,7 @@ import {
   runCmd,
 } from './lib/setup-supabase.mjs';
 import { buildNameVariants } from './rename-project.mjs';
-import { detectRepoIdentity } from './lib/detect-repo-identity.mjs';
+import { detectRepoIdentity, readBrandingSource } from './lib/detect-repo-identity.mjs';
 import {
   ACM_CLOUDFRONT_REGION,
   discoverIssuedCertsCoveringApexWildcard,
@@ -407,25 +407,63 @@ async function resolveSecretInputForSetup(line, primaryKey) {
 }
 
 /**
- * Base string for `supabase projects create` default slugs, derived from the mobile app
- * display name (same token rules as npm run rename) or Expo slug, so renames yield e.g. poststack-staging.
+ * Extract a slug base from the text of adopter/config/branding.ts.
+ * Prefers `flatName` (already lowercased alnum); falls back to deriving from `displayName`.
+ * Returns null when the text is falsy or no parsable name is found.
+ * @param {string|null} text
+ * @returns {string|null}
+ */
+export function slugBaseFromBrandingText(text) {
+  if (!text) return null;
+  const flatM = text.match(/\bflatName:\s*['"]([a-z0-9]+)['"]/);
+  if (flatM?.[1]) return flatM[1];
+  const nameM = text.match(/\bdisplayName:\s*['"]([^'"]+)['"]/);
+  if (nameM?.[1]) {
+    try {
+      return buildNameVariants(nameM[1]).flatLower;
+    } catch {
+      /* invalid name */
+    }
+  }
+  return null;
+}
+
+/**
+ * Extract a slug base from the text of apps/mobile/app.config.js.
+ * Prefers deriving from `name`; falls back to `slug` (strips hyphens).
+ * Returns null when the text is falsy or no parsable name is found.
+ * @param {string|null} text
+ * @returns {string|null}
+ */
+export function slugBaseFromAppConfigText(text) {
+  if (!text) return null;
+  const nameM = text.match(/\bname:\s*['"]([^'"]+)['"]/);
+  if (nameM?.[1]) {
+    try {
+      return buildNameVariants(nameM[1]).flatLower;
+    } catch {
+      /* invalid name */
+    }
+  }
+  const slugM = text.match(/\bslug:\s*['"]([a-z0-9_-]+)['"]/i);
+  if (slugM?.[1]) return slugM[1].replace(/-/g, '');
+  return null;
+}
+
+/**
+ * Base string for `supabase projects create` default slugs.
+ * Reads adopter/config/branding.ts first (canonical after `npm run rename`), then
+ * falls back to apps/mobile/app.config.js for repos that haven't been renamed yet.
  * @returns {Promise<string>} lowercase alnum segment, e.g. poststack or beakerstack
  */
 async function readSupabaseProjectSlugBase() {
+  const brandingResult = slugBaseFromBrandingText(await readBrandingSource(REPO_ROOT));
+  if (brandingResult) return brandingResult;
   try {
-    const text = await fs.readFile(MOBILE_APP_CONFIG, 'utf8');
-    const nameM = text.match(/\bname:\s*['"]([^'"]+)['"]/);
-    if (nameM?.[1]) {
-      try {
-        return buildNameVariants(nameM[1]).flatLower;
-      } catch {
-        /* invalid name */
-      }
-    }
-    const slugM = text.match(/\bslug:\s*['"]([a-z0-9_-]+)['"]/i);
-    if (slugM?.[1]) {
-      return slugM[1].replace(/-/g, '');
-    }
+    const appConfigResult = slugBaseFromAppConfigText(
+      await fs.readFile(MOBILE_APP_CONFIG, 'utf8')
+    );
+    if (appConfigResult) return appConfigResult;
   } catch {
     /* missing or unreadable app.config.js */
   }
@@ -1562,7 +1600,7 @@ async function phaseSupabase(flags, rl, acc, promptInput) {
 
   const supabaseSlugBase = await readSupabaseProjectSlugBase();
   logInfo(
-    `Default new Supabase project slug per tier: ${supabaseSlugBase}-<staging|production|preview> (from apps/mobile/app.config.js; same word rules as rename).`
+    `Default new Supabase project slug per tier: ${supabaseSlugBase}-<staging|production|preview> (from adopter/config/branding.ts flatName or displayName, falling back to apps/mobile/app.config.js).`
   );
 
   /**
