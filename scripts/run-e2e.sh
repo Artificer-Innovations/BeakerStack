@@ -1,12 +1,42 @@
 #!/bin/bash
 # E2E Test Runner Script
-# Runs Maestro E2E tests against different environments
+# Runs Playwright web E2E tests and Maestro mobile E2E tests against different environments
 
 set -e
+
+SKIP_WEB=false
+POSITIONAL=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --skip-web)
+      SKIP_WEB=true
+      shift
+      ;;
+    --)
+      shift
+      POSITIONAL+=("$@")
+      break
+      ;;
+    -*)
+      echo "❌ Error: Unknown option: $1"
+      echo "Usage: ./scripts/run-e2e.sh [--skip-web] [local|pr|staging|production] [PR_NUMBER]"
+      exit 1
+      ;;
+    *)
+      POSITIONAL+=("$1")
+      shift
+      ;;
+  esac
+done
+
+set -- "${POSITIONAL[@]}"
 
 ENVIRONMENT=${1:-local}
 PR_NUMBER=${2:-}
 WEB_URL=""
+WEB_BASE_PATH=""
+E2E_TARGET=""
 MOBILE_APP_ID="com.anonymous.beakerstack"
 
 # Determine environment URLs
@@ -21,15 +51,18 @@ case "$ENVIRONMENT" in
       echo "Usage: ./scripts/run-e2e.sh pr <PR_NUMBER>"
       exit 1
     fi
-    WEB_URL="https://deploy.yourdomain.com/pr-${PR_NUMBER}/"
+    PREVIEW_DOMAIN="${PR_PREVIEW_DOMAIN:-yourdomain.com}"
+    WEB_URL="https://deploy.${PREVIEW_DOMAIN}"
+    WEB_BASE_PATH="/pr-${PR_NUMBER}"
+    E2E_TARGET="preview"
     echo "🧪 Running E2E tests against PR #${PR_NUMBER} environment"
     ;;
   staging)
-    WEB_URL="https://staging.yourdomain.com"
+    WEB_URL="https://staging.${PR_PREVIEW_DOMAIN:-yourdomain.com}"
     echo "🧪 Running E2E tests against STAGING environment"
     ;;
   production)
-    WEB_URL="https://yourdomain.com"
+    WEB_URL="https://${PR_PREVIEW_DOMAIN:-yourdomain.com}"
     echo "🧪 Running E2E tests against PRODUCTION environment"
     echo "⚠️  WARNING: Running tests against production!"
     read -p "Are you sure? (yes/no): " confirm
@@ -40,7 +73,7 @@ case "$ENVIRONMENT" in
     ;;
   *)
     echo "❌ Error: Unknown environment: $ENVIRONMENT"
-    echo "Usage: ./scripts/run-e2e.sh [local|pr|staging|production] [PR_NUMBER]"
+    echo "Usage: ./scripts/run-e2e.sh [--skip-web] [local|pr|staging|production] [PR_NUMBER]"
     exit 1
     ;;
 esac
@@ -63,6 +96,12 @@ echo ""
 echo "📋 Test Configuration:"
 echo "   Environment: $ENVIRONMENT"
 echo "   Web URL: $WEB_URL"
+if [[ -n "$WEB_BASE_PATH" ]]; then
+  echo "   Web base path: $WEB_BASE_PATH"
+fi
+if [[ -n "$E2E_TARGET" ]]; then
+  echo "   E2E target: $E2E_TARGET"
+fi
 echo "   Mobile App ID: $MOBILE_APP_ID"
 echo "   Test Email: $TEST_EMAIL"
 echo ""
@@ -72,36 +111,45 @@ SCREENSHOTS_DIR="tests/e2e/screenshots"
 mkdir -p "$SCREENSHOTS_DIR"
 
 # Run Web E2E Tests
-echo "🌐 Running Web E2E Tests..."
-echo ""
-
-if [ "$ENVIRONMENT" != "local" ]; then
-  # For non-local environments, use the web URL
-  maestro test tests/e2e/web/flows/ \
-    --env WEB_URL="$WEB_URL" \
-    --env TEST_EMAIL="$TEST_EMAIL" \
-    --env TEST_PASSWORD="$TEST_PASSWORD" \
-    --format junit \
-    --output tests/e2e/results/web-results.xml || {
-    echo "❌ Web E2E tests failed"
-    exit 1
-  }
+if [ "$SKIP_WEB" = true ]; then
+  echo "⏭️  Skipping web E2E tests (--skip-web)"
 else
-  # For local, check if dev server is running
-  if ! curl -s "$WEB_URL" > /dev/null 2>&1; then
-    echo "⚠️  Warning: Web dev server not running at $WEB_URL"
-    echo "   Start it with: npm run web"
-    echo "   Or skip web tests with: --skip-web"
-  else
-    maestro test tests/e2e/web/flows/ \
-      --env WEB_URL="$WEB_URL" \
-      --env TEST_EMAIL="$TEST_EMAIL" \
-      --env TEST_PASSWORD="$TEST_PASSWORD" \
-      --format junit \
-      --output tests/e2e/results/web-results.xml || {
+  echo "🌐 Running Web E2E Tests (Playwright)..."
+  echo ""
+
+  WEB_E2E_ENV=(
+    "WEB_URL=${WEB_URL}"
+  )
+  if [[ -n "${WEB_BASE_PATH}" ]]; then
+    WEB_E2E_ENV+=("WEB_BASE_PATH=${WEB_BASE_PATH}")
+  fi
+  if [[ -n "${E2E_TARGET}" ]]; then
+    WEB_E2E_ENV+=("E2E_TARGET=${E2E_TARGET}")
+  fi
+  if [[ -n "${TEST_PASSWORD:-}" ]]; then
+    WEB_E2E_ENV+=("TEST_PASSWORD=${TEST_PASSWORD}")
+  fi
+
+  run_web_e2e() {
+    env "${WEB_E2E_ENV[@]}" npm run test:e2e:web
+  }
+
+  if [ "$ENVIRONMENT" != "local" ]; then
+    run_web_e2e || {
       echo "❌ Web E2E tests failed"
       exit 1
     }
+  else
+    if ! curl -s "$WEB_URL" > /dev/null 2>&1; then
+      echo "⚠️  Warning: Web dev server not running at $WEB_URL"
+      echo "   Start it with: npm run web"
+      echo "   Or skip web tests with: ./scripts/run-e2e.sh --skip-web local"
+    else
+      run_web_e2e || {
+        echo "❌ Web E2E tests failed"
+        exit 1
+      }
+    fi
   fi
 fi
 
@@ -155,4 +203,3 @@ echo ""
 echo "✅ E2E tests complete!"
 echo "📊 Results saved to: tests/e2e/results/"
 echo "📸 Screenshots saved to: $SCREENSHOTS_DIR"
-

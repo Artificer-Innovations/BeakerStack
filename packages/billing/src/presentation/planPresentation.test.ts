@@ -57,6 +57,10 @@ describe('applyTemplate', () => {
   it('uses empty string for missing keys', () => {
     expect(applyTemplate('{missing}', { other: 1 })).toBe('');
   });
+
+  it('returns empty string when template is undefined', () => {
+    expect(applyTemplate(undefined, { a: 1 })).toBe('');
+  });
 });
 
 describe('mergePlanFeatureRows', () => {
@@ -228,6 +232,24 @@ describe('exclusiveBooleanFeaturePlanName', () => {
     expect(exclusiveBooleanFeaturePlanName(plans, 'feature_b')).toBe('High');
   });
 
+  it('picks highest display_order among holders with explicit order values', () => {
+    const ranked = [
+      basePlan({
+        id: 'lo',
+        display_name: 'Low',
+        display_order: 1,
+        features: { feature_x: true },
+      }),
+      basePlan({
+        id: 'hi',
+        display_name: 'Hi',
+        display_order: 5,
+        features: { feature_x: true },
+      }),
+    ] as Plan[];
+    expect(exclusiveBooleanFeaturePlanName(ranked, 'feature_x')).toBe('Hi');
+  });
+
   it('sorts holders treating missing display_order as zero', () => {
     const ranked = [
       basePlan({
@@ -244,6 +266,24 @@ describe('exclusiveBooleanFeaturePlanName', () => {
       }),
     ] as Plan[];
     expect(exclusiveBooleanFeaturePlanName(ranked, 'feature_x')).toBe('Hi');
+  });
+
+  it('sorts holders when display_order is null', () => {
+    const ranked = [
+      basePlan({
+        id: 'a',
+        display_name: 'A',
+        display_order: null as unknown as number,
+        features: { feature_x: true },
+      }),
+      basePlan({
+        id: 'b',
+        display_name: 'B',
+        display_order: null as unknown as number,
+        features: { feature_x: true },
+      }),
+    ] as Plan[];
+    expect(exclusiveBooleanFeaturePlanName(ranked, 'feature_x')).toBe('A');
   });
 
   it('returns null when top holder has no display name', () => {
@@ -287,6 +327,53 @@ describe('mergeUsageMeterCopy', () => {
       description: 'D',
     });
     expect(m2.other).toEqual({ label: 'Other' });
+  });
+
+  it('keeps label-only overrides without description on new meters', () => {
+    const m = mergeUsageMeterCopy(
+      minimalConfig({
+        usageMeterCopy: {
+          custom_meter: { label: 'Custom only' },
+        },
+      })
+    );
+    expect(m.custom_meter).toEqual({ label: 'Custom only' });
+  });
+
+  it('inherits default label when override omits label', () => {
+    const m = mergeUsageMeterCopy(
+      minimalConfig({
+        usageMeterCopy: {
+          ai_summarize: { description: 'Custom description' },
+        },
+      })
+    );
+    expect(m.ai_summarize).toEqual({
+      label: 'AI summarize',
+      description: 'Custom description',
+    });
+  });
+
+  it('falls back to meter key when override omits label on a new meter', () => {
+    const m = mergeUsageMeterCopy(
+      minimalConfig({
+        usageMeterCopy: {
+          brand_new_meter: {},
+        },
+      })
+    );
+    expect(m.brand_new_meter).toEqual({ label: 'brand_new_meter' });
+  });
+
+  it('uses explicit label when override provides one', () => {
+    const m = mergeUsageMeterCopy(
+      minimalConfig({
+        usageMeterCopy: {
+          ai_summarize: { label: 'Explicit label' },
+        },
+      })
+    );
+    expect(m.ai_summarize?.label).toBe('Explicit label');
   });
 });
 

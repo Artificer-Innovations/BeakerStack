@@ -115,6 +115,19 @@ describe('billingClient', () => {
     ).resolves.toBe(true);
   });
 
+  it('getRemainingUsage defaults used when omitted from RPC payload', async () => {
+    const supabase = mockSupabase({
+      rpcRemaining: {
+        limit: 10,
+        remaining: 10,
+        periodEnd: '2026-01-31',
+        periodStart: '2026-01-01',
+      },
+    });
+    const r = await getRemainingUsage(supabase, 'beakerstack', 'ai_summarize');
+    expect(r?.used).toBe(0);
+  });
+
   it('getRemainingUsage maps omitted limit and remaining to null', async () => {
     const supabase = mockSupabase({
       rpcRemaining: {
@@ -140,5 +153,113 @@ describe('billingClient', () => {
     await expect(
       getRemainingUsage(supabase, 'beakerstack', 'ai_summarize')
     ).resolves.toBeNull();
+  });
+
+  it('getRemainingUsage throws when RPC errors', async () => {
+    const rpc = vi.fn(async () => ({
+      data: null,
+      error: new Error('rpc down'),
+    }));
+    const supabase = { rpc } as never;
+    await expect(
+      getRemainingUsage(supabase, 'beakerstack', 'ai_summarize')
+    ).rejects.toThrow('rpc down');
+  });
+
+  it('hasExceededLimit throws when RPC errors', async () => {
+    const rpc = vi.fn(async () => ({
+      data: null,
+      error: new Error('denied'),
+    }));
+    const supabase = { rpc } as never;
+    await expect(
+      hasExceededLimit(supabase, 'beakerstack', 'ai_summarize')
+    ).rejects.toThrow('denied');
+  });
+
+  it('getPlanById returns null when row missing', async () => {
+    const supabase = mockSupabase({ plan: null });
+    await expect(
+      getPlanById(supabase, 'beakerstack', 'missing')
+    ).resolves.toBeNull();
+  });
+
+  it('canUserAccessFeature returns false without subscription', async () => {
+    const supabase = mockSupabase({ sub: null });
+    await expect(
+      canUserAccessFeature(supabase, 'user-1', 'beakerstack', 'feature_a')
+    ).resolves.toBe(false);
+  });
+
+  it('canUserAccessFeature returns false when plan_id missing', async () => {
+    const supabase = mockSupabase({ sub: { plan_id: '' } });
+    await expect(
+      canUserAccessFeature(supabase, 'user-1', 'beakerstack', 'feature_a')
+    ).resolves.toBe(false);
+  });
+
+  it('getRemainingUsage returns null when RPC data is empty', async () => {
+    const supabase = mockSupabase({ rpcRemaining: null });
+    await expect(
+      getRemainingUsage(supabase, 'beakerstack', 'ai_summarize')
+    ).resolves.toBeNull();
+  });
+
+  it('getRemainingUsage maps explicit null limit and remaining', async () => {
+    const supabase = mockSupabase({
+      rpcRemaining: {
+        used: 0,
+        limit: null,
+        remaining: null,
+        periodEnd: null,
+        periodStart: null,
+      },
+    });
+    const r = await getRemainingUsage(supabase, 'beakerstack', 'ai_summarize');
+    expect(r).toEqual({
+      used: 0,
+      limit: null,
+      remaining: null,
+      periodEnd: '',
+      periodStart: '',
+    });
+  });
+
+  it('getPlanById throws when query errors', async () => {
+    const from = vi.fn(() => ({
+      select: () => ({
+        eq: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({
+              data: null,
+              error: new Error('plan query failed'),
+            }),
+          }),
+        }),
+      }),
+    }));
+    const supabase = { from, rpc: vi.fn() } as never;
+    await expect(
+      getPlanById(supabase, 'beakerstack', 'plan_x')
+    ).rejects.toThrow('plan query failed');
+  });
+
+  it('canUserAccessFeature throws when subscription query errors', async () => {
+    const from = vi.fn(() => ({
+      select: () => ({
+        eq: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({
+              data: null,
+              error: new Error('sub query failed'),
+            }),
+          }),
+        }),
+      }),
+    }));
+    const supabase = { from, rpc: vi.fn() } as never;
+    await expect(
+      canUserAccessFeature(supabase, 'user-1', 'beakerstack', 'feature_a')
+    ).rejects.toThrow('sub query failed');
   });
 });

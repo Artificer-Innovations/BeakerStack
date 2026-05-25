@@ -4,7 +4,7 @@
 
 [![Test](https://github.com/Artificer-Innovations/BeakerStack/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/Artificer-Innovations/BeakerStack/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)](package.json)
+[![Node](https://img.shields.io/badge/node-%3E%3D20.19-339933?logo=node.js&logoColor=white)](package.json)
 [![Release](https://img.shields.io/github/v/release/Artificer-Innovations/BeakerStack?label=template&display_name=release)](https://github.com/Artificer-Innovations/BeakerStack/releases/tag/2026.001)
 [![Discussions](https://img.shields.io/github/discussions/Artificer-Innovations/BeakerStack)](https://github.com/Artificer-Innovations/BeakerStack/discussions)
 
@@ -77,7 +77,7 @@ npm run setup
 
 The setup wizard handles Docker Supabase, `.env.local`, and type generation. Full cloud + CI: read [docs/setup-prep-checklist.md](docs/setup-prep-checklist.md) before `npm run setup:full`, then [QUICKSTART.md](QUICKSTART.md).
 
-**Node 18+** (`>=18` in `package.json`); **Node 20** matches CI. Docker Desktop + Supabase CLI for local work.
+**Node.js 20.19+** (`>=20.19.0` in `package.json`; matches CI). Docker Desktop + Supabase CLI for local work.
 
 ### Renaming the template
 

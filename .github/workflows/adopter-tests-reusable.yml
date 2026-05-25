@@ -1,0 +1,33 @@
+name: Adopter Tests (Reusable)
+
+# Called from .github/workflows/test.yml (job: adopter-checks).
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Node.js version
+        required: false
+        type: string
+        default: '20'
+
+jobs:
+  adopter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Adopter zone checks
+        run: npm run test:adopter
+
+      - name: Upgrade compatibility check
+        run: npm run upgrade:check
+
+      - name: Lint adopter tree
+        run: npm run lint:adopter

@@ -92,5 +92,28 @@ describe('useBillingStripeActions', () => {
     const ok = await result.current.updateSubscription('p');
     expect(ok).toBe(false);
     await waitFor(() => expect(result.current.error).not.toBeNull());
+    expect(result.current.pending).toBe(false);
+  });
+
+  it('returns false when refreshSubscription fails after invoke succeeds', async () => {
+    invoke.mockResolvedValue({ data: {}, error: null });
+    refreshSubscription.mockRejectedValueOnce(new Error('refresh failed'));
+    const { result } = renderHook(() => useBillingStripeActions());
+    const ok = await result.current.updateSubscription('p');
+    expect(ok).toBe(false);
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+    expect(result.current.pending).toBe(false);
+  });
+
+  it('defaults cadence to monthly when omitted', async () => {
+    invoke.mockResolvedValue({ data: {}, error: null });
+    const { result } = renderHook(() => useBillingStripeActions());
+    await result.current.updateSubscription('plan_x');
+    expect(invoke).toHaveBeenCalledWith(
+      'billing-stripe',
+      expect.objectContaining({
+        body: expect.objectContaining({ cadence: 'monthly' }),
+      })
+    );
   });
 });

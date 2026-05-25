@@ -69,17 +69,17 @@ export const colors = {
   brandLight: indigo[100],
 
   // Status: error
-  errorBg: '#fef2f2',       // red-50 — card/banner background
-  errorBadgeBg: '#fee2e2',  // red-100 — badge/pill background (slightly stronger)
-  errorBorder: '#fecaca',   // red-200
-  errorText: '#991b1b',     // red-800
-  errorTextAlt: '#b91c1c',  // red-700 — lighter variant, e.g. inline message body
-  errorIcon: '#dc2626',     // red-600 — icon and err text
+  errorBg: '#fef2f2', // red-50 — card/banner background
+  errorBadgeBg: '#fee2e2', // red-100 — badge/pill background (slightly stronger)
+  errorBorder: '#fecaca', // red-200
+  errorText: '#991b1b', // red-800
+  errorTextAlt: '#b91c1c', // red-700 — lighter variant, e.g. inline message body
+  errorIcon: '#dc2626', // red-600 — icon and err text
 
   // Status: success
-  successBg: green50,       // green-50
+  successBg: green50, // green-50
   successBorder: '#6ee7b7', // green-300
-  successText: '#065f46',   // green-900
+  successText: '#065f46', // green-900
   successTextAlt: '#15803d', // green-700 — lighter variant
 
   // Status: warn
@@ -93,19 +93,19 @@ export const colors = {
   infoText: '#1e3a8a',
 
   // Feature gate UI
-  featureOnBg: green50,        // green-50 — same as successBg; shared const prevents drift
-  featureOnBorder: '#86efac',  // green-300
-  featureOnIconBg: '#dcfce7',  // green-100
-  featureOnIcon: '#16a34a',    // green-600
-  featureBOnBg: '#f3e8ff',     // purple-100 — Feature B "on" state (intentionally distinct hue)
-  featureOffBg: gray[100],     // gray-100 — button/tile background when feature disabled
+  featureOnBg: green50, // green-50 — same as successBg; shared const prevents drift
+  featureOnBorder: '#86efac', // green-300
+  featureOnIconBg: '#dcfce7', // green-100
+  featureOnIcon: '#16a34a', // green-600
+  featureBOnBg: '#f3e8ff', // purple-100 — Feature B "on" state (intentionally distinct hue)
+  featureOffBg: gray[100], // gray-100 — button/tile background when feature disabled
 
   // Icon off-state
   iconOffBg: gray[200], // gray-200 — background for off-state icon badges
 
   // Code display (dark block)
-  codeBg: '#0f172a',      // slate-950
-  codeText: '#cbd5e1',    // slate-300
+  codeBg: '#0f172a', // slate-950
+  codeText: '#cbd5e1', // slate-300
   codeValTrue: '#4ade80', // green-400 — highlighted "true" value
   codeValFalse: '#64748b', // slate-500 — dimmed "false" value
 

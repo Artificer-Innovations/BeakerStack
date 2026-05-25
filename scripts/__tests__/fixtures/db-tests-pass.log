@@ -1,0 +1,6 @@
+supabase/tests/db/001_schema_tests.sql .......... ok
+supabase/tests/db/002_auth_tests.sql ........... ok
+supabase/tests/db/003_billing_tests.sql ........ ok
+All tests successful.
+Files=3, Tests=42,  3 wallclock secs ( 0.08 usr  0.04 sys +  0.00 cusr  0.00 csys =  0.12 CPU)
+Result: PASS

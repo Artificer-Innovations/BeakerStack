@@ -1,12 +1,14 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { render, screen } from '@testing-library/react';
+import renderer, { act as rendererAct } from 'react-test-renderer';
+import { Image } from 'react-native';
 import '@testing-library/jest-dom';
 import { Platform } from 'react-native';
 import { ProfileAvatar } from '@beakerstack/shared/components/profile/ProfileAvatar.native';
 import type { UserProfile } from '@beakerstack/shared/types/profile';
 
 // Mock Logger
-jest.mock('@beakerstack/shared/utils/logger', () => ({
+jest.mock('@beakerstack/logger', () => ({
   Logger: {
     warn: jest.fn(),
   },
@@ -176,5 +178,49 @@ describe('ProfileAvatar (Native)', () => {
         value: prev,
       });
     }
+  });
+
+  it('falls back to initials when the image fails to load', () => {
+    const profile: UserProfile = {
+      id: '1',
+      user_id: 'user-1',
+      username: 'testuser',
+      display_name: 'Test User',
+      avatar_url: 'https://example.com/avatar.jpg',
+      created_at: '2024-01-01',
+      updated_at: '2024-01-01',
+    };
+
+    let tree!: renderer.ReactTestRenderer;
+    rendererAct(() => {
+      tree = renderer.create(<ProfileAvatar profile={profile} />);
+    });
+    const image = tree.root.findByType(Image);
+    rendererAct(() => {
+      image.props.onError?.({ nativeEvent: { error: 'Network error' } });
+    });
+    expect(JSON.stringify(tree.toJSON())).toContain('TU');
+  });
+
+  it('handles successful image load event', () => {
+    const profile: UserProfile = {
+      id: '1',
+      user_id: 'user-1',
+      username: 'testuser',
+      display_name: 'Test User',
+      avatar_url: 'https://example.com/avatar.jpg',
+      created_at: '2024-01-01',
+      updated_at: '2024-01-01',
+    };
+
+    let tree!: renderer.ReactTestRenderer;
+    rendererAct(() => {
+      tree = renderer.create(<ProfileAvatar profile={profile} />);
+    });
+    const image = tree.root.findByType(Image);
+    rendererAct(() => {
+      image.props.onLoad?.();
+    });
+    expect(tree.root.findByType(Image)).toBeTruthy();
   });
 });

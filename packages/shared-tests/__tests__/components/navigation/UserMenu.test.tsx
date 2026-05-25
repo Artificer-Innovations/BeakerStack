@@ -179,9 +179,41 @@ describe('UserMenu (Web)', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Profile')).toBeInTheDocument();
+      expect(screen.getByText('Billing')).toBeInTheDocument();
       expect(screen.getByText('Dashboard')).toBeInTheDocument();
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
     });
+  });
+
+  it('should toggle menu closed when avatar is clicked again', async () => {
+    renderWithProviders(<UserMenu user={mockUser} profile={mockProfile} />);
+    await waitFor(() => {
+      expect(screen.getByLabelText('User menu')).toBeInTheDocument();
+    });
+    const menuButton = screen.getByLabelText('User menu');
+    fireEvent.click(menuButton);
+    await waitFor(() =>
+      expect(screen.getByText('Profile')).toBeInTheDocument()
+    );
+    fireEvent.click(menuButton);
+    await waitFor(() => {
+      expect(screen.queryByText('Profile')).not.toBeInTheDocument();
+    });
+  });
+
+  it('should link to billing page from menu', async () => {
+    renderWithProviders(<UserMenu user={mockUser} profile={mockProfile} />);
+    await waitFor(() => {
+      expect(screen.getByLabelText('User menu')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByLabelText('User menu'));
+    await waitFor(() =>
+      expect(screen.getByText('Billing')).toBeInTheDocument()
+    );
+    expect(screen.getByText('Billing').closest('a')).toHaveAttribute(
+      'href',
+      '/billing'
+    );
   });
 
   it('should close menu when clicking outside', async () => {
@@ -209,33 +241,6 @@ describe('UserMenu (Web)', () => {
     await waitFor(() => {
       expect(screen.queryByText('Profile')).not.toBeInTheDocument();
     });
-  });
-
-  it.skip('should close menu when clicking on menu item', async () => {
-    renderWithProviders(<UserMenu user={mockUser} profile={mockProfile} />);
-    await waitFor(() => {
-      expect(screen.getByLabelText('User menu')).toBeInTheDocument();
-    });
-
-    const menuButton = screen.getByLabelText('User menu');
-    fireEvent.click(menuButton);
-
-    await waitFor(() => {
-      expect(screen.getByText('Profile')).toBeInTheDocument();
-    });
-
-    const profileLink = screen.getByText('Profile');
-    fireEvent.click(profileLink);
-
-    // Menu should close after clicking link - check that aria-expanded is false
-    await waitFor(
-      () => {
-        const menuButtonAfter = screen.getByLabelText('User menu');
-        const ariaExpanded = menuButtonAfter.getAttribute('aria-expanded');
-        expect(ariaExpanded).toBe('false');
-      },
-      { timeout: 1000 }
-    );
   });
 
   it('should have correct links to Profile and Dashboard', async () => {
@@ -293,5 +298,117 @@ describe('UserMenu (Web)', () => {
       },
       { timeout: 3000 }
     );
+  });
+
+  it('should close menu when Profile link is clicked', async () => {
+    renderWithProviders(<UserMenu user={mockUser} profile={mockProfile} />);
+    const menuButton = screen.getByLabelText('User menu');
+    fireEvent.click(menuButton);
+    await waitFor(() =>
+      expect(screen.getByText('Profile')).toBeInTheDocument()
+    );
+
+    fireEvent.click(screen.getByRole('link', { name: 'Profile' }));
+
+    await waitFor(() => {
+      expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+    });
+  });
+
+  it('should close menu when Dashboard link is clicked', async () => {
+    renderWithProviders(<UserMenu user={mockUser} profile={mockProfile} />);
+    const menuButton = screen.getByLabelText('User menu');
+    fireEvent.click(menuButton);
+    await waitFor(() =>
+      expect(screen.getByText('Dashboard')).toBeInTheDocument()
+    );
+
+    fireEvent.click(screen.getByRole('link', { name: 'Dashboard' }));
+
+    await waitFor(() => {
+      expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+    });
+  });
+
+  it('should close menu when Billing link is clicked', async () => {
+    renderWithProviders(<UserMenu user={mockUser} profile={mockProfile} />);
+    const menuButton = screen.getByLabelText('User menu');
+    fireEvent.click(menuButton);
+    await waitFor(() =>
+      expect(screen.getByText('Billing')).toBeInTheDocument()
+    );
+
+    fireEvent.click(screen.getByRole('link', { name: 'Billing' }));
+
+    await waitFor(() => {
+      expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+    });
+  });
+
+  it('should not render email row when user has no email', async () => {
+    const userWithoutEmail: User = { ...mockUser, email: undefined };
+    renderWithProviders(
+      <UserMenu user={userWithoutEmail} profile={mockProfile} />
+    );
+    fireEvent.click(screen.getByLabelText('User menu'));
+    await waitFor(() =>
+      expect(screen.getByText('Test User')).toBeInTheDocument()
+    );
+    expect(screen.queryByText('test@example.com')).not.toBeInTheDocument();
+  });
+
+  it('should show Admin link when showAdminLink is true', async () => {
+    renderWithProviders(
+      <UserMenu user={mockUser} profile={mockProfile} showAdminLink={true} />
+    );
+    fireEvent.click(screen.getByLabelText('User menu'));
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: 'Admin' })).toBeInTheDocument()
+    );
+    expect(screen.getByRole('link', { name: 'Admin' })).toHaveAttribute(
+      'href',
+      '/admin'
+    );
+  });
+
+  it('should not show Admin link when showAdminLink is false', async () => {
+    renderWithProviders(
+      <UserMenu user={mockUser} profile={mockProfile} showAdminLink={false} />
+    );
+    fireEvent.click(screen.getByLabelText('User menu'));
+    await waitFor(() =>
+      expect(screen.getByText('Dashboard')).toBeInTheDocument()
+    );
+    expect(
+      screen.queryByRole('link', { name: 'Admin' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('should not show Admin link when showAdminLink is omitted', async () => {
+    renderWithProviders(<UserMenu user={mockUser} profile={mockProfile} />);
+    fireEvent.click(screen.getByLabelText('User menu'));
+    await waitFor(() =>
+      expect(screen.getByText('Dashboard')).toBeInTheDocument()
+    );
+    expect(
+      screen.queryByRole('link', { name: 'Admin' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('should close menu when Admin link is clicked', async () => {
+    renderWithProviders(
+      <UserMenu user={mockUser} profile={mockProfile} showAdminLink={true} />
+    );
+    fireEvent.click(screen.getByLabelText('User menu'));
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: 'Admin' })).toBeInTheDocument()
+    );
+    fireEvent.click(screen.getByRole('link', { name: 'Admin' }));
+    await waitFor(() => {
+      expect(screen.getByLabelText('User menu')).toHaveAttribute(
+        'aria-expanded',
+        'false'
+      );
+    });
   });
 });

@@ -10,6 +10,25 @@ This guide walks you from **zero** to a working **test-mode** Stripe integration
 
 ---
 
+## Before the Stripe wizard phase
+
+If you use `npm run setup:full`, the **stripe** phase (after **supabase**, before **write** / **github**) collects GitHub Actions keys so you are not surprised by `STAGING_STRIPE_SECRET_KEY` at github sync. For each **hosted** Supabase project (`https://<ref>.supabase.co`), the wizard uses the same logic as CI ([`scripts/lib/ensure-stripe-webhook.mjs`](../scripts/lib/ensure-stripe-webhook.mjs)) to create or update the Stripe webhook and store `*_STRIPE_WEBHOOK_SECRET` when Stripe returns a new signing secret.
+
+### Checklist
+
+| #   | Requirement                      | Details                                                                                                                                                                                                                                                                 |
+| --- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Stripe account**               | [dashboard.stripe.com](https://dashboard.stripe.com) — **Test mode** for preview + staging.                                                                                                                                                                             |
+| 2   | **API secret keys**              | Developers → API keys → `sk_test_…` (preview/staging) and `sk_live_…` (production when ready).                                                                                                                                                                          |
+| 3   | **Webhook per Supabase project** | One endpoint per preview/staging/production at `https://<PROJECT_REF>.supabase.co/functions/v1/stripe-webhook`. **Greenfield:** wizard/CI create it from `sk_*` only. **Existing endpoint:** paste `whsec_…` from Dashboard → **Reveal** if the secret was never saved. |
+| 4   | **Supabase URLs from setup**     | Complete the **supabase** phase first so the wizard can ensure webhooks against the correct URL.                                                                                                                                                                        |
+
+Skip billing in CI: answer **N** at the stripe phase or `npm run setup:full -- --skip-stripe`.
+
+**More:** [setup-prep-checklist.md § stripe](setup-prep-checklist.md#stripe)
+
+---
+
 ## 0. Billing model overview (what you are actually setting up)
 
 Beaker Stack uses Stripe for **commercial billing primitives** and Supabase for **application-side entitlement state**.
@@ -61,6 +80,24 @@ Keep a separate Stripe webhook endpoint + `whsec` per hosted Supabase project. D
 Stripe **test mode** can deliver the same events to every registered webhook URL. To avoid `checkout.session.completed` upserts in the wrong Supabase project, Checkout Sessions include metadata **`billing_deploy_target`**, set by Edge from the project’s Supabase URL (project ref for `https://<ref>.supabase.co`) or `local` for Docker / localhost. The `stripe-webhook` function ignores completed checkouts when that metadata is **present** and does not match its own deploy target (HTTP **200** with `{ "received": true, "ignored": true }`); legacy events **without** the key are still processed. Optional secret **`BILLING_WEBHOOK_TARGET`** overrides the derived value when the URL is not `*.supabase.co` — set identically on `billing-stripe` and `stripe-webhook` for that project.
 
 **Deploy order:** ship **`billing-stripe` before or with `stripe-webhook`** so new sessions include `billing_deploy_target` before the webhook enforces mismatches (missing metadata remains processed until clients use the updated checkout).
+
+### Multiple BeakerStack apps (shared Stripe account)
+
+When you run **more than one BeakerStack-based app** (each with its own Supabase project) against **one Stripe account**, Stripe test mode delivers the same events to **every** registered webhook URL. Use this checklist:
+
+1. **Separate Supabase project per app** — each deployment gets its own `auth.users` and `billing_*` tables.
+2. **Separate Stripe webhook endpoint per project** — unique URL and `STRIPE_WEBHOOK_SECRET` (`whsec_…`); never reuse secrets across projects.
+3. **App-scoped `productId`** in each app’s `billing-sync.json` / seeds (e.g. `myapp`, `myotherapp`), not a bare name like `pro`. Required if two apps ever share one Supabase database (`UNIQUE (user_id, product_id)`).
+4. Deploy **`billing-stripe` before `stripe-webhook`** on every project that shares the Stripe account so subscription metadata includes `billing_deploy_target`.
+
+**Webhook hardening (`stripe-webhook`):**
+
+- **Ingress classification** runs after signature verification, **before** processing billing tables, and when choosing the stored `payload` (full event vs **redacted**). Foreign events are still inserted into `billing_webhook_events` for idempotency, but without customer/invoice bodies (`redacted: true`), and return HTTP **200** `{ "received": true, "ignored": true }` without mutating subscriptions or invoices.
+- **`billing_deploy_target`** is enforced on `customer.subscription.*` (from subscription metadata, same semantics as checkout).
+- **Subscription and invoice handlers** only mutate rows when a local `billing_subscriptions` row exists for the event’s `stripe_subscription_id`. Invoice sync no longer resolves users by `stripe_customer_id` alone (avoids cross-app invoice mirroring when customers are shared).
+- Optional: rows whose `product_id` is not in `billing_products` are ignored (shared-DB safety).
+
+`BILLING_WEBHOOK_TARGET` is per **Supabase project** (deploy ref), not per app product name. Two BeakerStack apps on the **same** Supabase project need distinct `product_id` values, not deploy-target alone.
 
 ---
 
@@ -118,7 +155,7 @@ Seed data (when using repo `supabase/seed.sql`) includes the template product **
 
 ## 5. Stripe Dashboard — webhook endpoint (hosted Supabase)
 
-When **Stripe’s servers** must call your project (staging/production, or a stable tunnel), register the webhook in Stripe:
+When **Stripe’s servers** must call your project (staging/production, or a stable tunnel), register the webhook in Stripe. **`npm run setup:full`** (stripe phase) and deploy CI (`npm run stripe:ensure-webhook`) can create or update this endpoint for `https://<ref>.supabase.co` projects automatically; use the manual steps below if you prefer the Dashboard or need to **Reveal** an existing signing secret.
 
 1. **Developers → Webhooks → Add endpoint**.
 2. **Endpoint URL** (replace placeholders):
@@ -126,7 +163,7 @@ When **Stripe’s servers** must call your project (staging/production, or a sta
    `https://<PROJECT_REF>.supabase.co/functions/v1/stripe-webhook`
    - `PROJECT_REF` is in the Supabase project URL (Dashboard → Project Settings → API → Project URL).
 
-3. **Events to send** — at minimum select the types the template handler implements (you can also use “Receive all events” while testing):
+3. **Events to send** — select the same types as [`STRIPE_WEBHOOK_ENABLED_EVENTS`](../scripts/lib/ensure-stripe-webhook.mjs) (auto-ensure and CI use this list; you can also use “Receive all events” while testing):
    - `checkout.session.completed`
    - `customer.subscription.updated`
    - `customer.subscription.deleted`
@@ -134,6 +171,9 @@ When **Stripe’s servers** must call your project (staging/production, or a sta
    - `invoice.payment_failed`
    - `invoice.paid`
    - `invoice.payment_succeeded`
+   - `invoice.created`
+   - `invoice.finalized`
+   - `invoice.voided`
 
 4. After saving, open the webhook details and **Reveal** the **Signing secret** (`whsec_…`). That value is **`STRIPE_WEBHOOK_SECRET`** for the **same** Stripe mode (test vs live) as your API keys.
 

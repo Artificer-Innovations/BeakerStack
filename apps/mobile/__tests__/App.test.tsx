@@ -31,6 +31,15 @@ jest.mock('expo-updates', () => ({
   channel: null,
   updateId: null,
   manifest: null,
+  reloadAsync: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('@beakerstack/observability/native', () => ({
+  ObservabilityProvider: ({ children }: { children: React.ReactNode }) =>
+    children,
+  ErrorBoundary: ({ children }: { children: React.ReactNode }) => children,
+  initObservability: jest.fn().mockResolvedValue(undefined),
+  useObservability: () => ({ setUser: jest.fn() }),
 }));
 
 // Mock configureGoogleSignIn (added in our auth changes)
@@ -81,6 +90,8 @@ jest.mock('@beakerstack/shared/contexts/AuthContext', () => ({
     signUp: jest.fn(),
     signOut: jest.fn(),
     signInWithGoogle: jest.fn(),
+    requestPasswordReset: jest.fn(),
+    updatePassword: jest.fn(),
   }),
 }));
 
@@ -119,6 +130,7 @@ jest.mock('@react-navigation/native-stack', () => {
             navigate: jest.fn(),
             replace: jest.fn(),
             goBack: jest.fn(),
+            reset: jest.fn(),
           };
           return <Component navigation={mockNavigation} {...props} />;
         }
@@ -177,7 +189,7 @@ jest.mock('../src/navigation/BillingNavigator', () => {
   };
 });
 
-jest.mock('../src/screens/DashboardScreen', () => {
+jest.mock('../../../adopter/mobile/screens/DashboardScreen', () => {
   const { View, Text } = require('react-native');
   return {
     __esModule: true,
@@ -189,10 +201,61 @@ jest.mock('../src/screens/DashboardScreen', () => {
   };
 });
 
+jest.mock('../src/screens/ForgotPasswordScreen', () => {
+  const { View, Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => (
+      <View testID='forgot-password-screen'>
+        <Text>Forgot Password</Text>
+      </View>
+    ),
+  };
+});
+
+jest.mock('../src/screens/AuthCallbackScreen', () => {
+  const { View, Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => (
+      <View testID='auth-callback-screen'>
+        <Text>Auth Callback</Text>
+      </View>
+    ),
+  };
+});
+
+jest.mock('../src/screens/ResetPasswordScreen', () => {
+  const { View, Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => (
+      <View testID='reset-password-screen'>
+        <Text>Reset Password</Text>
+      </View>
+    ),
+  };
+});
+
+jest.mock('../src/screens/SignupPendingScreen', () => {
+  const { View, Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => (
+      <View testID='signup-pending-screen'>
+        <Text>Check your email</Text>
+      </View>
+    ),
+  };
+});
+
 import { render } from '@testing-library/react-native';
 import { describe, it, expect } from '@jest/globals';
 import App from '../App';
-import { HOME_TITLE, HOME_SUBTITLE } from '@beakerstack/shared/utils/strings';
+import {
+  getHomeTitle,
+  getHomeSubtitle,
+} from '@beakerstack/shared/utils/strings';
 
 describe('Mobile App', () => {
   it('renders without crashing', () => {
@@ -200,7 +263,7 @@ describe('Mobile App', () => {
 
     // Check if the app content is rendered
     // Title appears in both header and main content
-    const titles = getAllByText(HOME_TITLE);
+    const titles = getAllByText(getHomeTitle());
     expect(titles.length).toBeGreaterThan(0);
   });
 
@@ -208,6 +271,6 @@ describe('Mobile App', () => {
     const { getByText } = render(<App />);
 
     // Check if subtitle is present using the shared string constant
-    expect(getByText(HOME_SUBTITLE)).toBeTruthy();
+    expect(getByText(getHomeSubtitle())).toBeTruthy();
   });
 });

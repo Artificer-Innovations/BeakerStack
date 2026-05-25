@@ -14,16 +14,11 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.native';
 import { colors } from '@beakerstack/shared/theme/colors';
+import { MIN_PASSWORD_LENGTH } from '@beakerstack/shared/constants/auth';
 import { supabase } from '../lib/supabase';
 import { SocialLoginButton } from '../components/SocialLoginButton';
 import { useFeatureFlags } from '../config/featureFlags';
-
-type RootStackParamList = {
-  Home: undefined;
-  Login: undefined;
-  Signup: undefined;
-  Dashboard: undefined;
-};
+import type { RootStackParamList } from '../navigation/types';
 
 type SignupScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -57,6 +52,14 @@ export default function SignupScreen({ navigation }: Props) {
       return;
     }
 
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      Alert.alert(
+        'Password too short',
+        `Password must be at least ${MIN_PASSWORD_LENGTH} characters`
+      );
+      return;
+    }
+
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match');
       return;
@@ -66,7 +69,14 @@ export default function SignupScreen({ navigation }: Props) {
 
     try {
       await auth.signUp(email, password);
-      navigation.navigate('Dashboard');
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session) {
+        navigation.navigate('Dashboard');
+      } else {
+        navigation.navigate('SignupPending', { email });
+      }
     } catch (error) {
       Alert.alert(
         'Sign Up Failed',

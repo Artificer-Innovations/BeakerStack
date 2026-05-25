@@ -62,6 +62,12 @@ jest.mock('@beakerstack/shared/components/profile/AvatarUpload.native', () => ({
         >
           Upload
         </button>
+        <button
+          data-testid='avatar-upload-query-only'
+          onClick={() => onUploadComplete('?cacheBust=1')}
+        >
+          Upload query only
+        </button>
         <button data-testid='avatar-remove-trigger' onClick={() => onRemove()}>
           Remove
         </button>
@@ -71,7 +77,7 @@ jest.mock('@beakerstack/shared/components/profile/AvatarUpload.native', () => ({
 }));
 
 // Mock Logger
-jest.mock('@beakerstack/shared/utils/logger', () => ({
+jest.mock('@beakerstack/logger', () => ({
   Logger: {
     debug: jest.fn(),
     warn: jest.fn(),
@@ -121,6 +127,7 @@ jest.mock('@beakerstack/shared/contexts/ProfileContext', () => ({
 }));
 
 import { useProfileContext } from '@beakerstack/shared/contexts/ProfileContext';
+import * as profileSchema from '@beakerstack/shared/validation/profileSchema';
 
 describe('ProfileEditor (Native)', () => {
   const mockUseProfileContext = useProfileContext as jest.MockedFunction<
@@ -195,13 +202,11 @@ describe('ProfileEditor (Native)', () => {
 
     render(<ProfileEditor />);
 
-    await waitFor(() => {
-      const usernameInput = screen.getByTestId(
-        'input-username'
-      ) as HTMLInputElement;
-      fireEvent.change(usernameInput, { target: { value: 'newusername' } });
-      expect(usernameInput.value).toBe('newusername');
-    });
+    const usernameInput = (await waitFor(() =>
+      screen.getByTestId('input-username')
+    )) as HTMLInputElement;
+    fireEvent.change(usernameInput, { target: { value: 'newusername' } });
+    expect(usernameInput.value).toBe('newusername');
   });
 
   it('validates and shows field errors for invalid input', async () => {
@@ -418,6 +423,121 @@ describe('ProfileEditor (Native)', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('error-website')).toBeInTheDocument();
+    });
+  });
+
+  it('treats malformed validation errors as general failures', async () => {
+    const parseSpy = jest
+      .spyOn(profileSchema.profileFormSchema, 'parse')
+      .mockImplementation(() => {
+        throw { errors: 'not-an-array' };
+      });
+    const mockOnError = jest.fn();
+    mockUseProfileContext.mockReturnValue(createContextValue());
+
+    render(<ProfileEditor onError={mockOnError} />);
+    fireEvent.click(screen.getByTestId('submit-button'));
+
+    await waitFor(() => {
+      expect(mockOnError).toHaveBeenCalled();
+    });
+
+    parseSpy.mockRestore();
+  });
+
+  it('rejects zod-shaped payloads with invalid error entries', async () => {
+    const parseSpy = jest
+      .spyOn(profileSchema.profileFormSchema, 'parse')
+      .mockImplementation(() => {
+        throw {
+          errors: [{ path: 'username', message: 'Bad username' }],
+        };
+      });
+    const mockOnError = jest.fn();
+
+    mockUseProfileContext.mockReturnValue(createContextValue());
+    render(<ProfileEditor onError={mockOnError} />);
+    fireEvent.click(screen.getByTestId('submit-button'));
+
+    await waitFor(() => {
+      expect(mockOnError).toHaveBeenCalled();
+      expect(screen.queryByTestId('error-username')).not.toBeInTheDocument();
+    });
+
+    parseSpy.mockRestore();
+  });
+
+  it('maps zod-shaped validation errors to field errors', async () => {
+    const parseSpy = jest
+      .spyOn(profileSchema.profileFormSchema, 'parse')
+      .mockImplementation(() => {
+        throw {
+          errors: [
+            { path: ['bio'], message: 'Bio is invalid' },
+            { path: [0], message: 'Ignored numeric path' },
+          ],
+        };
+      });
+
+    mockUseProfileContext.mockReturnValue(createContextValue());
+    render(<ProfileEditor />);
+    fireEvent.click(screen.getByTestId('submit-button'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('error-bio')).toHaveTextContent(
+        'Bio is invalid'
+      );
+    });
+
+    parseSpy.mockRestore();
+  });
+
+  it('shows field errors for bio when bio is too long', async () => {
+    mockUseProfileContext.mockReturnValue(createContextValue());
+    render(<ProfileEditor />);
+
+    fireEvent.change(screen.getByTestId('input-bio'), {
+      target: { value: 'a'.repeat(501) },
+    });
+    fireEvent.click(screen.getByTestId('submit-button'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('error-bio')).toBeInTheDocument();
+    });
+  });
+
+  it('calls onError with a wrapped error for non-Error rejections', async () => {
+    const mockOnError = jest.fn();
+    mockUseProfileContext.mockReturnValue(
+      createContextValue({
+        createProfile: jest.fn().mockRejectedValue('database unavailable'),
+      })
+    );
+
+    render(<ProfileEditor onError={mockOnError} />);
+    fireEvent.click(screen.getByTestId('submit-button'));
+
+    await waitFor(() => {
+      expect(mockOnError).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'database unavailable' })
+      );
+    });
+  });
+
+  it('skips avatar database update when upload URL has no path', async () => {
+    const mockUpdateProfile = jest.fn().mockResolvedValue(mockProfile);
+    mockUseProfileContext.mockReturnValue(
+      createContextValue({
+        profile: mockProfile,
+        updateProfile: mockUpdateProfile,
+      })
+    );
+
+    render(<ProfileEditor />);
+    fireEvent.click(screen.getByTestId('avatar-upload-query-only'));
+
+    await waitFor(() => {
+      expect(mockUpdateProfile).not.toHaveBeenCalled();
     });
   });
 

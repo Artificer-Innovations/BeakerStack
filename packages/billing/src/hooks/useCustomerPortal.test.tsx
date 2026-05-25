@@ -60,4 +60,94 @@ describe('useCustomerPortal', () => {
     expect(url).toBeNull();
     await waitFor(() => expect(result.current.error?.kind).toBe('stripe'));
   });
+
+  it('maps edge function errors', async () => {
+    invoke.mockResolvedValue({
+      data: null,
+      error: new Error('portal unavailable'),
+    });
+    const { result } = renderHook(() => useCustomerPortal());
+    const url = await result.current.openPortal();
+    expect(url).toBeNull();
+    await waitFor(() =>
+      expect(result.current.error?.message).toContain('portal unavailable')
+    );
+  });
+
+  it('still returns url when navigation throws in jsdom', async () => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        set href(_url: string) {
+          throw new Error('Not implemented: navigation');
+        },
+        get href() {
+          return '';
+        },
+      },
+    });
+    invoke.mockResolvedValue({
+      data: { url: 'https://billing.stripe/session' },
+      error: null,
+    });
+    const { result } = renderHook(() => useCustomerPortal());
+    const url = await result.current.openPortal();
+    expect(url).toBe('https://billing.stripe/session');
+    expect(refreshSubscription).not.toHaveBeenCalled();
+  });
+
+  it('refreshes subscription when window.location is missing', async () => {
+    const realLocation = window.location;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: undefined,
+    });
+    invoke.mockResolvedValue({
+      data: { url: 'https://billing.stripe/session' },
+      error: null,
+    });
+    try {
+      const { result } = renderHook(() => useCustomerPortal());
+      const url = await result.current.openPortal();
+      expect(url).toBe('https://billing.stripe/session');
+      expect(refreshSubscription).toHaveBeenCalled();
+      expect(result.current.pending).toBe(false);
+    } finally {
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: realLocation,
+      });
+    }
+  });
+
+  it('clears pending after a failed portal open', async () => {
+    invoke.mockResolvedValue({ data: {}, error: null });
+    const { result } = renderHook(() => useCustomerPortal());
+    await result.current.openPortal();
+    await waitFor(() => expect(result.current.pending).toBe(false));
+  });
+
+  it('clears pending when refreshSubscription fails without window.location', async () => {
+    const realLocation = window.location;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: undefined,
+    });
+    invoke.mockResolvedValue({
+      data: { url: 'https://billing.stripe/session' },
+      error: null,
+    });
+    refreshSubscription.mockRejectedValueOnce(new Error('refresh failed'));
+    try {
+      const { result } = renderHook(() => useCustomerPortal());
+      const url = await result.current.openPortal();
+      expect(url).toBeNull();
+      expect(result.current.pending).toBe(false);
+    } finally {
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: realLocation,
+      });
+    }
+  });
 });

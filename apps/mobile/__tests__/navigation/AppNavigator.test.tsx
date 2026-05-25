@@ -1,5 +1,13 @@
-import { render } from '@testing-library/react-native';
-import { AppNavigator } from '../../src/navigation/AppNavigator';
+import { render, waitFor } from '@testing-library/react-native';
+import {
+  configureAdopter,
+  resetAdopterConfigForTests,
+} from '@beakerstack/shared/config/adopterRuntime';
+import { adopterConfig } from '@adopter/config';
+import {
+  AppNavigator,
+  validatePostLoginPathMobile,
+} from '../../src/navigation/AppNavigator';
 import { useFeatureFlags } from '../../src/config/featureFlags';
 
 // Mock feature flags
@@ -35,13 +43,38 @@ jest.mock('../../src/screens/SignupScreen', () => {
   );
 });
 
-jest.mock('../../src/screens/DashboardScreen', () => {
+jest.mock('../../../../adopter/mobile/screens/DashboardScreen', () => {
   const { View, Text } = require('react-native');
   return () => (
     <View testID='dashboard-screen'>
       <Text>Dashboard Screen</Text>
     </View>
   );
+});
+
+jest.mock('../../../../adopter/mobile/screenExtensions', () => {
+  const { View, Text } = require('react-native');
+  const DashboardScreen = () => (
+    <View testID='dashboard-screen'>
+      <Text>Dashboard Screen</Text>
+    </View>
+  );
+  const PublicAdopterScreen = () => <View testID='public-adopter-screen' />;
+
+  return {
+    adopterStackScreens: [
+      {
+        name: 'PublicAdopter',
+        component: PublicAdopterScreen,
+        auth: 'public',
+      },
+      {
+        name: 'Dashboard',
+        component: DashboardScreen,
+        auth: 'protected',
+      },
+    ],
+  };
 });
 
 jest.mock('../../src/screens/ProfileScreen', () => {
@@ -65,6 +98,54 @@ jest.mock('../../src/navigation/BillingNavigator', () => {
   };
 });
 
+jest.mock('../../src/screens/ForgotPasswordScreen', () => {
+  const { View, Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => (
+      <View testID='forgot-password-screen'>
+        <Text>Forgot Password Screen</Text>
+      </View>
+    ),
+  };
+});
+
+jest.mock('../../src/screens/AuthCallbackScreen', () => {
+  const { View, Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => (
+      <View testID='auth-callback-screen'>
+        <Text>Auth Callback Screen</Text>
+      </View>
+    ),
+  };
+});
+
+jest.mock('../../src/screens/ResetPasswordScreen', () => {
+  const { View, Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => (
+      <View testID='reset-password-screen'>
+        <Text>Reset Password Screen</Text>
+      </View>
+    ),
+  };
+});
+
+jest.mock('../../src/screens/SignupPendingScreen', () => {
+  const { View, Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => (
+      <View testID='signup-pending-screen'>
+        <Text>Check your email</Text>
+      </View>
+    ),
+  };
+});
+
 describe('AppNavigator', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -73,18 +154,30 @@ describe('AppNavigator', () => {
     });
   });
 
-  it('renders navigation container', () => {
+  it('renders navigation container', async () => {
     const { getByTestId } = render(<AppNavigator />);
-    expect(getByTestId('home-screen')).toBeTruthy();
+    await waitFor(() => expect(getByTestId('home-screen')).toBeTruthy());
   });
 
-  it('configures navigation with feature flags', () => {
+  it('configures navigation with feature flags', async () => {
     (useFeatureFlags as jest.Mock).mockReturnValue({
       showNativeHeader: true,
     });
 
     const { getByTestId } = render(<AppNavigator />);
-    expect(getByTestId('home-screen')).toBeTruthy();
+    await waitFor(() => expect(getByTestId('home-screen')).toBeTruthy());
+  });
+
+  it('throws when postLoginPathMobile is not registered', () => {
+    resetAdopterConfigForTests();
+    configureAdopter({
+      ...adopterConfig,
+      postLoginPathMobile: 'MissingScreen',
+    });
+
+    expect(() => validatePostLoginPathMobile()).toThrow(
+      /postLoginPathMobile "MissingScreen" is not registered/
+    );
   });
 
   it('exposes navigation ref in dev mode', () => {

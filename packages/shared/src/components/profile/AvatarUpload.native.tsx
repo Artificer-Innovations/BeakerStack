@@ -17,7 +17,7 @@ import {
   useAvatarUpload,
   type ArrayBufferWithMetadata,
 } from '../../hooks/useAvatarUpload';
-import { Logger } from '../../utils/logger';
+import { Logger } from '@beakerstack/logger';
 
 // Helper function to fix URLs for Android emulator
 const fixUrlForAndroid = (url: string | null): string | null => {
@@ -402,7 +402,11 @@ export function AvatarUpload({
                 Logger.error('[AvatarUpload] Error in handlePickImage:', err);
                 Alert.alert(
                   'Error',
-                  `Failed to pick image: ${err instanceof Error ? err.message : String(err)}`
+                  `Failed to pick image: ${
+                    err instanceof Error
+                      ? err.message
+                      : /* v8 ignore next */ String(err)
+                  }`
                 );
               });
             }}

@@ -56,4 +56,28 @@ describe('UpgradePrompt (web)', () => {
     render(<UpgradePrompt targetTier='plan_pro' reason='x' />);
     expect(screen.getByText('fail')).toBeInTheDocument();
   });
+
+  it('disables upgrade while checkout is pending', () => {
+    vi.mocked(useCheckout).mockReturnValue({
+      startCheckout,
+      pending: true,
+      error: null,
+    });
+    render(<UpgradePrompt targetTier='plan_pro' reason='x' />);
+    expect(screen.getByRole('button', { name: '…' })).toBeDisabled();
+  });
+
+  it('does not navigate when checkout returns no url', async () => {
+    startCheckout.mockResolvedValue({});
+    render(<UpgradePrompt targetTier='plan_pro' reason='x' />);
+    fireEvent.click(screen.getByRole('button', { name: 'Upgrade' }));
+    await waitFor(() => expect(startCheckout).toHaveBeenCalled());
+    expect((globalThis.location as Location).href).toBe('');
+  });
+
+  it('does not call checkout without a plan id', async () => {
+    render(<UpgradePrompt reason='x' />);
+    fireEvent.click(screen.getByRole('button', { name: 'Upgrade' }));
+    expect(startCheckout).not.toHaveBeenCalled();
+  });
 });

@@ -1,0 +1,66 @@
+# Adopter database migrations
+
+## Layout
+
+| Path                     | Purpose                                                       |
+| ------------------------ | ------------------------------------------------------------- |
+| `supabase/migrations/`   | Template schema (`public`, etc.)                              |
+| `adopter/db/init.sql`    | Bootstrap: `CREATE SCHEMA app`, `app.schema_migrations` table |
+| `adopter/db/migrations/` | Adopter DDL in schema `app`                                   |
+
+## Filename convention
+
+Adopter migrations use normal timestamps (`20260524120000_description.sql`). Separate directory + tracking table provides isolation — a `9*` prefix is **not required** for ordering.
+
+Adopter migrations _may_ optionally use `9*` prefixes as a visual hint in `adopter/db/migrations/`.
+
+## Why template migrations must NOT use `9*` prefix
+
+| Scenario                | Rationale                                                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Accidental misplacement | Contributor adds adopter DDL to `supabase/migrations/`; `9*` makes review and lint catch "adopter namespace" immediately                    |
+| Future unified tooling  | Planned `db:status` / upgrade checklists may scan both dirs in one sorted list; reserved `9*` on template side prevents ambiguous filenames |
+| Human convention        | Blocking `9*` on template side keeps adopter-only `9*` convention one-directional                                                           |
+
+## `db:init-adopter`
+
+Idempotent bootstrap — creates `app` schema and `app.schema_migrations` tracking table.
+
+```bash
+npm run db:init-adopter
+```
+
+## `db:apply-adopter` algorithm
+
+1. List `adopter/db/migrations/*.sql` sorted lexicographically
+2. Query `app.schema_migrations` for applied filenames
+3. Apply each pending file in a transaction; record filename + checksum on success
+4. On failure: abort, leave DB at last good migration, print failed file + error
+
+### Local / CI
+
+```bash
+npm run db:init-adopter
+npm run db:apply-adopter
+```
+
+### Production (`--linked`)
+
+```bash
+supabase db push
+npm run db:apply-adopter -- --linked
+```
+
+`--linked` resolves the remote Postgres URL from `DATABASE_URL` or paired project-ref + DB password env vars (`SUPABASE_*`, `SUPABASE_PREVIEW_*`, `STAGING_SUPABASE_*`, `PRODUCTION_SUPABASE_*`). When `supabase link` has written `supabase/.temp/pooler-url`, the resolver uses the Supavisor session pooler (IPv4-compatible on GitHub Actions) instead of direct `db.{ref}.supabase.co`. Deploy workflows inject staging/production secrets on this step; PR preview runs it from `reset-preview-database.sh` after template migrations (and after every full reset, since reset drops the `app` schema).
+
+## Type generation
+
+```bash
+supabase gen types typescript --schema app > adopter/db/types/database.ts
+```
+
+## Failure modes
+
+- Missing `db:init-adopter`: runner fails with clear message to run init first
+- Partial apply: DB left at last successful migration; re-run applies pending only
+- Checksum mismatch on applied file: fail with manual intervention message

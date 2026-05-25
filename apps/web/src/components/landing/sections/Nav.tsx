@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { LandingConfig } from '../../../config/landing';
+import type { LandingConfig } from '@adopter/config/landing';
 import { useMarketingAuthHint } from '../../../hooks/useMarketingAuthHint';
 import { getPrPreviewAssetBasePath } from '../../../lib/prPreviewAssetBasePath';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';

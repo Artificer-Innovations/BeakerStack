@@ -46,12 +46,15 @@ import {
   clearGoogleKeysFromAcc,
   envVarsFromGoogleServicesJson,
 } from './lib/setup-google-services.mjs';
+import { collectSupabaseGoogleOAuthIntoAcc } from './lib/setup-google-oauth.mjs';
 import {
   printIntroBanner,
   printPhaseIntro,
   printAwsPhaseReadinessBriefing,
   printExpoPhaseReadinessBriefing,
   printGooglePhaseReadinessBriefing,
+  printStripePhaseReadinessBriefing,
+  printKitPhaseReadinessBriefing,
   printGithubPhaseReadinessBriefing,
   confirmRunPhase,
   printManualInstructions,
@@ -67,6 +70,11 @@ import {
   logGithubSyncTargetSummary,
   resolveGhRepoContext,
 } from './lib/setup-github-repo.mjs';
+import {
+  SETUP_STRIPE_SKIPPED_ENV,
+  collectStripeEnvKeys,
+  isStripeGithubSecretDef,
+} from './lib/setup-stripe.mjs';
 import {
   formatSupabaseProjectChoiceLine,
   parseApiKeysJson,
@@ -85,6 +93,12 @@ import {
   discoverIssuedCertsCoveringApexWildcard,
   discoverRoute53PublicZonesForApex,
 } from './lib/setup-aws-discover.mjs';
+import { phaseEmailDns } from './setup-email-dns.mjs';
+import { phaseKit } from './setup-kit.mjs';
+import {
+  SETUP_KIT_SKIPPED_ENV,
+  listMissingKitEnvKeys,
+} from './lib/setup-kit.mjs';
 
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -102,8 +116,11 @@ const PHASE_ORDER = [
   'identity',
   'supabase',
   'aws',
+  'email-dns',
   'expo',
   'google',
+  'stripe',
+  'kit',
   'write',
   'github',
 ];
@@ -111,7 +128,7 @@ const PHASE_ORDER = [
 /** Merged from dotenv-style secret files / pastes (allowlisted keys only). */
 const MERGEABLE_SETUP_ENV_KEYS = mergeableSetupEnvKeys();
 
-/** @typedef {{ dryRun: boolean; fromPhase: string; skipRename: boolean; awsProfile: string; skipGithub: boolean; githubRepo: string; mobileEnabled: boolean; plainSecretPrompts: boolean; guide: 'full' | 'brief'; guideFromCli: boolean }} CliFlags */
+/** @typedef {{ dryRun: boolean; fromPhase: string; skipRename: boolean; awsProfile: string; skipGithub: boolean; skipStripe: boolean; skipKit: boolean; skipEmailDns: boolean; githubRepo: string; mobileEnabled: boolean; plainSecretPrompts: boolean; guide: 'full' | 'brief'; guideFromCli: boolean }} CliFlags */
 
 function printHelp() {
   console.log(`Usage: node scripts/setup-full.mjs [options]
@@ -120,10 +137,13 @@ Options:
   --dry-run              No env/state file writes; no PAT/EXPO env merge; no Supabase api-keys fetch;
                          no AWS bootstrap run; no google-services import; GitHub sync skips gh but still
                          reads .env*.local to log what would be synced
-  --from=PHASE           Resume at prereqs|identity|supabase|aws|expo|google|write|github (alias: gh=github;
+  --from=PHASE           Resume at prereqs|identity|supabase|aws|email-dns|expo|google|stripe|kit|write|github (alias: gh=github;
                          merges existing .env*.local first when resuming)
   --skip-rename          Skip the identity / rename phase entirely
   --skip-github          Skip GitHub Actions secret/variable sync
+  --skip-email-dns       Skip Resend domain + Route 53 DNS email setup
+  --skip-stripe          Skip Stripe key collection; Stripe secrets not required at github sync
+  --skip-kit             Skip Kit marketing email key collection
   --github-repo=OWNER/NAME  Override repo for gh secret/variable sync (default: gh repo view in cwd)
   --skip-mobile          Skip Expo, EAS, and Google Services setup (web-only repos)
   --aws-profile=NAME     Pass through to bootstrap-aws-stack.sh
@@ -166,6 +186,9 @@ function parseArgv(argv) {
     skipRename: false,
     awsProfile: '',
     skipGithub: false,
+    skipStripe: false,
+    skipKit: false,
+    skipEmailDns: false,
     githubRepo: '',
     mobileEnabled: true,
     plainSecretPrompts: false,
@@ -176,6 +199,9 @@ function parseArgv(argv) {
     if (a === '--dry-run') flags.dryRun = true;
     else if (a === '--skip-rename') flags.skipRename = true;
     else if (a === '--skip-github') flags.skipGithub = true;
+    else if (a === '--skip-stripe') flags.skipStripe = true;
+    else if (a === '--skip-kit') flags.skipKit = true;
+    else if (a === '--skip-email-dns') flags.skipEmailDns = true;
     else if (a.startsWith('--github-repo='))
       flags.githubRepo = a.slice('--github-repo='.length).trim();
     else if (a === '--skip-mobile') flags.mobileEnabled = false;
@@ -1416,13 +1442,21 @@ async function phaseIdentity(flags, rl) {
     }
   }
 
+  const doFullRebrand = await rlQuestion(
+    rl,
+    'Fully rebrand npm scope (@beakerstack) and upgrade docs? (y/N): '
+  );
+  const preserveArgs = /^y(es)?$/i.test(doFullRebrand.trim())
+    ? ['--full-rebrand']
+    : ['--preserve-upstream'];
+
   const dry = flags.dryRun ? ['--dry-run'] : [];
   const legalArgs =
     toLegal && fromLegal && fromLegal !== toLegal
       ? ['--from-legal', fromLegal, '--to-legal', toLegal]
       : [];
   logInfo(
-    `Running rename: display "${fromName}" -> "${toName}"${legalArgs.length ? ' + legal entity' : ''}`
+    `Running rename: display "${fromName}" -> "${toName}"${legalArgs.length ? ' + legal entity' : ''} (${preserveArgs.includes('--full-rebrand') ? 'full rebrand' : 'preserve upstream'})`
   );
   const code = runInteractiveWithRl(
     rl,
@@ -1435,6 +1469,7 @@ async function phaseIdentity(flags, rl) {
       fromName,
       '--to',
       toName,
+      ...preserveArgs,
       ...legalArgs,
       ...dry,
     ],
@@ -2194,9 +2229,35 @@ async function phaseExpo(flags, rl, acc, promptInput) {
 /**
  * @param {CliFlags} flags
  * @param {import('node:readline/promises').ReadLine} rl
+ * @param {import('stream').Readable & { isTTY?: boolean; setRawMode?: (flag: boolean) => void }} promptInput
  * @param {Record<string, string>} acc
  */
-async function phaseGoogle(flags, rl, acc) {
+async function phaseStripe(flags, rl, promptInput, acc) {
+  acc[SETUP_STRIPE_SKIPPED_ENV] = 'false';
+  await collectStripeEnvKeys({
+    acc,
+    flags,
+    logInfo,
+    logWarn,
+    question: q => rlQuestion(rl, q),
+    readSecret: prompt =>
+      readSecretLineMaskedOrVisible(rl, promptInput, flags, prompt),
+    applySecret: async (raw, primaryKey) => {
+      checkSecretInputQuit(raw);
+      if (!raw) return;
+      const resolved = await resolveSecretInputForSetup(raw, primaryKey);
+      applySecretResolutionToAcc(acc, resolved, primaryKey);
+    },
+  });
+}
+
+/**
+ * @param {CliFlags} flags
+ * @param {import('node:readline/promises').ReadLine} rl
+ * @param {import('stream').Readable & { isTTY?: boolean; setRawMode?: (flag: boolean) => void }} promptInput
+ * @param {Record<string, string>} acc
+ */
+async function phaseGoogle(flags, rl, promptInput, acc) {
   logInfo('');
   logInfo(
     'Paste the path to your downloaded google-services.json (absolute or relative to repo root).'
@@ -2232,6 +2293,13 @@ async function phaseGoogle(flags, rl, acc) {
   } catch (e) {
     logWarn(`Could not parse google-services.json: ${(e && e.message) || e}`);
   }
+
+  await collectSupabaseGoogleOAuthIntoAcc(
+    prompt => readSecretLineMaskedOrVisible(rl, promptInput, flags, prompt),
+    q => rlQuestion(rl, q),
+    acc,
+    { logInfo, logWarn, dryRun: flags.dryRun }
+  );
 }
 
 /**
@@ -2298,6 +2366,20 @@ async function collectMissingGithubCiEnvIntoAcc(flags, rl, promptInput, acc) {
 
   let details = listMissingRequiredGithubCiDetails(acc);
   if (!details.length) return 'none';
+
+  const stripeMissing = details.filter(d => isStripeGithubSecretDef(d.def));
+  if (stripeMissing.length) {
+    logInfo(
+      `${stripeMissing.length} Stripe key(s) still missing — run \`npm run setup:full -- --from=stripe\` for guided collection, or enter below.`
+    );
+  }
+
+  const kitMissing = listMissingKitEnvKeys(acc);
+  if (kitMissing.length) {
+    logInfo(
+      `${kitMissing.length} optional Kit secret(s) not set (${kitMissing.join(', ')}) — run \`npm run setup:kit\` or \`npm run setup:full -- --from=kit\`.`
+    );
+  }
 
   if (!input.isTTY) {
     logWarn(
@@ -2528,6 +2610,13 @@ async function main() {
     }
   }
 
+  if (flags.skipStripe) {
+    acc[SETUP_STRIPE_SKIPPED_ENV] = 'true';
+  }
+  if (flags.skipKit) {
+    acc[SETUP_KIT_SKIPPED_ENV] = 'true';
+  }
+
   if (!flags.mobileEnabled) {
     acc.MOBILE_ENABLED = 'false';
     logInfo(
@@ -2580,8 +2669,22 @@ async function main() {
         logInfo('Skipping identity/rename (--skip-rename).');
         continue;
       }
+      if (phase === 'stripe' && flags.skipStripe) {
+        logInfo('Skipping Stripe phase (--skip-stripe).');
+        acc[SETUP_STRIPE_SKIPPED_ENV] = 'true';
+        continue;
+      }
+      if (phase === 'kit' && flags.skipKit) {
+        logInfo('Skipping Kit phase (--skip-kit).');
+        acc[SETUP_KIT_SKIPPED_ENV] = 'true';
+        continue;
+      }
       if (phase === 'github' && flags.skipGithub) {
         logInfo('Skipping GitHub sync (--skip-github).');
+        continue;
+      }
+      if (phase === 'email-dns' && flags.skipEmailDns) {
+        logInfo('Skipping email DNS setup (--skip-email-dns).');
         continue;
       }
       if (
@@ -2599,6 +2702,12 @@ async function main() {
         printManualInstructions(logCtx, phase);
         if (phase === 'expo') {
           clearExpoKeysFromAcc(acc);
+        }
+        if (phase === 'stripe') {
+          acc[SETUP_STRIPE_SKIPPED_ENV] = 'true';
+        }
+        if (phase === 'kit') {
+          acc[SETUP_KIT_SKIPPED_ENV] = 'true';
         }
         continue;
       }
@@ -2633,6 +2742,26 @@ async function main() {
         }
       }
 
+      if (phase === 'stripe' && !flags.skipStripe) {
+        printStripePhaseReadinessBriefing(logCtx);
+        if (!flags.dryRun && input.isTTY) {
+          await rlQuestion(
+            rl,
+            'Press Enter when you have Stripe test keys (and live keys for production if needed)…'
+          );
+        }
+      }
+
+      if (phase === 'kit' && !flags.skipKit) {
+        printKitPhaseReadinessBriefing(logCtx);
+        if (!flags.dryRun && input.isTTY) {
+          await rlQuestion(
+            rl,
+            'Press Enter when you have a Kit API key and webhook signing secret…'
+          );
+        }
+      }
+
       if (phase === 'github' && !flags.skipGithub) {
         printGithubPhaseReadinessBriefing(logCtx);
         if (!flags.dryRun && input.isTTY) {
@@ -2653,11 +2782,34 @@ async function main() {
         case 'aws':
           await phaseAws(flags, rl, acc);
           break;
+        case 'email-dns':
+          await phaseEmailDns(flags, rl, acc);
+          break;
         case 'expo':
           await phaseExpo(flags, rl, acc, promptInput);
           break;
         case 'google':
-          await phaseGoogle(flags, rl, acc);
+          await phaseGoogle(flags, rl, promptInput, acc);
+          break;
+        case 'stripe':
+          await phaseStripe(flags, rl, promptInput, acc);
+          break;
+        case 'kit':
+          await phaseKit(
+            {
+              dryRun: flags.dryRun,
+              skipKit: false,
+              skipGithub: true,
+              standalone: false,
+            },
+            rl,
+            acc,
+            {
+              question: q => rlQuestion(rl, q),
+              readSecret: prompt =>
+                readSecretLineMaskedOrVisible(rl, promptInput, flags, prompt),
+            }
+          );
           break;
         case 'github':
           await phaseGithub(flags, rl, acc, promptInput);
@@ -2666,6 +2818,26 @@ async function main() {
           break;
       }
     }
+    // Personalize email templates
+    if (!flags.dryRun) {
+      logInfo('');
+      logInfo('Personalizing email templates...');
+      try {
+        const { execSync } = await import('node:child_process');
+        execSync(
+          'node scripts/personalize-email-templates.mjs --non-interactive',
+          {
+            stdio: 'inherit',
+            cwd: REPO_ROOT,
+          }
+        );
+      } catch {
+        logInfo(
+          'Email template personalization skipped (run manually: npm run email:personalize)'
+        );
+      }
+    }
+
     if (flags.dryRun) {
       logInfo(
         '[dry-run] finished: no env/state files written; no real API keys or tokens merged by this script.'

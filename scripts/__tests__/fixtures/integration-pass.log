@@ -1,0 +1,15 @@
+PASS tests/integration/auth.test.ts
+PASS tests/integration/billing.test.ts
+PASS tests/integration/waitlist.test.ts
+
+Test Suites: 3 passed, 3 total
+Tests:       22 passed, 22 total
+Snapshots:   0 total
+Time:        8.432 s
+Ran all test suites.
+
+ ✓ apps/web/src/lib/supabase.test.ts (4 tests) 1032ms
+
+ Test Files  1 passed (1)
+ Tests       4 passed (4)
+ Duration    1.85s (transform 120ms, setup 210ms, collect 85ms, tests 1032ms, environment 0ms, prepare 45ms)

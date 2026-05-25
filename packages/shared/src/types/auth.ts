@@ -9,9 +9,15 @@ export interface AuthState {
 
 export interface AuthActions {
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (
+    email: string,
+    password: string,
+    options?: { data?: Record<string, unknown> }
+  ) => Promise<void>;
   signOut: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
 }
 
 export type AuthHookReturn = AuthState & AuthActions;

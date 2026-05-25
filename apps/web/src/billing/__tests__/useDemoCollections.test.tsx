@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { useDemoCollections } from '../useDemoCollections';
+import { useDemoCollections } from '@adopter/web/billing/useDemoCollections';
 
 const { rpc, mockClient } = vi.hoisted(() => {
   const rpc = vi.fn();
@@ -8,8 +8,7 @@ const { rpc, mockClient } = vi.hoisted(() => {
   return { rpc, mockClient };
 });
 
-vi.mock('../../lib/supabase', () => ({
-  supabase: mockClient,
+vi.mock('@/lib/supabase', () => ({
   supabaseRpc: mockClient,
 }));
 
@@ -43,18 +42,17 @@ describe('useDemoCollections', () => {
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
     });
-    // Thrown Postgrest-style objects are not `instanceof Error`
-    expect(result.current.error).toBe('Could not load demo collections.');
+    expect(result.current.error).toBe('[object Object]');
     expect(result.current.collections).toEqual([]);
   });
 
-  it('sets generic error when throw is non-Error', async () => {
+  it('sets stringified error when throw is non-Error', async () => {
     rpc.mockRejectedValue('boom');
     const { result } = renderHook(() => useDemoCollections());
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
     });
-    expect(result.current.error).toBe('Could not load demo collections.');
+    expect(result.current.error).toBe('boom');
     expect(result.current.collections).toEqual([]);
   });
 
@@ -68,7 +66,7 @@ describe('useDemoCollections', () => {
     expect(result.current.collections).toEqual([]);
   });
 
-  it('refresh refetches after initial load', async () => {
+  it('refetch reloads collections after initial load', async () => {
     rpc
       .mockResolvedValueOnce({
         data: [{ id: 'a', item_count: 1 }],
@@ -87,7 +85,7 @@ describe('useDemoCollections', () => {
     });
     expect(result.current.collections).toHaveLength(1);
     await act(async () => {
-      await result.current.refresh();
+      await result.current.refetch();
     });
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -174,6 +172,46 @@ describe('useDemoCollections', () => {
         p_collection_id: 'col',
       })
     );
+  });
+
+  it('coerces null RPC data to empty array', async () => {
+    rpc.mockResolvedValue({ data: null, error: null });
+    const { result } = renderHook(() => useDemoCollections());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(result.current.collections).toEqual([]);
+    expect(result.current.error).toBeNull();
+  });
+
+  it('propagates RPC error from deleteCollection', async () => {
+    rpc.mockResolvedValueOnce({ data: [], error: null });
+    rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'delete denied' },
+    });
+    const { result } = renderHook(() => useDemoCollections());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    await expect(result.current.deleteCollection('x')).rejects.toEqual({
+      message: 'delete denied',
+    });
+  });
+
+  it('propagates RPC error from addItem', async () => {
+    rpc.mockResolvedValueOnce({ data: [], error: null });
+    rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'add item denied' },
+    });
+    const { result } = renderHook(() => useDemoCollections());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    await expect(result.current.addItem('col')).rejects.toEqual({
+      message: 'add item denied',
+    });
   });
 
   it('propagates RPC error from addCollection', async () => {

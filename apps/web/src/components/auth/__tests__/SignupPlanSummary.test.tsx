@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { Plan } from '@beakerstack/billing';
 import type { PlanSavingsCopy } from '@beakerstack/billing/presentation';
+import type { UseSignupModeResult } from '@beakerstack/waitlist';
 import { LoginPlanSummary, SignupPlanSummary } from '../SignupPlanSummary';
 
 const proPlan: Plan = {
@@ -38,6 +39,30 @@ vi.mock('../../../auth/planSignupBullets', () => ({
   planSignupBullets: vi.fn(() => ['First bullet', 'Second bullet']),
 }));
 
+const { defaultSignupMode, useSignupModeMock } = vi.hoisted(() => {
+  const defaultSignupMode: UseSignupModeResult = {
+    mode: 'open',
+    settings: null,
+    loading: false,
+    isOpen: true,
+    isWaitlist: false,
+    isInviteOnly: false,
+    isClosed: false,
+  };
+  return {
+    defaultSignupMode,
+    useSignupModeMock: vi.fn((): UseSignupModeResult => defaultSignupMode),
+  };
+});
+
+vi.mock('@beakerstack/waitlist', async importOriginal => {
+  const actual = await importOriginal<typeof import('@beakerstack/waitlist')>();
+  return {
+    ...actual,
+    useSignupMode: useSignupModeMock,
+  };
+});
+
 vi.mock('@beakerstack/billing/presentation', () => ({
   annualListCentsFromSync: vi.fn(() => 22_800),
   formatSavingsCalloutFromCopy: vi.fn((copy: PlanSavingsCopy) =>
@@ -57,6 +82,7 @@ import { planSignupBullets } from '../../../auth/planSignupBullets';
 
 describe('PlanIntentSummary', () => {
   beforeEach(() => {
+    useSignupModeMock.mockReturnValue(defaultSignupMode);
     vi.mocked(usePlanCatalog).mockReturnValue({
       plans: [proPlan],
       loading: false,
@@ -82,6 +108,19 @@ describe('PlanIntentSummary', () => {
     expect(container.firstChild).toBeNull();
   });
 
+  it('shows loading placeholder while signup mode loads', () => {
+    useSignupModeMock.mockReturnValue({
+      ...defaultSignupMode,
+      loading: true,
+    });
+    render(
+      <MemoryRouter initialEntries={['/signup?plan=beakerstack_pro']}>
+        <SignupPlanSummary />
+      </MemoryRouter>
+    );
+    expect(screen.getByText(/Loading plan/i)).toBeInTheDocument();
+  });
+
   it('shows loading placeholder while catalog loads', () => {
     vi.mocked(usePlanCatalog).mockReturnValue({
       plans: [],
@@ -95,6 +134,43 @@ describe('PlanIntentSummary', () => {
       </MemoryRouter>
     );
     expect(screen.getByText(/Loading plan/i)).toBeInTheDocument();
+  });
+
+  it('hides panel in invite-only mode even with plan param', () => {
+    useSignupModeMock.mockReturnValue({
+      mode: 'invite_only',
+      settings: null,
+      loading: false,
+      isOpen: false,
+      isWaitlist: false,
+      isInviteOnly: true,
+      isClosed: false,
+    });
+    const { container } = render(
+      <MemoryRouter initialEntries={['/signup?plan=beakerstack_pro']}>
+        <SignupPlanSummary />
+      </MemoryRouter>
+    );
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('shows waitlist tier panel header when mode is waitlist', () => {
+    useSignupModeMock.mockReturnValue({
+      mode: 'waitlist',
+      settings: null,
+      loading: false,
+      isOpen: false,
+      isWaitlist: true,
+      isInviteOnly: false,
+      isClosed: false,
+    });
+    render(
+      <MemoryRouter initialEntries={['/signup?plan=beakerstack_pro']}>
+        <SignupPlanSummary />
+      </MemoryRouter>
+    );
+    expect(screen.getByText('JOIN THE WAITLIST FOR')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Pro' })).toBeInTheDocument();
   });
 
   it('renders signup selection card with pricing and bullets', () => {

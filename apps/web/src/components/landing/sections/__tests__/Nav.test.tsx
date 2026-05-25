@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { BRANDING } from '@beakerstack/shared/config/branding';
+import { branding } from '@adopter/config/branding';
 import { Nav } from '../Nav';
 
 vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost:54321');
 
 const config = {
   brand: {
-    name: BRANDING.displayName,
+    name: branding.displayName,
     tagline: 'Ship your SaaS faster.',
     logoSrc: '/logo.svg',
   },
@@ -42,7 +42,7 @@ describe('Nav', () => {
     const configNoLogo = {
       ...config,
       brand: {
-        name: BRANDING.displayName,
+        name: branding.displayName,
         tagline: 'Ship your SaaS faster.',
       },
     };
@@ -58,7 +58,7 @@ describe('Nav', () => {
         <Nav config={configNoLogo} />
       </MemoryRouter>
     );
-    const brandLink = screen.getByRole('link', { name: BRANDING.displayName });
+    const brandLink = screen.getByRole('link', { name: branding.displayName });
     const img = brandLink.querySelector('img');
     if (!img) {
       throw new Error('expected brand logo img');
@@ -73,7 +73,7 @@ describe('Nav', () => {
 
   it('renders the brand name', () => {
     renderNav();
-    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+    expect(screen.getByText(branding.displayName)).toBeInTheDocument();
   });
 
   it('renders desktop navigation links', () => {
@@ -173,6 +173,32 @@ describe('Nav', () => {
     });
 
     expect(header.className).toContain('shadow-sm');
+  });
+
+  it('clicking mobile "Go to dashboard" link closes the menu', () => {
+    localStorage.setItem(
+      'sb-localhost-auth-token',
+      JSON.stringify({ access_token: 'jwt-token', refresh_token: 'r' })
+    );
+    renderNav();
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle menu' }));
+    const mobileNav = screen.getByRole('navigation', { name: 'Mobile' });
+    fireEvent.click(
+      within(mobileNav).getByRole('link', { name: 'Go to dashboard' })
+    );
+    expect(
+      screen.queryByRole('navigation', { name: 'Mobile' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('clicking mobile "Sign in" link closes the menu', () => {
+    renderNav();
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle menu' }));
+    const mobileNav = screen.getByRole('navigation', { name: 'Mobile' });
+    fireEvent.click(within(mobileNav).getByRole('link', { name: 'Sign in' }));
+    expect(
+      screen.queryByRole('navigation', { name: 'Mobile' })
+    ).not.toBeInTheDocument();
   });
 
   it('removes shadow class when scrolled back to top', () => {

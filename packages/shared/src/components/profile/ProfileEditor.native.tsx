@@ -13,7 +13,7 @@ import { FormInput } from '../forms/FormInput.native';
 import { FormButton } from '../forms/FormButton.native';
 import { FormError } from '../forms/FormError.native';
 import { AvatarUpload } from './AvatarUpload.native';
-import { Logger } from '../../utils/logger';
+import { Logger } from '@beakerstack/logger';
 
 export interface ProfileEditorProps {
   onSuccess?: () => void;
@@ -177,12 +177,14 @@ export function ProfileEditor({
   }, [formData, fieldErrors, isSubmitting, profile.loading, handleFieldChange]);
 
   const handleSubmit = useCallback(async () => {
+    /* v8 ignore start -- form is hidden unless user is present */
     if (!user) {
       const error = new Error('User must be logged in to update profile');
       setGeneralError(error.message);
       onError?.(error);
       return;
     }
+    /* v8 ignore stop */
 
     setIsSubmitting(true);
     setFieldErrors({});

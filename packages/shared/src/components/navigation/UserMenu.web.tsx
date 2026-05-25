@@ -9,13 +9,18 @@ import { ProfileAvatar } from '../profile/ProfileAvatar.web';
 export interface UserMenuProps {
   user: User;
   profile: UserProfile | null;
+  showAdminLink?: boolean;
 }
 
 /**
  * UserMenu component for web
- * Displays user avatar with dropdown menu containing Profile, Dashboard, and Sign Out options
+ * Displays user avatar with dropdown menu containing Profile, Billing, Dashboard, Admin (when showAdminLink=true), and Sign Out options
  */
-export function UserMenu({ user, profile }: UserMenuProps) {
+export function UserMenu({
+  user,
+  profile,
+  showAdminLink = false,
+}: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const auth = useAuthContext();
@@ -99,6 +104,15 @@ export function UserMenu({ user, profile }: UserMenuProps) {
             >
               Dashboard
             </Link>
+            {showAdminLink && (
+              <Link
+                to='/admin'
+                onClick={() => setIsOpen(false)}
+                className='block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+              >
+                Admin
+              </Link>
+            )}
             <div className='my-1 border-t border-gray-200 dark:border-gray-700' />
             <button
               onClick={handleSignOut}

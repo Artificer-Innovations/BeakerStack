@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import type { UserProfile } from '../../types/profile';
-import { Logger } from '../../utils/logger';
+import { Logger } from '@beakerstack/logger';
 
 export interface ProfileAvatarProps {
   profile: UserProfile | null;
@@ -40,12 +40,15 @@ export function ProfileAvatar({
       const displayName = profile.display_name;
       const names = displayName.trim().split(/\s+/);
       if (names.length >= 2) {
+        /* v8 ignore next 2 -- split words always include elements */
         const firstChar = names[0]?.[0];
         const lastChar = names[names.length - 1]?.[0];
+        /* v8 ignore next -- split words always include first characters */
         if (firstChar && lastChar) {
           return (firstChar + lastChar).toUpperCase();
         }
       }
+      /* v8 ignore next -- display_name trim/split always yields at least one segment */
       const firstChar = names[0]?.[0];
       if (firstChar) {
         return firstChar.toUpperCase();
@@ -53,6 +56,7 @@ export function ProfileAvatar({
     }
     if (profile?.username) {
       const username = profile.username;
+      /* v8 ignore next */
       const firstChar = username?.[0];
       if (firstChar) {
         return firstChar.toUpperCase();

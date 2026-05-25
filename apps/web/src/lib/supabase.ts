@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@beakerstack/shared/types/database';
-import { Logger } from '@beakerstack/shared/utils/logger';
+import { Logger } from '@beakerstack/logger';
 
 // In the Node/vite-node pre-render path, env vars may be absent and no Supabase
 // calls happen during renderToStaticMarkup, so placeholder values are safe.
@@ -39,6 +39,51 @@ if (import.meta.env.DEV) {
     '[web.supabase] Realtime websocket URL:',
     `${realtimeUrl}/realtime/v1/websocket`
   );
+}
+
+/** sessionStorage key set when a password-recovery callback URL is detected */
+export const RECOVERY_CALLBACK_STORAGE_KEY = 'beakerstack:recovery_callback';
+
+function readRecoveryTypeFromUrl(): boolean {
+  if (typeof window === 'undefined') return false;
+  const hashParams = new URLSearchParams(window.location.hash.substring(1));
+  const queryParams = new URLSearchParams(window.location.search);
+  return (
+    hashParams.get('type') === 'recovery' ||
+    queryParams.get('type') === 'recovery'
+  );
+}
+
+function capturePasswordRecoveryCallback(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (!readRecoveryTypeFromUrl()) return false;
+  try {
+    sessionStorage.setItem(RECOVERY_CALLBACK_STORAGE_KEY, '1');
+  } catch {
+    // ignore storage errors (private browsing, quota, etc.)
+  }
+  return true;
+}
+
+/** Snapshot of whether the initial page load was a recovery callback (immutable). */
+export const isPasswordRecoveryCallback = capturePasswordRecoveryCallback();
+
+export function hasPasswordRecoveryCallback(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return sessionStorage.getItem(RECOVERY_CALLBACK_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function clearPasswordRecoveryCallback(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.removeItem(RECOVERY_CALLBACK_STORAGE_KEY);
+  } catch {
+    // ignore storage errors
+  }
 }
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);

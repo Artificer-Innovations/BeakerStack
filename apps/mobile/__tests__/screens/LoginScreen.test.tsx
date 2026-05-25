@@ -217,6 +217,32 @@ describe('LoginScreen', () => {
     });
   });
 
+  it('handles non-Error login failures', async () => {
+    const mockClient = createMockSupabaseClient();
+    (mockClient.auth.signInWithPassword as jest.Mock).mockRejectedValue(
+      'network down'
+    );
+
+    const { getByPlaceholderText, getByText } = renderWithProviders(
+      <LoginScreen navigation={mockNavigation} />,
+      mockClient
+    );
+
+    fireEvent.changeText(
+      getByPlaceholderText('Email address'),
+      'test@example.com'
+    );
+    fireEvent.changeText(getByPlaceholderText('Password'), 'password123');
+    fireEvent.press(getByText('Sign In'));
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith(
+        'Sign In Failed',
+        'Failed to sign in'
+      );
+    });
+  });
+
   it('shows Google Sign In Failed alert when Google sign-in errors', async () => {
     const mockClient = createMockSupabaseClient();
     const { getByText } = renderWithProviders(
@@ -262,5 +288,15 @@ describe('LoginScreen', () => {
     fireEvent.press(signupLink);
 
     expect(mockNavigate).toHaveBeenCalledWith('Signup');
+  });
+
+  it('navigates to ForgotPassword screen', () => {
+    const { getByText } = renderWithProviders(
+      <LoginScreen navigation={mockNavigation} />
+    );
+
+    fireEvent.press(getByText('Forgot password?'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('ForgotPassword');
   });
 });

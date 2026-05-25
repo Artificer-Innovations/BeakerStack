@@ -1,24 +1,29 @@
 import { describe, it, expect } from '@jest/globals';
-import { LEGAL_CONFIG } from '@beakerstack/shared/config/legal';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 
-describe('LEGAL_CONFIG', () => {
+describe('adopter legal config', () => {
   it('has a non-empty brandName', () => {
-    expect(typeof LEGAL_CONFIG.brandName).toBe('string');
-    expect(LEGAL_CONFIG.brandName.length).toBeGreaterThan(0);
+    expect(typeof getAdopterConfig().legal.brandName).toBe('string');
+    expect(getAdopterConfig().legal.brandName.length).toBeGreaterThan(0);
   });
 
   it('has a non-empty brandUrl', () => {
-    expect(typeof LEGAL_CONFIG.brandUrl).toBe('string');
-    expect(LEGAL_CONFIG.brandUrl.length).toBeGreaterThan(0);
+    expect(typeof getAdopterConfig().legal.brandUrl).toBe('string');
+    expect(getAdopterConfig().legal.brandUrl.length).toBeGreaterThan(0);
   });
 
   it('has a non-empty legalEntityName', () => {
-    expect(typeof LEGAL_CONFIG.legalEntityName).toBe('string');
-    expect(LEGAL_CONFIG.legalEntityName.length).toBeGreaterThan(0);
+    expect(typeof getAdopterConfig().legal.legalEntityName).toBe('string');
+    expect(getAdopterConfig().legal.legalEntityName.length).toBeGreaterThan(0);
   });
 
   it('has a valid contactEmail containing @', () => {
-    expect(LEGAL_CONFIG.contactEmail).toContain('@');
-    expect(LEGAL_CONFIG.contactEmail.length).toBeGreaterThan(0);
+    expect(getAdopterConfig().legal.contactEmail).toContain('@');
+    expect(getAdopterConfig().legal.contactEmail.length).toBeGreaterThan(0);
+  });
+
+  it('has a non-empty mailingAddress (CAN-SPAM physical address)', () => {
+    expect(typeof getAdopterConfig().legal.mailingAddress).toBe('string');
+    expect(getAdopterConfig().legal.mailingAddress.length).toBeGreaterThan(0);
   });
 });

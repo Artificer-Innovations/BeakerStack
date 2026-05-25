@@ -4,67 +4,9 @@
 # However, we'll make database operations non-blocking so the workflow can continue
 set -euo pipefail
 
-supabase_run() {
-  local allow_fail=0
-  if [[ "${1:-}" == "--allow-fail" ]]; then
-    allow_fail=1
-    shift
-  fi
-
-  local description="$1"
-  shift
-
-  if [[ "${DRY_RUN}" == true ]]; then
-    log "DRY" "${description}"
-    return 0
-  fi
-
-  local max_attempts="${SUPABASE_MAX_RETRIES:-3}"
-  local attempt=1
-  local delay=5
-
-  local tmp
-  tmp="$(mktemp)"
-
-  while true; do
-    local status
-    if "$@" >"${tmp}" 2>&1; then
-      status=0
-    else
-      status=$?
-    fi
-
-    # Treat common Supabase CLI error messages as failures even if exit code is zero.
-    if grep -qiE "failed to connect|cannot find project ref|Error:" "${tmp}"; then
-      status=${status:-1}
-    fi
-
-    cat "${tmp}"
-
-    if (( status == 0 )); then
-      rm -f "${tmp}"
-      return 0
-    fi
-
-    if (( attempt >= max_attempts )); then
-      rm -f "${tmp}"
-      if (( allow_fail )); then
-        log "WARN" "${description} failed after ${attempt} attempt(s); continuing. (exit ${status})"
-        return 0
-      fi
-      log "ERROR" "${description} failed after ${attempt} attempt(s). (exit ${status})"
-      return ${status}
-    fi
-
-    log "WARN" "${description} failed (attempt ${attempt}/${max_attempts}); retrying in ${delay}s..."
-    sleep "${delay}"
-    attempt=$((attempt + 1))
-    delay=$((delay * 2))
-    : >"${tmp}"
-  done
-}
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/supabase-retry.sh
+source "${SCRIPT_DIR}/lib/supabase-retry.sh"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 DEFAULT_PROJECT_REF="${SUPABASE_PREVIEW_PROJECT_REF:-}"
@@ -84,6 +26,7 @@ SUPABASE_RUNTIME_DIR="${DEFAULT_SUPABASE_CONFIG_DIR}"
 TEMP_SUPABASE_DIR=""
 SKIP_IF_UNCHANGED=false
 SUPABASE_HAS_CHANGES=true
+ADOPTER_HAS_CHANGES=true
 GENERATE_TYPES=true
 RUN_SEED=true
 OUTPUT_ENV=""
@@ -176,6 +119,18 @@ ensure_prereqs() {
 
   command -v rsync >/dev/null 2>&1 || {
     log "ERROR" "rsync is required."
+    exit 1
+  }
+
+  command -v node >/dev/null 2>&1 || {
+    log "ERROR" "node is required."
+    exit 1
+  }
+}
+
+ensure_psql_prereq() {
+  command -v psql >/dev/null 2>&1 || {
+    log "ERROR" "psql is required for adopter database migrations (db-apply-adopter.mjs shells out to psql)."
     exit 1
   }
 }
@@ -281,13 +236,34 @@ checkout_baseline() {
   fi
 
   if [[ "${SKIP_IF_UNCHANGED}" == true ]]; then
-    # Compare against the checkout ref (which might be origin/main or just main)
+    local supabase_unchanged=false
+    local adopter_unchanged=false
+
     if git diff --quiet "${checkout_ref}" HEAD -- supabase 2>/dev/null || \
        git diff --quiet "${fetch_ref}" HEAD -- supabase 2>/dev/null; then
+      supabase_unchanged=true
       SUPABASE_HAS_CHANGES=false
-      log "INFO" "No Supabase directory changes detected relative to ${BASELINE_REF}; skipping Supabase reset."
+    fi
+
+    if git diff --quiet "${checkout_ref}" HEAD -- adopter/db 2>/dev/null || \
+       git diff --quiet "${fetch_ref}" HEAD -- adopter/db 2>/dev/null; then
+      adopter_unchanged=true
+      ADOPTER_HAS_CHANGES=false
+    fi
+
+    if [[ "${supabase_unchanged}" == true && "${adopter_unchanged}" == true ]]; then
+      log "INFO" "No Supabase or adopter/db changes detected relative to ${BASELINE_REF}; skipping database prep."
       return
     fi
+
+    if [[ "${supabase_unchanged}" == true ]]; then
+      log "INFO" "No Supabase directory changes detected relative to ${BASELINE_REF}; skipping Supabase reset."
+    fi
+  fi
+
+  if [[ "${SUPABASE_HAS_CHANGES}" != true ]]; then
+    SUPABASE_RUNTIME_DIR="${REPO_ROOT}/supabase"
+    return
   fi
 
   # Use a temporary worktree so we don't disturb the current workspace
@@ -464,16 +440,74 @@ restore_types_from_baseline() {
   fi
 }
 
+sync_link_artifacts() {
+  local link_temp_dir="${SUPABASE_RUNTIME_DIR}/.temp"
+  local repo_temp_dir="${REPO_ROOT}/supabase/.temp"
+
+  if [[ ! -d "${link_temp_dir}" ]]; then
+    log "WARN" "Supabase link artifacts not found at ${link_temp_dir}; adopter URL may fall back to direct host."
+    return
+  fi
+
+  mkdir -p "${repo_temp_dir}"
+  local link_resolved repo_resolved
+  link_resolved="$(cd "${link_temp_dir}" && pwd -P)"
+  repo_resolved="$(cd "${repo_temp_dir}" && pwd -P)"
+  if [[ "${link_resolved}" == "${repo_resolved}" ]]; then
+    return
+  fi
+
+  cp -a "${link_temp_dir}/." "${repo_temp_dir}/"
+}
+
+apply_adopter_migrations() {
+  log "INFO" "Applying adopter database migrations..."
+  if [[ "${DRY_RUN}" == true ]]; then
+    log "DRY" "env SUPABASE_PREVIEW_PROJECT_REF=*** SUPABASE_PREVIEW_DB_PASSWORD=*** npm run db:apply-adopter -- --linked"
+    return 0
+  fi
+
+  ensure_psql_prereq
+  sync_link_artifacts
+
+  (
+    cd "${REPO_ROOT}"
+    # Clear generic SUPABASE_* so resolveLinkedCredentials uses preview creds below.
+    env -u SUPABASE_PROJECT_REF -u SUPABASE_DB_PASSWORD \
+      SUPABASE_PREVIEW_PROJECT_REF="${PROJECT_REF}" \
+      SUPABASE_PREVIEW_DB_PASSWORD="${DB_PASSWORD}" \
+      npm run db:apply-adopter -- --linked
+  )
+}
+
 unlink_supabase() {
   log "INFO" "Unlinking Supabase project..."
+  if [[ "${DRY_RUN}" == true ]]; then
+    log "DRY" "cd ${SUPABASE_RUNTIME_DIR} && supabase unlink --yes"
+    return 0
+  fi
+
+  local tmp
+  tmp="$(mktemp)"
+  local status=0
   (
     cd "${SUPABASE_RUNTIME_DIR}"
-    supabase_run --allow-fail "Supabase unlink" env \
-      SUPABASE_DISABLE_KEYRING=1 \
+    env SUPABASE_DISABLE_KEYRING=1 \
       SUPABASE_ACCESS_TOKEN="${SUPABASE_ACCESS_TOKEN}" \
-      supabase unlink \
-        --yes
-  )
+      supabase unlink --yes
+  ) >"${tmp}" 2>&1 || status=$?
+
+  cat "${tmp}"
+
+  if (( status != 0 )); then
+    if grep -qiE 'Cannot find project ref|failed to delete credentials' "${tmp}"; then
+      log "WARN" "Supabase unlink non-fatal: project already unlinked or keyring unavailable in CI."
+    else
+      log "WARN" "Supabase unlink failed (exit ${status}); continuing."
+    fi
+  fi
+
+  rm -f "${tmp}"
 }
 
 cleanup() {
@@ -528,39 +562,62 @@ main() {
   log "INFO" "Restoring type files from baseline branch as a safety measure..."
   restore_types_from_baseline || log "WARN" "Could not restore types from baseline (this is OK if types don't exist yet)."
 
-  # If no changes detected, skip database operations
-  if [[ "${SUPABASE_HAS_CHANGES}" != true ]]; then
-    log "INFO" "Supabase changes skipped; retaining existing preview database and types."
-    db_success=true  # Consider this success since we're intentionally skipping
+  # If no DB-related changes detected, skip database operations
+  if [[ "${SUPABASE_HAS_CHANGES}" != true && "${ADOPTER_HAS_CHANGES}" != true ]]; then
+    log "INFO" "Database prep skipped; retaining existing preview database and types."
+    db_success=true
   else
     # Temporarily disable exit-on-error for database operations
     set +e
-    
-    # Attempt database operations - continue even if they fail
-    log "INFO" "Attempting Supabase database operations..."
-    
-    if link_supabase && reset_database && seed_database; then
-      db_success=true
-      log "INFO" "Database reset and seeding completed successfully."
-      
-      # Generate types only if database operations succeeded
-      if generate_types; then
-        log "INFO" "TypeScript types generated successfully (overwriting baseline types)."
+
+    log "INFO" "Attempting Supabase preview database operations..."
+
+    local supabase_ok=true
+    local adopter_ok=true
+
+    if [[ "${SUPABASE_HAS_CHANGES}" == true ]]; then
+      if link_supabase && reset_database && seed_database; then
+        log "INFO" "Database reset and seeding completed successfully."
       else
-        log "WARN" "Type generation failed; using baseline types (already restored)."
-        db_success=false
+        supabase_ok=false
+        log "WARN" "Supabase reset/seed failed (likely network/connectivity issue)."
+      fi
+    elif [[ "${ADOPTER_HAS_CHANGES}" == true ]]; then
+      if link_supabase; then
+        log "INFO" "Linked preview Supabase project for adopter migrations."
+      else
+        supabase_ok=false
+        adopter_ok=false
+        log "WARN" "Failed to link preview Supabase project for adopter migrations."
+      fi
+    fi
+
+    # Re-apply adopter schema after any Supabase reset (reset drops app.*), not only when adopter/db changed.
+    if [[ "${supabase_ok}" == true && ( "${ADOPTER_HAS_CHANGES}" == true || "${SUPABASE_HAS_CHANGES}" == true ) ]]; then
+      if apply_adopter_migrations; then
+        log "INFO" "Adopter database migrations applied successfully."
+      else
+        adopter_ok=false
+        log "WARN" "Adopter database migrations failed."
+      fi
+    fi
+
+    if [[ "${supabase_ok}" == true && "${adopter_ok}" == true ]]; then
+      db_success=true
+      if [[ "${SUPABASE_HAS_CHANGES}" == true ]]; then
+        if generate_types; then
+          log "INFO" "TypeScript types generated successfully (overwriting baseline types)."
+        else
+          log "WARN" "Type generation failed; using baseline types (already restored)."
+          db_success=false
+        fi
       fi
     else
-      log "WARN" "Database operations failed (likely network/connectivity issue)."
-      log "WARN" "This may be due to Supabase connection timeouts from CI runners."
       log "WARN" "Skipping type generation - using baseline types (already restored)."
       db_success=false
     fi
 
-    # Always try to unlink (non-blocking)
     unlink_supabase || true
-    
-    # Re-enable exit-on-error for output operations
     set -e
   fi
 

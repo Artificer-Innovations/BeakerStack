@@ -2,7 +2,7 @@ import { BillingProvider } from '@beakerstack/billing';
 import { Outlet } from 'react-router-dom';
 import { appBasePath } from '../lib/appBasePath';
 import { supabase } from '../lib/supabase';
-import { beakerstackBillingConfig } from './beakerstackBillingConfig';
+import { billingConfig } from '@adopter/config/billing';
 
 /**
  * Wraps `/dashboard` and `/billing/*` with a single {@link BillingProvider} (shared subscription state).
@@ -10,9 +10,9 @@ import { beakerstackBillingConfig } from './beakerstackBillingConfig';
 export function BillingProviderLayout() {
   const base = appBasePath();
   return (
-    <BillingProvider<typeof beakerstackBillingConfig>
+    <BillingProvider<typeof billingConfig>
       supabase={supabase}
-      config={beakerstackBillingConfig}
+      config={billingConfig}
       checkoutSuccessUrl={`${base}/billing?checkout=success`}
       checkoutCancelUrl={`${base}/billing/plans?checkout=cancel`}
       portalReturnUrl={`${base}/billing`}

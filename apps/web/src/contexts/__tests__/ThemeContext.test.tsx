@@ -119,6 +119,70 @@ describe('ThemeContext', () => {
     expect(document.documentElement.classList.contains('dark')).toBe(true);
   });
 
+  it('resolves to dark in system mode when OS prefers dark on first render', () => {
+    vi.spyOn(window, 'matchMedia').mockReturnValue({
+      matches: true,
+      media: '(prefers-color-scheme: dark)',
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    } as unknown as MediaQueryList);
+    render(
+      <ThemeProvider>
+        <TestConsumer />
+      </ThemeProvider>
+    );
+    expect(screen.getByTestId('preference').textContent).toBe('system');
+    expect(screen.getByTestId('resolved').textContent).toBe('dark');
+  });
+
+  it('falls back to system preference when localStorage read throws', () => {
+    const spy = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    try {
+      render(
+        <ThemeProvider>
+          <TestConsumer />
+        </ThemeProvider>
+      );
+      expect(screen.getByTestId('preference').textContent).toBe('system');
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('swallows localStorage errors when persisting setTheme', async () => {
+    const user = userEvent.setup();
+    render(
+      <ThemeProvider>
+        <TestConsumer />
+      </ThemeProvider>
+    );
+    const setItemSpy = vi
+      .spyOn(localStorage, 'setItem')
+      .mockImplementation(() => {
+        throw new Error('blocked');
+      });
+    const removeSpy = vi
+      .spyOn(localStorage, 'removeItem')
+      .mockImplementation(() => {
+        throw new Error('blocked');
+      });
+    try {
+      await user.click(screen.getByRole('button', { name: 'Dark' }));
+      expect(screen.getByTestId('preference').textContent).toBe('dark');
+      await user.click(screen.getByRole('button', { name: 'System' }));
+      expect(screen.getByTestId('preference').textContent).toBe('system');
+    } finally {
+      setItemSpy.mockRestore();
+      removeSpy.mockRestore();
+    }
+  });
+
   it('responds to OS preference changes while in system mode', async () => {
     let osListener: ((e: Partial<MediaQueryListEvent>) => void) | null = null;
     const mockMq = {

@@ -1,7 +1,10 @@
 import { usePlanCatalog } from '@beakerstack/billing';
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { beakerstackBillingConfig } from '../../billing/beakerstackBillingConfig';
+import { resolveWaitlistModeCopy, useSignupMode } from '@beakerstack/waitlist';
+import { billingConfig } from '@adopter/config/billing';
+import { supabase } from '../../lib/supabase';
+import { waitlistConfig } from '@adopter/config/waitlist';
 import {
   annualListCentsFromSync,
   formatSavingsCalloutFromCopy,
@@ -25,7 +28,15 @@ export function PlanIntentSummary({
   const [search] = useSearchParams();
   const planId = search.get('plan');
   const cadence = getCadenceFromSearch(search);
-  const { plans, loading } = usePlanCatalog<typeof beakerstackBillingConfig>();
+  const { plans, loading } = usePlanCatalog<typeof billingConfig>();
+  const {
+    mode: signupMode,
+    settings,
+    loading: modeLoading,
+    isInviteOnly,
+    isClosed,
+  } = useSignupMode(supabase);
+  const modeCopy = resolveWaitlistModeCopy(settings?.copy, waitlistConfig.copy);
 
   const catalogPlan = useMemo(
     () => (planId ? plans.find(p => p.id === planId) : undefined),
@@ -33,6 +44,18 @@ export function PlanIntentSummary({
   );
 
   if (!planId || !hasPaidPlanIntent(search)) return null;
+
+  if (modeLoading) {
+    return (
+      <div className='rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm'>
+        <p className='text-sm text-gray-500 dark:text-gray-400'>
+          Loading plan…
+        </p>
+      </div>
+    );
+  }
+
+  if (isInviteOnly || isClosed) return null;
 
   if (loading) {
     return (
@@ -93,7 +116,11 @@ export function PlanIntentSummary({
             : 'text-xs font-semibold uppercase tracking-wide text-indigo-800 dark:text-indigo-300'
         }
       >
-        {mode === 'login' ? 'Plan from pricing' : 'Your selection'}
+        {mode === 'login'
+          ? 'Plan from pricing'
+          : signupMode === 'waitlist'
+            ? modeCopy.tier_panel_header
+            : 'Your selection'}
       </p>
       <h3
         className={

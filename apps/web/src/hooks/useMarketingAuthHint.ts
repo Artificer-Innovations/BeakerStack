@@ -9,9 +9,9 @@ import {
  * for the Supabase auth key only (same-tab navigation remounts fresh routes).
  */
 export function useMarketingAuthHint(): boolean {
-  const [hint, setHint] = useState(() =>
-    typeof window === 'undefined' ? false : getLikelyAuthenticated()
-  );
+  // `getLikelyAuthenticated()` already returns false when `window` is undefined,
+  // so we can use it directly as the lazy initializer.
+  const [hint, setHint] = useState(getLikelyAuthenticated);
 
   useEffect(() => {
     const storageKey = getSupabaseAuthStorageKey();

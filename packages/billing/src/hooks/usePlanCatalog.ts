@@ -29,7 +29,7 @@ export function usePlanCatalog<
         .eq('is_public', true)
         .order('display_order', { ascending: true });
       if (qErr) throw qErr;
-      setPlans(((data ?? []) as Plan[]) ?? []);
+      setPlans((data ?? []) as Plan[]);
     } catch (e) {
       setError(mapUnknownError(e));
       setPlans([]);

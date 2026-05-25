@@ -11,11 +11,11 @@ import {
 } from '@beakerstack/billing';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import {
-  beakerstackBillingConfig,
+  billingConfig,
   BEAKERSTACK_METER_AI_SUMMARIZE,
-} from '../../billing/beakerstackBillingConfig';
+} from '@adopter/config/billing';
 import { formatMonthYear } from '@beakerstack/billing/presentation';
-import { useDemoCollectionCount } from '../../billing/useDemoCollectionCount';
+import { useDemoCollectionCount } from '@adopter/web/billing/useDemoCollectionCount';
 import { Banner } from '../../components/billing/Banner.web';
 import { Button } from '@beakerstack/shared/components/primitives/Button.web';
 import { BillingPageShell } from '../../components/billing/BillingPageShell.web';
@@ -25,32 +25,29 @@ import { InvoiceList } from '../../components/billing/InvoiceList.web';
 import { StatCard } from '../../components/billing/StatCard.web';
 
 export default function BillingOverviewPage() {
-  const { kind, subscription } =
-    useBillingState<typeof beakerstackBillingConfig>();
-  const { plans: catalogPlans } =
-    usePlanCatalog<typeof beakerstackBillingConfig>();
+  const { kind, subscription } = useBillingState<typeof billingConfig>();
+  const { plans: catalogPlans } = usePlanCatalog<typeof billingConfig>();
   const {
     reactivateSubscription,
     pending: stripeActionPend,
     error: stripeActionErr,
-  } = useBillingStripeActions<typeof beakerstackBillingConfig>();
+  } = useBillingStripeActions<typeof billingConfig>();
   const {
     openPortal,
     pending: portalPend,
     error: portalError,
-  } = useCustomerPortal<typeof beakerstackBillingConfig>();
+  } = useCustomerPortal<typeof billingConfig>();
   const { data: currentPlan, loading: planLoad } =
-    usePlan<typeof beakerstackBillingConfig>();
+    usePlan<typeof billingConfig>();
   const {
     used,
     limit,
     loading: usageLoad,
-  } = useUsage<
-    typeof beakerstackBillingConfig,
-    typeof BEAKERSTACK_METER_AI_SUMMARIZE
-  >(BEAKERSTACK_METER_AI_SUMMARIZE);
+  } = useUsage<typeof billingConfig, typeof BEAKERSTACK_METER_AI_SUMMARIZE>(
+    BEAKERSTACK_METER_AI_SUMMARIZE
+  );
   const { items: invoices, loading: invLoad } = useInvoices<
-    typeof beakerstackBillingConfig
+    typeof billingConfig
   >({ pageSize: 3 });
   const { count: colCount, loading: colLoad } = useDemoCollectionCount();
   const { user } = useAuthContext();

@@ -132,6 +132,19 @@ export function formatCadenceToggleSavingsBadge(
   return `Save up to ${s.max}%`;
 }
 
+/** Aggregate rounded annual-save percents across paid plans (mixed copy kinds). */
+export function aggregateAnnualPercentSavings(
+  pcts: number[]
+): CadenceSavingsLabel {
+  if (pcts.length === 0) return { kind: 'none' };
+  const min = Math.min(...pcts);
+  const max = Math.max(...pcts);
+  if (min === max) return { kind: 'percent', pct: min };
+  if (max - min <= 1)
+    return { kind: 'percent', pct: Math.round((min + max) / 2) };
+  return { kind: 'percent_range', max };
+}
+
 /**
  * Aggregate savings copy for the cadence toggle across paid catalog plans.
  */
@@ -175,13 +188,7 @@ export function cadenceAnnualSavingsFromPlans(
   const pcts = paid
     .map(p => annualSavingsPercentForPlan(p.id, p.price_cents))
     .filter((x): x is number => x != null && x > 0);
-  if (pcts.length === 0) return { kind: 'none' };
-  const min = Math.min(...pcts);
-  const max = Math.max(...pcts);
-  if (min === max) return { kind: 'percent', pct: min };
-  if (max - min <= 1)
-    return { kind: 'percent', pct: Math.round((min + max) / 2) };
-  return { kind: 'percent_range', max };
+  return aggregateAnnualPercentSavings(pcts);
 }
 
 /** Full single-line label (e.g. tooltips); prefer split pill + `formatCadenceToggleSavingsBadge` in UI. */

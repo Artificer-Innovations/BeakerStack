@@ -48,10 +48,13 @@
   },
   "dependencies": {
     "@beakerstack/billing": "^1.0.0",
+    "@beakerstack/logger": "^1.0.0",
+    "@beakerstack/observability": "^1.0.0",
     "@react-native-async-storage/async-storage": "1.21.0",
     "@react-native-google-signin/google-signin": "13.3.1",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.9.26",
+    "@sentry/react-native": "^6.22.0",
     "@supabase/supabase-js": "^2.38.0",
     "expo": "~50.0.0",
     "expo-constants": "~15.4.6",
@@ -95,8 +98,14 @@
       "node_modules/(?!(react-native|@react-native|@react-navigation|expo|@expo|expo-status-bar|react-native-safe-area-context|react-native-screens|react-native-svg)/)"
     ],
     "testEnvironment": "node",
+    "setupFilesAfterEnv": [
+      "<rootDir>/../../packages/shared-tests/setup.adopter.ts"
+    ],
     "moduleNameMapper": {
       "^@beakerstack/shared/(.*)$": "<rootDir>/../../packages/shared/src/$1",
+      "^@beakerstack/logger$": "<rootDir>/../../packages/logger/src/index.ts",
+      "^@beakerstack/test-utils/(.*)$": "<rootDir>/../../packages/test-utils/src/$1",
+      "^@adopter/(.*)$": "<rootDir>/../../adopter/$1",
       "^react-native-svg$": "<rootDir>/__mocks__/react-native-svg.ts",
       "^expo/virtual/env$": "<rootDir>/jest/expo-virtual-env-mock.cjs"
     },
@@ -105,7 +114,8 @@
       "!src/**/*.d.ts",
       "!src/**/__tests__/**",
       "!src/**/__mocks__/**",
-      "!src/**/types/**"
+      "!src/**/types/**",
+      "!src/navigation/types.ts"
     ],
     "coverageDirectory": "coverage",
     "coverageReporters": [
@@ -113,6 +123,14 @@
       "lcov",
       "html",
       "json"
-    ]
+    ],
+    "coverageThreshold": {
+      "global": {
+        "statements": 98,
+        "branches": 93,
+        "functions": 96,
+        "lines": 99
+      }
+    }
   }
 }

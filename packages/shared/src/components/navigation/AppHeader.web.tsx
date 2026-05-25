@@ -4,18 +4,22 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useProfileContext } from '../../contexts/ProfileContext';
 import { UserMenu } from './UserMenu.web';
-import { BRANDING } from '../../config/branding';
+import { getAdopterConfig } from '../../config/adopterRuntime';
 import { ContentContainer } from '../layout/ContentContainer.web';
 
 export interface AppHeaderProps {
   supabaseClient: SupabaseClient;
+  showAdminLink?: boolean;
 }
 
 /**
  * AppHeader component for web
  * Displays app icon, title, and navigation based on auth state
  */
-export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
+export function AppHeader({
+  supabaseClient: _supabaseClient,
+  showAdminLink = false,
+}: AppHeaderProps) {
   const auth = useAuthContext();
   const profile = useProfileContext();
   const [scrolled, setScrolled] = useState(false);
@@ -32,15 +36,17 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
   // Extract base path from current location (e.g., /pr-9 from /pr-9/login)
   // This handles path-based PR previews where the app is served from /pr-<N>/
   const getBasePath = (): string => {
+    /* v8 ignore start -- window unavailable outside browser/jsdom */
     if (typeof window === 'undefined' || !window.location) {
       return '/';
     }
+    /* v8 ignore stop */
     // Match PR path pattern (e.g., /pr-123)
     const basePathMatch = window.location.pathname.match(/^(\/pr-\d+)/);
     return basePathMatch ? basePathMatch[1] + '/' : '/';
   };
-
   const basePath = getBasePath();
+  const { branding } = getAdopterConfig();
 
   return (
     <header
@@ -57,7 +63,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
             <Link to='/' className='flex items-center'>
               <img
                 src={`${basePath}demo-flask-icon.svg`}
-                alt={BRANDING.displayName}
+                alt={branding.displayName}
                 className='w-8 h-8'
               />
             </Link>
@@ -65,14 +71,18 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
               to='/'
               className='text-xl font-semibold text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300'
             >
-              {BRANDING.displayName}
+              {branding.displayName}
             </Link>
           </div>
 
           {/* Right side: Auth buttons or user menu */}
           <div className='flex items-center space-x-4'>
             {auth.user ? (
-              <UserMenu user={auth.user} profile={profile.profile} />
+              <UserMenu
+                user={auth.user}
+                profile={profile.profile}
+                showAdminLink={showAdminLink}
+              />
             ) : (
               <>
                 <Link

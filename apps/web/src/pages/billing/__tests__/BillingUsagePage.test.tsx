@@ -16,7 +16,7 @@ vi.mock('@beakerstack/billing/web', () => ({
   ),
 }));
 
-vi.mock('@/billing/useDemoCollectionCount', () => ({
+vi.mock('@adopter/web/billing/useDemoCollectionCount', () => ({
   useDemoCollectionCount: () => ({
     count: 3,
     maxItemsInAnyCollection: 12,
@@ -211,5 +211,36 @@ describe('BillingUsagePage', () => {
       </MemoryRouter>
     );
     expect(screen.getByText(/calendar month/i)).toBeInTheDocument();
+  });
+
+  it('renders numeric cap for containers when plan has a finite limit', () => {
+    billingTestState.plan = {
+      ...mockPlan,
+      features: {
+        ...mockPlan.features,
+        containers_per_account_max: 5,
+        items_per_container_max: -1,
+      },
+    };
+    render(
+      <MemoryRouter>
+        <BillingUsagePage />
+      </MemoryRouter>
+    );
+    expect(screen.getByRole('heading', { name: 'Limits' })).toBeInTheDocument();
+  });
+
+  it('falls back to meter key when no usage meter copy is configured', () => {
+    billingTestState.plan = {
+      ...mockPlan,
+      usage_limits: { ai_summarize: 500, unknown_meter: 100 },
+    };
+    render(
+      <MemoryRouter>
+        <BillingUsagePage />
+      </MemoryRouter>
+    );
+    expect(screen.getAllByTestId('usage-indicator').length).toBe(2);
+    expect(screen.getByText('unknown_meter')).toBeInTheDocument();
   });
 });

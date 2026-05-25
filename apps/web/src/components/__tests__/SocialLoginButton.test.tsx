@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SocialLoginButton } from '../SocialLoginButton';
-import { Logger } from '@beakerstack/shared/utils/logger';
+import { Logger } from '@beakerstack/logger';
 
 const createDeferred = () => {
   let innerResolve: (() => void) | undefined;
@@ -64,7 +64,7 @@ describe('SocialLoginButton', () => {
     });
 
     await waitFor(() => {
-      expect(button).not.toBeDisabled();
+      expect(button).toBeEnabled();
       expect(screen.getByText('Sign in with Google')).toBeInTheDocument();
     });
   });

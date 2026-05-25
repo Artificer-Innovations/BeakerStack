@@ -60,12 +60,12 @@ export function useCheckout<
             'Missing checkoutUrl from billing-stripe function'
           );
         }
+        setPending(false);
         return { checkoutUrl };
       } catch (e) {
         setError(mapUnknownError(e));
-        return null;
-      } finally {
         setPending(false);
+        return null;
       }
     },
     [

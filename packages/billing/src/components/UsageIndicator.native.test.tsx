@@ -70,6 +70,43 @@ describe('UsageIndicator (native)', () => {
     expect(screen.getByText(/unlimited/)).toBeInTheDocument();
   });
 
+  it('falls back to default text for bar variant when limit is null', () => {
+    vi.mocked(useUsage).mockReturnValue({
+      used: 4,
+      limit: null,
+      remaining: null,
+      resetsAt: '',
+      loading: false,
+    });
+    render(<UsageIndicator meter='ai' variant='bar' />);
+    expect(screen.getByText(/4 of ∞ used/)).toBeInTheDocument();
+  });
+
+  it('omits remaining suffix when remaining is null', () => {
+    vi.mocked(useUsage).mockReturnValue({
+      used: 2,
+      limit: 5,
+      remaining: null,
+      resetsAt: '',
+      loading: false,
+    });
+    render(<UsageIndicator meter='ai' />);
+    expect(screen.getByText(/2 of 5 used/)).toBeInTheDocument();
+    expect(screen.queryByText(/left/)).toBeNull();
+  });
+
+  it('renders expanded caption without reset date when resetsAt is empty', () => {
+    vi.mocked(useUsage).mockReturnValue({
+      used: 2,
+      limit: 5,
+      remaining: 3,
+      resetsAt: '',
+      loading: false,
+    });
+    render(<UsageIndicator meter='ai' variant='expanded' />);
+    expect(screen.getByText(/2 of 5 used · resets —/)).toBeInTheDocument();
+  });
+
   it('shows ellipsis while loading', () => {
     vi.mocked(useUsage).mockReturnValue({
       used: 0,

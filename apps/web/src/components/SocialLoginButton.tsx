@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Logger } from '@beakerstack/shared/utils/logger';
+import { Logger } from '@beakerstack/logger';
 
 interface SocialLoginButtonProps {
   onPress: () => Promise<void>;

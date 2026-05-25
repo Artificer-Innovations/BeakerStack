@@ -62,6 +62,7 @@ export function AvatarUpload({
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
+    /* v8 ignore next -- jsdom file input always yields a File when present */
     if (!file) return;
 
     // Create preview

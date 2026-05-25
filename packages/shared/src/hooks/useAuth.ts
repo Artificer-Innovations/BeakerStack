@@ -2,10 +2,25 @@ import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { AuthHookReturn } from '../types/auth';
-import { Logger } from '../utils/logger';
+import { Logger } from '@beakerstack/logger';
 
 // Web platform does not require native Google configuration
 export function configureGoogleSignIn() {}
+
+function getAuthRedirectBase(): string {
+  const basePath = window.location.pathname.match(/^(\/pr-\d+)/)?.[1] || '';
+  return `${window.location.origin}${basePath}`;
+}
+
+/** OAuth and legacy hash callbacks (Google sign-in). */
+function getAuthCallbackUrl(): string {
+  return `${getAuthRedirectBase()}/auth/callback`;
+}
+
+/** Token-hash emails (password reset, signup confirm, magic link). */
+function getAuthConfirmUrl(): string {
+  return `${getAuthRedirectBase()}/auth/confirm`;
+}
 
 export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
   const [user, setUser] = useState<User | null>(null);
@@ -56,13 +71,28 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
     setLoading(false);
   };
 
-  const signUp = async (email: string, password: string): Promise<void> => {
+  const signUp = async (
+    email: string,
+    password: string,
+    options?: { data?: Record<string, unknown> }
+  ): Promise<void> => {
     setLoading(true);
     setError(null);
+
+    const emailRedirectTo =
+      typeof window !== 'undefined' && window.location
+        ? getAuthConfirmUrl()
+        : /* v8 ignore next */ undefined;
 
     const { error } = await supabaseClient.auth.signUp({
       email,
       password,
+      options: {
+        /* v8 ignore start -- jsdom always provides window.location */
+        ...(emailRedirectTo ? { emailRedirectTo } : {}),
+        /* v8 ignore stop */
+        ...(options?.data ? { data: options.data } : {}),
+      },
     });
 
     setLoading(false);
@@ -145,22 +175,63 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
 
     let redirectTo: string | undefined;
     if (typeof window !== 'undefined' && window.location) {
-      // Extract base path from current location (e.g., /pr-9 from /pr-9/login)
-      // This handles path-based PR previews where the app is served from /pr-<N>/
-      const basePath = window.location.pathname.match(/^(\/pr-\d+)/)?.[1] || '';
-      redirectTo = `${window.location.origin}${basePath}/auth/callback`;
+      redirectTo = getAuthCallbackUrl();
+      /* v8 ignore start -- jsdom always provides window.location */
+    } else {
+      redirectTo = undefined;
     }
+    /* v8 ignore stop */
 
-    const authArgs = redirectTo
-      ? {
-          provider: 'google' as const,
-          options: { redirectTo },
-        }
-      : {
-          provider: 'google' as const,
-        };
+    const authArgs = {
+      provider: 'google' as const,
+      /* v8 ignore start -- jsdom always provides window.location */
+      ...(redirectTo ? { options: { redirectTo } } : {}),
+      /* v8 ignore stop */
+    };
 
     const { error } = await supabaseClient.auth.signInWithOAuth(authArgs);
+
+    setLoading(false);
+
+    if (error) {
+      const errorObj = new Error(error.message);
+      setError(errorObj);
+      throw errorObj;
+    }
+  };
+
+  const requestPasswordReset = async (email: string): Promise<void> => {
+    setLoading(true);
+    setError(null);
+
+    const redirectTo =
+      typeof window !== 'undefined' && window.location
+        ? getAuthConfirmUrl()
+        : /* v8 ignore next */ undefined;
+
+    /* v8 ignore start -- jsdom always provides window.location */
+    const options = redirectTo ? { redirectTo } : {};
+    /* v8 ignore stop */
+
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(
+      email,
+      options
+    );
+
+    setLoading(false);
+
+    if (error) {
+      const errorObj = new Error(error.message);
+      setError(errorObj);
+      throw errorObj;
+    }
+  };
+
+  const updatePassword = async (password: string): Promise<void> => {
+    setLoading(true);
+    setError(null);
+
+    const { error } = await supabaseClient.auth.updateUser({ password });
 
     setLoading(false);
 
@@ -180,5 +251,7 @@ export function useAuth(supabaseClient: SupabaseClient): AuthHookReturn {
     signUp,
     signOut,
     signInWithGoogle,
+    requestPasswordReset,
+    updatePassword,
   };
 }

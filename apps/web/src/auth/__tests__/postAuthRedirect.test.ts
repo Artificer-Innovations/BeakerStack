@@ -202,4 +202,10 @@ describe('clearPostAuthRedirectKeys', () => {
     vi.stubGlobal('localStorage', undefined as unknown as Storage);
     expect(() => clearPostAuthRedirectKeys()).not.toThrow();
   });
+
+  it('readAndClearPostAuthRedirect returns null when both storages are missing', () => {
+    vi.stubGlobal('sessionStorage', undefined as unknown as Storage);
+    vi.stubGlobal('localStorage', undefined as unknown as Storage);
+    expect(readAndClearPostAuthRedirect()).toBeNull();
+  });
 });

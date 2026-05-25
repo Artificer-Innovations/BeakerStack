@@ -1,17 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { BillingPlanConfig } from '@beakerstack/billing';
 
-vi.mock('../beakerstackBillingConfig', () => ({
-  beakerstackBillingConfig: {
+vi.mock('@adopter/config/billing', () => ({
+  billingConfig: {
     productId: 'beakerstack',
     plans: [] as BillingPlanConfig[],
   },
 }));
 
 import { configPlanToStaticPlan, getStaticPlans } from '../staticPlanAdapter';
-import { beakerstackBillingConfig } from '../beakerstackBillingConfig';
+import { billingConfig } from '@adopter/config/billing';
 
-const mockedConfig = beakerstackBillingConfig as unknown as {
+const mockedConfig = billingConfig as unknown as {
   productId: string;
   plans: Partial<BillingPlanConfig>[];
 };
@@ -61,7 +61,10 @@ describe('configPlanToStaticPlan', () => {
 
   it('defaults trial_period_days to 0 when absent', () => {
     const plan = configPlanToStaticPlan(
-      { ...fullPlan, trialPeriodDays: undefined } as unknown as BillingPlanConfig,
+      {
+        ...fullPlan,
+        trialPeriodDays: undefined,
+      } as unknown as BillingPlanConfig,
       0
     );
     expect(plan.trial_period_days).toBe(0);
@@ -85,7 +88,12 @@ describe('configPlanToStaticPlan', () => {
 
   it('maps null Stripe fields to null', () => {
     const plan = configPlanToStaticPlan(
-      { ...fullPlan, stripePriceIdMonthly: null, stripePriceIdAnnual: null, stripeProductId: null },
+      {
+        ...fullPlan,
+        stripePriceIdMonthly: null,
+        stripePriceIdAnnual: null,
+        stripeProductId: null,
+      },
       0
     );
     expect(plan.stripe_price_id_monthly).toBeNull();

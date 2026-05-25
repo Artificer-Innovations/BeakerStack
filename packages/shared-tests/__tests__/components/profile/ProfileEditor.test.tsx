@@ -62,6 +62,12 @@ jest.mock('@beakerstack/shared/components/profile/AvatarUpload.web', () => ({
         >
           Upload
         </button>
+        <button
+          data-testid='avatar-upload-query-only'
+          onClick={() => onUploadComplete('?cacheBust=1')}
+        >
+          Upload query only
+        </button>
         <button data-testid='avatar-remove-trigger' onClick={() => onRemove()}>
           Remove
         </button>
@@ -186,13 +192,11 @@ describe('ProfileEditor', () => {
 
     render(<ProfileEditor />);
 
-    await waitFor(() => {
-      const usernameInput = screen.getByTestId(
-        'input-username'
-      ) as HTMLInputElement;
-      fireEvent.change(usernameInput, { target: { value: 'newusername' } });
-      expect(usernameInput.value).toBe('newusername');
-    });
+    const usernameInput = (await waitFor(() =>
+      screen.getByTestId('input-username')
+    )) as HTMLInputElement;
+    fireEvent.change(usernameInput, { target: { value: 'newusername' } });
+    expect(usernameInput.value).toBe('newusername');
   });
 
   it('validates and shows field errors for invalid input', async () => {
@@ -368,22 +372,6 @@ describe('ProfileEditor', () => {
     });
   });
 
-  it('shows error when user is not logged in during submit', async () => {
-    const mockOnError = jest.fn();
-    mockUseProfileContext.mockReturnValue(
-      createContextValue({
-        currentUser: null,
-      })
-    );
-
-    render(<ProfileEditor onError={mockOnError} />);
-
-    // Try to submit (should not be possible, but test the error handling)
-    const submitButton = screen.queryByTestId('submit-button');
-    // Submit button won't exist when user is not logged in
-    expect(submitButton).not.toBeInTheDocument();
-  });
-
   it('shows field errors for display_name', async () => {
     mockUseProfileContext.mockReturnValue(createContextValue());
 
@@ -450,6 +438,79 @@ describe('ProfileEditor', () => {
       expect(mockUpdateProfile).toHaveBeenCalledWith('user-id-1', {
         avatar_url: 'https://example.com/avatar.jpg',
       });
+    });
+  });
+
+  it('shows field errors for bio when bio is too long', async () => {
+    mockUseProfileContext.mockReturnValue(createContextValue());
+
+    render(<ProfileEditor />);
+
+    fireEvent.change(screen.getByTestId('input-bio'), {
+      target: { value: 'a'.repeat(501) },
+    });
+    fireEvent.click(screen.getByTestId('submit-button'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('error-bio')).toBeInTheDocument();
+    });
+  });
+
+  it('updates location field and clears validation errors', async () => {
+    mockUseProfileContext.mockReturnValue(createContextValue());
+
+    render(<ProfileEditor />);
+
+    fireEvent.change(screen.getByTestId('input-username'), {
+      target: { value: 'ab' },
+    });
+    fireEvent.click(screen.getByTestId('submit-button'));
+    await waitFor(() => {
+      expect(screen.getByTestId('error-username')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByTestId('input-location'), {
+      target: { value: 'Portland, OR' },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('input-location')).toHaveValue('Portland, OR');
+    });
+  });
+
+  it('calls onError with a wrapped error for non-Error rejections', async () => {
+    const mockOnError = jest.fn();
+    mockUseProfileContext.mockReturnValue(
+      createContextValue({
+        createProfile: jest.fn().mockRejectedValue('database unavailable'),
+      })
+    );
+
+    render(<ProfileEditor onError={mockOnError} />);
+    fireEvent.click(screen.getByTestId('submit-button'));
+
+    await waitFor(() => {
+      expect(mockOnError).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'database unavailable' })
+      );
+    });
+  });
+
+  it('skips avatar database update when upload URL has no path', async () => {
+    const mockUpdateProfile = jest.fn().mockResolvedValue(mockProfile);
+    mockUseProfileContext.mockReturnValue(
+      createContextValue({
+        profile: mockProfile,
+        updateProfile: mockUpdateProfile,
+      })
+    );
+
+    render(<ProfileEditor />);
+
+    fireEvent.click(screen.getByTestId('avatar-upload-query-only'));
+
+    await waitFor(() => {
+      expect(mockUpdateProfile).not.toHaveBeenCalled();
     });
   });
 

@@ -6,16 +6,31 @@
  * - apps/mobile/coverage (Jest)
  * - packages/shared-tests/coverage (Jest)
  * - packages/billing/coverage (Vitest)
+ * - packages/admin/coverage (Vitest)
+ * - packages/lifecycle-events/coverage (Vitest)
+ * - packages/waitlist/coverage (Vitest)
+ * - packages/email/coverage (Vitest)
+ * - packages/marketing-email/coverage (Vitest)
+ * - packages/observability/coverage (Vitest)
+ * - packages/logger/coverage (Vitest)
  */
 
 const fs = require('fs');
 const path = require('path');
+const { aggregateCoverageStats, pct } = require('./lib/coverage-stats');
 
 const coverageDirs = [
   { name: 'web', path: 'apps/web/coverage' },
   { name: 'mobile', path: 'apps/mobile/coverage' },
   { name: 'shared', path: 'packages/shared-tests/coverage' },
   { name: 'billing', path: 'packages/billing/coverage' },
+  { name: 'admin', path: 'packages/admin/coverage' },
+  { name: 'lifecycle-events', path: 'packages/lifecycle-events/coverage' },
+  { name: 'waitlist', path: 'packages/waitlist/coverage' },
+  { name: 'email', path: 'packages/email/coverage' },
+  { name: 'marketing-email', path: 'packages/marketing-email/coverage' },
+  { name: 'observability', path: 'packages/observability/coverage' },
+  { name: 'logger', path: 'packages/logger/coverage' },
 ];
 
 const outputDir = path.join(__dirname, '..', 'coverage');
@@ -28,14 +43,12 @@ if (!fs.existsSync(outputDir)) {
 
 // Read coverage-final.json from each source
 const coverageData = {};
-let totalStatements = 0;
-let totalBranches = 0;
-let totalFunctions = 0;
-let totalLines = 0;
-let coveredStatements = 0;
-let coveredBranches = 0;
-let coveredFunctions = 0;
-let coveredLines = 0;
+const totalStats = {
+  statements: { total: 0, covered: 0 },
+  branches: { total: 0, covered: 0 },
+  functions: { total: 0, covered: 0 },
+  lines: { total: 0, covered: 0 },
+};
 
 coverageDirs.forEach(({ name, path: coveragePath }) => {
   const coverageFile = path.join(
@@ -50,26 +63,11 @@ coverageDirs.forEach(({ name, path: coveragePath }) => {
       const data = JSON.parse(fs.readFileSync(coverageFile, 'utf8'));
       coverageData[name] = data;
 
-      // Calculate totals
-      Object.values(data).forEach(file => {
-        if (file && typeof file === 'object' && file.s) {
-          totalStatements += Object.keys(file.s).length;
-          totalBranches += Object.keys(file.b || {}).length;
-          totalFunctions += Object.keys(file.f || {}).length;
-          totalLines += Object.keys(file.statementMap || {}).length;
-
-          coveredStatements += Object.values(file.s).filter(v => v > 0).length;
-          coveredBranches += Object.values(file.b || {}).filter(
-            v => v > 0
-          ).length;
-          coveredFunctions += Object.values(file.f || {}).filter(
-            v => v > 0
-          ).length;
-          coveredLines += Object.values(file.statementMap || {})
-            .map((_, i) => (file.s[i] > 0 ? 1 : 0))
-            .filter(v => v > 0).length;
-        }
-      });
+      const packageStats = aggregateCoverageStats(data);
+      for (const key of Object.keys(totalStats)) {
+        totalStats[key].total += packageStats[key].total;
+        totalStats[key].covered += packageStats[key].covered;
+      }
 
       console.log(`✓ Loaded coverage from ${name}`);
     } catch (error) {
@@ -85,90 +83,34 @@ coverageDirs.forEach(({ name, path: coveragePath }) => {
   }
 });
 
-// Calculate percentages
-const statementsPct =
-  totalStatements > 0 ? (coveredStatements / totalStatements) * 100 : 0;
-const branchesPct =
-  totalBranches > 0 ? (coveredBranches / totalBranches) * 100 : 0;
-const functionsPct =
-  totalFunctions > 0 ? (coveredFunctions / totalFunctions) * 100 : 0;
-const linesPct = totalLines > 0 ? (coveredLines / totalLines) * 100 : 0;
+const statementsPct = pct(totalStats.statements);
+const branchesPct = pct(totalStats.branches);
+const functionsPct = pct(totalStats.functions);
+const linesPct = pct(totalStats.lines);
 
 // Create summary
 const summary = {
   total: {
-    statements: {
-      total: totalStatements,
-      covered: coveredStatements,
-      pct: statementsPct,
-    },
-    branches: {
-      total: totalBranches,
-      covered: coveredBranches,
-      pct: branchesPct,
-    },
-    functions: {
-      total: totalFunctions,
-      covered: coveredFunctions,
-      pct: functionsPct,
-    },
-    lines: { total: totalLines, covered: coveredLines, pct: linesPct },
+    statements: { ...totalStats.statements, pct: statementsPct },
+    branches: { ...totalStats.branches, pct: branchesPct },
+    functions: { ...totalStats.functions, pct: functionsPct },
+    lines: { ...totalStats.lines, pct: linesPct },
   },
   byPackage: {},
 };
 
 // Calculate per-package stats
 Object.entries(coverageData).forEach(([name, data]) => {
-  let pkgStatements = 0;
-  let pkgBranches = 0;
-  let pkgFunctions = 0;
-  let pkgLines = 0;
-  let pkgCoveredStatements = 0;
-  let pkgCoveredBranches = 0;
-  let pkgCoveredFunctions = 0;
-  let pkgCoveredLines = 0;
-
-  Object.values(data).forEach(file => {
-    if (file && typeof file === 'object' && file.s) {
-      pkgStatements += Object.keys(file.s).length;
-      pkgBranches += Object.keys(file.b || {}).length;
-      pkgFunctions += Object.keys(file.f || {}).length;
-      pkgLines += Object.keys(file.statementMap || {}).length;
-
-      pkgCoveredStatements += Object.values(file.s).filter(v => v > 0).length;
-      pkgCoveredBranches += Object.values(file.b || {}).filter(
-        v => v > 0
-      ).length;
-      pkgCoveredFunctions += Object.values(file.f || {}).filter(
-        v => v > 0
-      ).length;
-      pkgCoveredLines += Object.values(file.statementMap || {})
-        .map((_, i) => (file.s[i] > 0 ? 1 : 0))
-        .filter(v => v > 0).length;
-    }
-  });
+  const packageStats = aggregateCoverageStats(data);
 
   summary.byPackage[name] = {
     statements: {
-      total: pkgStatements,
-      covered: pkgCoveredStatements,
-      pct: pkgStatements > 0 ? (pkgCoveredStatements / pkgStatements) * 100 : 0,
+      ...packageStats.statements,
+      pct: pct(packageStats.statements),
     },
-    branches: {
-      total: pkgBranches,
-      covered: pkgCoveredBranches,
-      pct: pkgBranches > 0 ? (pkgCoveredBranches / pkgBranches) * 100 : 0,
-    },
-    functions: {
-      total: pkgFunctions,
-      covered: pkgCoveredFunctions,
-      pct: pkgFunctions > 0 ? (pkgCoveredFunctions / pkgFunctions) * 100 : 0,
-    },
-    lines: {
-      total: pkgLines,
-      covered: pkgCoveredLines,
-      pct: pkgLines > 0 ? (pkgCoveredLines / pkgLines) * 100 : 0,
-    },
+    branches: { ...packageStats.branches, pct: pct(packageStats.branches) },
+    functions: { ...packageStats.functions, pct: pct(packageStats.functions) },
+    lines: { ...packageStats.lines, pct: pct(packageStats.lines) },
   };
 });
 
@@ -179,16 +121,16 @@ fs.writeFileSync(outputFile, JSON.stringify(summary, null, 2));
 console.log('\n📊 Integrated Coverage Summary\n');
 console.log('Overall Coverage:');
 console.log(
-  `  Statements: ${coveredStatements}/${totalStatements} (${statementsPct.toFixed(2)}%)`
+  `  Statements: ${totalStats.statements.covered}/${totalStats.statements.total} (${statementsPct.toFixed(2)}%)`
 );
 console.log(
-  `  Branches:    ${coveredBranches}/${totalBranches} (${branchesPct.toFixed(2)}%)`
+  `  Branches:    ${totalStats.branches.covered}/${totalStats.branches.total} (${branchesPct.toFixed(2)}%)`
 );
 console.log(
-  `  Functions:   ${coveredFunctions}/${totalFunctions} (${functionsPct.toFixed(2)}%)`
+  `  Functions:   ${totalStats.functions.covered}/${totalStats.functions.total} (${functionsPct.toFixed(2)}%)`
 );
 console.log(
-  `  Lines:       ${coveredLines}/${totalLines} (${linesPct.toFixed(2)}%)`
+  `  Lines:       ${totalStats.lines.covered}/${totalStats.lines.total} (${linesPct.toFixed(2)}%)`
 );
 
 console.log('\nBy Package:');

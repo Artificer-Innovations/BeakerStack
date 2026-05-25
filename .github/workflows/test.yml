@@ -10,6 +10,7 @@ on:
     paths:
       # Application code and tests
       - 'apps/**'
+      - 'adopter/**'
       - 'packages/**'
       - 'tests/**'
       # Database schema and migrations
@@ -29,8 +30,9 @@ on:
       # Scripts and repo lint config (lint covers scripts/**)
       - 'scripts/**'
       - '.eslintrc.js'
-      # Workflow file itself
+      # Workflow and composite actions
       - '.github/workflows/test.yml'
+      - '.github/actions/**'
 
 permissions:
   contents: read
@@ -39,32 +41,290 @@ permissions:
   pull-requests: write
 
 jobs:
-  tests:
-    # On edited events, only run when the base branch was retargeted (not title/body-only edits).
+  test-scope:
     if: github.event.action != 'edited' || github.event.changes.base
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    outputs:
+      run_lint: ${{ steps.scope.outputs.run_lint }}
+      run_typecheck: ${{ steps.scope.outputs.run_typecheck }}
+      run_unit: ${{ steps.scope.outputs.run_unit }}
+      run_tested_scripts: ${{ steps.scope.outputs.run_tested_scripts }}
+      run_supabase: ${{ steps.scope.outputs.run_supabase }}
+      run_email_templates: ${{ steps.scope.outputs.run_email_templates }}
+      run_migration_filenames: ${{ steps.scope.outputs.run_migration_filenames }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Classify changed paths for this push
+        id: scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_all_flags() {
+            for flag in run_lint run_typecheck run_unit run_tested_scripts run_supabase \
+              run_email_templates run_migration_filenames; do
+              echo "${flag}=true" >> "${GITHUB_OUTPUT}"
+            done
+          }
+
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            run_all_flags
+            exit 0
+          fi
+
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          ./scripts/ci/classify-pr-event.sh \
+            "${{ github.event.action }}" \
+            "${{ github.event.before }}" \
+            "${HEAD_SHA}" \
+            "${{ github.base_ref }}"
+
+  lint:
+    needs: test-scope
+    if: >-
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.test-scope.outputs.run_lint == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+      - name: Run lint
+        run: npm run lint
+
+  type-check:
+    needs: test-scope
+    if: >-
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.test-scope.outputs.run_typecheck == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+      - name: Type check
+        run: npm run type-check
+
+  adopter-checks:
+    needs: test-scope
+    if: >-
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.test-scope.outputs.run_unit == 'true'
+    uses: ./.github/workflows/adopter-tests-reusable.yml
+
+  email-templates:
+    needs: test-scope
+    if: >-
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.test-scope.outputs.run_email_templates == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+      - name: Regenerate email templates
+        run: npm run email:personalize -- --non-interactive
+      - name: Fail if generated templates are stale
+        run: |
+          git diff --exit-code supabase/templates/generated/
+          test -z "$(git status --porcelain supabase/templates/generated/)"
+
+  unit-coverage-shard:
+    needs: test-scope
+    if: >-
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      (needs.test-scope.outputs.run_unit == 'true' ||
+       needs.test-scope.outputs.run_tested_scripts == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: mobile
+            script: test:coverage:mobile
+            coverage_path: apps/mobile/coverage
+          - shard: web
+            script: test:coverage:web
+            coverage_path: apps/web/coverage
+          - shard: shared
+            script: test:coverage:shared
+            coverage_path: packages/shared-tests/coverage
+          - shard: billing
+            script: test:coverage:billing
+            coverage_path: packages/billing/coverage
+          - shard: admin
+            script: test:coverage:admin
+            coverage_path: packages/admin/coverage
+          - shard: lifecycle-events
+            script: test:coverage:lifecycle-events
+            coverage_path: packages/lifecycle-events/coverage
+          - shard: waitlist
+            script: test:coverage:waitlist
+            coverage_path: packages/waitlist/coverage
+          - shard: email
+            script: test:coverage:email
+            coverage_path: packages/email/coverage
+          - shard: marketing-email
+            script: test:coverage:marketing-email
+            coverage_path: packages/marketing-email/coverage
+          - shard: logger
+            script: test:coverage:logger
+            coverage_path: packages/logger/coverage
+          - shard: observability
+            script: test:coverage:observability
+            coverage_path: packages/observability/coverage
+          - shard: scripts
+            script: test:unit:scripts
+            coverage_path: ''
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+
+      - name: Determine whether this shard should run
+        id: shard-scope
+        shell: bash
+        run: |
+          run_shard=false
+          if [[ "${{ needs.test-scope.outputs.run_unit }}" == "true" ]]; then
+            run_shard=true
+          elif [[ "${{ needs.test-scope.outputs.run_tested_scripts }}" == "true" && "${{ matrix.shard }}" == "scripts" ]]; then
+            run_shard=true
+          fi
+          echo "run=${run_shard}" >> "${GITHUB_OUTPUT}"
+
+      - name: Run unit tests (${{ matrix.shard }})
+        id: run-tests
+        if: steps.shard-scope.outputs.run == 'true'
+        continue-on-error: true
+        env:
+          COVERAGE_MERGE: '1'
+        run: |
+          mkdir -p ci
+          set -o pipefail
+          npm run ${{ matrix.script }} 2>&1 | tee ci/unit-coverage-${{ matrix.shard }}.log
+
+      - name: Stage coverage for upload
+        if: always() && steps.shard-scope.outputs.run == 'true' && matrix.coverage_path != ''
+        run: |
+          staging="coverage-artifact-staging/${{ matrix.coverage_path }}"
+          mkdir -p "$staging"
+          cp -a "${{ matrix.coverage_path }}/." "$staging/"
+          test -f "$staging/coverage-final.json"
+
+      - name: Upload coverage reports
+        if: always() && steps.shard-scope.outputs.run == 'true' && matrix.coverage_path != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-coverage-reports-${{ matrix.shard }}
+          path: coverage-artifact-staging/
+          if-no-files-found: error
+
+      - name: Upload test log
+        if: always() && steps.shard-scope.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-coverage-log-${{ matrix.shard }}
+          path: ci/unit-coverage-${{ matrix.shard }}.log
+          if-no-files-found: warn
+
+      - name: Fail job if tests failed
+        if: steps.run-tests.outcome == 'failure'
+        run: exit 1
+
+  unit-coverage:
+    needs: [test-scope, unit-coverage-shard]
+    if: >-
+      always() && !cancelled() &&
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.test-scope.outputs.run_unit == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Verify all unit test shards passed
+        run: |
+          if [ "${{ needs.unit-coverage-shard.result }}" != "success" ]; then
+            echo "One or more unit-coverage-shard jobs failed"
+            exit 1
+          fi
+
+  migration-filenames:
+    needs: test-scope
+    if: >-
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.test-scope.outputs.run_migration_filenames == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+      - name: Check SQL migration filenames
+        run: node --test scripts/__tests__/db-migration-filenames.test.mjs
+
+
+  build-edge:
+    needs: test-scope
+    if: >-
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      (needs.test-scope.outputs.run_supabase == 'true' || needs.test-scope.outputs.run_unit == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.54.11
+
+      - name: Assert Supabase CLI minimum version
+        run: |
+          MIN="1.120.0"
+          ACTUAL=$(supabase --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          if [ "$(printf '%s\n' "$MIN" "$ACTUAL" | sort -V | head -1)" != "$MIN" ]; then
+            echo "Supabase CLI $ACTUAL < $MIN (required for deno.json import maps)" >&2
+            exit 1
+          fi
+
+      - name: Sync edge shared packages
+        run: npm run functions:sync-shared
+
+      - name: Lint Supabase functions
+        run: npm run lint:supabase
+
+  supabase-tests:
+    needs: [test-scope, build-edge]
+    if: >-
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.test-scope.outputs.run_supabase == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
 
     env:
-      SUPABASE_URL: http://127.0.0.1:54321
-      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
-      SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.3a1SuBbAPEU4S9r0iEmL4YI9P_HT8bjemN7Dz9f1hQ0
-      VITE_SUPABASE_URL: http://127.0.0.1:54321
-      VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
       TEST_EMAIL: ci-test@example.com
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Cache Supabase CLI and Docker state
+        uses: actions/cache@v4
         with:
-          node-version: 20.x
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
+          path: |
+            ~/.supabase
+          key: supabase-${{ runner.os }}-${{ hashFiles('supabase/config.toml') }}
+          restore-keys: |
+            supabase-${{ runner.os }}-
 
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v1
@@ -72,36 +332,170 @@ jobs:
           version: 2.54.11
 
       - name: Start Supabase services
-        run: |
-          mkdir -p .supabase/logs
-          # Exclude non-essential services to speed up CI startup
-          supabase start -x studio,imgproxy,inbucket,edge-runtime,analytics > .supabase/logs/start.log 2>&1
-          supabase status > .supabase/logs/status.log 2>&1
-          cat .supabase/logs/status.log
+        run: ./scripts/ci-supabase-start.sh
 
-      - name: Run lint
-        run: npm run lint
+      - name: Export Supabase credentials from local stack
+        run: ./scripts/ci-export-supabase-env.sh
 
-      - name: Type check
-        run: npm run type-check
-
-      - name: Run tests with coverage
+      - name: Run database and integration tests
         id: run-tests
         continue-on-error: true
+        env:
+          RUN_LIVE_SUPABASE_TEST: '1'
         run: |
-          mkdir -p ci
           set -o pipefail
+          mkdir -p ci
+          failed=0
+          ( npm run test:db:pgtap ) 2>&1 | tee ci/db-tests.log || failed=1
           (
             npm run test:integration &&
-            npm run test:db &&
-            npm run test:coverage
-          ) 2>&1 | tee ci/test-output.log
+            cd apps/web && npx vitest run src/lib/supabase.test.ts
+          ) 2>&1 | tee ci/integration.log || failed=1
+          exit $failed
 
-      - name: Build coverage summary
-        id: build-summary
+      - name: Upload database test log
         if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-tests-log
+          path: ci/db-tests.log
+          if-no-files-found: warn
+
+      - name: Upload integration test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-log
+          path: ci/integration.log
+          if-no-files-found: warn
+
+      - name: Upload Supabase logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-tests-supabase-logs
+          path: .supabase/logs
+          if-no-files-found: warn
+
+      - name: Fail job if tests failed
+        if: steps.run-tests.outcome == 'failure'
+        run: exit 1
+
+      - name: Stop Supabase services
+        if: always()
+        run: supabase stop || true
+
+  integration:
+    needs: [test-scope, supabase-tests]
+    if: >-
+      always() && !cancelled() &&
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.supabase-tests.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Verify Supabase integration tests passed
         run: |
+          if [ "${{ needs.supabase-tests.result }}" != "success" ]; then
+            echo "supabase-tests failed (includes integration suite)"
+            exit 1
+          fi
+
+  db-tests:
+    needs: [test-scope, migration-filenames, supabase-tests]
+    if: >-
+      always() && !cancelled() &&
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.supabase-tests.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Verify migration filenames and pgTAP tests passed
+        run: |
+          if [ "${{ needs.test-scope.outputs.run_migration_filenames }}" = "true" ] && \
+             [ "${{ needs.migration-filenames.result }}" != "success" ]; then
+            echo "migration-filenames did not pass (result: ${{ needs.migration-filenames.result }})"
+            exit 1
+          fi
+          if [ "${{ needs.supabase-tests.result }}" != "success" ]; then
+            echo "supabase-tests failed (includes pgTAP suite)"
+            exit 1
+          fi
+
+  coverage-report:
+    needs: [test-scope, unit-coverage-shard, unit-coverage]
+    if: >-
+      always() && !cancelled() &&
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.test-scope.outputs.run_unit == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+
+      # merge-multiple flattens single-file artifacts to workspace root; download each
+      # shard into its own directory so staged apps/.../coverage paths restore correctly.
+      - name: Download unit coverage reports
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          shards=(mobile web shared billing admin lifecycle-events waitlist email marketing-email logger observability)
+          for shard in "${shards[@]}"; do
+            echo "Downloading unit-coverage-reports-${shard}"
+            gh run download "${GITHUB_RUN_ID}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              -n "unit-coverage-reports-${shard}" \
+              -D "unit-coverage-reports-${shard}"
+          done
+
+      - name: Download unit test logs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          shards=(mobile web shared billing admin lifecycle-events waitlist email marketing-email logger observability scripts)
+          for shard in "${shards[@]}"; do
+            gh run download "${GITHUB_RUN_ID}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              -n "unit-coverage-log-${shard}" \
+              -D "unit-coverage-log-${shard}" || true
+          done
+
+      - name: Restore layout from downloaded artifacts
+        run: |
+          shopt -s nullglob
+          for dir in unit-coverage-reports-*; do
+            [ -d "$dir" ] || continue
+            cp -a "$dir"/. .
+          done
           mkdir -p ci
+          for dir in unit-coverage-log-*; do
+            [ -d "$dir" ] || continue
+            while IFS= read -r -d '' logfile; do
+              cp -a "$logfile" "ci/$(basename "$logfile")"
+            done < <(find "$dir" -type f -name '*.log' -print0)
+          done
+          for f in unit-coverage-*.log; do
+            [ -f "$f" ] && cp -a "$f" ci/
+          done
+          if [ ! -f apps/web/coverage/coverage-final.json ] && [ ! -f packages/billing/coverage/coverage-final.json ]; then
+            echo "::error::No coverage-final.json under expected paths after restore"
+            ls -la
+            ls -laR unit-coverage-reports-* 2>/dev/null || true
+            exit 1
+          fi
+
+      - name: Merge coverage and test logs
+        id: build-summary
+        run: |
+          mkdir -p coverage ci
+          node scripts/merge-coverage.js
+          cat ci/unit-coverage-*.log > ci/test-output.log 2>/dev/null || touch ci/test-output.log
           node scripts/format-ci-summary.mjs \
             --coverage coverage/coverage-summary.json \
             --test-log ci/test-output.log \
@@ -112,8 +506,6 @@ jobs:
             cat ci/comment.md
             printf '\nEOF_COMMENT\n'
           } >> "$GITHUB_OUTPUT"
-          tests_failed=$(node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync('ci/summary.json','utf8')); process.stdout.write(String(data.tests.suites.failed || 0));")
-          echo "tests_failed=$tests_failed" >> "$GITHUB_OUTPUT"
 
       - name: Comment coverage summary
         if: github.event_name == 'pull_request'
@@ -127,7 +519,6 @@ jobs:
               return;
             }
 
-            // Add timestamp in Pacific time
             const now = new Date();
             const pacificTime = now.toLocaleString('en-US', {
               timeZone: 'America/Los_Angeles',
@@ -211,32 +602,147 @@ jobs:
             apps/mobile/coverage
             packages/shared-tests/coverage
             packages/billing/coverage
+            packages/admin/coverage
+            packages/waitlist/coverage
+            packages/email/coverage
+            packages/marketing-email/coverage
+            packages/lifecycle-events/coverage
+            packages/logger/coverage
+            packages/observability/coverage
           if-no-files-found: warn
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: |
-            **/junit*.xml
-            **/test-results/**/*.xml
-            **/jest-stare/**/*.html
-          if-no-files-found: warn
-
-      - name: Upload Supabase logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: supabase-logs
-          path: .supabase/logs
-          if-no-files-found: warn
-
-      - name: Fail job if tests failed
-        if: steps.run-tests.outcome == 'failure'
+      - name: Fail if upstream test jobs failed
+        if: needs.unit-coverage.result == 'failure'
         run: exit 1
 
-      - name: Stop Supabase services
-        if: always()
-        run: supabase stop || true
+  supabase-test-report:
+    needs: [test-scope, migration-filenames, supabase-tests, integration, db-tests]
+    if: >-
+      always() && !cancelled() &&
+      (github.event.action != 'edited' || github.event.changes.base) &&
+      needs.supabase-tests.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
 
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+
+      - name: Download database test log
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p ci
+          gh run download "${GITHUB_RUN_ID}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            -n db-tests-log \
+            -D ci-dl/db-tests-log || true
+          find ci-dl/db-tests-log -name 'db-tests.log' -print -quit | xargs -I{} cp {} ci/db-tests.log || true
+
+      - name: Download integration test log
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p ci
+          gh run download "${GITHUB_RUN_ID}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            -n integration-log \
+            -D ci-dl/integration-log || true
+          find ci-dl/integration-log -name 'integration.log' -print -quit | xargs -I{} cp {} ci/integration.log || true
+
+      - name: Build supabase test summary
+        id: build-summary
+        run: |
+          mkdir -p ci
+          node scripts/format-supabase-test-summary.mjs \
+            --db-log ci/db-tests.log \
+            --integration-log ci/integration.log \
+            --migration-result "${{ needs.migration-filenames.result }}" \
+            --markdown-output ci/supabase-comment.md
+          {
+            printf 'comment<<EOF_COMMENT\n'
+            cat ci/supabase-comment.md
+            printf '\nEOF_COMMENT\n'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Post supabase test comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- supabase-tests-comment -->';
+            let body = process.env.COMMENT_BODY?.trim();
+            if (!body) {
+              core.info('No comment body provided; skipping.');
+              return;
+            }
+
+            const now = new Date();
+            const pacificTime = now.toLocaleString('en-US', {
+              timeZone: 'America/Los_Angeles',
+              dateStyle: 'long',
+              timeStyle: 'short'
+            });
+            const timezone = now.toLocaleString('en-US', {
+              timeZone: 'America/Los_Angeles',
+              timeZoneName: 'short'
+            }).split(' ').pop();
+            body = `${body}\n\n---\n\n_Updated at: ${pacificTime} ${timezone}_`;
+
+            const canWrite =
+              (context.eventName === 'pull_request' &&
+                context.payload.pull_request &&
+                context.payload.pull_request.head.repo.full_name ===
+                  context.repo.owner + '/' + context.repo.repo) ||
+              process.env.GITHUB_TOKEN_SCOPE?.includes('write');
+
+            if (!canWrite) {
+              core.warning(
+                'GITHUB_TOKEN lacks write permission (likely a fork PR); skipping comment.'
+              );
+              return;
+            }
+
+            try {
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                per_page: 100,
+              });
+
+              const existing = comments.find(c => c.body.includes(marker));
+
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existing.id,
+                  body,
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.payload.pull_request.number,
+                  body,
+                });
+              }
+            } catch (error) {
+              if (error.status === 403) {
+                core.warning(
+                  `Insufficient permissions to comment on PR: ${error.message}`
+                );
+                return;
+              }
+              throw error;
+            }
+        env:
+          COMMENT_BODY: ${{ steps.build-summary.outputs.comment }}
+
+      - name: Fail if upstream supabase tests failed
+        if: |
+          needs.supabase-tests.result == 'failure' ||
+          needs.integration.result == 'failure' ||
+          (needs.db-tests.result != 'skipped' && needs.db-tests.result == 'failure')
+        run: exit 1

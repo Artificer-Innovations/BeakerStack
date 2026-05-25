@@ -1,12 +1,15 @@
 import React from 'react';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { BRANDING } from '@beakerstack/shared/config/branding';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
+import * as AuthContext from '@beakerstack/shared/contexts/AuthContext';
+import * as ProfileContext from '@beakerstack/shared/contexts/ProfileContext';
+import type { User } from '@supabase/supabase-js';
 
 // Mock Supabase client
 const createMockSupabaseClient = (): SupabaseClient => {
@@ -41,6 +44,7 @@ function renderAppHeader(mockClient = createMockSupabaseClient()) {
 
 describe('AppHeader (Web)', () => {
   beforeEach(() => {
+    jest.restoreAllMocks();
     jest.clearAllMocks();
   });
 
@@ -56,8 +60,10 @@ describe('AppHeader (Web)', () => {
       </BrowserRouter>
     );
 
-    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
-    const icon = screen.getByAltText(BRANDING.displayName);
+    expect(
+      screen.getByText(getAdopterConfig().branding.displayName)
+    ).toBeInTheDocument();
+    const icon = screen.getByAltText(getAdopterConfig().branding.displayName);
     expect(icon).toBeInTheDocument();
     expect(icon).toHaveAttribute('src', '/demo-flask-icon.svg');
   });
@@ -85,63 +91,6 @@ describe('AppHeader (Web)', () => {
     expect(screen.getByText('Sign Up')).toBeInTheDocument();
   });
 
-  it.skip('should show UserMenu when user is authenticated', async () => {
-    const mockClient = createMockSupabaseClient();
-    const mockUser = {
-      id: '1',
-      email: 'test@example.com',
-      app_metadata: {},
-      user_metadata: {},
-      aud: 'authenticated',
-      created_at: new Date().toISOString(),
-    };
-
-    mockClient.auth.getSession = jest.fn().mockResolvedValue({
-      data: {
-        session: {
-          user: mockUser,
-          access_token: 'token',
-        },
-      },
-      error: null,
-    });
-
-    // Mock ProfileProvider to return a profile
-    mockClient.from = jest.fn(() => ({
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnValue({
-          single: jest.fn().mockResolvedValue({
-            data: null,
-            error: { code: 'PGRST116', message: 'No rows returned' },
-          }),
-        }),
-      }),
-    })) as any;
-
-    render(
-      <BrowserRouter>
-        <AuthProvider supabaseClient={mockClient}>
-          <ProfileProvider supabaseClient={mockClient}>
-            <AppHeader supabaseClient={mockClient} />
-          </ProfileProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    );
-
-    // Wait for auth to initialize - UserMenu should appear
-    await waitFor(
-      () => {
-        // Either UserMenu appears or Sign In/Sign Up are hidden
-        const signInLinks = screen.queryAllByText('Sign In');
-        const signUpLinks = screen.queryAllByText('Sign Up');
-        // If user is authenticated, these should not be in the header
-        expect(signInLinks.length).toBeLessThanOrEqual(1); // May appear in main content
-        expect(signUpLinks.length).toBeLessThanOrEqual(1);
-      },
-      { timeout: 3000 }
-    );
-  });
-
   it('should have correct link to home page', () => {
     const mockClient = createMockSupabaseClient();
     render(
@@ -154,7 +103,9 @@ describe('AppHeader (Web)', () => {
       </BrowserRouter>
     );
 
-    const titleLink = screen.getByText(BRANDING.displayName).closest('a');
+    const titleLink = screen
+      .getByText(getAdopterConfig().branding.displayName)
+      .closest('a');
     expect(titleLink).toHaveAttribute('href', '/');
   });
 
@@ -183,6 +134,18 @@ describe('AppHeader (Web)', () => {
     expect(header.className).toContain('shadow-sm');
   });
 
+  it('uses PR preview base path for icon src', () => {
+    const originalPath = window.location.pathname;
+    window.history.pushState({}, '', '/pr-42/dashboard');
+    try {
+      renderAppHeader();
+      const icon = screen.getByAltText(getAdopterConfig().branding.displayName);
+      expect(icon).toHaveAttribute('src', '/pr-42/demo-flask-icon.svg');
+    } finally {
+      window.history.pushState({}, '', originalPath || '/');
+    }
+  });
+
   it('removes shadow class when scrolled back to top', () => {
     renderAppHeader();
     const header = screen.getByRole('banner');
@@ -206,5 +169,64 @@ describe('AppHeader (Web)', () => {
       window.dispatchEvent(new Event('scroll'));
     });
     expect(header.className).not.toContain('shadow-sm');
+  });
+
+  it('skips scrolled state update when scroll position unchanged', () => {
+    renderAppHeader();
+    const header = screen.getByRole('banner');
+
+    act(() => {
+      Object.defineProperty(window, 'scrollY', {
+        value: 50,
+        writable: true,
+        configurable: true,
+      });
+      window.dispatchEvent(new Event('scroll'));
+      window.dispatchEvent(new Event('scroll'));
+    });
+
+    expect(header.className).toContain('shadow-sm');
+  });
+
+  it('shows UserMenu when user is authenticated', () => {
+    const mockUser = {
+      id: 'user-1',
+      email: 'test@example.com',
+      app_metadata: {},
+      user_metadata: {},
+      aud: 'authenticated',
+      created_at: new Date().toISOString(),
+    } as User;
+
+    jest.spyOn(AuthContext, 'useAuthContext').mockReturnValue({
+      user: mockUser,
+      session: null,
+      loading: false,
+      error: null,
+      signIn: jest.fn(),
+      signUp: jest.fn(),
+      signOut: jest.fn(),
+      signInWithGoogle: jest.fn(),
+      requestPasswordReset: jest.fn(),
+      updatePassword: jest.fn(),
+    });
+    jest.spyOn(ProfileContext, 'useProfileContext').mockReturnValue({
+      profile: null,
+      loading: false,
+      error: null,
+      updateProfile: jest.fn(),
+      refreshProfile: jest.fn(),
+    });
+
+    const mockClient = createMockSupabaseClient();
+    render(
+      <BrowserRouter>
+        <AppHeader supabaseClient={mockClient} />
+      </BrowserRouter>
+    );
+
+    expect(screen.getByLabelText('User menu')).toBeInTheDocument();
+    expect(screen.queryByText('Sign In')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sign Up')).not.toBeInTheDocument();
   });
 });

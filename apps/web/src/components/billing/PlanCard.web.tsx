@@ -1,7 +1,7 @@
 import type { BillingPlanConfig, Plan } from '@beakerstack/billing';
 import { useBillingConfig } from '@beakerstack/billing';
 import { Button } from '@beakerstack/shared/components/primitives/Button.web';
-import { beakerstackBillingConfig } from '../../billing/beakerstackBillingConfig';
+import { billingConfig as adopterBillingConfig } from '@adopter/config/billing';
 import type { DowngradeBlockersResult } from '@beakerstack/billing/presentation';
 import { annualListCentsFromSync } from '@beakerstack/billing/presentation';
 import { ConstraintWarning } from './ConstraintWarning.web';
@@ -33,9 +33,10 @@ export function PlanCard({
   billingCadence?: 'monthly' | 'annual';
   /** Hard blockers disable the CTA; soft blockers are shown as warnings only (boolean entitlement loss). */
   blockers?: DowngradeBlockersResult;
-  primary: {
+  primary?: {
     label: string;
-    onClick: () => void;
+    /** Optional so disabled CTAs (current-plan markers) can omit a no-op handler. */
+    onClick?: () => void;
     disabled?: boolean;
     loading?: boolean;
     variant?: 'primary' | 'secondary';
@@ -44,7 +45,7 @@ export function PlanCard({
   supplementalBadge?: string;
 }): JSX.Element {
   void mode;
-  const billingConfig = useBillingConfig<typeof beakerstackBillingConfig>();
+  const billingConfig = useBillingConfig<typeof adopterBillingConfig>();
   const cfgPlan = billingConfig.plans.find(p => p.id === plan.id) as
     | BillingPlanConfig
     | undefined;
@@ -109,17 +110,19 @@ export function PlanCard({
       <div className={hasWarnings ? 'mt-2' : 'mt-6 grow'}>
         <PlanFeatureList plan={plan} />
       </div>
-      <div className='mt-6'>
-        <Button
-          type='button'
-          variant={primary.variant ?? 'primary'}
-          onPress={primary.onClick}
-          disabled={primary.disabled || hardBlocked}
-          loading={primary.loading}
-        >
-          {hardBlocked ? 'Resolve issues to downgrade' : primary.label}
-        </Button>
-      </div>
+      {primary ? (
+        <div className='mt-6'>
+          <Button
+            type='button'
+            variant={primary.variant ?? 'primary'}
+            onPress={primary.onClick}
+            disabled={primary.disabled || hardBlocked}
+            loading={primary.loading}
+          >
+            {hardBlocked ? 'Resolve issues to downgrade' : primary.label}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

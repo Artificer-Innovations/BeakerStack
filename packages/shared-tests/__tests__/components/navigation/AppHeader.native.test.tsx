@@ -5,7 +5,10 @@ import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.n
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { BRANDING } from '@beakerstack/shared/config/branding';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
+import * as AuthContext from '@beakerstack/shared/contexts/AuthContext';
+import * as ProfileContext from '@beakerstack/shared/contexts/ProfileContext';
+import type { User } from '@supabase/supabase-js';
 
 // Mock React Navigation
 const mockNavigate = jest.fn();
@@ -15,16 +18,67 @@ jest.mock('@react-navigation/native', () => ({
   }),
 }));
 
-// Mock Platform
+const APP_HEADER_PLATFORM_OS_KEY =
+  '__BeakerStack_AppHeaderNativeTest_platformOs';
+
+const APP_HEADER_STATUS_BAR_HEIGHT_KEY =
+  '__BeakerStack_AppHeaderNativeTest_statusBarHeight';
+
+function appHeaderPlatformOsRef(): { current: string } {
+  const g = globalThis as Record<string, { current: string } | undefined>;
+  if (!g[APP_HEADER_PLATFORM_OS_KEY]) {
+    g[APP_HEADER_PLATFORM_OS_KEY] = { current: 'ios' };
+  }
+  return g[APP_HEADER_PLATFORM_OS_KEY]!;
+}
+
+function appHeaderStatusBarHeightRef(): { current: number | null } {
+  const g = globalThis as Record<
+    string,
+    { current: number | null } | undefined
+  >;
+  if (!g[APP_HEADER_STATUS_BAR_HEIGHT_KEY]) {
+    g[APP_HEADER_STATUS_BAR_HEIGHT_KEY] = { current: 24 };
+  }
+  return g[APP_HEADER_STATUS_BAR_HEIGHT_KEY]!;
+}
+
+// Mock Platform (toggle OS via appHeaderPlatformOsRef in tests)
 jest.mock('react-native', () => {
   const RN = jest.requireActual('react-native');
+  const key = APP_HEADER_PLATFORM_OS_KEY;
+  const statusBarKey = '__BeakerStack_AppHeaderNativeTest_statusBarHeight';
+  const platformOsRef = (): { current: string } => {
+    const g = globalThis as Record<string, { current: string } | undefined>;
+    if (!g[key]) {
+      g[key] = { current: 'ios' };
+    }
+    return g[key]!;
+  };
+  const statusBarHeightRef = (): { current: number | null } => {
+    const g = globalThis as Record<
+      string,
+      { current: number | null } | undefined
+    >;
+    if (!g[statusBarKey]) {
+      g[statusBarKey] = { current: 24 };
+    }
+    return g[statusBarKey]!;
+  };
   return {
     ...RN,
     Platform: {
-      OS: 'ios',
+      ...RN.Platform,
+      get OS() {
+        return platformOsRef().current;
+      },
     },
     StatusBar: {
-      currentHeight: 0,
+      get currentHeight() {
+        return platformOsRef().current === 'android'
+          ? statusBarHeightRef().current
+          : 0;
+      },
     },
   };
 });
@@ -93,14 +147,19 @@ const renderWithProviders = (
 
 describe('AppHeader (Native)', () => {
   beforeEach(() => {
+    jest.restoreAllMocks();
     jest.clearAllMocks();
+    appHeaderPlatformOsRef().current = 'ios';
+    appHeaderStatusBarHeightRef().current = 24;
   });
 
   it('renders app title', () => {
     renderWithProviders(
       <AppHeader supabaseClient={createMockSupabaseClient()} />
     );
-    expect(screen.getByText(BRANDING.displayName)).toBeInTheDocument();
+    expect(
+      screen.getByText(getAdopterConfig().branding.displayName)
+    ).toBeInTheDocument();
   });
 
   it('renders app icon', () => {
@@ -115,7 +174,7 @@ describe('AppHeader (Native)', () => {
       <AppHeader supabaseClient={createMockSupabaseClient()} />
     );
     // Find the TouchableOpacity that contains the title
-    const title = screen.getByText(BRANDING.displayName);
+    const title = screen.getByText(getAdopterConfig().branding.displayName);
     const logoButton = title.closest('button') || title.parentElement;
     if (logoButton) {
       fireEvent.click(logoButton);
@@ -171,24 +230,76 @@ describe('AppHeader (Native)', () => {
     expect(mockNavigate).toHaveBeenCalledWith('Signup');
   });
 
-  it.skip('renders UserMenu when user is authenticated', async () => {
-    const mockClient = createMockSupabaseClient(true);
-    mockClient.auth.getSession = jest.fn().mockResolvedValue({
-      data: {
-        session: {
-          user: { id: '1', email: 'test@example.com' },
-          access_token: 'token',
-        },
-      },
+  it('renders UserMenu when user is authenticated', () => {
+    const mockUser = {
+      id: 'user-1',
+      email: 'test@example.com',
+      app_metadata: {},
+      user_metadata: {},
+      aud: 'authenticated',
+      created_at: '2024-01-01',
+    } as User;
+
+    jest.spyOn(AuthContext, 'useAuthContext').mockReturnValue({
+      user: mockUser,
+      session: null,
+      loading: false,
       error: null,
+      signIn: jest.fn(),
+      signUp: jest.fn(),
+      signOut: jest.fn(),
+      signInWithGoogle: jest.fn(),
+      requestPasswordReset: jest.fn(),
+      updatePassword: jest.fn(),
+    });
+    jest.spyOn(ProfileContext, 'useProfileContext').mockReturnValue({
+      profile: null,
+      loading: false,
+      error: null,
+      updateProfile: jest.fn(),
+      refreshProfile: jest.fn(),
     });
 
-    renderWithProviders(<AppHeader supabaseClient={mockClient} />);
-
-    // Wait for UserMenu to appear (ProfileProvider needs to load profile first)
-    await screen.findByTestId('user-menu', {}, { timeout: 3000 });
+    render(<AppHeader supabaseClient={createMockSupabaseClient()} />);
 
     expect(screen.getByTestId('user-menu')).toBeInTheDocument();
     expect(screen.queryByText('Sign In')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sign Up')).not.toBeInTheDocument();
+  });
+
+  it('renders on Android with null status bar height fallback', async () => {
+    appHeaderPlatformOsRef().current = 'android';
+    appHeaderStatusBarHeightRef().current = null;
+    renderWithProviders(
+      <AppHeader supabaseClient={createMockSupabaseClient()} />
+    );
+    await screen.findByText(getAdopterConfig().branding.displayName);
+    expect(
+      screen.getByText(getAdopterConfig().branding.displayName)
+    ).toBeInTheDocument();
+  });
+
+  it('renders on Android with explicit status bar height', async () => {
+    appHeaderPlatformOsRef().current = 'android';
+    appHeaderStatusBarHeightRef().current = 32;
+    renderWithProviders(
+      <AppHeader supabaseClient={createMockSupabaseClient()} />
+    );
+    await screen.findByText(getAdopterConfig().branding.displayName);
+    expect(
+      screen.getByText(getAdopterConfig().branding.displayName)
+    ).toBeInTheDocument();
+  });
+
+  it('renders on Android when status bar height is zero', async () => {
+    appHeaderPlatformOsRef().current = 'android';
+    appHeaderStatusBarHeightRef().current = 0;
+    renderWithProviders(
+      <AppHeader supabaseClient={createMockSupabaseClient()} />
+    );
+    await screen.findByText(getAdopterConfig().branding.displayName);
+    expect(
+      screen.getByText(getAdopterConfig().branding.displayName)
+    ).toBeInTheDocument();
   });
 });

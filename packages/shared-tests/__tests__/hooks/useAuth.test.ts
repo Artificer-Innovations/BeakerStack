@@ -136,6 +136,7 @@ describe('useAuth', () => {
     expect(mockClient.auth.signUp).toHaveBeenCalledWith({
       email: 'test@example.com',
       password: 'password123',
+      options: { emailRedirectTo: 'http://localhost/auth/confirm' },
     });
   });
 
@@ -358,50 +359,6 @@ describe('useAuth', () => {
     expect(result.current.loading).toBe(false);
   });
 
-  it.skip('should handle signInWithGoogle with PR preview path', async () => {
-    const { mockClient } = createMockSupabaseClient();
-
-    // Mock window.location using Object.defineProperty on window
-    const originalLocation = window.location;
-    const mockLocation = {
-      ...originalLocation,
-      origin: 'http://localhost',
-      pathname: '/pr-9/login',
-    };
-
-    // Use Object.defineProperty to replace window.location
-    Object.defineProperty(window, 'location', {
-      value: mockLocation,
-      writable: true,
-      configurable: true,
-    });
-
-    const { result } = renderHook(() => useAuth(mockClient));
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    await act(async () => {
-      await result.current.signInWithGoogle();
-    });
-
-    // Should call signInWithOAuth with redirectTo including base path
-    expect(mockClient.auth.signInWithOAuth).toHaveBeenCalledWith({
-      provider: 'google',
-      options: {
-        redirectTo: 'http://localhost/pr-9/auth/callback',
-      },
-    });
-
-    // Restore window.location
-    Object.defineProperty(window, 'location', {
-      value: originalLocation,
-      writable: true,
-      configurable: true,
-    });
-  });
-
   it('should throw error during Google sign in when OAuth fails', async () => {
     const { mockClient } = createMockSupabaseClient();
     const errorMessage = 'OAuth error';
@@ -427,5 +384,113 @@ describe('useAuth', () => {
 
     expect(thrownError).not.toBeNull();
     expect(thrownError?.message).toBe(errorMessage);
+  });
+
+  it('should request password reset with redirect URL', async () => {
+    const { mockClient } = createMockSupabaseClient();
+    mockClient.auth.resetPasswordForEmail = jest.fn().mockResolvedValue({
+      data: {},
+      error: null,
+    });
+    const { result } = renderHook(() => useAuth(mockClient));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.requestPasswordReset('user@example.com');
+    });
+
+    expect(mockClient.auth.resetPasswordForEmail).toHaveBeenCalledWith(
+      'user@example.com',
+      { redirectTo: 'http://localhost/auth/confirm' }
+    );
+  });
+
+  it('should use PR preview path for password reset redirect', async () => {
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/pr-9/forgot-password');
+
+    const { mockClient } = createMockSupabaseClient();
+    mockClient.auth.resetPasswordForEmail = jest.fn().mockResolvedValue({
+      data: {},
+      error: null,
+    });
+    const { result } = renderHook(() => useAuth(mockClient));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.requestPasswordReset('user@example.com');
+    });
+
+    expect(mockClient.auth.resetPasswordForEmail).toHaveBeenCalledWith(
+      'user@example.com',
+      { redirectTo: `${window.location.origin}/pr-9/auth/confirm` }
+    );
+
+    window.history.replaceState({}, '', originalHref);
+  });
+
+  it('should throw when password reset fails', async () => {
+    const { mockClient } = createMockSupabaseClient();
+    mockClient.auth.resetPasswordForEmail = jest.fn().mockResolvedValue({
+      data: null,
+      error: { message: 'Reset failed' },
+    });
+    const { result } = renderHook(() => useAuth(mockClient));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await expect(
+      act(async () => {
+        await result.current.requestPasswordReset('user@example.com');
+      })
+    ).rejects.toThrow('Reset failed');
+  });
+
+  it('should update password successfully', async () => {
+    const { mockClient } = createMockSupabaseClient();
+    mockClient.auth.updateUser = jest.fn().mockResolvedValue({
+      data: { user: {} },
+      error: null,
+    });
+    const { result } = renderHook(() => useAuth(mockClient));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.updatePassword('new-password-1');
+    });
+
+    expect(mockClient.auth.updateUser).toHaveBeenCalledWith({
+      password: 'new-password-1',
+    });
+  });
+
+  it('should throw when update password fails', async () => {
+    const { mockClient } = createMockSupabaseClient();
+    mockClient.auth.updateUser = jest.fn().mockResolvedValue({
+      data: { user: null },
+      error: { message: 'Weak password' },
+    });
+    const { result } = renderHook(() => useAuth(mockClient));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await expect(
+      act(async () => {
+        await result.current.updatePassword('short');
+      })
+    ).rejects.toThrow('Weak password');
   });
 });

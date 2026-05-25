@@ -41,7 +41,7 @@ Branch protection prevents accidental squash merges into `main`, which can cause
      - ✅ Require approvals: 1 (or your team's requirement)
      - ✅ Dismiss stale pull request approvals when new commits are pushed
    - ✅ Require status checks to pass before merging
-     - Select required status checks (e.g., "Test", "Lint & Type Check")
+     - Select required status checks (see [Required CI status checks](#required-ci-status-checks) below)
    - ✅ Require branches to be up to date before merging
    - ✅ **Require merge queue** (optional, but recommended for teams)
 
@@ -60,12 +60,35 @@ Branch protection prevents accidental squash merges into `main`, which can cause
    - ✅ Require a pull request before merging
      - ✅ Require approvals: 1 (or your team's requirement)
    - ✅ Require status checks to pass before merging
+     - Select required status checks (see [Required CI status checks](#required-ci-status-checks) below)
    - ✅ Require branches to be up to date before merging
 
    **Restrict who can push to matching branches:**
    - ✅ Do not allow bypassing the above settings
 
 4. Click **Create** (or **Save changes**)
+
+### Required CI status checks
+
+The [`Test` workflow](../.github/workflows/test.yml) runs parallel jobs. Each job reports an independent status check. Require these on `main` and `develop`:
+
+| Status check                  | Job                                                                                        | Blocks merge?      |
+| ----------------------------- | ------------------------------------------------------------------------------------------ | ------------------ |
+| `Test / lint`                 | ESLint across all workspaces                                                               | Yes                |
+| `Test / type-check`           | TypeScript `--noEmit`                                                                      | Yes                |
+| `Test / unit-coverage`        | Gate: all `unit-coverage-shard` matrix legs passed (unit tests with coverage, no Supabase) | Yes                |
+| `Test / integration`          | Gate: `supabase-tests` job (integration + web Supabase smoke)                              | Yes                |
+| `Test / db-tests`             | Gate: `migration-filenames` + `supabase-tests` (pgTAP)                                     | Yes                |
+| `Test / coverage-report`      | Merges coverage and posts PR comment                                                       | No (informational) |
+| `Test / supabase-test-report` | Posts DB + integration test summary PR comment                                             | No (informational) |
+
+After migrating from the old monolithic `Test / tests` check, remove `Test / tests` from branch protection and add the five required checks above.
+
+`Test / coverage-report` should **not** be required — it aggregates results and may still post a coverage comment when other jobs fail.
+
+Unit tests run in parallel via the `unit-coverage-shard` matrix (one leg per workspace: web, mobile, billing, etc.). GitHub also reports informational checks such as `Test / unit-coverage-shard (web)` — do **not** add those to required checks; only require `Test / unit-coverage`, which fails if any shard fails.
+
+`Test / coverage-report` does not wait on `integration` or `db-tests`; it only merges unit-test coverage. Supabase tests run in one `supabase-tests` job (single `supabase start`) with `migration-filenames` in parallel; `Test / integration` and `Test / db-tests` are lightweight gates preserving existing required check names.
 
 ### Step 4: Optional - GitHub Action to Enforce Merge Strategy
 

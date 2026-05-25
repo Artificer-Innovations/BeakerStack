@@ -5,7 +5,9 @@ import ProfileScreen from '../../src/screens/ProfileScreen';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { BRANDING } from '@beakerstack/shared/config/branding';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
+import { Logger } from '@beakerstack/logger';
+import { loadProfileEditorModule } from '../../src/screens/profileEditorLoader';
 
 // Mock expo-constants
 jest.mock('expo-constants', () => ({
@@ -118,25 +120,56 @@ jest.mock('@beakerstack/shared/components/profile/ProfileStats.native', () => ({
   },
 }));
 
-jest.mock(
-  '@beakerstack/shared/components/profile/ProfileEditor.native',
-  () => ({
-    ProfileEditor: () => {
-      const { View, Text } = require('react-native');
-      return (
-        <View testID='profile-editor'>
-          <Text>Editor</Text>
-        </View>
-      );
-    },
-  })
-);
+jest.mock('@beakerstack/logger', () => ({
+  Logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  },
+}));
+
+jest.mock('../../src/screens/profileEditorLoader', () => {
+  const { View, Text, Pressable } = require('react-native');
+  const MockProfileEditor = ({
+    onSuccess,
+    onError,
+  }: {
+    onSuccess?: () => void;
+    onError?: (error: Error) => void;
+  }) => (
+    <View testID='profile-editor'>
+      <Pressable testID='profile-editor-save' onPress={() => onSuccess?.()}>
+        <Text>Save profile</Text>
+      </Pressable>
+      <Pressable
+        testID='profile-editor-fail'
+        onPress={() => onError?.(new Error('save failed'))}
+      >
+        <Text>Fail save</Text>
+      </Pressable>
+    </View>
+  );
+
+  return {
+    loadProfileEditorModule: jest.fn().mockResolvedValue({
+      ProfileEditor: MockProfileEditor,
+    }),
+    __mockProfileEditor: MockProfileEditor,
+  };
+});
 
 describe('ProfileScreen', () => {
   let mockSupabaseClient: Partial<SupabaseClient>;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    const { __mockProfileEditor } = jest.requireMock(
+      '../../src/screens/profileEditorLoader'
+    ) as { __mockProfileEditor: React.ComponentType<unknown> };
+    jest.mocked(loadProfileEditorModule).mockResolvedValue({
+      ProfileEditor: __mockProfileEditor,
+    });
 
     // Mock database query for useProfile hook
     const mockFrom = jest.fn(() => ({
@@ -200,62 +233,55 @@ describe('ProfileScreen', () => {
     );
   };
 
-  it('renders profile screen', async () => {
-    const { getAllByText } = renderWithAuth(
+  it('renders profile screen with header and edit affordance', async () => {
+    const { findByText, getAllByText } = renderWithAuth(
       <ProfileScreen navigation={mockNavigation} />
     );
 
-    // Profile screen should render with header
-    await waitFor(
-      () => {
-        // The header should be visible with "Beaker Stack" text
-        const beakerStackText = getAllByText(BRANDING.displayName);
-        expect(beakerStackText.length).toBeGreaterThan(0);
-      },
-      { timeout: 3000 }
-    );
+    expect(
+      await findByText('Edit Profile', {}, { timeout: 5000 })
+    ).toBeTruthy();
+    const headerTitles = getAllByText(getAdopterConfig().branding.displayName);
+    expect(headerTitles.length).toBeGreaterThan(0);
   });
 
   it('displays user email when authenticated', async () => {
-    const { getAllByText } = renderWithAuth(
+    const { findByText } = renderWithAuth(
       <ProfileScreen navigation={mockNavigation} />
     );
 
-    // The screen should render - check for header or profile content
-    await waitFor(
-      () => {
-        // The header should be visible
-        const beakerStackText = getAllByText(BRANDING.displayName);
-        expect(beakerStackText.length).toBeGreaterThan(0);
-      },
-      { timeout: 3000 }
-    );
+    expect(
+      await findByText('Edit Profile', {}, { timeout: 5000 })
+    ).toBeTruthy();
   });
 
-  it('shows dashboard navigation button', async () => {
-    const { getAllByText } = renderWithAuth(
+  it('shows dashboard navigation button in header', async () => {
+    const { findByText, getAllByText } = renderWithAuth(
       <ProfileScreen navigation={mockNavigation} />
     );
 
-    // Dashboard should appear in the header menu
-    await waitFor(
-      () => {
-        // The header should be rendered with "Beaker Stack" text
-        const beakerStackText = getAllByText(BRANDING.displayName);
-        expect(beakerStackText.length).toBeGreaterThan(0);
-      },
-      { timeout: 3000 }
-    );
+    expect(
+      await findByText('Edit Profile', {}, { timeout: 5000 })
+    ).toBeTruthy();
+    expect(
+      getAllByText(getAdopterConfig().branding.displayName).length
+    ).toBeGreaterThan(0);
   });
 
-  it('redirects to home when not authenticated', async () => {
+  it('shows Redirecting before navigating home when not authenticated', async () => {
     mockSupabaseClient.auth!.getSession = jest.fn().mockResolvedValue({
       data: {
         session: null,
       },
     });
 
-    renderWithAuth(<ProfileScreen navigation={mockNavigation} />);
+    const { getByText } = renderWithAuth(
+      <ProfileScreen navigation={mockNavigation} />
+    );
+
+    await waitFor(() => {
+      expect(getByText('Redirecting...')).toBeTruthy();
+    });
 
     await waitFor(
       () => {
@@ -278,30 +304,155 @@ describe('ProfileScreen', () => {
   });
 
   it('shows edit button when profile is loaded', async () => {
+    const { findByText } = renderWithAuth(
+      <ProfileScreen navigation={mockNavigation} />
+    );
+
+    expect(
+      await findByText('Edit Profile', {}, { timeout: 5000 })
+    ).toBeTruthy();
+  });
+
+  it('shows loading editor after entering edit mode', async () => {
+    const { findByText } = renderWithAuth(
+      <ProfileScreen navigation={mockNavigation} />
+    );
+
+    fireEvent.press(await findByText('Edit Profile', {}, { timeout: 5000 }));
+
+    expect(await findByText('Loading editor...')).toBeTruthy();
+  });
+
+  it('shows profile loading state while profile context loads', async () => {
+    mockSupabaseClient.from = jest.fn(() => ({
+      select: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          single: jest.fn(() => new Promise(() => {})),
+        })),
+      })),
+    })) as any;
+
     const { getByText } = renderWithAuth(
       <ProfileScreen navigation={mockNavigation} />
     );
 
     await waitFor(() => {
-      expect(getByText('Edit Profile')).toBeTruthy();
+      expect(getByText('Loading profile...')).toBeTruthy();
     });
   });
 
-  it('shows loading editor state after Edit Profile is pressed', async () => {
-    const { getByText, queryByText } = renderWithAuth(
+  it('shows profile error when fetch fails', async () => {
+    mockSupabaseClient.from = jest.fn(() => ({
+      select: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          single: jest.fn().mockResolvedValue({
+            data: null,
+            error: { code: '500', message: 'Database unavailable' },
+          }),
+        })),
+      })),
+    })) as any;
+
+    const { findByText } = renderWithAuth(
       <ProfileScreen navigation={mockNavigation} />
     );
 
-    await waitFor(() => {
-      expect(getByText('Edit Profile')).toBeTruthy();
-    });
+    expect(
+      await findByText('Error loading profile', {}, { timeout: 5000 })
+    ).toBeTruthy();
+    expect(await findByText('Database unavailable')).toBeTruthy();
+  });
 
-    fireEvent.press(getByText('Edit Profile'));
+  it('loads ProfileEditor after entering edit mode', async () => {
+    const { findByText, findByTestId } = renderWithAuth(
+      <ProfileScreen navigation={mockNavigation} />
+    );
+
+    fireEvent.press(await findByText('Edit Profile', {}, { timeout: 5000 }));
+
+    expect(
+      await findByTestId('profile-editor', {}, { timeout: 5000 })
+    ).toBeTruthy();
+  });
+
+  it('exits edit mode and refreshes profile after successful save', async () => {
+    const { findByText, findByTestId, queryByTestId } = renderWithAuth(
+      <ProfileScreen navigation={mockNavigation} />
+    );
+
+    fireEvent.press(await findByText('Edit Profile', {}, { timeout: 5000 }));
+    fireEvent.press(
+      await findByTestId('profile-editor-save', {}, { timeout: 5000 })
+    );
+
+    expect(
+      await findByText('Edit Profile', {}, { timeout: 5000 })
+    ).toBeTruthy();
+    expect(queryByTestId('profile-editor')).toBeNull();
+  });
+
+  it('logs when ProfileEditor fails to load', async () => {
+    jest
+      .mocked(loadProfileEditorModule)
+      .mockRejectedValueOnce(new Error('chunk failed'));
+
+    const { findByText } = renderWithAuth(
+      <ProfileScreen navigation={mockNavigation} />
+    );
+
+    fireEvent.press(await findByText('Edit Profile', {}, { timeout: 5000 }));
 
     await waitFor(() => {
-      const loading = queryByText('Loading editor...');
-      const editor = queryByText('Editor');
-      expect(loading || editor).toBeTruthy();
+      expect(Logger.error).toHaveBeenCalledWith(
+        '[ProfileScreen] Failed to load ProfileEditor:',
+        expect.objectContaining({ message: 'chunk failed' })
+      );
     });
+  });
+
+  it('logs profile save errors from ProfileEditor', async () => {
+    const { findByText, findByTestId } = renderWithAuth(
+      <ProfileScreen navigation={mockNavigation} />
+    );
+
+    fireEvent.press(await findByText('Edit Profile', {}, { timeout: 5000 }));
+    fireEvent.press(
+      await findByTestId('profile-editor-fail', {}, { timeout: 5000 })
+    );
+
+    await waitFor(() => {
+      expect(Logger.error).toHaveBeenCalledWith(
+        'Profile save error:',
+        expect.objectContaining({ message: 'save failed' })
+      );
+    });
+  });
+
+  it('shows profile stats when profile data exists', async () => {
+    mockSupabaseClient.from = jest.fn(() => ({
+      select: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          single: jest.fn().mockResolvedValue({
+            data: {
+              id: 'profile-1',
+              user_id: 'test-user-id',
+              username: 'testuser',
+              display_name: 'Test User',
+              avatar_url: null,
+              bio: null,
+            },
+            error: null,
+          }),
+        })),
+      })),
+    })) as any;
+
+    const { findByTestId } = renderWithAuth(
+      <ProfileScreen navigation={mockNavigation} />
+    );
+
+    expect(
+      await findByTestId('profile-stats', {}, { timeout: 5000 })
+    ).toBeTruthy();
   });
 });

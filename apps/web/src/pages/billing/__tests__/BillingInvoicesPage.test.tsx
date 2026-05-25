@@ -86,6 +86,16 @@ describe('BillingInvoicesPage', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Stripe unavailable');
   });
 
+  it('falls back to coercing the raw error when no message is present', () => {
+    invoicesHook.error = 'plain string failure' as unknown as Error;
+    render(
+      <MemoryRouter>
+        <BillingInvoicesPage />
+      </MemoryRouter>
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('plain string failure');
+  });
+
   it('lists invoice rows when data is present', () => {
     invoicesHook.items = [sampleInvoice()];
     render(

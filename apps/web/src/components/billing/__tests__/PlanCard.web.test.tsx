@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { Plan } from '@beakerstack/billing';
-import { beakerstackBillingConfig } from '@/billing/beakerstackBillingConfig';
+import { billingConfig } from '@adopter/config/billing';
 import { PlanCard, listPriceForPlan } from '../PlanCard.web';
 
 vi.mock('@beakerstack/billing', async importOriginal => {
   const actual = await importOriginal<typeof import('@beakerstack/billing')>();
   return {
     ...actual,
-    useBillingConfig: () => beakerstackBillingConfig,
+    useBillingConfig: () => billingConfig,
   };
 });
 
@@ -44,6 +44,14 @@ describe('listPriceForPlan', () => {
 });
 
 describe('PlanCard', () => {
+  it('renders without a primary CTA when invite-only', () => {
+    render(
+      <PlanCard plan={proPlan} priceHeadline='US$19' priceSubline='per month' />
+    );
+    expect(screen.getByRole('heading', { name: 'Pro' })).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
   it('renders plan title and primary CTA', () => {
     const onClick = vi.fn();
     render(
@@ -109,7 +117,7 @@ describe('PlanCard', () => {
     expect(screen.getByText('You will lose a feature')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Downgrade to Pro' })
-    ).not.toBeDisabled();
+    ).toBeEnabled();
   });
 
   it('renders supplemental badge and savings callout when provided', () => {

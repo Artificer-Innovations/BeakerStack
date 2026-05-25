@@ -1,0 +1,646 @@
+name: E2E Web (PR Approval)
+
+on:
+  pull_request_review:
+    types: [submitted]
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to run E2E against
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  deployments: read
+
+concurrency:
+  group: e2e-web-pr-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-prepare:
+    if: |
+      (github.event_name == 'pull_request_review' &&
+       github.event.review.state == 'approved' &&
+       github.event.review.user.login == 'ZappoMan' &&
+       github.event.pull_request.base.ref == 'develop' &&
+       github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'pull_request' &&
+       github.event.action == 'labeled' &&
+       github.event.label.name == 'run-e2e' &&
+       github.event.pull_request.base.ref == 'develop' &&
+       github.event.pull_request.head.repo.full_name == github.repository) ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      qualified: ${{ steps.pr_context.outputs.qualified }}
+      pr_number: ${{ steps.pr_context.outputs.pr_number }}
+      head_sha: ${{ steps.pr_context.outputs.head_sha }}
+      web_origin: ${{ steps.preview.outputs.web_origin }}
+      web_base_path: ${{ steps.preview.outputs.web_base_path }}
+      web_preview_url: ${{ steps.preview.outputs.web_preview_url }}
+      bootstrap_url: ${{ steps.signed_cookies.outputs.BOOTSTRAP_URL }}
+    env:
+      PREVIEW_DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
+      PREVIEW_PREFIX: ${{ vars.PR_PREVIEW_PREFIX }}
+    steps:
+      - name: Resolve PR context
+        id: pr_context
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const isReview = context.eventName === 'pull_request_review';
+            const isLabel = context.eventName === 'pull_request';
+            const isDispatch = context.eventName === 'workflow_dispatch';
+            let pr;
+
+            if (isReview) {
+              pr = context.payload.pull_request;
+            } else if (isLabel) {
+              if (
+                context.payload.action !== 'labeled' ||
+                context.payload.label?.name !== 'run-e2e'
+              ) {
+                core.info('Ignoring pull_request event (not run-e2e label).');
+                return;
+              }
+              pr = context.payload.pull_request;
+            } else if (isDispatch) {
+              const raw = context.payload.inputs?.pr_number;
+              const prNumber = Number(raw);
+              if (!Number.isInteger(prNumber) || prNumber < 1) {
+                core.setFailed(`Invalid pr_number input: ${JSON.stringify(raw)}`);
+                return;
+              }
+              const { data } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+              });
+              pr = data;
+            } else {
+              core.setFailed(`Unsupported event: ${context.eventName}`);
+              return;
+            }
+
+            if (pr.base.ref !== 'develop') {
+              core.setFailed(
+                `E2E only runs for PRs targeting develop (base: ${pr.base.ref}).`
+              );
+              return;
+            }
+            if (
+              pr.head.repo.full_name !==
+              `${context.repo.owner}/${context.repo.repo}`
+            ) {
+              core.setFailed('E2E does not run for fork PRs.');
+              return;
+            }
+
+            core.setOutput('pr_number', String(pr.number));
+            core.setOutput('head_sha', pr.head.sha);
+            core.setOutput('qualified', 'true');
+
+      - name: Checkout repository
+        if: steps.pr_context.outputs.qualified == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr_context.outputs.head_sha }}
+
+      - name: Verify PR preview deployment matches HEAD
+        id: preview
+        if: steps.pr_context.outputs.qualified == 'true'
+        uses: actions/github-script@v7
+        env:
+          PREVIEW_DOMAIN: ${{ env.PREVIEW_DOMAIN }}
+          PREVIEW_PREFIX: ${{ env.PREVIEW_PREFIX }}
+          PR_NUMBER: ${{ steps.pr_context.outputs.pr_number }}
+          HEAD_SHA: ${{ steps.pr_context.outputs.head_sha }}
+        with:
+          script: |
+            const headSha = process.env.HEAD_SHA;
+            const prNumber = process.env.PR_NUMBER;
+            const environment = `pr-${prNumber}-preview`;
+            const prefix = process.env.PREVIEW_PREFIX || 'pr-';
+            const domain = process.env.PREVIEW_DOMAIN;
+            if (!domain) {
+              core.setFailed('PR_PREVIEW_DOMAIN is not configured.');
+              return;
+            }
+            const webOrigin = `https://deploy.${domain}`;
+            const basePath = `/${prefix}${prNumber}`;
+            const previewUrl = `${webOrigin}${basePath}/`;
+            core.setOutput('web_origin', webOrigin);
+            core.setOutput('web_base_path', basePath);
+            core.setOutput('web_preview_url', previewUrl);
+
+            const isWebDeployPath = filename => {
+              if (filename.startsWith('apps/web/')) return true;
+              if (
+                filename === 'package.json' ||
+                filename === 'package-lock.json' ||
+                filename.endsWith('/package.json')
+              ) {
+                return true;
+              }
+              const runtimePackage = filename.match(
+                /^packages\/(shared|billing|logger|observability|admin|email|waitlist|lifecycle-events)\/src\//
+              );
+              if (!runtimePackage) return false;
+              if (filename.includes('/__tests__/')) return false;
+              return !/\.(test|coverage\.test)\.(ts|tsx|mjs|js)$/.test(filename);
+            };
+
+            const hasSuccessfulStatus = statuses =>
+              statuses.some(status => status.state === 'success');
+
+            const { owner, repo } = context.repo;
+            const { data: deployments } = await github.rest.repos.listDeployments({
+              owner,
+              repo,
+              environment,
+              per_page: 20,
+            });
+            if (!deployments.length) {
+              core.setFailed(
+                `No deployment found for environment ${environment}. Wait for the PR Preview workflow to finish.`
+              );
+              return;
+            }
+
+            let matchedDeployment = null;
+
+            for (const deployment of deployments) {
+              if (deployment.sha !== headSha) {
+                continue;
+              }
+              const { data: statuses } = await github.rest.repos.listDeploymentStatuses({
+                owner,
+                repo,
+                deployment_id: deployment.id,
+                per_page: 5,
+              });
+              if (hasSuccessfulStatus(statuses)) {
+                matchedDeployment = deployment;
+                break;
+              }
+            }
+
+            if (!matchedDeployment) {
+              for (const deployment of deployments) {
+                const { data: statuses } = await github.rest.repos.listDeploymentStatuses({
+                  owner,
+                  repo,
+                  deployment_id: deployment.id,
+                  per_page: 5,
+                });
+                if (!hasSuccessfulStatus(statuses)) {
+                  continue;
+                }
+
+                const { data: compare } = await github.rest.repos.compareCommitsWithBasehead({
+                  owner,
+                  repo,
+                  basehead: `${deployment.sha}...${headSha}`,
+                });
+
+                if (compare.status === 'diverged' || compare.status === 'behind') {
+                  continue;
+                }
+
+                const webChanged = (compare.files ?? []).some(file =>
+                  isWebDeployPath(file.filename)
+                );
+                if (webChanged) {
+                  core.setFailed(
+                    `Preview is not deployed for commit ${headSha.slice(0, 7)} and web-relevant files changed since ${deployment.sha.slice(0, 7)}. Wait for PR Preview to finish, then re-trigger E2E.`
+                  );
+                  return;
+                }
+
+                core.notice(
+                  `Using preview deployed at ${deployment.sha.slice(0, 7)}; HEAD ${headSha.slice(0, 7)} has no web changes since that deploy.`
+                );
+                matchedDeployment = deployment;
+                break;
+              }
+            }
+
+            if (!matchedDeployment) {
+              core.setFailed(
+                `Preview is not deployed for commit ${headSha.slice(0, 7)}. Push again or wait for PR Preview to complete, then approve or add the run-e2e label.`
+              );
+            }
+
+      - name: Set up Node.js
+        if: steps.pr_context.outputs.qualified == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.pr_context.outputs.qualified == 'true'
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        if: steps.pr_context.outputs.qualified == 'true'
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-chromium
+
+      - name: Install Playwright Chromium
+        if: steps.pr_context.outputs.qualified == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate signed cookie bootstrap URL
+        id: signed_cookies
+        if: steps.pr_context.outputs.qualified == 'true' && steps.preview.outcome == 'success'
+        shell: bash
+        env:
+          PR_NUMBER: ${{ steps.pr_context.outputs.pr_number }}
+          CLOUDFRONT_SIGNING_KEY: ${{ secrets.CLOUDFRONT_SIGNING_KEY }}
+          CLOUDFRONT_SIGNING_KEY_ID: ${{ secrets.CLOUDFRONT_SIGNING_KEY_ID }}
+        run: |
+          set -euo pipefail
+          ./scripts/pr-preview/generate-preview-bootstrap-url.sh \
+            --domain "${PREVIEW_DOMAIN}" \
+            --preview-prefix "${PREVIEW_PREFIX:-pr-}" \
+            --pr-number "${PR_NUMBER}" \
+            --signing-key "${CLOUDFRONT_SIGNING_KEY:-}" \
+            --signing-key-id "${CLOUDFRONT_SIGNING_KEY_ID:-}"
+
+      - name: Warm up preview URL
+        if: steps.pr_context.outputs.qualified == 'true' && steps.preview.outcome == 'success'
+        run: |
+          set -euo pipefail
+          URL="${{ steps.preview.outputs.web_preview_url }}"
+          curl -sf --max-time 30 --retry 5 --retry-delay 5 --retry-all-errors "${URL}" -o /dev/null || true
+          sleep 5
+
+      - name: Run E2E global setup
+        id: global_setup
+        if: steps.pr_context.outputs.qualified == 'true' && steps.preview.outcome == 'success'
+        env:
+          CI: true
+          E2E_TARGET: preview
+          WEB_URL: ${{ steps.preview.outputs.web_origin }}
+          WEB_BASE_PATH: ${{ steps.preview.outputs.web_base_path }}
+          E2E_BOOTSTRAP_URL: ${{ steps.signed_cookies.outputs.BOOTSTRAP_URL }}
+          PREVIEW_SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
+          PREVIEW_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
+          PR_TESTING_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PR_TESTING_SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PREVIEW_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
+        run: npm run test:e2e:web:setup
+
+      - name: Verify E2E auth artifacts
+        if: steps.global_setup.outcome == 'success'
+        run: |
+          set -euo pipefail
+          ls -la tests/e2e/web/.auth/
+          test -s tests/e2e/web/.auth/state.json
+          test -s tests/e2e/web/.auth/user.json
+          test -s tests/e2e/web/.auth/admin-state.json
+          test -s tests/e2e/web/.auth/admin.json
+
+      - name: Upload E2E auth artifacts
+        if: steps.global_setup.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-auth-state
+          path: tests/e2e/web/.auth/
+          retention-days: 1
+          if-no-files-found: error
+          include-hidden-files: true
+
+  e2e-chromium:
+    needs: e2e-prepare
+    if: needs.e2e-prepare.outputs.qualified == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.e2e-prepare.outputs.head_sha }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-chromium
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Download E2E auth artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-auth-state
+          path: tests/e2e/web/.auth/
+
+      - name: Verify E2E auth artifacts
+        run: |
+          set -euo pipefail
+          ls -la tests/e2e/web/.auth/
+          test -s tests/e2e/web/.auth/state.json
+          test -s tests/e2e/web/.auth/user.json
+          test -s tests/e2e/web/.auth/admin-state.json
+          test -s tests/e2e/web/.auth/admin.json
+
+      - name: Run Playwright chromium project
+        id: playwright
+        env:
+          CI: true
+          E2E_TARGET: preview
+          E2E_SKIP_GLOBAL_SETUP: '1'
+          E2E_SKIP_GLOBAL_TEARDOWN: '1'
+          PLAYWRIGHT_WORKERS: '4'
+          PLAYWRIGHT_JSON_REPORT: tests/e2e/web/results/chromium-results.json
+          WEB_URL: ${{ needs.e2e-prepare.outputs.web_origin }}
+          WEB_BASE_PATH: ${{ needs.e2e-prepare.outputs.web_base_path }}
+          E2E_BOOTSTRAP_URL: ${{ needs.e2e-prepare.outputs.bootstrap_url }}
+          PREVIEW_SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
+          PREVIEW_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
+          PR_TESTING_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PR_TESTING_SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PREVIEW_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
+        run: |
+          mkdir -p tests/e2e/web/results
+          npx playwright test --config tests/e2e/web/playwright.config.ts \
+            --project=chromium
+
+      - name: Upload chromium JSON report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-chromium-results
+          path: tests/e2e/web/results/chromium-results.json
+          if-no-files-found: ignore
+          retention-days: 1
+
+  e2e-serial:
+    needs: [e2e-prepare, e2e-chromium]
+    if: always() && needs.e2e-prepare.outputs.qualified == 'true' && needs.e2e-prepare.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.e2e-prepare.outputs.head_sha }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-chromium
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Download E2E auth artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-auth-state
+          path: tests/e2e/web/.auth/
+
+      - name: Verify E2E auth artifacts
+        run: |
+          set -euo pipefail
+          ls -la tests/e2e/web/.auth/
+          test -s tests/e2e/web/.auth/state.json
+          test -s tests/e2e/web/.auth/user.json
+          test -s tests/e2e/web/.auth/admin-state.json
+          test -s tests/e2e/web/.auth/admin.json
+
+      - name: Run Playwright serial projects
+        id: playwright
+        env:
+          CI: true
+          E2E_TARGET: preview
+          E2E_SKIP_GLOBAL_SETUP: '1'
+          E2E_SKIP_GLOBAL_TEARDOWN: '1'
+          PLAYWRIGHT_WORKERS: '1'
+          PLAYWRIGHT_JSON_REPORT: tests/e2e/web/results/serial-results.json
+          WEB_URL: ${{ needs.e2e-prepare.outputs.web_origin }}
+          WEB_BASE_PATH: ${{ needs.e2e-prepare.outputs.web_base_path }}
+          E2E_BOOTSTRAP_URL: ${{ needs.e2e-prepare.outputs.bootstrap_url }}
+          PREVIEW_SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
+          PREVIEW_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
+          PR_TESTING_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PR_TESTING_SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PREVIEW_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
+        run: |
+          mkdir -p tests/e2e/web/results
+          # --no-deps bypasses Playwright project dependencies; flag order is load-bearing
+          # and must match playwright.config.ts: shared-state before signup-mode.
+          npx playwright test --config tests/e2e/web/playwright.config.ts \
+            --project=shared-state \
+            --project=signup-mode \
+            --no-deps \
+            --workers=1
+
+      - name: Upload serial JSON report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-serial-results
+          path: tests/e2e/web/results/serial-results.json
+          if-no-files-found: ignore
+          retention-days: 1
+
+  e2e-report:
+    needs: [e2e-prepare, e2e-chromium, e2e-serial]
+    if: always() && needs.e2e-prepare.outputs.qualified == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.e2e-prepare.outputs.head_sha }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download chromium JSON report
+        id: download_chromium_report
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-chromium-results
+          path: tests/e2e/web/results/
+          merge-multiple: true
+
+      - name: Download serial JSON report
+        id: download_serial_report
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-serial-results
+          path: tests/e2e/web/results/
+          merge-multiple: true
+
+      - name: Download E2E auth artifacts
+        if: needs.e2e-prepare.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-auth-state
+          path: tests/e2e/web/.auth/
+
+      - name: Verify E2E auth artifacts for teardown
+        if: needs.e2e-prepare.result == 'success'
+        run: |
+          set -euo pipefail
+          test -s tests/e2e/web/.auth/state.json
+          test -s tests/e2e/web/.auth/admin-state.json
+
+      - name: Merge Playwright JSON reports
+        id: merge_reports
+        run: |
+          set -euo pipefail
+          mkdir -p tests/e2e/web/results
+          inputs=()
+          if [ -f tests/e2e/web/results/chromium-results.json ]; then
+            inputs+=("tests/e2e/web/results/chromium-results.json")
+          fi
+          if [ -f tests/e2e/web/results/serial-results.json ]; then
+            inputs+=("tests/e2e/web/results/serial-results.json")
+          fi
+          if [ "${#inputs[@]}" -eq 0 ]; then
+            echo "::warning::No Playwright JSON reports found to merge."
+            exit 0
+          fi
+          node scripts/ci/merge-playwright-json-reports.mjs "${inputs[@]}" \
+            --output tests/e2e/web/results/web-results.json
+
+      - name: Run E2E global teardown
+        if: needs.e2e-prepare.result == 'success'
+        env:
+          CI: true
+          E2E_TARGET: preview
+          WEB_URL: ${{ needs.e2e-prepare.outputs.web_origin }}
+          WEB_BASE_PATH: ${{ needs.e2e-prepare.outputs.web_base_path }}
+          PREVIEW_SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
+          PREVIEW_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
+          PR_TESTING_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PR_TESTING_SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PREVIEW_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
+        run: npm run test:e2e:web:teardown
+
+      - name: Build category E2E report
+        if: steps.merge_reports.outcome == 'success'
+        env:
+          PLAYWRIGHT_JSON_REPORT: tests/e2e/web/results/web-results.json
+        run: |
+          if [ -f tests/e2e/web/results/web-results.json ]; then
+            npm run test:e2e:web:report
+          fi
+
+      - name: Upload Playwright report
+        if: steps.merge_reports.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-web-playwright-report-pr-${{ needs.e2e-prepare.outputs.pr_number }}
+          path: |
+            tests/e2e/web/report/
+            tests/e2e/web/results/
+          if-no-files-found: ignore
+
+      - name: Format E2E PR comment
+        id: e2e_comment
+        if: needs.e2e-prepare.result == 'success'
+        env:
+          WEB_URL: ${{ needs.e2e-prepare.outputs.web_preview_url }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          PLAYWRIGHT_OUTCOME: ${{ (needs.e2e-chromium.result != 'success' || needs.e2e-serial.result != 'success') && 'failure' || 'success' }}
+          PLAYWRIGHT_JSON_REPORT: tests/e2e/web/results/web-results.json
+        run: node scripts/ci/format-playwright-e2e-pr-comment.mjs
+
+      - name: Post E2E results comment
+        if: needs.e2e-prepare.result == 'success'
+        uses: actions/github-script@v7
+        env:
+          COMMENT_BODY: ${{ steps.e2e_comment.outputs.body }}
+          PR_NUMBER: ${{ needs.e2e-prepare.outputs.pr_number }}
+        with:
+          script: |
+            const marker = '<!-- e2e-web-results -->';
+            let body = process.env.COMMENT_BODY;
+            if (!body?.includes(marker)) {
+              core.setFailed('E2E comment body missing marker.');
+              return;
+            }
+
+            const now = new Date();
+            const pacificTime = now.toLocaleString('en-US', {
+              timeZone: 'America/Los_Angeles',
+              dateStyle: 'long',
+              timeStyle: 'short'
+            });
+            const timezone = now.toLocaleString('en-US', {
+              timeZone: 'America/Los_Angeles',
+              timeZoneName: 'short'
+            }).split(' ').pop();
+            body = `${body}\n\n---\n\n_Updated at: ${pacificTime} ${timezone}_`;
+
+            const issueNumber = Number(process.env.PR_NUMBER);
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+            });
+            const existing = comments.find(
+              c => c.body?.includes(marker) && c.user?.type === 'Bot'
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body,
+              });
+            }
+
+      - name: Fail job when Playwright tests failed
+        if: needs.e2e-chromium.result != 'success' || needs.e2e-serial.result != 'success'
+        run: exit 1

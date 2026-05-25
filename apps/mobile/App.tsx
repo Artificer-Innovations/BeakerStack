@@ -1,17 +1,31 @@
+import { configureAdopter } from '@beakerstack/shared/config/adopterRuntime';
+import { adopterConfig } from '@adopter/config';
+import { billingConfig } from '@adopter/config/billing';
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
+import { ObservabilityProvider } from '@beakerstack/observability/native';
 import { BillingProvider } from '@beakerstack/billing';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 // Import from native-specific file for correct types
 import { configureGoogleSignIn } from '@beakerstack/shared/hooks/useAuth.native';
-import { Logger } from '@beakerstack/shared/utils/logger';
-import { beakerstackBillingConfig } from './src/billing/beakerstackBillingConfig';
+import { Logger } from '@beakerstack/logger';
+import { AppErrorBoundary } from './src/components/AppErrorBoundary';
+import { ObservabilityUserSync } from './src/components/ObservabilityUserSync';
+
+configureAdopter(adopterConfig);
+import { beakerstackObservabilityConfig } from './src/config/observability';
 import { getMobileBillingProviderUrls } from './src/billing/mobileBillingUrls';
 import { supabase } from './src/lib/supabase';
-import { AppNavigator } from './src/navigation/AppNavigator';
+import {
+  AppNavigator,
+  validatePostLoginPathMobile,
+} from './src/navigation/AppNavigator';
+import { navigationRef } from './src/navigation/navigationRef';
+
+validatePostLoginPathMobile();
 
 const mobileBillingUrls = getMobileBillingProviderUrls();
 
@@ -108,19 +122,27 @@ export default function App() {
   }, []);
 
   return (
-    <AuthProvider supabaseClient={supabase}>
-      <ProfileProvider supabaseClient={supabase}>
-        <BillingProvider<typeof beakerstackBillingConfig>
-          supabase={supabase}
-          config={beakerstackBillingConfig}
-          checkoutSuccessUrl={mobileBillingUrls.checkoutSuccessUrl}
-          checkoutCancelUrl={mobileBillingUrls.checkoutCancelUrl}
-          portalReturnUrl={mobileBillingUrls.portalReturnUrl}
-        >
-          <AppNavigator />
-          <StatusBar style='auto' />
-        </BillingProvider>
-      </ProfileProvider>
-    </AuthProvider>
+    <ObservabilityProvider
+      config={beakerstackObservabilityConfig}
+      navigationRef={navigationRef}
+    >
+      <AppErrorBoundary>
+        <AuthProvider supabaseClient={supabase}>
+          <ObservabilityUserSync />
+          <ProfileProvider supabaseClient={supabase}>
+            <BillingProvider<typeof billingConfig>
+              supabase={supabase}
+              config={billingConfig}
+              checkoutSuccessUrl={mobileBillingUrls.checkoutSuccessUrl}
+              checkoutCancelUrl={mobileBillingUrls.checkoutCancelUrl}
+              portalReturnUrl={mobileBillingUrls.portalReturnUrl}
+            >
+              <AppNavigator />
+              <StatusBar style='auto' />
+            </BillingProvider>
+          </ProfileProvider>
+        </AuthProvider>
+      </AppErrorBoundary>
+    </ObservabilityProvider>
   );
 }

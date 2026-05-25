@@ -1,13 +1,15 @@
 import { BillingProvider } from '@beakerstack/billing';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
-import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
+import { AppHeaderWithAdmin } from '../components/AppHeaderWithAdmin';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
+import { MIN_PASSWORD_LENGTH } from '@beakerstack/shared/constants/auth';
 import { supabase } from '@/lib/supabase';
 import { SocialLoginButton } from '../components/SocialLoginButton';
 import { SignupPlanSummary } from '../components/auth/SignupPlanSummary';
-import { beakerstackBillingConfig } from '../billing/beakerstackBillingConfig';
+import { billingConfig } from '@adopter/config/billing';
 import {
   clearPostAuthRedirectKeys,
   hasPaidPlanIntent,
@@ -16,6 +18,22 @@ import {
   serializePostAuthRedirectPayload,
 } from '../auth/postAuthRedirect';
 import { appBasePath } from '../lib/appBasePath';
+import {
+  PLAN_INTEREST_METADATA_KEY,
+  SignupModeGate,
+  useSignupMode,
+} from '@beakerstack/waitlist/web';
+import { waitlistConfig } from '@adopter/config/waitlist';
+
+function signupPlanMetadata(
+  sp: URLSearchParams
+): { plan_id: string } | undefined {
+  const planId = sp.get('plan');
+  if (!planId) return undefined;
+  const cfg = billingConfig.plans.find(p => p.id === planId);
+  if (!cfg || cfg.priceCents === 0) return undefined;
+  return { plan_id: planId };
+}
 
 function SignupPageContent() {
   const [email, setEmail] = useState('');
@@ -27,6 +45,13 @@ function SignupPageContent() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const auth = useAuthContext();
+  const {
+    loading: signupModeLoading,
+    isOpen,
+    isWaitlist,
+  } = useSignupMode(supabase);
+
+  const postLoginPath = getAdopterConfig().postLoginPath;
 
   const paidIntent = hasPaidPlanIntent(searchParams);
   const postAuthPath = resolvePostAuthDestination(searchParams);
@@ -34,7 +59,7 @@ function SignupPageContent() {
   const loginTo = loginSearch ? `/login?${loginSearch}` : '/login';
 
   const stashOAuthIntent = () => {
-    if (postAuthPath !== '/dashboard') {
+    if (postAuthPath !== postLoginPath) {
       sessionStorage.setItem(
         POST_AUTH_REDIRECT_KEY,
         serializePostAuthRedirectPayload(postAuthPath)
@@ -50,6 +75,11 @@ function SignupPageContent() {
       return;
     }
 
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -59,7 +89,12 @@ function SignupPageContent() {
     setError(null);
 
     try {
-      await auth.signUp(email, password);
+      const planMeta = signupPlanMetadata(searchParams);
+      await auth.signUp(
+        email,
+        password,
+        planMeta ? { data: planMeta } : undefined
+      );
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -67,14 +102,14 @@ function SignupPageContent() {
       if (session) {
         clearPostAuthRedirectKeys();
         navigate(postAuthPath, { replace: true });
-      } else if (paidIntent && postAuthPath !== '/dashboard') {
-        localStorage.setItem(
-          POST_AUTH_REDIRECT_KEY,
-          serializePostAuthRedirectPayload(postAuthPath)
-        );
-        setAwaitingEmail(true);
       } else {
-        navigate('/dashboard', { replace: true });
+        if (paidIntent && postAuthPath !== postLoginPath) {
+          localStorage.setItem(
+            POST_AUTH_REDIRECT_KEY,
+            serializePostAuthRedirectPayload(postAuthPath)
+          );
+        }
+        setAwaitingEmail(true);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account');
@@ -97,20 +132,35 @@ function SignupPageContent() {
   };
 
   const displayName =
-    beakerstackBillingConfig.plans.find(p => p.id === searchParams.get('plan'))
+    billingConfig.plans.find(p => p.id === searchParams.get('plan'))
       ?.displayName ?? 'this plan';
   const submitLabel = isLoading
     ? 'Creating account...'
-    : paidIntent && postAuthPath !== '/dashboard'
+    : paidIntent && postAuthPath !== postLoginPath
       ? `Continue with ${displayName}`
       : 'Create account';
 
-  const showPlanAside = paidIntent && postAuthPath !== '/dashboard';
+  const showPlanAside =
+    paidIntent &&
+    postAuthPath !== postLoginPath &&
+    !signupModeLoading &&
+    (isOpen || isWaitlist);
+
+  const waitlistCaptureMetadata = useMemo(() => {
+    if (!isWaitlist || !paidIntent) return undefined;
+    const planId = searchParams.get('plan');
+    if (!planId) return undefined;
+    const cfg = billingConfig.plans.find(p => p.id === planId);
+    if (!cfg || cfg.priceCents === 0) return undefined;
+    // Include both stable plan_id (for kit-sync interest tagging and waitlist-ops approve)
+    // and the display name (for human-readable metadata in the waitlist dashboard).
+    return { [PLAN_INTEREST_METADATA_KEY]: cfg.displayName, plan_id: planId };
+  }, [isWaitlist, paidIntent, searchParams]);
 
   if (awaitingEmail) {
     return (
       <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
-        <AppHeader supabaseClient={supabase} />
+        <AppHeaderWithAdmin />
         <ContentContainer className='py-12'>
           <div className='mx-auto max-w-md rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-sm'>
             <h2 className='text-xl font-semibold text-gray-900 dark:text-white'>
@@ -118,10 +168,14 @@ function SignupPageContent() {
             </h2>
             <p className='mt-3 text-sm text-gray-600 dark:text-gray-300'>
               We sent a confirmation link to <strong>{email}</strong>. Click the
-              link in that email to finish creating your account — we&apos;ll
-              take you to billing to complete your plan when you&apos;re signed
-              in.
+              link in that email to finish creating your account.
             </p>
+            {paidIntent && postAuthPath !== postLoginPath && (
+              <p className='mt-2 text-sm text-gray-600 dark:text-gray-300'>
+                We&apos;ll take you to billing to complete your plan when
+                you&apos;re signed in.
+              </p>
+            )}
             <p className='mt-4 text-sm text-gray-500 dark:text-gray-400'>
               <Link to={loginTo} className='font-medium text-primary-600'>
                 Already confirmed? Sign in
@@ -135,7 +189,7 @@ function SignupPageContent() {
 
   return (
     <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
-      <AppHeader supabaseClient={supabase} />
+      <AppHeaderWithAdmin />
       <ContentContainer className='py-12'>
         <div
           className={
@@ -149,116 +203,124 @@ function SignupPageContent() {
               showPlanAside ? 'order-2 md:order-1 space-y-8' : 'space-y-8'
             }
           >
-            <div>
-              <h2 className='mt-0 text-center text-3xl font-extrabold text-gray-900 dark:text-white md:text-left'>
-                {paidIntent && postAuthPath !== '/dashboard'
-                  ? `Create your account to continue with ${displayName}`
-                  : 'Create your account'}
-              </h2>
-              {paidIntent && postAuthPath !== '/dashboard' ? (
-                <p className='mt-2 text-center text-sm text-gray-600 dark:text-gray-400 md:text-left'>
-                  No charge until you finish checkout on the next step.
-                </p>
-              ) : null}
-            </div>
-
-            <div className='space-y-3'>
-              <SocialLoginButton onPress={handleGoogleSignup} mode='signup' />
-            </div>
-
-            <div className='relative'>
-              <div className='absolute inset-0 flex items-center'>
-                <div className='w-full border-t border-gray-300 dark:border-gray-600' />
-              </div>
-              <div className='relative flex justify-center text-sm'>
-                <span className='px-2 bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400'>
-                  Or continue with email
-                </span>
-              </div>
-            </div>
-
-            {error && (
-              <div className='rounded-md bg-red-50 dark:bg-red-900/30 p-4'>
-                <h3 className='text-sm font-medium text-red-800 dark:text-red-300'>
-                  {error}
-                </h3>
-              </div>
-            )}
-
-            <form className='mt-8 space-y-6' onSubmit={handleSignup}>
-              <div className='rounded-md shadow-sm -space-y-px'>
-                <div>
-                  <label htmlFor='email' className='sr-only'>
-                    Email address
-                  </label>
-                  <input
-                    id='email'
-                    name='email'
-                    type='email'
-                    autoComplete='email'
-                    required
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    disabled={isLoading}
-                    className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
-                    placeholder='Email address'
-                  />
-                </div>
-                <div>
-                  <label htmlFor='password' className='sr-only'>
-                    Password
-                  </label>
-                  <input
-                    id='password'
-                    name='password'
-                    type='password'
-                    autoComplete='new-password'
-                    required
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    disabled={isLoading}
-                    className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
-                    placeholder='Password'
-                  />
-                </div>
-                <div>
-                  <label htmlFor='confirm-password' className='sr-only'>
-                    Confirm Password
-                  </label>
-                  <input
-                    id='confirm-password'
-                    name='confirm-password'
-                    type='password'
-                    autoComplete='new-password'
-                    required
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    disabled={isLoading}
-                    className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
-                    placeholder='Confirm password'
-                  />
-                </div>
-              </div>
-
+            {!signupModeLoading && isOpen ? (
               <div>
-                <button
-                  type='submit'
-                  disabled={isLoading}
-                  className='group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed'
-                >
-                  {submitLabel}
-                </button>
+                <h2 className='mt-0 text-center text-3xl font-extrabold text-gray-900 dark:text-white md:text-left'>
+                  {paidIntent && postAuthPath !== postLoginPath
+                    ? `Create your account to continue with ${displayName}`
+                    : 'Create your account'}
+                </h2>
+                {paidIntent && postAuthPath !== postLoginPath ? (
+                  <p className='mt-2 text-center text-sm text-gray-600 dark:text-gray-400 md:text-left'>
+                    No charge until you finish checkout on the next step.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            <SignupModeGate
+              supabase={supabase}
+              config={waitlistConfig}
+              captureMetadata={waitlistCaptureMetadata}
+            >
+              <div className='space-y-3'>
+                <SocialLoginButton onPress={handleGoogleSignup} mode='signup' />
               </div>
 
-              <div className='text-center md:text-left'>
-                <Link
-                  to={loginTo}
-                  className='font-medium text-primary-600 hover:text-primary-500'
-                >
-                  Already have an account? Sign in
-                </Link>
+              <div className='relative'>
+                <div className='absolute inset-0 flex items-center'>
+                  <div className='w-full border-t border-gray-300 dark:border-gray-600' />
+                </div>
+                <div className='relative flex justify-center text-sm'>
+                  <span className='px-2 bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400'>
+                    Or continue with email
+                  </span>
+                </div>
               </div>
-            </form>
+
+              {error && (
+                <div className='rounded-md bg-red-50 dark:bg-red-900/30 p-4'>
+                  <h3 className='text-sm font-medium text-red-800 dark:text-red-300'>
+                    {error}
+                  </h3>
+                </div>
+              )}
+
+              <form className='mt-8 space-y-6' onSubmit={handleSignup}>
+                <div className='rounded-md shadow-sm -space-y-px'>
+                  <div>
+                    <label htmlFor='email' className='sr-only'>
+                      Email address
+                    </label>
+                    <input
+                      id='email'
+                      name='email'
+                      type='email'
+                      autoComplete='email'
+                      required
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      disabled={isLoading}
+                      className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
+                      placeholder='Email address'
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor='password' className='sr-only'>
+                      Password
+                    </label>
+                    <input
+                      id='password'
+                      name='password'
+                      type='password'
+                      autoComplete='new-password'
+                      required
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      disabled={isLoading}
+                      className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
+                      placeholder='Password'
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor='confirm-password' className='sr-only'>
+                      Confirm Password
+                    </label>
+                    <input
+                      id='confirm-password'
+                      name='confirm-password'
+                      type='password'
+                      autoComplete='new-password'
+                      required
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      disabled={isLoading}
+                      className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed'
+                      placeholder='Confirm password'
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <button
+                    type='submit'
+                    disabled={isLoading}
+                    className='group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed'
+                  >
+                    {submitLabel}
+                  </button>
+                </div>
+
+                <div className='text-center md:text-left'>
+                  <Link
+                    to={loginTo}
+                    className='font-medium text-primary-600 hover:text-primary-500'
+                  >
+                    Already have an account? Sign in
+                  </Link>
+                </div>
+              </form>
+            </SignupModeGate>
           </div>
 
           {showPlanAside ? (
@@ -275,9 +337,9 @@ function SignupPageContent() {
 export default function SignupPage() {
   const base = appBasePath();
   return (
-    <BillingProvider<typeof beakerstackBillingConfig>
+    <BillingProvider<typeof billingConfig>
       supabase={supabase}
-      config={beakerstackBillingConfig}
+      config={billingConfig}
       checkoutSuccessUrl={`${base}/billing?checkout=success`}
       checkoutCancelUrl={`${base}/billing/plans?checkout=cancel`}
       portalReturnUrl={`${base}/billing`}

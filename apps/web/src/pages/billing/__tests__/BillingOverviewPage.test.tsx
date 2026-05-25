@@ -71,7 +71,11 @@ const ov = vi.hoisted(() => ({
   authUser: { created_at: '2024-01-15T00:00:00.000Z' } as {
     created_at?: string;
   } | null,
+  collectionCount: 2 as number | null | undefined,
+  collectionLoading: false,
 }));
+
+const openPortalSpy = vi.hoisted(() => vi.fn());
 
 vi.mock('@beakerstack/billing', async importOriginal => {
   const actual = await importOriginal<typeof import('@beakerstack/billing')>();
@@ -114,7 +118,7 @@ vi.mock('@beakerstack/billing', async importOriginal => {
       error: ov.stripeActionErr,
     }),
     useCustomerPortal: () => ({
-      openPortal: vi.fn(),
+      openPortal: openPortalSpy,
       pending: false,
       error: ov.portalError,
     }),
@@ -150,8 +154,11 @@ vi.mock('@beakerstack/shared/contexts/AuthContext', () => ({
   }),
 }));
 
-vi.mock('@/billing/useDemoCollectionCount', () => ({
-  useDemoCollectionCount: () => ({ count: 2, loading: false }),
+vi.mock('@adopter/web/billing/useDemoCollectionCount', () => ({
+  useDemoCollectionCount: () => ({
+    count: ov.collectionCount,
+    loading: ov.collectionLoading,
+  }),
 }));
 
 vi.mock('@/components/billing/BillingPageShell.web', () => ({
@@ -163,6 +170,7 @@ vi.mock('@/components/billing/BillingPageShell.web', () => ({
 describe('BillingOverviewPage', () => {
   beforeEach(() => {
     reactivateSpy.mockClear();
+    openPortalSpy.mockClear();
     vi.stubGlobal('location', { ...window.location, reload: vi.fn() });
     ov.portalError = null;
     ov.stripeActionErr = null;
@@ -172,6 +180,8 @@ describe('BillingOverviewPage', () => {
     ov.invoiceItems = [];
     ov.invoiceLoading = false;
     ov.authUser = { created_at: '2024-01-15T00:00:00.000Z' };
+    ov.collectionCount = 2;
+    ov.collectionLoading = false;
     state.kind = 'paid_active';
     Object.assign(state.subscription, {
       stripe_subscription_id: 'sub_x',
@@ -339,5 +349,82 @@ describe('BillingOverviewPage', () => {
     const card = label.closest('.rounded-xl');
     expect(card).toBeTruthy();
     expect(within(card as HTMLElement).getByText('—')).toBeInTheDocument();
+  });
+
+  it('shows em dash for usage stat while usage is loading', () => {
+    ov.usageLoading = true;
+    render(
+      <MemoryRouter>
+        <BillingOverviewPage />
+      </MemoryRouter>
+    );
+    const label = screen.getByText("This month's usage");
+    const card = label.closest('.rounded-xl');
+    expect(within(card as HTMLElement).getByText('—')).toBeInTheDocument();
+  });
+
+  it('shows em dash for collections stat while collection count is loading', () => {
+    ov.collectionLoading = true;
+    render(
+      <MemoryRouter>
+        <BillingOverviewPage />
+      </MemoryRouter>
+    );
+    const label = screen.getByText('Collections');
+    const card = label.closest('.rounded-xl');
+    expect(within(card as HTMLElement).getByText('—')).toBeInTheDocument();
+  });
+
+  it('shows 0 of unlimited for collections when count is missing and cap is unlimited', () => {
+    ov.collectionCount = null;
+    render(
+      <MemoryRouter>
+        <BillingOverviewPage />
+      </MemoryRouter>
+    );
+    expect(screen.getByText('0 of unlimited')).toBeInTheDocument();
+  });
+
+  it('shows 0 of <cap> for collections when count is missing and cap is finite', () => {
+    ov.collectionCount = null;
+    state.plan = {
+      ...state.plan,
+      features: { ...state.plan.features, containers_per_account_max: 7 },
+    };
+    render(
+      <MemoryRouter>
+        <BillingOverviewPage />
+      </MemoryRouter>
+    );
+    expect(screen.getByText('0 of 7')).toBeInTheDocument();
+  });
+
+  it('falls back to "your next plan" when downgrade is pending without a target match', () => {
+    state.kind = 'downgrade_pending';
+    Object.assign(state.subscription, {
+      stripe_subscription_id: 'sub_x',
+      pending_target_plan_id: 'beakerstack_unknown',
+      current_period_end: '2026-09-01T00:00:00.000Z',
+      cancel_at_period_end: true,
+    });
+    render(
+      <MemoryRouter>
+        <BillingOverviewPage />
+      </MemoryRouter>
+    );
+    expect(screen.getByText(/Plan change scheduled/i)).toBeInTheDocument();
+    expect(screen.getByText(/your next plan/i)).toBeInTheDocument();
+  });
+
+  it('invokes the customer portal when "Manage payment & invoices" is clicked', () => {
+    render(
+      <MemoryRouter>
+        <BillingOverviewPage />
+      </MemoryRouter>
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /Manage payment .* invoices/i })
+    );
+    expect(openPortalSpy).toHaveBeenCalled();
   });
 });

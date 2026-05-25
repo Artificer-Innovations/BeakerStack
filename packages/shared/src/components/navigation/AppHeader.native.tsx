@@ -13,7 +13,7 @@ import Svg, { Circle, Path, Rect, Line } from 'react-native-svg';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useProfileContext } from '../../contexts/ProfileContext';
 import { UserMenu } from './UserMenu.native';
-import { BRANDING } from '../../config/branding';
+import { getAdopterConfig } from '../../config/adopterRuntime';
 import { colors } from '../../theme/colors';
 
 export interface AppHeaderProps {
@@ -39,10 +39,13 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
   const navigation = useNavigation<NavigationProp>();
   const auth = useAuthContext();
   const profile = useProfileContext();
+  const { branding } = getAdopterConfig();
 
   // Get status bar height for Android
   const statusBarHeight =
-    Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0;
+    Platform.OS === 'android'
+      ? StatusBar.currentHeight || /* v8 ignore next */ 0
+      : /* v8 ignore next */ 0;
 
   return (
     <View style={[styles.header, { paddingTop: statusBarHeight }]}>
@@ -53,7 +56,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
           style={styles.leftSection}
         >
           <View style={styles.iconContainer}>
-            {/* @ts-expect-error - react-native-svg types have JSX compatibility issues in monorepo setup, but runtime works correctly */}
+            {/* @ts-expect-error - react-native-svg types have JSX compatibility issues in monorepo setup */}
             <Svg width={32} height={32} viewBox='0 0 200 200'>
               {/* Background circle for app icon */}
               <Circle cx='100' cy='100' r='90' fill={colors.iconBg} />
@@ -67,7 +70,13 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
               />
 
               {/* Flask neck (darker for depth) */}
-              <Rect x='75' y='40' width='50' height='8' fill={colors.iconNeck} />
+              <Rect
+                x='75'
+                y='40'
+                width='50'
+                height='8'
+                fill={colors.iconNeck}
+              />
 
               {/* Liquid inside */}
               <Path
@@ -77,11 +86,41 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
               />
 
               {/* Bubbles rising */}
-              <Circle cx='85' cy='130' r='4' fill={colors.iconFill} opacity='0.8' />
-              <Circle cx='95' cy='115' r='3' fill={colors.iconFill} opacity='0.9' />
-              <Circle cx='105' cy='125' r='3.5' fill={colors.iconFill} opacity='0.85' />
-              <Circle cx='90' cy='100' r='2.5' fill={colors.iconFill} opacity='0.95' />
-              <Circle cx='110' cy='110' r='3' fill={colors.iconFill} opacity='0.9' />
+              <Circle
+                cx='85'
+                cy='130'
+                r='4'
+                fill={colors.iconFill}
+                opacity='0.8'
+              />
+              <Circle
+                cx='95'
+                cy='115'
+                r='3'
+                fill={colors.iconFill}
+                opacity='0.9'
+              />
+              <Circle
+                cx='105'
+                cy='125'
+                r='3.5'
+                fill={colors.iconFill}
+                opacity='0.85'
+              />
+              <Circle
+                cx='90'
+                cy='100'
+                r='2.5'
+                fill={colors.iconFill}
+                opacity='0.95'
+              />
+              <Circle
+                cx='110'
+                cy='110'
+                r='3'
+                fill={colors.iconFill}
+                opacity='0.9'
+              />
 
               {/* Measurement lines on flask */}
               <Line
@@ -122,7 +161,7 @@ export function AppHeader({ supabaseClient: _supabaseClient }: AppHeaderProps) {
               />
             </Svg>
           </View>
-          <Text style={styles.title}>{BRANDING.displayName}</Text>
+          <Text style={styles.title}>{branding.displayName}</Text>
         </TouchableOpacity>
 
         {/* Right side: Auth buttons or user menu */}

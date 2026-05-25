@@ -8,7 +8,6 @@ import LoginPage from '../LoginPage';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
-
 const webAuthFns = vi.hoisted(() => ({
   signInWithPassword: vi.fn(),
   signInWithOAuth: vi.fn(),
@@ -32,6 +31,22 @@ const mockCatalogPlans = vi.hoisted(() => {
     display_order: 2,
   };
   return { pro };
+});
+
+vi.mock('@beakerstack/waitlist', async importOriginal => {
+  const actual = await importOriginal<typeof import('@beakerstack/waitlist')>();
+  return {
+    ...actual,
+    useSignupMode: () => ({
+      mode: 'open' as const,
+      settings: null,
+      loading: false,
+      isOpen: true,
+      isWaitlist: false,
+      isInviteOnly: false,
+      isClosed: false,
+    }),
+  };
 });
 
 vi.mock('@beakerstack/billing', async importOriginal => {
@@ -78,12 +93,31 @@ const createMockSupabaseClient = (): SupabaseClient => {
       signOut: vi.fn(),
       signInWithOAuth: webAuthFns.signInWithOAuth,
     },
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: null, error: null }),
+        }),
+      }),
+    }),
+    channel: vi.fn().mockReturnValue({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn((cb?: (status: string) => void) => {
+        cb?.('SUBSCRIBED');
+        return { unsubscribe: vi.fn() };
+      }),
+    }),
+    removeChannel: vi.fn(),
   } as unknown as SupabaseClient;
 };
 
+type MemoryRouterInitialEntries = NonNullable<
+  React.ComponentProps<typeof MemoryRouter>['initialEntries']
+>;
+
 const renderWithProviders = (
   component: React.ReactElement,
-  options?: { initialEntries?: string[] }
+  options?: { initialEntries?: MemoryRouterInitialEntries }
 ) => {
   const mockClient = createMockSupabaseClient();
   const router =
@@ -262,6 +296,13 @@ describe('LoginPage', () => {
   it('does not show plan aside on plain /login', () => {
     renderWithProviders(<LoginPage />);
     expect(screen.queryByText('Plan from pricing')).not.toBeInTheDocument();
+  });
+
+  it('accepts location.state.from for post-auth redirect path', () => {
+    renderWithProviders(<LoginPage />, {
+      initialEntries: [{ pathname: '/login', state: { from: '/admin' } }],
+    });
+    expect(screen.getByText('Sign in to your account')).toBeInTheDocument();
   });
 
   it('disables form inputs when loading', async () => {

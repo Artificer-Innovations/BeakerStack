@@ -586,7 +586,7 @@ list_failed_change_sets_json() {
     echo "[]"
     return 0
   fi
-  printf '%s' "${raw}" | python3 <<'PY'
+  printf '%s' "${raw}" | python3 -c '
 import json, sys
 
 try:
@@ -605,7 +605,7 @@ for x in data.get("Summaries") or []:
             }
         )
 print(json.dumps(rows))
-PY
+'
 }
 
 preflight_collect_data() {
@@ -731,7 +731,21 @@ delete_failed_change_sets_for_stack() {
     return 0
   fi
   local names
-  names="$(printf '%s' "${raw}" | python3 -c "import json,sys; d=json.load(sys.stdin); print('\\n'.join(x.get('ChangeSetName','') for x in (d.get('Summaries')or[]) if x.get('Status')=='FAILED'))")"
+  names="$(
+    printf '%s' "${raw}" | python3 -c '
+import json, sys
+
+try:
+    data = json.load(sys.stdin)
+except json.JSONDecodeError:
+    raise SystemExit(0)
+for x in data.get("Summaries") or []:
+    if x.get("Status") == "FAILED":
+        name = x.get("ChangeSetName", "")
+        if name:
+            print(name)
+'
+  )"
   if [[ -z "${names}" ]]; then
     log "INFO" "No FAILED change sets on stack ${STACK_NAME}."
     return 0
@@ -866,6 +880,7 @@ print_deploy_diagnostics() {
     --query "sort_by(Summaries[?Status=='FAILED'], &CreationTime)[-1].ChangeSetName" \
     --output text 2>/dev/null || echo '')"
   cs_name="${cs_name//$'\t'/}"
+  cs_name="${cs_name%%$'\n'*}"
   if [[ -n "${cs_name}" && "${cs_name}" != "None" && "${cs_name}" != "null" ]]; then
     log "DIAG" "Latest FAILED change set: ${cs_name}"
     "${AWS_CLI[@]}" cloudformation describe-change-set \

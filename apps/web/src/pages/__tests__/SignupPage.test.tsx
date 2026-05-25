@@ -4,11 +4,13 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import type { Plan } from '@beakerstack/billing';
+import type { UseSignupModeResult } from '@beakerstack/waitlist';
 import SignupPage from '../SignupPage';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { POST_AUTH_REDIRECT_KEY } from '../../auth/postAuthRedirect';
+import { MIN_PASSWORD_LENGTH } from '@beakerstack/shared/constants/auth';
 
 const mockCatalogPlans = vi.hoisted(() => {
   const pro: Plan = {
@@ -28,6 +30,42 @@ const mockCatalogPlans = vi.hoisted(() => {
     display_order: 2,
   };
   return { pro };
+});
+
+const { defaultSignupMode, useSignupModeMock } = vi.hoisted(() => {
+  const defaultSignupMode: UseSignupModeResult = {
+    mode: 'open',
+    settings: null,
+    loading: false,
+    isOpen: true,
+    isWaitlist: false,
+    isInviteOnly: false,
+    isClosed: false,
+  };
+  return {
+    defaultSignupMode,
+    useSignupModeMock: vi.fn((): UseSignupModeResult => defaultSignupMode),
+  };
+});
+
+vi.mock('@beakerstack/waitlist', async importOriginal => {
+  const actual = await importOriginal<typeof import('@beakerstack/waitlist')>();
+  return {
+    ...actual,
+    useSignupMode: useSignupModeMock,
+  };
+});
+
+vi.mock('@beakerstack/waitlist/web', async importOriginal => {
+  const actual =
+    await importOriginal<typeof import('@beakerstack/waitlist/web')>();
+  return {
+    ...actual,
+    SignupModeGate: ({ children }: { children: React.ReactNode }) => (
+      <>{children}</>
+    ),
+    useSignupMode: useSignupModeMock,
+  };
 });
 
 vi.mock('@beakerstack/billing', async importOriginal => {
@@ -197,6 +235,7 @@ describe('SignupPage', () => {
   beforeEach(() => {
     installMemoryWebStorage();
     vi.clearAllMocks();
+    useSignupModeMock.mockReturnValue(defaultSignupMode);
     mockNavigate.mockClear();
     webSupabaseAuth.getSession.mockImplementation(async () => ({
       data: { session: null },
@@ -242,6 +281,35 @@ describe('SignupPage', () => {
     });
   });
 
+  it('shows error when password is too short', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<SignupPage />);
+
+    await user.type(
+      screen.getByPlaceholderText('Email address'),
+      'test@example.com'
+    );
+    await user.type(screen.getByPlaceholderText('Password'), 'short');
+    await user.type(screen.getByPlaceholderText('Confirm password'), 'short');
+
+    const form = screen.getByPlaceholderText('Email address').closest('form');
+    const submitButton = form?.querySelector(
+      'button[type="submit"]'
+    ) as HTMLButtonElement;
+    if (submitButton) {
+      await user.click(submitButton);
+    }
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          `Password must be at least ${MIN_PASSWORD_LENGTH} characters`
+        )
+      ).toBeInTheDocument();
+    });
+    expect(authClientMocks.signUp).not.toHaveBeenCalled();
+  });
+
   it('shows error when passwords do not match', async () => {
     const user = userEvent.setup();
     renderWithProviders(<SignupPage />);
@@ -283,31 +351,6 @@ describe('SignupPage', () => {
     expect(emailInput).toHaveValue('test@example.com');
     expect(passwordInput).toHaveValue('password123');
     expect(confirmPasswordInput).toHaveValue('password123');
-  });
-
-  it.skip('shows loading state when submitting', async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<SignupPage />);
-
-    const emailInput = screen.getByPlaceholderText('Email address');
-    const passwordInput = screen.getByPlaceholderText('Password');
-    const confirmPasswordInput =
-      screen.getByPlaceholderText('Confirm password');
-    const form = emailInput.closest('form');
-    const submitButton = form?.querySelector(
-      'button[type="submit"]'
-    ) as HTMLButtonElement;
-
-    await user.type(emailInput, 'test@example.com');
-    await user.type(passwordInput, 'password123');
-    await user.type(confirmPasswordInput, 'password123');
-    if (submitButton) {
-      await user.click(submitButton);
-    }
-
-    await waitFor(() => {
-      expect(screen.getByText('Creating account...')).toBeInTheDocument();
-    });
   });
 
   it('displays error message on signup failure', async () => {
@@ -430,7 +473,7 @@ describe('SignupPage', () => {
     expect(raw).toContain('/billing/plans');
   });
 
-  it('navigates to dashboard after signup when no session and no paid plan intent', async () => {
+  it('shows pending email confirmation UI after plain signup without billing copy or redirect stash', async () => {
     const user = userEvent.setup();
     renderWithProviders(<SignupPage />, { initialEntries: ['/signup'] });
 
@@ -446,10 +489,12 @@ describe('SignupPage', () => {
     await user.click(screen.getByRole('button', { name: /create account/i }));
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', {
-        replace: true,
-      });
+      expect(screen.getByText('Check your email')).toBeInTheDocument();
+      expect(screen.getByText(/confirm@example\.com/)).toBeInTheDocument();
     });
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.queryByText(/billing/i)).not.toBeInTheDocument();
+    expect(window.localStorage.getItem(POST_AUTH_REDIRECT_KEY)).toBeNull();
   });
 
   it('shows generic message when email signup throws non-Error', async () => {
@@ -522,34 +567,20 @@ describe('SignupPage', () => {
     expect(screen.queryByText('Your selection')).not.toBeInTheDocument();
   });
 
-  it.skip('disables form inputs when loading', async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<SignupPage />);
-
-    const emailInput = screen.getByPlaceholderText('Email address');
-    const passwordInput = screen.getByPlaceholderText('Password');
-    const confirmPasswordInput =
-      screen.getByPlaceholderText('Confirm password');
-    const form = emailInput.closest('form');
-    const submitButton = form?.querySelector(
-      'button[type="submit"]'
-    ) as HTMLButtonElement;
-
-    await user.type(emailInput, 'test@example.com');
-    await user.type(passwordInput, 'password123');
-    await user.type(confirmPasswordInput, 'password123');
-    if (submitButton) {
-      await user.click(submitButton);
-    }
-
-    // Inputs should be disabled during loading
-    await waitFor(() => {
-      expect(emailInput).toBeDisabled();
-      expect(passwordInput).toBeDisabled();
-      expect(confirmPasswordInput).toBeDisabled();
-      if (submitButton) {
-        expect(submitButton).toBeDisabled();
-      }
+  it('shows waitlist tier panel without open-signup heading in waitlist mode', () => {
+    useSignupModeMock.mockReturnValue({
+      mode: 'waitlist',
+      settings: null,
+      loading: false,
+      isOpen: false,
+      isWaitlist: true,
+      isInviteOnly: false,
+      isClosed: false,
     });
+    renderWithProviders(<SignupPage />, {
+      initialEntries: ['/signup?plan=beakerstack_pro'],
+    });
+    expect(screen.queryByText('Create your account')).not.toBeInTheDocument();
+    expect(screen.getByText('JOIN THE WAITLIST FOR')).toBeInTheDocument();
   });
 });

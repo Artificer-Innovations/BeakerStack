@@ -55,4 +55,32 @@ describe('SubscriptionStatusBadge (native)', () => {
     render(<SubscriptionStatusBadge subscription={testSubscription()} />);
     expect(screen.getByLabelText('Active')).toBeInTheDocument();
   });
+
+  it('shows Active for paused and unpaid statuses', () => {
+    render(
+      <SubscriptionStatusBadge
+        subscription={testSubscription({ status: 'paused' })}
+      />
+    );
+    expect(screen.getByLabelText('Active')).toBeInTheDocument();
+
+    render(
+      <SubscriptionStatusBadge
+        subscription={testSubscription({ status: 'unpaid' })}
+      />
+    );
+    expect(screen.getAllByLabelText('Active').length).toBeGreaterThan(0);
+  });
+
+  it('shows em dash in cancelling label when period end is missing', () => {
+    render(
+      <SubscriptionStatusBadge
+        subscription={testSubscription({
+          cancel_at_period_end: true,
+          current_period_end: null,
+        })}
+      />
+    );
+    expect(screen.getByLabelText(/Cancelling.*—/)).toBeInTheDocument();
+  });
 });

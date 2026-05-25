@@ -12,9 +12,9 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  beakerstackBillingConfig,
+  billingConfig,
   BEAKERSTACK_METER_AI_SUMMARIZE,
-} from '../../billing/beakerstackBillingConfig';
+} from '@adopter/config/billing';
 import {
   annualListCentsFromSync,
   computeDowngradeBlockers,
@@ -22,7 +22,7 @@ import {
   planAnnualSavingsCopy,
   type DowngradeBlockersResult,
 } from '@beakerstack/billing/presentation';
-import { useDemoCollectionCount } from '../../billing/useDemoCollectionCount';
+import { useDemoCollectionCount } from '@adopter/web/billing/useDemoCollectionCount';
 import {
   CadenceToggle,
   getCadenceFromSearch,
@@ -34,7 +34,8 @@ import { PlanCard } from '../../components/billing/PlanCard.web';
 
 type Primary = {
   label: string;
-  onClick: () => void;
+  /** Omitted for disabled CTAs that never fire (e.g. the current plan or a tied cadence). */
+  onClick?: () => void;
   disabled: boolean;
   loading: boolean;
   variant?: 'primary' | 'secondary';
@@ -47,22 +48,19 @@ export default function BillingPlansPage() {
     showBanner: search.get('welcome') === '1' && Boolean(search.get('plan')),
     planId: search.get('plan'),
   }));
-  const { plans, loading: catLoad } =
-    usePlanCatalog<typeof beakerstackBillingConfig>();
-  const { data: current } = usePlan<typeof beakerstackBillingConfig>();
-  const { data: subscription } =
-    useSubscription<typeof beakerstackBillingConfig>();
-  const { kind: billingKind } =
-    useBillingState<typeof beakerstackBillingConfig>();
+  const { plans, loading: catLoad } = usePlanCatalog<typeof billingConfig>();
+  const { data: current } = usePlan<typeof billingConfig>();
+  const { data: subscription } = useSubscription<typeof billingConfig>();
+  const { kind: billingKind } = useBillingState<typeof billingConfig>();
   const { startCheckout, pending: checkoutPend } =
-    useCheckout<typeof beakerstackBillingConfig>();
+    useCheckout<typeof billingConfig>();
   const {
     updateSubscription,
     scheduleCancelToFree,
     pending: actionPend,
-  } = useBillingStripeActions<typeof beakerstackBillingConfig>();
+  } = useBillingStripeActions<typeof billingConfig>();
   const { used: aiUsed } = useUsage<
-    typeof beakerstackBillingConfig,
+    typeof billingConfig,
     typeof BEAKERSTACK_METER_AI_SUMMARIZE
   >(BEAKERSTACK_METER_AI_SUMMARIZE);
   const { count: colCount = 0, maxItemsInAnyCollection = 0 } =
@@ -123,7 +121,7 @@ export default function BillingPlansPage() {
             aiUsedThisPeriod: aiUsed ?? 0,
           },
           plans,
-          beakerstackBillingConfig
+          billingConfig
         );
       }
       if (
@@ -139,7 +137,7 @@ export default function BillingPlansPage() {
             aiUsedThisPeriod: aiUsed ?? 0,
           },
           plans,
-          beakerstackBillingConfig
+          billingConfig
         );
       }
       return emptyBlockers();
@@ -152,7 +150,6 @@ export default function BillingPlansPage() {
       if (!current) {
         return {
           label: '…',
-          onClick: () => {},
           disabled: true,
           loading: false,
         };
@@ -163,7 +160,6 @@ export default function BillingPlansPage() {
         if (p.price_cents === 0 || p.id === 'beakerstack_free') {
           return {
             label: 'Current plan',
-            onClick: () => {},
             disabled: true,
             loading: false,
           };
@@ -171,7 +167,6 @@ export default function BillingPlansPage() {
         if (currentCadence === cadence) {
           return {
             label: 'Current plan',
-            onClick: () => {},
             disabled: true,
             loading: false,
           };
@@ -206,10 +201,7 @@ export default function BillingPlansPage() {
       if (p.id === 'beakerstack_free' && hasPaidStripe) {
         return {
           label: 'Downgrade to Free',
-          onClick: () => {
-            if (hasHardBlock) return;
-            setModal(true);
-          },
+          onClick: () => setModal(true),
           disabled: hasHardBlock,
           loading: false,
           variant: 'secondary',
@@ -242,7 +234,6 @@ export default function BillingPlansPage() {
       }
       return {
         label: 'Current plan',
-        onClick: () => {},
         disabled: true,
         loading: false,
       };

@@ -50,4 +50,39 @@ describe('usePlanCatalog', () => {
     await waitFor(() => expect(result.current.error).not.toBeNull());
     expect(result.current.plans).toEqual([]);
   });
+
+  it('treats null data as an empty catalog', async () => {
+    order.mockResolvedValue({ data: null, error: null });
+    const { result } = renderHook(() => usePlanCatalog());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.plans).toEqual([]);
+    expect(result.current.error).toBeNull();
+  });
+
+  it('refresh reloads plans', async () => {
+    const updated = testPlan({ id: 'plan_pro', display_name: 'Pro' });
+    order
+      .mockResolvedValueOnce({ data: [testPlan()], error: null })
+      .mockResolvedValueOnce({ data: [updated], error: null });
+    const { result } = renderHook(() => usePlanCatalog());
+    await waitFor(() => expect(result.current.plans[0]?.id).toBe('plan_free'));
+    await result.current.refresh();
+    await waitFor(() =>
+      expect(result.current.plans[0]?.display_name).toBe('Pro')
+    );
+  });
+
+  it('coalesces undefined query data to an empty catalog', async () => {
+    order.mockResolvedValue({ data: undefined, error: null });
+    const { result } = renderHook(() => usePlanCatalog());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.plans).toEqual([]);
+  });
+
+  it('coalesces null rows to an empty catalog', async () => {
+    order.mockResolvedValue({ data: null, error: null });
+    const { result } = renderHook(() => usePlanCatalog());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.plans).toEqual([]);
+  });
 });

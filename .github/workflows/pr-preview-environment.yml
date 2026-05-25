@@ -1,3 +1,4 @@
+# PR previews only (deploy.<domain>/pr-N). Staging/production deploys are deploy-staging.yml (develop) and deploy-production.yml (main).
 name: PR Preview Environments
 
 on:
@@ -33,50 +34,128 @@ jobs:
       (github.event.action != 'edited' || github.event.changes.base)
     runs-on: ubuntu-latest
     outputs:
-      run_deploy: ${{ steps.check.outputs.run_deploy }}
+      run_deploy: ${{ steps.classify.outputs.run_deploy }}
+      run_infra: ${{ steps.classify.outputs.run_infra }}
+      run_supabase_reset: ${{ steps.classify.outputs.run_supabase_reset }}
+      run_stripe_billing: ${{ steps.classify.outputs.run_stripe_billing }}
+      run_auth_sync: ${{ steps.classify.outputs.run_auth_sync }}
+      run_web: ${{ steps.classify.outputs.run_web }}
+      run_mobile: ${{ steps.classify.outputs.run_mobile }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Decide if PR preview deploy is needed
-        id: check
+      - name: Classify PR changes for preview deploy
+        id: classify
         shell: bash
         run: |
           set -euo pipefail
-          ./scripts/pr-preview/check-preview-deploy-needed.sh \
-            "origin/${{ github.base_ref }}" \
-            "HEAD"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          ./scripts/ci/classify-pr-event.sh \
+            "${{ github.event.action }}" \
+            "${{ github.event.before }}" \
+            "${HEAD_SHA}" \
+            "${{ github.base_ref }}"
 
       - name: Log when preview deploy is skipped
-        if: steps.check.outputs.run_deploy != 'true'
-        run: echo "Skipping PR preview deploy (no app/package/supabase/pr-preview changes)."
+        if: steps.classify.outputs.run_deploy != 'true'
+        run: echo "Skipping PR preview deploy (no relevant changes in this push)."
 
-  deploy-preview:
-    if: github.event.action != 'closed' && needs.preview-scope.outputs.run_deploy == 'true' && (github.base_ref != 'develop' || github.head_ref != 'main')
+  deploy-preview-infra:
+    if: >-
+      github.event.action != 'closed' &&
+      needs.preview-scope.outputs.run_deploy == 'true' &&
+      (github.base_ref != 'develop' || github.head_ref != 'main') &&
+      (needs.preview-scope.outputs.run_infra == 'true' || needs.preview-scope.outputs.run_web == 'true')
     needs: preview-scope
     runs-on: ubuntu-latest
     outputs:
-      bootstrap-url:             ${{ steps.signed_cookies.outputs.BOOTSTRAP_URL }}
-      access-mode:               ${{ steps.signed_cookies.outputs.ACCESS_MODE }}
-      supabase-outcome:          ${{ steps.supabase.outcome }}
-      stripe-sync-outcome:       ${{ steps.stripe-sync.outcome }}
-      stripe-webhook-outcome:    ${{ steps.stripe_webhook_preview.outcome }}
-      billing-functions-outcome: ${{ steps.billing-functions.outcome }}
-      web-outcome:               ${{ steps.web.outcome }}
+      pr_preview_prefix: ${{ steps.bootstrap.outputs.PR_PREVIEW_PREFIX }}
+      pr_preview_website_bucket: ${{ steps.bootstrap.outputs.PR_PREVIEW_WEBSITE_BUCKET }}
+      pr_preview_distribution_id: ${{ steps.bootstrap.outputs.PR_PREVIEW_DISTRIBUTION_ID }}
     env:
       PREVIEW_DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
       PREVIEW_HOSTED_ZONE_ID: ${{ vars.PR_PREVIEW_HOSTED_ZONE_ID }}
       PREVIEW_CERTIFICATE_ARN: ${{ secrets.PR_PREVIEW_CERTIFICATE_ARN }}
       PREVIEW_STACK_NAME: ${{ vars.PR_PREVIEW_STACK_NAME }}
       PREVIEW_PREFIX: ${{ vars.PR_PREVIEW_PREFIX }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ vars.PR_PREVIEW_AWS_REGION != '' && vars.PR_PREVIEW_AWS_REGION || 'us-east-1' }}
+
+      - name: Bootstrap preview infrastructure
+        id: bootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
+          STACK_NAME="${PREVIEW_STACK_NAME:-beakerstack-pr-preview}"
+          AWS_REGION_VALUE="${PREVIEW_AWS_REGION:-us-east-1}"
+          PREVIEW_PREFIX_VALUE="${PREVIEW_PREFIX:-pr-}"
+          IF_STACK_EXISTS_MODE="deploy"
+          # Web-only pushes still need bucket/distribution outputs but must not re-run CloudFormation.
+          if [[ "${{ needs.preview-scope.outputs.run_infra }}" != "true" ]]; then
+            stack_status="$(aws cloudformation describe-stacks \
+              --stack-name "${STACK_NAME}" \
+              --region "${AWS_REGION_VALUE}" \
+              --query 'Stacks[0].StackStatus' \
+              --output text 2>/dev/null || true)"
+            case "${stack_status}" in
+              CREATE_COMPLETE|UPDATE_COMPLETE|UPDATE_ROLLBACK_COMPLETE)
+                IF_STACK_EXISTS_MODE="refresh-outputs"
+                echo "Stack ${STACK_NAME} is ${stack_status}; skipping CloudFormation deploy (web-only change)."
+                ;;
+            esac
+          fi
+          ./scripts/pr-preview/bootstrap-aws-stack.sh \
+            --stack-name "${STACK_NAME}" \
+            --region "${AWS_REGION_VALUE}" \
+            --domain "${PREVIEW_DOMAIN}" \
+            --hosted-zone-id "${PREVIEW_HOSTED_ZONE_ID}" \
+            --certificate-arn "${PREVIEW_CERTIFICATE_ARN}" \
+            --preview-prefix "${PREVIEW_PREFIX_VALUE}" \
+            --if-stack-exists "${IF_STACK_EXISTS_MODE}" \
+            --skip-cloudfront-function-publish
+
+  deploy-preview-backend:
+    if: >-
+      github.event.action != 'closed' &&
+      needs.preview-scope.outputs.run_deploy == 'true' &&
+      (github.base_ref != 'develop' || github.head_ref != 'main') &&
+      (needs.preview-scope.outputs.run_supabase_reset == 'true' ||
+       needs.preview-scope.outputs.run_stripe_billing == 'true' ||
+       needs.preview-scope.outputs.run_auth_sync == 'true')
+    needs: preview-scope
+    runs-on: ubuntu-latest
+    outputs:
+      supabase-outcome: ${{ steps.supabase.outcome }}
+      stripe-sync-outcome: ${{ steps.stripe-sync.outcome }}
+      stripe-webhook-outcome: ${{ steps.stripe_webhook_preview.outcome }}
+      billing-functions-outcome: ${{ steps.billing-functions.outcome }}
+    env:
+      PREVIEW_DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
+      PREVIEW_PREFIX: ${{ vars.PR_PREVIEW_PREFIX }}
       SUPABASE_PREVIEW_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
       SUPABASE_PREVIEW_DB_PASSWORD: ${{ secrets.SUPABASE_PREVIEW_DB_PASSWORD }}
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_PREVIEW_DB_URL: ${{ secrets.SUPABASE_PREVIEW_DB_URL }}
-      PRODUCTION_SUPABASE_URL: ${{ secrets.PRODUCTION_SUPABASE_URL }}
-      STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
       PREVIEW_SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
     steps:
       - name: Checkout repository
@@ -98,33 +177,9 @@ jobs:
         with:
           version: 2.54.11
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: ${{ vars.PR_PREVIEW_AWS_REGION != '' && vars.PR_PREVIEW_AWS_REGION || 'us-east-1' }}
-
-      - name: Bootstrap preview infrastructure
-        id: bootstrap
-        shell: bash
-        run: |
-          set -euo pipefail
-          STACK_NAME="${PREVIEW_STACK_NAME:-beakerstack-pr-preview}"
-          AWS_REGION_VALUE="${PREVIEW_AWS_REGION:-us-east-1}"
-          PREVIEW_PREFIX_VALUE="${PREVIEW_PREFIX:-pr-}"
-          ./scripts/pr-preview/bootstrap-aws-stack.sh \
-            --stack-name "${STACK_NAME}" \
-            --region "${AWS_REGION_VALUE}" \
-            --domain "${PREVIEW_DOMAIN}" \
-            --hosted-zone-id "${PREVIEW_HOSTED_ZONE_ID}" \
-            --certificate-arn "${PREVIEW_CERTIFICATE_ARN}" \
-            --preview-prefix "${PREVIEW_PREFIX_VALUE}" \
-            --skip-cloudfront-function-publish
-
       - name: Prepare Supabase preview database
         id: supabase
+        if: needs.preview-scope.outputs.run_supabase_reset == 'true'
         shell: bash
         continue-on-error: true
         env:
@@ -139,8 +194,57 @@ jobs:
             --baseline-ref "${{ github.base_ref }}" \
             --skip-if-unchanged
 
+      # Opt-in: skipped in-script when RESEND_SMTP_PASS unset (secrets cannot be used in if:)
+      - name: Regenerate email templates
+        if: needs.preview-scope.outputs.run_auth_sync == 'true'
+        env:
+          PREVIEW_DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
+          PREVIEW_PREFIX: ${{ vars.PR_PREVIEW_PREFIX }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          PREFIX="${PREVIEW_PREFIX:-pr-}"
+          LOGO_URL="https://deploy.${PREVIEW_DOMAIN}/${PREFIX}${PR_NUMBER}/email-logo.png"
+          echo "Using preview logo URL: ${LOGO_URL}"
+          npm run email:personalize -- --non-interactive --logo-url="${LOGO_URL}"
+
+      - name: Sync Supabase auth email config (preview)
+        if: needs.preview-scope.outputs.run_auth_sync == 'true'
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PREVIEW_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
+          SUPABASE_PREVIEW_DB_PASSWORD: ${{ secrets.SUPABASE_PREVIEW_DB_PASSWORD }}
+          SUPABASE_AUTH_SITE_URL: ${{ format('https://deploy.{0}', vars.PR_PREVIEW_DOMAIN) }}
+          SUPABASE_ADDITIONAL_REDIRECT_URL: ${{ format('https://deploy.{0}/pr-{1}/auth/confirm', vars.PR_PREVIEW_DOMAIN, github.event.pull_request.number) }}
+          SMTP_HOST: smtp.resend.com
+          SMTP_PORT: '587'
+          SMTP_USER: resend
+          SMTP_PASS: ${{ secrets.RESEND_SMTP_PASS }}
+          SMTP_ADMIN_EMAIL: ${{ vars.SMTP_ADMIN_EMAIL }}
+          SMTP_SENDER_NAME: ${{ vars.SMTP_SENDER_NAME }}
+          SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ${{ secrets.SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID }}
+          SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ${{ secrets.SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SMTP_PASS:-}" ]; then
+            echo "Skipping Supabase auth email config: RESEND_SMTP_PASS is not set."
+            exit 0
+          fi
+          if [ -z "${SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID:-}" ] || [ -z "${SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET:-}" ]; then
+            echo "Skipping Supabase auth email config: SUPABASE_AUTH_EXTERNAL_GOOGLE_* secrets are not set."
+            echo "  Run npm run setup:full (google phase) or: gh secret set SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID"
+            exit 0
+          fi
+          ./scripts/sync-supabase-auth-config.sh \
+            --project-ref "${SUPABASE_PREVIEW_PROJECT_REF}" \
+            --db-password "${SUPABASE_PREVIEW_DB_PASSWORD}" \
+            --site-url "${SUPABASE_AUTH_SITE_URL}" \
+            --additional-redirect-url "${SUPABASE_ADDITIONAL_REDIRECT_URL}"
+
       - name: Sync Stripe prices to preview billing_plans
         id: stripe-sync
+        if: needs.preview-scope.outputs.run_stripe_billing == 'true'
         continue-on-error: true
         env:
           STRIPE_SECRET_KEY: ${{ secrets.PREVIEW_STRIPE_SECRET_KEY }}
@@ -152,6 +256,7 @@ jobs:
 
       - name: Ensure Stripe webhook endpoint (preview)
         id: stripe_webhook_preview
+        if: needs.preview-scope.outputs.run_stripe_billing == 'true'
         continue-on-error: true
         env:
           STRIPE_SECRET_KEY: ${{ secrets.PREVIEW_STRIPE_SECRET_KEY }}
@@ -160,10 +265,25 @@ jobs:
           WEBHOOK_DESCRIPTION: BeakerStack preview (${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }})
         run: node scripts/ensure-stripe-webhook-endpoint.mjs
 
-      - name: Deploy preview billing edge functions
-        id: billing-functions
+      - name: Ensure Kit webhook endpoint (preview)
+        if: >-
+          needs.preview-scope.outputs.run_stripe_billing == 'true' ||
+          needs.preview-scope.outputs.run_supabase_reset == 'true'
         continue-on-error: true
-        shell: bash
+        env:
+          KIT_API_KEY: ${{ secrets.KIT_API_KEY }}
+          KIT_SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
+          WEBHOOK_DESCRIPTION: BeakerStack preview kit-webhook (${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }})
+        run: |
+          [[ -z "${KIT_API_KEY:-}" ]] && { echo "KIT_API_KEY not set — skipping Kit webhook ensure"; exit 0; }
+          node scripts/ensure-kit-webhook-endpoint.mjs
+
+      - name: Deploy preview edge functions
+        id: billing-functions
+        if: >-
+          needs.preview-scope.outputs.run_stripe_billing == 'true' ||
+          needs.preview-scope.outputs.run_supabase_reset == 'true'
+        continue-on-error: true
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PREVIEW_PROJECT_REF: ${{ secrets.SUPABASE_PREVIEW_PROJECT_REF }}
@@ -174,24 +294,59 @@ jobs:
           PREVIEW_STRIPE_SECRET_KEY: ${{ secrets.PREVIEW_STRIPE_SECRET_KEY }}
           PREVIEW_STRIPE_WEBHOOK_SECRET: ${{ steps.stripe_webhook_preview.outputs.resolved_webhook_secret }}
           PREVIEW_BILLING_ALLOWED_ORIGINS: ${{ secrets.PREVIEW_BILLING_ALLOWED_ORIGINS }}
+          KIT_API_KEY: ${{ secrets.KIT_API_KEY }}
+          KIT_CRON_SECRET: ${{ secrets.KIT_CRON_SECRET }}
+          KIT_WEBHOOK_SECRET: ${{ secrets.KIT_WEBHOOK_SECRET }}
+          SUPABASE_MAX_RETRIES: 5
         run: |
           set -euo pipefail
-          cd supabase
-          # Path-based previews use this host; empty allowlist breaks checkout redirect validation.
-          BILLING_ORIGINS="${PREVIEW_BILLING_ALLOWED_ORIGINS:-https://deploy.beakerstack.com}"
-          supabase link \
-            --project-ref "${SUPABASE_PREVIEW_PROJECT_REF}" \
-            --password "${SUPABASE_PREVIEW_DB_PASSWORD}" \
-            --yes
-          supabase secrets set \
-            STRIPE_SECRET_KEY="${PREVIEW_STRIPE_SECRET_KEY}" \
-            STRIPE_WEBHOOK_SECRET="${PREVIEW_STRIPE_WEBHOOK_SECRET}" \
-            BILLING_SUPABASE_URL="${PREVIEW_SUPABASE_URL}" \
-            BILLING_SUPABASE_ANON_KEY="${PREVIEW_SUPABASE_ANON_KEY}" \
-            BILLING_SUPABASE_SERVICE_ROLE_KEY="${PR_TESTING_SUPABASE_SERVICE_ROLE_KEY}" \
-            BILLING_ALLOWED_ORIGINS="${BILLING_ORIGINS}"
-          supabase functions deploy stripe-webhook billing-stripe \
-            --project-ref "${SUPABASE_PREVIEW_PROJECT_REF}"
+          chmod +x ./scripts/pr-preview/deploy-preview-billing-functions.sh
+          ./scripts/pr-preview/deploy-preview-billing-functions.sh
+
+      - name: Ensure kit-sync cron job (preview)
+        if: >-
+          needs.preview-scope.outputs.run_stripe_billing == 'true' ||
+          needs.preview-scope.outputs.run_supabase_reset == 'true'
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PR_TESTING_SUPABASE_SERVICE_ROLE_KEY }}
+          KIT_CRON_SECRET: ${{ secrets.KIT_CRON_SECRET }}
+          PREVIEW_KIT_CRON_SECRET: ${{ secrets.PREVIEW_KIT_CRON_SECRET }}
+        run: |
+          RESOLVED_KIT_CRON_SECRET="${KIT_CRON_SECRET:-${PREVIEW_KIT_CRON_SECRET:-}}"
+          [[ -z "${RESOLVED_KIT_CRON_SECRET}" ]] && { echo "KIT_CRON_SECRET not set — skipping cron registration"; exit 0; }
+          KIT_CRON_SECRET="${RESOLVED_KIT_CRON_SECRET}" node scripts/ensure-kit-sync-cron.mjs
+
+  deploy-preview-web:
+    if: >-
+      github.event.action != 'closed' &&
+      needs.preview-scope.outputs.run_deploy == 'true' &&
+      needs.preview-scope.outputs.run_web == 'true' &&
+      (github.base_ref != 'develop' || github.head_ref != 'main')
+    needs: [preview-scope, deploy-preview-infra]
+    runs-on: ubuntu-latest
+    outputs:
+      web-outcome: ${{ steps.web.outcome }}
+    env:
+      PREVIEW_DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
+      PREVIEW_PREFIX: ${{ vars.PR_PREVIEW_PREFIX }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ vars.PR_PREVIEW_AWS_REGION != '' && vars.PR_PREVIEW_AWS_REGION || 'us-east-1' }}
 
       - name: Build and deploy web preview
         id: web
@@ -203,23 +358,51 @@ jobs:
         run: |
           set -euo pipefail
           PR_NUMBER_VALUE="${PR_NUMBER}"
-          PREVIEW_PREFIX_VALUE="${PREVIEW_PREFIX:-${{ steps.bootstrap.outputs.PR_PREVIEW_PREFIX }}}"
+          PREVIEW_PREFIX_VALUE="${PREVIEW_PREFIX:-${{ needs.deploy-preview-infra.outputs.pr_preview_prefix }}}"
           PREVIEW_PREFIX_VALUE="${PREVIEW_PREFIX_VALUE:-pr-}"
           AWS_REGION_VALUE="${PREVIEW_AWS_REGION:-us-east-1}"
           ./scripts/pr-preview/deploy-web.sh \
             --pr-number "${PR_NUMBER_VALUE}" \
-            --bucket "${{ steps.bootstrap.outputs.PR_PREVIEW_WEBSITE_BUCKET }}" \
-            --distribution-id "${{ steps.bootstrap.outputs.PR_PREVIEW_DISTRIBUTION_ID }}" \
+            --bucket "${{ needs.deploy-preview-infra.outputs.pr_preview_website_bucket }}" \
+            --distribution-id "${{ needs.deploy-preview-infra.outputs.pr_preview_distribution_id }}" \
             --domain "${PREVIEW_DOMAIN}" \
             --environment preview \
             --preview-prefix "${PREVIEW_PREFIX_VALUE}" \
             --region "${AWS_REGION_VALUE}"
 
+  deploy-preview-finalize:
+    if: >-
+      github.event.action != 'closed' &&
+      needs.preview-scope.outputs.run_web == 'true' &&
+      needs.deploy-preview-web.result == 'success' &&
+      (github.base_ref != 'develop' || github.head_ref != 'main')
+    needs: [preview-scope, deploy-preview-infra, deploy-preview-web]
+    runs-on: ubuntu-latest
+    outputs:
+      bootstrap-url: ${{ steps.signed_cookies.outputs.BOOTSTRAP_URL }}
+      access-mode: ${{ steps.signed_cookies.outputs.ACCESS_MODE }}
+    env:
+      PREVIEW_DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
+      PREVIEW_HOSTED_ZONE_ID: ${{ vars.PR_PREVIEW_HOSTED_ZONE_ID }}
+      PREVIEW_CERTIFICATE_ARN: ${{ secrets.PR_PREVIEW_CERTIFICATE_ARN }}
+      PREVIEW_STACK_NAME: ${{ vars.PR_PREVIEW_STACK_NAME }}
+      PREVIEW_PREFIX: ${{ vars.PR_PREVIEW_PREFIX }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ vars.PR_PREVIEW_AWS_REGION != '' && vars.PR_PREVIEW_AWS_REGION || 'us-east-1' }}
+
       # Generate CloudFront signed cookies and post GitHub Deployment with access URL.
       # Skipped when neither signing secret is set (public access mode). Partial config fails the step.
       - name: Generate signed cookie bootstrap URL
         id: signed_cookies
-        if: steps.web.outcome == 'success'
         shell: bash
         env:
           CLOUDFRONT_SIGNING_KEY: ${{ secrets.CLOUDFRONT_SIGNING_KEY }}
@@ -227,40 +410,14 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          # secrets.* is not allowed in step `if:` — gate here (public preview when neither secret is set).
-          if [[ -z "${CLOUDFRONT_SIGNING_KEY:-}" && -z "${CLOUDFRONT_SIGNING_KEY_ID:-}" ]]; then
-            exit 0
-          fi
-          if [[ -z "${CLOUDFRONT_SIGNING_KEY:-}" || -z "${CLOUDFRONT_SIGNING_KEY_ID:-}" ]]; then
-            echo "::error::CLOUDFRONT_SIGNING_KEY and CLOUDFRONT_SIGNING_KEY_ID must both be set. Configure both secrets or neither."
-            exit 1
-          fi
-          PREVIEW_PREFIX_VALUE="${PREVIEW_PREFIX:-pr-}"
-          DEPLOY_DOMAIN="deploy.${PREVIEW_DOMAIN}"
-          DEST="/${PREVIEW_PREFIX_VALUE}${PR_NUMBER}/"
-          RESOURCE="https://${DEPLOY_DOMAIN}/${PREVIEW_PREFIX_VALUE}${PR_NUMBER}/*"
-          EXPIRY=$(date -u -d "+7 days" +%s)
-
-          POLICY_JSON=$(printf '{"Statement":[{"Resource":"%s","Condition":{"DateLessThan":{"AWS:EpochTime":%s}}}]}' \
-            "${RESOURCE}" "${EXPIRY}")
-
-          # CloudFront URL-safe base64: + → -, / → ~, = → _
-          CF_POLICY=$(printf '%s' "${POLICY_JSON}" | base64 -w0 | tr '+' '-' | tr '/' '~' | tr '=' '_')
-
-          # Sign with RSA-SHA1 (CloudFront signed cookies requirement)
-          KEY_FILE=$(mktemp); chmod 600 "${KEY_FILE}"
-          printf '%s' "${CLOUDFRONT_SIGNING_KEY}" > "${KEY_FILE}"
-          CF_SIGNATURE=$(printf '%s' "${POLICY_JSON}" | \
-            openssl dgst -sha1 -sign "${KEY_FILE}" | base64 -w0 | tr '+' '-' | tr '/' '~' | tr '=' '_')
-          rm -f "${KEY_FILE}"
-
-          ENCODED_DEST=$(printf '%s' "${DEST}" | python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.stdin.read().strip()))")
-          BOOTSTRAP_URL="https://${DEPLOY_DOMAIN}/_preview-auth?policy=${CF_POLICY}&sig=${CF_SIGNATURE}&kid=${CLOUDFRONT_SIGNING_KEY_ID}&dest=${ENCODED_DEST}"
-          echo "BOOTSTRAP_URL=${BOOTSTRAP_URL}" >> "${GITHUB_OUTPUT}"
-          echo "ACCESS_MODE=signed-cookies" >> "${GITHUB_OUTPUT}"
+          ./scripts/pr-preview/generate-preview-bootstrap-url.sh \
+            --domain "${PREVIEW_DOMAIN}" \
+            --preview-prefix "${PREVIEW_PREFIX:-pr-}" \
+            --pr-number "${PR_NUMBER}" \
+            --signing-key "${CLOUDFRONT_SIGNING_KEY:-}" \
+            --signing-key-id "${CLOUDFRONT_SIGNING_KEY_ID:-}"
 
       - name: Create GitHub Deployment (PR preview)
-        if: steps.web.outcome == 'success'
         uses: actions/github-script@v7
         env:
           BOOTSTRAP_URL: ${{ steps.signed_cookies.outputs.BOOTSTRAP_URL }}
@@ -269,26 +426,17 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         with:
           script: |
-            // Fork PRs: pull_request events from forks run with a read-only token;
-            // deployments: write is unavailable — skip cleanly rather than error.
-            // head.repo can be null when the fork is deleted before the workflow runs.
             const headRepo = context.payload.pull_request.head.repo?.full_name;
             const baseRepo = `${context.repo.owner}/${context.repo.repo}`;
             if (!headRepo || headRepo !== baseRepo) {
               core.info(`Skipping: fork PR (${headRepo ?? 'deleted repo'}) — Deployments API write not available for fork PRs.`);
               return;
             }
-
             const environment = `pr-${process.env.PR_NUMBER}-preview`;
             const prefix = process.env.PREVIEW_PREFIX || 'pr-';
             const webUrl = `https://deploy.${process.env.PREVIEW_DOMAIN}/${prefix}${process.env.PR_NUMBER}/`;
             const environmentUrl = process.env.BOOTSTRAP_URL || webUrl;
             const logUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-
-            // Create the new deployment first. Only deactivate previous deployments
-            // after success so a partial failure doesn't leave the PR Deployments
-            // panel empty. Use head.sha (not context.sha which is the synthetic merge
-            // commit) so GitHub associates the deployment with the PR's own head ref.
             const deployment = await github.rest.repos.createDeployment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -311,9 +459,6 @@ jobs:
               log_url: logUrl,
               description: 'Preview deployed',
             });
-
-            // Deactivate previous deployments for this environment now that the new
-            // one is registered, keeping only one active row on the PR Deployments tab.
             const { data: existing } = await github.rest.repos.listDeployments({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -333,7 +478,6 @@ jobs:
       # Publish edge routing only after a successful web build so a failed deploy cannot
       # replace live CloudFront function code while leaving stale or missing S3 assets.
       - name: Publish PR path router (CloudFront)
-        if: steps.web.outcome == 'success'
         shell: bash
         run: |
           set -euo pipefail
@@ -350,8 +494,17 @@ jobs:
             --if-stack-exists refresh-outputs
 
   deploy-preview-mobile:
-    if: github.event.action != 'closed' && needs.preview-scope.outputs.run_deploy == 'true' && (github.base_ref != 'develop' || github.head_ref != 'main') && vars.MOBILE_ENABLED != 'false'
-    needs: [preview-scope, deploy-preview]
+    if: >-
+      always() &&
+      github.event.action != 'closed' &&
+      needs.preview-scope.outputs.run_deploy == 'true' &&
+      needs.preview-scope.outputs.run_mobile == 'true' &&
+      (github.base_ref != 'develop' || github.head_ref != 'main') &&
+      vars.MOBILE_ENABLED != 'false' &&
+      needs.deploy-preview-backend.result != 'failure' &&
+      needs.deploy-preview-backend.result != 'cancelled' &&
+      (needs.deploy-preview-backend.result == 'success' || needs.deploy-preview-backend.result == 'skipped')
+    needs: [preview-scope, deploy-preview-backend]
     runs-on: ubuntu-latest
     outputs:
       mobile-channel: ${{ steps.mobile.outputs.PREVIEW_MOBILE_CHANNEL }}
@@ -363,19 +516,16 @@ jobs:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
 
       - name: Check for native code changes
         id: native-changes
@@ -435,8 +585,19 @@ jobs:
             ${BUILD_NATIVE_FLAG}
 
   comment:
-    if: always() && needs.deploy-preview.result == 'success'
-    needs: [deploy-preview, deploy-preview-mobile]
+    if: >-
+      always() &&
+      needs.preview-scope.outputs.run_deploy == 'true' &&
+      (needs.deploy-preview-finalize.result == 'success' ||
+       needs.deploy-preview-backend.result == 'success' ||
+       needs.deploy-preview-web.result == 'success' ||
+       needs.deploy-preview-mobile.result == 'success')
+    needs:
+      - preview-scope
+      - deploy-preview-backend
+      - deploy-preview-web
+      - deploy-preview-finalize
+      - deploy-preview-mobile
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -447,13 +608,13 @@ jobs:
         env:
           PREVIEW_DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
           PREVIEW_PREFIX: ${{ vars.PR_PREVIEW_PREFIX }}
-          BOOTSTRAP_URL: ${{ needs.deploy-preview.outputs.bootstrap-url }}
-          ACCESS_MODE: ${{ needs.deploy-preview.outputs.access-mode }}
-          SUPABASE_OUTCOME: ${{ needs.deploy-preview.outputs.supabase-outcome }}
-          STRIPE_SYNC_OUTCOME: ${{ needs.deploy-preview.outputs.stripe-sync-outcome }}
-          STRIPE_WEBHOOK_OUTCOME: ${{ needs.deploy-preview.outputs.stripe-webhook-outcome }}
-          BILLING_FUNCTIONS_OUTCOME: ${{ needs.deploy-preview.outputs.billing-functions-outcome }}
-          WEB_OUTCOME: ${{ needs.deploy-preview.outputs.web-outcome }}
+          BOOTSTRAP_URL: ${{ needs.deploy-preview-finalize.outputs.bootstrap-url }}
+          ACCESS_MODE: ${{ needs.deploy-preview-finalize.outputs.access-mode }}
+          SUPABASE_OUTCOME: ${{ needs.deploy-preview-backend.outputs.supabase-outcome }}
+          STRIPE_SYNC_OUTCOME: ${{ needs.deploy-preview-backend.outputs.stripe-sync-outcome }}
+          STRIPE_WEBHOOK_OUTCOME: ${{ needs.deploy-preview-backend.outputs.stripe-webhook-outcome }}
+          BILLING_FUNCTIONS_OUTCOME: ${{ needs.deploy-preview-backend.outputs.billing-functions-outcome }}
+          WEB_OUTCOME: ${{ needs.deploy-preview-web.outputs.web-outcome }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           MOBILE_JOB_RESULT: ${{ needs.deploy-preview-mobile.result }}
           MOBILE_CHANNEL: ${{ needs.deploy-preview-mobile.outputs.mobile-channel }}
@@ -471,7 +632,6 @@ jobs:
             const runUrl = process.env.RUN_URL;
             const bootstrapUrl = process.env.BOOTSTRAP_URL;
             const isSignedCookies = process.env.ACCESS_MODE === 'signed-cookies';
-
             const webOutcome          = process.env.WEB_OUTCOME;
             const supabaseOutcome     = process.env.SUPABASE_OUTCOME;
             const stripeSyncOutcome   = process.env.STRIPE_SYNC_OUTCOME;
@@ -480,7 +640,6 @@ jobs:
             const mobileJobResult     = process.env.MOBILE_JOB_RESULT;
             const mobileChannel       = process.env.MOBILE_CHANNEL;
             const mobileUpdateUrl     = process.env.MOBILE_UPDATE_URL;
-
             function statusCell(outcome, successLabel) {
               if (outcome === 'success')   return `✅ ${successLabel}`;
               if (outcome === 'failure')   return '❌ Failed';
@@ -488,15 +647,12 @@ jobs:
               if (outcome === 'cancelled') return '🚫 Cancelled';
               return '—';
             }
-
-            // Aggregate billing: any failure beats all; then cancelled; then success
             const billingOutcomes = [stripeSyncOutcome, stripeWebhookOutcome, billingFnsOutcome];
             let billingStatus;
             if (billingOutcomes.some(o => o === 'failure'))        billingStatus = 'failure';
             else if (billingOutcomes.some(o => o === 'cancelled')) billingStatus = 'cancelled';
-            else if (billingOutcomes.every(o => o === 'success'))  billingStatus = 'success';
-            else billingStatus = billingOutcomes.find(o => o && o !== 'success') || 'success';
-
+            else if (billingOutcomes.every(o => o === 'success' || o === 'skipped'))  billingStatus = 'success';
+            else billingStatus = billingOutcomes.find(o => o && o !== 'success' && o !== 'skipped') || 'success';
             const logsLink = `[View logs](${runUrl})`;
             const webLink = (() => {
               if (webOutcome !== 'success') return logsLink;
@@ -504,13 +660,11 @@ jobs:
                 return `[Access preview →](${bootstrapUrl}) _(sets cookie, expires 7 days)_`;
               return webUrl ? `[Preview →](${webUrl})` : '—';
             })();
-
             const mobileStatus =
               mobileJobResult === 'skipped' ? 'skipped' :
               (mobileJobResult === 'success' && !mobileUpdateUrl) ? 'skipped' :
               mobileJobResult || 'skipped';
             const mobileLinkCell = mobileJobResult === 'failure' ? logsLink : '—';
-
             const table = [
               '| Component | Status | Link |',
               '|-----------|--------|------|',
@@ -519,8 +673,6 @@ jobs:
               `| 💳 Billing | ${statusCell(billingStatus, 'Deployed')} | ${billingStatus === 'failure' ? logsLink : '—'} |`,
               `| 📱 Mobile | ${statusCell(mobileStatus, 'Deployed')} | ${mobileLinkCell} |`,
             ].join('\n');
-
-            // HH:MM PT timestamp
             const now = new Date();
             const timeStr = now.toLocaleString('en-US', {
               timeZone: 'America/Los_Angeles',
@@ -532,46 +684,38 @@ jobs:
               timeZone: 'America/Los_Angeles',
               timeZoneName: 'short',
             }).split(', ').pop().split(' ').pop();
-
             const lines = [];
             lines.push(marker);
             lines.push('');
             lines.push(table);
             lines.push('');
             lines.push(`_Last deployed: ${timeStr} ${tzStr}_`);
-
-            // Mobile detail section — only when mobile succeeded with an update URL
             if (mobileJobResult !== 'skipped' && mobileJobResult !== 'failure' && mobileUpdateUrl) {
               const iosDownloadUrl = process.env.MOBILE_IOS_DOWNLOAD_URL;
               const androidDownloadUrl = process.env.MOBILE_ANDROID_DOWNLOAD_URL;
               const needsNativeBuild = process.env.NEEDS_NATIVE_BUILD === 'true';
-
               lines.push('');
               lines.push('---');
               lines.push('');
               lines.push(`📱 **Mobile preview:** Channel \`${mobileChannel}\``);
               lines.push('');
-
               if (iosDownloadUrl || androidDownloadUrl) {
                 lines.push('### 📱 Mobile Preview Builds');
                 lines.push('');
                 lines.push('**Native builds are available for download:**');
                 lines.push('');
-
                 if (iosDownloadUrl) {
                   lines.push('**iOS Simulator Build:**');
                   lines.push(`- [Download .app file](${iosDownloadUrl})`);
                   lines.push('- Install with: `xcrun simctl install booted ~/Downloads/BeakerStack.app`');
                   lines.push('');
                 }
-
                 if (androidDownloadUrl) {
                   lines.push('**Android Build (Device & Emulator):**');
                   lines.push(`- [Download .apk file](${androidDownloadUrl})`);
                   lines.push('- Install with: `adb install ~/Downloads/BeakerStack.apk`');
                   lines.push('');
                 }
-
                 lines.push('**Note:** These builds include the preview Supabase configuration and are ready to use.');
                 lines.push('');
               } else if (needsNativeBuild) {
@@ -595,31 +739,26 @@ jobs:
                 lines.push('3. Install: `EAS_BUILD_PATH=~/Downloads/BeakerStack.ipa npm run mobile:install:dev:ios` (iOS) or `EAS_BUILD_PATH=~/Downloads/BeakerStack.apk npm run mobile:install:dev:android` (Android)');
                 lines.push('');
                 lines.push('**Step 2: Load PR Preview Update**');
-                lines.push(`1. Open the development build on your device/simulator`);
-                lines.push(`2. Shake device (or Cmd+D on iOS / Cmd+M on Android) → "Enter URL manually"`);
+                lines.push('1. Open the development build on your device/simulator');
+                lines.push('2. Shake device (or Cmd+D on iOS / Cmd+M on Android) → "Enter URL manually"');
                 lines.push(`3. Paste the update URL: \`${mobileUpdateUrl}\``);
                 lines.push(`4. The app will reload with the JavaScript bundle from channel \`${mobileChannel}\``);
                 lines.push('');
                 lines.push(`**Note:** You must use the full URL format - just entering the channel name (\`${mobileChannel}\`) will not work.`);
                 lines.push('');
-                lines.push(`**Alternative:** For local development, use: \`cd apps/mobile && npx expo start --dev-client\`, then press 'i' for iOS simulator.`);
+                lines.push('**Alternative:** For local development, use: `cd apps/mobile && npx expo start --dev-client`, then press \'i\' for iOS simulator.');
                 lines.push('');
               }
-
               lines.push('📖 See [Mobile Build Testing Guide](../../docs/MOBILE_BUILD_TESTING.md) for detailed instructions.');
             }
-
             const body = lines.join('\n');
-
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
               per_page: 100,
             });
-
             const existing = comments.find(comment => comment.body.includes(marker));
-
             if (existing) {
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
@@ -639,21 +778,18 @@ jobs:
   lighthouse:
     if: >-
       github.event.action != 'closed' &&
-      needs.deploy-preview.result == 'success' &&
-      needs.deploy-preview.outputs.access-mode != 'signed-cookies'
-    needs: [deploy-preview]
+      needs.deploy-preview-finalize.result == 'success' &&
+      needs.deploy-preview-finalize.outputs.access-mode != 'signed-cookies'
+    needs: [deploy-preview-finalize]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install @lhci/cli
-        run: npm install -g @lhci/cli@0.14
+      - run: npm install -g @lhci/cli@0.14
 
       - name: Warm up preview URL
         env:
@@ -663,7 +799,6 @@ jobs:
           set -euo pipefail
           PREVIEW_PREFIX_VALUE="${PREVIEW_PREFIX:-pr-}"
           URL="https://deploy.${PREVIEW_DOMAIN}/${PREVIEW_PREFIX_VALUE}${{ github.event.pull_request.number }}/"
-          echo "Warming up ${URL}"
           curl -sf --max-time 30 --retry 5 --retry-delay 5 --retry-all-errors "${URL}" -o /dev/null
           sleep 5
 
@@ -690,13 +825,11 @@ jobs:
       PREVIEW_PREFIX: ${{ vars.PR_PREVIEW_PREFIX }}
       SUPABASE_PREVIEW_DB_URL: ${{ secrets.SUPABASE_PREVIEW_DB_URL }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -731,15 +864,12 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          PR_NUMBER_VALUE="${PR_NUMBER}"
-          PREVIEW_PREFIX_VALUE="${PREVIEW_PREFIX:-pr-}"
-          AWS_REGION_VALUE="${PREVIEW_AWS_REGION:-us-east-1}"
           ./scripts/pr-preview/teardown.sh \
-            --pr-number "${PR_NUMBER_VALUE}" \
+            --pr-number "${PR_NUMBER}" \
             --bucket "${{ steps.describe.outputs.WEBSITE_BUCKET }}" \
             --distribution-id "${{ steps.describe.outputs.DISTRIBUTION_ID }}" \
-            --preview-prefix "${PREVIEW_PREFIX_VALUE}" \
-            --region "${AWS_REGION_VALUE}" \
+            --preview-prefix "${PREVIEW_PREFIX:-pr-}" \
+            --region "${PREVIEW_AWS_REGION:-us-east-1}" \
             --supabase-db-url "${SUPABASE_PREVIEW_DB_URL}"
 
       - name: Clean up GitHub Deployment and environment
@@ -748,17 +878,13 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         with:
           script: |
-            // Fork PRs cannot write to Deployments API — skip cleanly.
             const headRepo = context.payload.pull_request.head.repo?.full_name;
             const baseRepo = `${context.repo.owner}/${context.repo.repo}`;
             if (!headRepo || headRepo !== baseRepo) {
               core.info(`Skipping: fork PR (${headRepo ?? 'deleted repo'}) — Deployments API write not available.`);
               return;
             }
-
             const environment = `pr-${process.env.PR_NUMBER}-preview`;
-
-            // List all deployments for this environment (up to 100).
             let deployments = [];
             try {
               const { data } = await github.rest.repos.listDeployments({
@@ -769,19 +895,10 @@ jobs:
               });
               deployments = data;
             } catch (err) {
-              if (err.status === 404) {
-                core.info(`No deployments found for ${environment} — nothing to clean up.`);
-                return;
-              }
+              if (err.status === 404) return;
               throw err;
             }
-
-            if (deployments.length === 0) {
-              core.info(`No deployments for ${environment} — nothing to clean up.`);
-            }
-
             for (const dep of deployments) {
-              // GitHub requires inactive status before a deployment can be deleted.
               try {
                 await github.rest.repos.createDeploymentStatus({
                   owner: context.repo.owner,
@@ -790,11 +907,7 @@ jobs:
                   state: 'inactive',
                 });
               } catch (err) {
-                if (err.status === 404) {
-                  core.info(`Deployment ${dep.id} already gone — skipping inactive status.`);
-                } else {
-                  core.warning(`Could not mark deployment ${dep.id} inactive: ${err.message}`);
-                }
+                if (err.status !== 404) core.warning(`Could not mark deployment ${dep.id} inactive: ${err.message}`);
               }
               try {
                 await github.rest.repos.deleteDeployment({
@@ -802,29 +915,16 @@ jobs:
                   repo: context.repo.repo,
                   deployment_id: dep.id,
                 });
-                core.info(`Deleted deployment ${dep.id}.`);
               } catch (err) {
-                if (err.status === 404) {
-                  core.info(`Deployment ${dep.id} already deleted.`);
-                } else {
-                  core.warning(`Could not delete deployment ${dep.id}: ${err.message}`);
-                }
+                if (err.status !== 404) core.warning(`Could not delete deployment ${dep.id}: ${err.message}`);
               }
             }
-
-            // Delete the GitHub environment so it no longer appears in the Environments list.
             try {
               await github.rest.repos.deleteAnEnvironment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 environment_name: environment,
               });
-              core.info(`Deleted environment ${environment}.`);
             } catch (err) {
-              if (err.status === 404) {
-                core.info(`Environment ${environment} already gone — nothing to delete.`);
-              } else {
-                core.warning(`Could not delete environment ${environment}: ${err.message}`);
-              }
+              if (err.status !== 404) core.warning(`Could not delete environment ${environment}: ${err.message}`);
             }
-

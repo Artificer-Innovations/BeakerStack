@@ -1,5 +1,5 @@
 import { Nav } from './landing/sections/Nav';
-import { landingConfig } from '../config/landing';
+import { landingConfig } from '@adopter/config/landing';
 import { getPrPreviewAssetBasePath } from '../lib/prPreviewAssetBasePath';
 
 /**

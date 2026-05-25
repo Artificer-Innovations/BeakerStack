@@ -31,30 +31,35 @@ Do not commit filled-in values or `.env*` files with secrets.
 
 ## Track B — Full cloud
 
-**Phases:** `prereqs` → `identity` → `supabase` → `aws` → `expo` → `google` → `write` → `github`  
+**Phases:** `prereqs` → `identity` → `supabase` → `aws` → `email-dns` → `expo` → `google` → `stripe` → `kit` → `write` → `github`  
 **Skip a phase:** answer **N** at `Run "<phase>" now?`  
 **Resume:** `npm run setup:full -- --from=supabase` (etc.)
 
 ### Decide first
 
-| Question                | If **no** / skip                          |
-| ----------------------- | ----------------------------------------- |
-| Mobile (Expo / EAS)?    | `--skip-mobile` → skips `expo` + `google` |
-| Rebrand template?       | `--skip-rename` → skips `identity`        |
-| Push secrets with `gh`? | `--skip-github` → skips `github` sync     |
+| Question                | If **no** / skip                                                |
+| ----------------------- | --------------------------------------------------------------- |
+| Mobile (Expo / EAS)?    | `--skip-mobile` → skips `expo` + `google`                       |
+| Rebrand template?       | `--skip-rename` → skips `identity`                              |
+| Push secrets with `gh`? | `--skip-github` → skips `github` sync                           |
+| Stripe billing in CI?   | `--skip-stripe` → skips `stripe` + Stripe keys at github        |
+| Kit marketing email?    | `--skip-kit` → skips `kit` phase; run `npm run setup:kit` later |
 
 ### At a glance
 
-| Phase    | One-time secrets?                | Notes                                                  |
-| -------- | -------------------------------- | ------------------------------------------------------ |
-| prereqs  | —                                | CLI checks only                                        |
-| identity | —                                | Optional rename                                        |
-| supabase | **DB passwords**                 | 3 tiers: preview, staging, production                  |
-| aws      | —                                | May ask destructive bucket teardown                    |
-| expo     | **EXPO_TOKEN**                   | Skipped if no mobile                                   |
-| google   | —                                | `google-services.json` path                            |
-| write    | —                                | Merges `.env*` files                                   |
-| github   | Stripe webhooks, etc. if missing | May prompt `CLOUDFRONT_*` if you set up signed cookies |
+| Phase     | One-time secrets?            | Notes                                                           |
+| --------- | ---------------------------- | --------------------------------------------------------------- |
+| prereqs   | —                            | CLI checks only                                                 |
+| identity  | —                            | Optional rename                                                 |
+| supabase  | **DB passwords**             | 3 tiers: preview, staging, production                           |
+| aws       | —                            | May ask destructive bucket teardown                             |
+| email-dns | **RESEND** full + send-only  | Optional; Route 53 from aws; syncs `RESEND_SMTP_PASS` at github |
+| expo      | **EXPO_TOKEN**               | Skipped if no mobile                                            |
+| google    | —                            | `google-services.json` path                                     |
+| stripe    | Stripe `sk_*` + `whsec_*` ×3 | Preview/staging test; production live when ready                |
+| kit       | Kit API key + webhook secret | Shared `KIT_*` for all environments; admin UI config per env    |
+| write     | —                            | Merges `.env*` files                                            |
+| github    | Anything still missing       | May prompt `CLOUDFRONT_*` if you set up signed cookies          |
 
 ---
 
@@ -127,6 +132,27 @@ Do not commit filled-in values or `.env*` files with secrets.
 
 ---
 
+### email-dns (optional)
+
+**Have ready:**
+
+1. **Resend account** — [resend.com](https://resend.com)
+2. **Full-access API key** — for domain + DNS setup (this step only; not stored on GitHub)
+3. **Send-only API key** (recommended after setup) — for SMTP + GitHub `RESEND_SMTP_PASS` (CI does not need full access)
+4. **Route 53** — apex zone from the `aws` phase (`PR_PREVIEW_HOSTED_ZONE_ID`)
+
+**You will be asked:**
+
+- Resend **full-access** API key → creates/verifies sending domain (e.g. `auth.<apex>`)
+- Sending domain, admin email, sender name, DMARC
+- **Send-only** API key for SMTP/CI (recommended) — synced to `RESEND_SMTP_PASS` in **github** phase or at end of `npm run setup:email`
+
+**Saved as:** `SMTP_*` in `.env.local` / `acc`; `RESEND_SMTP_PASS` secret + `SMTP_ADMIN_EMAIL` / `SMTP_SENDER_NAME` variables on GitHub. `RESEND_API_KEY` stays local.
+
+**More:** [EMAIL_TEMPLATES.md](EMAIL_TEMPLATES.md#resend-api-keys-two-roles)
+
+---
+
 ### expo (mobile only)
 
 **Have ready (before Yes — wizard shows checklist + Enter):**
@@ -169,6 +195,53 @@ Do not commit filled-in values or `.env*` files with secrets.
 
 ---
 
+### stripe
+
+**Have ready (before Yes — wizard shows checklist + Enter):**
+
+1. **[Stripe account](https://dashboard.stripe.com)** — **Test mode** for preview + staging; **Live mode** only when production is ready.
+2. **Supabase phase done** — so the wizard knows each tier’s hosted webhook URL (`https://<ref>.supabase.co/functions/v1/stripe-webhook`).
+3. Per tier, **API secret key** from Dashboard → **Developers → API keys**:
+   - **Preview:** `PREVIEW_STRIPE_SECRET_KEY` (`sk_test_…`)
+   - **Staging:** `STAGING_STRIPE_SECRET_KEY` (`sk_test_…`)
+   - **Production:** `PRODUCTION_STRIPE_SECRET_KEY` (`sk_live_…` when ready)
+
+For **hosted** Supabase URLs, the wizard **creates or updates** the matching Stripe webhook and fills `*_STRIPE_WEBHOOK_SECRET` automatically when Stripe returns a new signing secret. You only need to paste `whsec_…` manually if that endpoint **already existed** and the secret was never saved (Dashboard → Webhooks → **Reveal**).
+
+**You will be asked:**
+
+- **Press Enter** when ready (or **N** to skip / `--skip-stripe` for no billing in CI)
+- For each tier (preview → staging → production): collect now? → masked secret key → auto-ensure webhook when possible → optional `whsec` prompt if Stripe already had the endpoint without a stored secret
+- **Enter** on a tier skips that tier (github may prompt again later)
+
+**Saved as:** `*_STRIPE_*` in `.env.cloud.generated.local` → GitHub secrets in **github** phase.
+
+**Not in this phase:** `npm run billing:sync-stripe`, `supabase secrets set`, Stripe CLI local forwarding — [stripe-billing-setup.md](stripe-billing-setup.md).
+
+---
+
+### kit
+
+**Have ready:**
+
+1. **[Kit account](https://kit.com)** — V4 API key (Settings → Developer).
+2. **Tags and form** in Kit dashboard (create before sync; see `supabase/functions/README.md`).
+3. **Webhook signing secret** — Kit dashboard → Webhooks → Signing secret (account-level, shared).
+4. **Supabase phase done** — so the wizard can auto-provision webhook URLs per tier.
+
+**You will be asked:**
+
+- **Press Enter** when ready (or **N** to skip / `--skip-kit`)
+- Masked prompts for `KIT_API_KEY`, `KIT_CRON_SECRET` (Enter to auto-generate), `KIT_WEBHOOK_SECRET`
+
+**Saved as:** `KIT_*` in `.env.local` / `.env.cloud.generated.local` → GitHub secrets in **github** phase (or immediately if you run `npm run setup:kit` standalone).
+
+**Standalone:** `npm run setup:kit` — same flow without the full wizard; syncs GitHub secrets at the end unless `--skip-github`.
+
+**Per environment (admin UI, not secrets):** `/admin/marketing-email/settings` — enable sync, namespace, form ID, tier tags.
+
+---
+
 ### write
 
 **Have ready:** nothing.
@@ -205,13 +278,14 @@ Do not commit filled-in values or `.env*` files with secrets.
 
 Not run by `setup-full`. Do these when you need them.
 
-| Task                             | In wizard?                               | What to do                                                     |
-| -------------------------------- | ---------------------------------------- | -------------------------------------------------------------- |
-| **Stripe billing**               | Only if keys missing at `github` sync    | [stripe-billing-setup.md](stripe-billing-setup.md)             |
-| **Google / Apple OAuth**         | No                                       | [OAUTH.md](OAUTH.md)                                           |
-| **Signed-cookie preview access** | **No** — separate script after AWS stack | See below                                                      |
-| **Lighthouse CI**                | No                                       | [lighthouse-ci.md](lighthouse-ci.md) — `LHCI_GITHUB_APP_TOKEN` |
-| **Branch protection**            | No                                       | [branch-protection-setup.md](branch-protection-setup.md)       |
+| Task                             | In wizard?                               | What to do                                                                                                                                                                                                           |
+| -------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Stripe billing**               | `stripe` phase + sync/webhooks in doc    | [stripe-billing-setup.md](stripe-billing-setup.md)                                                                                                                                                                   |
+| **Transactional email (Resend)** | No — run after AWS/Route 53              | `npm run setup:email` → **github** phase syncs `RESEND_SMTP_PASS` (CI skips auth email push until set) + `SMTP_ADMIN_EMAIL` / `SMTP_SENDER_NAME` ([EMAIL_TEMPLATES.md](EMAIL_TEMPLATES.md#hosted-environments-cicd)) |
+| **Google / Apple OAuth**         | No                                       | [OAUTH.md](OAUTH.md)                                                                                                                                                                                                 |
+| **Signed-cookie preview access** | **No** — separate script after AWS stack | See below                                                                                                                                                                                                            |
+| **Lighthouse CI**                | No                                       | [lighthouse-ci.md](lighthouse-ci.md) — `LHCI_GITHUB_APP_TOKEN`                                                                                                                                                       |
+| **Branch protection**            | No                                       | [branch-protection-setup.md](branch-protection-setup.md)                                                                                                                                                             |
 
 ### Signed-cookie access (optional)
 

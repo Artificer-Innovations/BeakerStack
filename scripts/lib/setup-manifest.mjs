@@ -1,3 +1,9 @@
+import {
+  isStripeGithubSecretDef,
+  setupStripeKeysDeferred,
+} from './setup-stripe.mjs';
+import { isKitGithubSecretDef, setupKitKeysDeferred } from './setup-kit.mjs';
+
 /**
  * Maps local .env keys to GitHub Actions secrets/variables used by workflows.
  * Values are never logged by the setup orchestrator.
@@ -13,6 +19,48 @@ export const GITHUB_SECRETS = [
     name: 'SUPABASE_ACCESS_TOKEN',
     envKeys: ['SUPABASE_ACCESS_TOKEN'],
     group: 'core',
+  },
+  {
+    type: 'secret',
+    name: 'RESEND_SMTP_PASS',
+    envKeys: ['RESEND_SMTP_PASS', 'SMTP_PASS'],
+    optional: true,
+    group: 'core',
+  },
+  {
+    type: 'secret',
+    name: 'KIT_API_KEY',
+    envKeys: ['KIT_API_KEY'],
+    optional: true,
+    group: 'core',
+  },
+  {
+    type: 'secret',
+    name: 'KIT_CRON_SECRET',
+    envKeys: ['KIT_CRON_SECRET'],
+    optional: true,
+    group: 'core',
+  },
+  {
+    type: 'secret',
+    name: 'KIT_WEBHOOK_SECRET',
+    envKeys: ['KIT_WEBHOOK_SECRET'],
+    optional: true,
+    group: 'core',
+  },
+  {
+    type: 'secret',
+    name: 'SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID',
+    envKeys: ['SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID'],
+    optional: true,
+    group: 'oauth',
+  },
+  {
+    type: 'secret',
+    name: 'SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET',
+    envKeys: ['SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET'],
+    optional: true,
+    group: 'oauth',
   },
   {
     type: 'secret',
@@ -134,7 +182,10 @@ export const GITHUB_SECRETS = [
   {
     type: 'secret',
     name: 'SUPABASE_PREVIEW_PROJECT_REF',
-    envKeys: ['SUPABASE_PREVIEW_PROJECT_REF', 'PR_TESTING_SUPABASE_PROJECT_REF'],
+    envKeys: [
+      'SUPABASE_PREVIEW_PROJECT_REF',
+      'PR_TESTING_SUPABASE_PROJECT_REF',
+    ],
     group: 'preview',
   },
   {
@@ -322,6 +373,20 @@ export const GITHUB_VARIABLES = [
   },
   {
     type: 'variable',
+    name: 'SMTP_ADMIN_EMAIL',
+    envKeys: ['SMTP_ADMIN_EMAIL'],
+    optional: true,
+    group: 'core',
+  },
+  {
+    type: 'variable',
+    name: 'SMTP_SENDER_NAME',
+    envKeys: ['SMTP_SENDER_NAME'],
+    optional: true,
+    group: 'core',
+  },
+  {
+    type: 'variable',
     name: 'EXPO_ACCOUNT',
     envKeys: ['EXPO_ACCOUNT'],
     group: 'expo',
@@ -438,17 +503,31 @@ export function listMissingRequiredGithubForCi(env) {
   /** @type {{ kind: 'secret' | 'variable'; name: string; group: string }[]} */
   const missing = [];
   const mobileDisabled = env.MOBILE_ENABLED === 'false';
+  const stripeDeferred = setupStripeKeysDeferred(env);
+  const kitDeferred = setupKitKeysDeferred(env);
   for (const def of GITHUB_SECRETS) {
     if (def.optional) continue;
     if (mobileDisabled && MOBILE_GROUPS.has(def.group)) continue;
+    if (stripeDeferred && isStripeGithubSecretDef(def)) continue;
+    if (kitDeferred && isKitGithubSecretDef(def)) continue;
     if (resolveValueForGithub(env, def)) continue;
-    missing.push({ kind: 'secret', name: def.name, group: def.group || 'unknown' });
+    missing.push({
+      kind: 'secret',
+      name: def.name,
+      group: def.group || 'unknown',
+    });
   }
   for (const def of GITHUB_VARIABLES) {
     if (def.optional) continue;
     if (mobileDisabled && MOBILE_GROUPS.has(def.group)) continue;
+    if (stripeDeferred && isStripeGithubSecretDef(def)) continue;
+    if (kitDeferred && isKitGithubSecretDef(def)) continue;
     if (resolveValueForGithub(env, def)) continue;
-    missing.push({ kind: 'variable', name: def.name, group: def.group || 'unknown' });
+    missing.push({
+      kind: 'variable',
+      name: def.name,
+      group: def.group || 'unknown',
+    });
   }
   return missing;
 }
@@ -462,6 +541,7 @@ const GITHUB_CI_DETAIL_GROUP_ORDER = /** @type {Record<string, number>} */ ({
   preview: 4,
   expo: 5,
   google: 6,
+  oauth: 7,
 });
 
 /**
@@ -476,7 +556,9 @@ export function listMissingRequiredGithubCiDetails(env) {
   for (const m of missing) {
     /** @type {GhSecretDef | GhVariableDef | undefined} */
     const def =
-      m.kind === 'secret' ? GITHUB_SECRETS.find((d) => d.name === m.name) : GITHUB_VARIABLES.find((d) => d.name === m.name);
+      m.kind === 'secret'
+        ? GITHUB_SECRETS.find(d => d.name === m.name)
+        : GITHUB_VARIABLES.find(d => d.name === m.name);
     if (!def || !def.envKeys.length) continue;
     out.push({
       kind: m.kind,

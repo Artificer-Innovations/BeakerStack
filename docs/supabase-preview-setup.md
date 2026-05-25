@@ -1,13 +1,13 @@
 # Supabase Preview Environment Setup
 
-This guide explains how to configure your Supabase preview project for PR preview deployments. This includes setting up Google OAuth, configuring site URLs and redirect URLs for preview domains, and disabling email confirmation for preview environments.
+This guide explains how to configure your Supabase preview project for PR preview deployments. This includes setting up Google OAuth, configuring site URLs and redirect URLs for preview domains, and transactional auth email (signup confirmation, password reset) when CI pushes auth config.
 
 ## Overview
 
 Each PR preview deploys to a unique path on the deploy domain (e.g., `https://deploy.beakerstack.com/pr-9/`). The Supabase preview project must be configured to:
 
 - Allow OAuth redirects from the deploy domain with path patterns
-- Use the correct site URL for email confirmation links (or disable email confirmation)
+- Use the correct site URL for signup confirmation and password-reset links
 - Enable Google OAuth provider with proper redirect URLs
 
 ## Prerequisites
@@ -164,6 +164,7 @@ Supabase needs to know which URLs are allowed for OAuth redirects.
 
    ```
    https://deploy.<your-domain>/pr-*/auth/callback
+   https://deploy.<your-domain>/pr-*/auth/confirm
    https://deploy.<your-domain>/pr-*/**
    https://deploy.<your-domain>/**
    ```
@@ -174,6 +175,7 @@ Supabase needs to know which URLs are allowed for OAuth redirects.
 
    ```
    https://deploy.beakerstack.com/pr-*/auth/callback
+   https://deploy.beakerstack.com/pr-*/auth/confirm
    https://deploy.beakerstack.com/pr-*/**
    https://deploy.beakerstack.com/**
    ```
@@ -182,20 +184,18 @@ Supabase needs to know which URLs are allowed for OAuth redirects.
 
 **Important**: Supabase supports wildcard patterns (`*`) in paths. The `**` pattern matches all paths recursively. The patterns above cover:
 
-- Individual PR callback paths: `/pr-123/auth/callback`
+- Individual PR callback paths: `/pr-123/auth/callback` (OAuth)
+- Token-hash email links: `/pr-123/auth/confirm` (password reset, signup confirm)
 - All paths within a PR: `/pr-123/**`
 - All paths on the deploy domain: `/**` (catch-all for any path)
 
-## Step 4: Disable Email Confirmation
+## Step 4: Signup email confirmation (via CI)
 
-For preview environments, email confirmation can be cumbersome since emails may go to spam or require manual checking. It's recommended to disable email confirmation for previews.
+The repo enables signup email confirmation in `supabase/config.toml` (`enable_confirmations = true`). PR preview deploys apply that setting when the **Sync Supabase auth email config** workflow step runs — which requires `RESEND_SMTP_PASS` and related SMTP variables (see [EMAIL_TEMPLATES.md](./EMAIL_TEMPLATES.md#hosted-environments-cicd)).
 
-1. Go to your Supabase project dashboard
-2. Navigate to: **Authentication** → **Email Auth**
-3. Under **Email Confirmation**, toggle the switch to **Disable** email confirmation
-4. Click **Save**
+Until those secrets exist, the sync step is skipped and the preview project keeps whatever is configured in the dashboard. After sync runs, new email signups on a PR preview must confirm via the link in the signup email (same flow as staging/production).
 
-**Note**: This means users signing up on preview environments will not need to confirm their email before signing in. This is acceptable for preview/testing environments but should remain enabled in production.
+For local preview testing without Resend, use Inbucket at `http://localhost:54324` after `npm run setup:email`, or temporarily set `enable_confirmations = false` under `[auth.email]` only for local Supabase.
 
 ## Step 5: Verify Configuration
 
@@ -214,9 +214,9 @@ After completing the above steps, verify your configuration:
    - Go to **Authentication** → **URL Configuration**
    - Verify redirect URLs include your preview domain patterns
 
-4. **Check Email Confirmation**:
+4. **Check Email Confirmation** (after auth config sync has run):
    - Go to **Authentication** → **Email Auth**
-   - Verify "Confirm email" is disabled
+   - Verify "Confirm email" is **enabled**, or matches your last successful `config push`
 
 ## Testing the Configuration
 
@@ -230,10 +230,10 @@ After completing the above steps, verify your configuration:
 
 ### Test Email Sign-up
 
-1. Visit the preview URL
+1. Visit the preview URL (e.g. `https://deploy.beakerstack.com/pr-9/`)
 2. Sign up with a new email address
-3. Verify you can sign in immediately (no email confirmation required)
-4. If email confirmation is still enabled, check your email and verify the confirmation link works
+3. Open the signup confirmation email and follow the link (should land on `/pr-N/auth/confirm` on the deploy domain)
+4. Sign in after confirmation succeeds
 
 ### Troubleshooting OAuth Errors
 

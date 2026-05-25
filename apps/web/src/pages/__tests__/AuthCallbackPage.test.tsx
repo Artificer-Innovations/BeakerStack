@@ -7,6 +7,13 @@ import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+vi.mock('../SignupInvitePage', () => ({
+  finalizeInviteSignup: vi.fn().mockResolvedValue(undefined),
+  INVITE_TOKEN_STORAGE_KEY: 'beakerstack_invite_token',
+}));
+
+const recoveryCallback = vi.hoisted(() => ({ active: false }));
+
 // Mock the supabase client
 vi.mock('@/lib/supabase', () => ({
   supabase: {
@@ -19,6 +26,9 @@ vi.mock('@/lib/supabase', () => ({
       })),
     },
   },
+  isPasswordRecoveryCallback: false,
+  hasPasswordRecoveryCallback: () => recoveryCallback.active,
+  clearPasswordRecoveryCallback: vi.fn(),
 }));
 
 // Mock react-router-dom's useNavigate
@@ -32,6 +42,11 @@ vi.mock('react-router-dom', async () => {
 });
 
 const createMockSupabaseClient = (): SupabaseClient => {
+  const mockChannel = {
+    on: vi.fn().mockReturnThis(),
+    subscribe: vi.fn().mockReturnThis(),
+    unsubscribe: vi.fn().mockResolvedValue(undefined),
+  };
   return {
     auth: {
       getSession: vi
@@ -45,6 +60,8 @@ const createMockSupabaseClient = (): SupabaseClient => {
       signOut: vi.fn(),
       signInWithOAuth: vi.fn(),
     },
+    channel: vi.fn(() => mockChannel),
+    removeChannel: vi.fn().mockResolvedValue(undefined),
   } as unknown as SupabaseClient;
 };
 
@@ -71,6 +88,7 @@ describe('AuthCallbackPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
+    recoveryCallback.active = false;
   });
 
   afterEach(() => {
@@ -86,97 +104,12 @@ describe('AuthCallbackPage', () => {
 
   it('renders loading state initially', () => {
     renderWithProviders(<AuthCallbackPage />);
-    expect(screen.getByText('Completing sign in...')).toBeInTheDocument();
+    expect(
+      screen.getByText('Completing authentication...')
+    ).toBeInTheDocument();
     expect(
       screen.getByText('Please wait while we complete your authentication...')
     ).toBeInTheDocument();
-  });
-
-  it.skip('displays error message when error is in query params', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (window as any).location;
-    Object.defineProperty(window, 'location', {
-      value: {
-        ...originalLocation,
-        search: '?error=access_denied&error_description=User+cancelled',
-        hash: '',
-      },
-      writable: true,
-      configurable: true,
-    });
-
-    renderWithProviders(<AuthCallbackPage />, [
-      '/auth/callback?error=access_denied',
-    ]);
-
-    await waitFor(() => {
-      expect(screen.getByText(/authentication error/i)).toBeInTheDocument();
-      expect(screen.getByText(/user cancelled/i)).toBeInTheDocument();
-    });
-  });
-
-  it.skip('displays error message when error is in hash params', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (window as any).location;
-    Object.defineProperty(window, 'location', {
-      value: {
-        ...originalLocation,
-        search: '',
-        hash: '#error=access_denied&error_description=User+cancelled',
-      },
-      writable: true,
-      configurable: true,
-    });
-
-    renderWithProviders(<AuthCallbackPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/authentication error/i)).toBeInTheDocument();
-    });
-  });
-
-  it.skip('shows generic error message when error description is missing', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (window as any).location;
-    Object.defineProperty(window, 'location', {
-      value: {
-        ...originalLocation,
-        search: '?error=access_denied',
-        hash: '',
-      },
-      writable: true,
-      configurable: true,
-    });
-
-    renderWithProviders(<AuthCallbackPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/authentication failed/i)).toBeInTheDocument();
-    });
-  });
-
-  it.skip('redirects to login after error timeout', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (window as any).location;
-    Object.defineProperty(window, 'location', {
-      value: {
-        ...originalLocation,
-        search: '?error=access_denied',
-        hash: '',
-      },
-      writable: true,
-      configurable: true,
-    });
-
-    renderWithProviders(<AuthCallbackPage />);
-
-    // Fast-forward time to trigger redirect
-    vi.advanceTimersByTime(3000);
-
-    await waitFor(() => {
-      // The component should show redirecting message
-      expect(screen.getByText(/redirecting to login/i)).toBeInTheDocument();
-    });
   });
 
   it('handles successful OAuth callback with access token in hash', async () => {
@@ -223,7 +156,9 @@ describe('AuthCallbackPage', () => {
     );
 
     // Should show loading state while processing
-    expect(screen.getByText('Completing sign in...')).toBeInTheDocument();
+    expect(
+      screen.getByText('Completing authentication...')
+    ).toBeInTheDocument();
   });
 
   it('handles case when user is already authenticated', async () => {
@@ -270,15 +205,122 @@ describe('AuthCallbackPage', () => {
     );
 
     // Should show loading state
-    expect(screen.getByText('Completing sign in...')).toBeInTheDocument();
+    expect(
+      screen.getByText('Completing authentication...')
+    ).toBeInTheDocument();
   });
 
-  it.skip('shows error when token is present but user is not authenticated after timeout', async () => {
+  it('navigates to /reset-password when PASSWORD_RECOVERY event fires (not /dashboard)', async () => {
+    vi.useRealTimers();
+    // Simulate: user opens recovery link — session is established, type=recovery in hash
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (window as any).location;
+    Object.defineProperty(window, 'location', {
+      value: {
+        ...originalLocation,
+        search: '',
+        hash: '#access_token=rec-token&type=recovery',
+      },
+      writable: true,
+      configurable: true,
+    });
+
+    const { supabase: mockSupabase } = await import('@/lib/supabase');
+    // Fire the PASSWORD_RECOVERY event synchronously as soon as the component subscribes,
+    // so the timing is deterministic (no need to capture and fire the callback separately).
+    (
+      mockSupabase.auth.onAuthStateChange as ReturnType<typeof vi.fn>
+    ).mockImplementation((cb: (event: string) => void) => {
+      cb('PASSWORD_RECOVERY');
+      return { data: { subscription: { unsubscribe: vi.fn() } } };
+    });
+
+    const mockClient = createMockSupabaseClient();
+    render(
+      <MemoryRouter initialEntries={['/auth/callback']}>
+        <AuthProvider supabaseClient={mockClient}>
+          <ProfileProvider supabaseClient={mockClient}>
+            <AuthCallbackPage />
+          </ProfileProvider>
+        </AuthProvider>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/reset-password', {
+        replace: true,
+      });
+    });
+    // Must NOT navigate to /dashboard
+    expect(mockNavigate).not.toHaveBeenCalledWith(
+      '/dashboard',
+      expect.anything()
+    );
+  });
+
+  it('navigates to /dashboard on SIGNED_IN for OAuth (regression)', async () => {
+    vi.useRealTimers();
+    // Previous test sets a mockImplementation on onAuthStateChange that fires PASSWORD_RECOVERY.
+    // vi.clearAllMocks() resets call counts but not implementations, so restore the default here.
+    const { supabase: mockSupabase } = await import('@/lib/supabase');
+    (
+      mockSupabase.auth.onAuthStateChange as ReturnType<typeof vi.fn>
+    ).mockImplementation(() => ({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    }));
+
+    const mockUser = {
+      id: '1',
+      email: 'test@example.com',
+      app_metadata: {},
+      user_metadata: {},
+      aud: 'authenticated',
+      created_at: new Date().toISOString(),
+    };
+
     const mockClient = createMockSupabaseClient();
     mockClient.auth.getSession = vi.fn().mockResolvedValue({
-      data: { session: null },
+      data: { session: { user: mockUser, access_token: 'token' } },
       error: null,
     });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (window as any).location;
+    Object.defineProperty(window, 'location', {
+      value: { ...originalLocation, search: '', hash: '' },
+      writable: true,
+      configurable: true,
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/auth/callback']}>
+        <AuthProvider supabaseClient={mockClient}>
+          <ProfileProvider supabaseClient={mockClient}>
+            <AuthCallbackPage />
+          </ProfileProvider>
+        </AuthProvider>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', {
+        replace: true,
+      });
+    });
+    expect(mockNavigate).not.toHaveBeenCalledWith(
+      '/reset-password',
+      expect.anything()
+    );
+  });
+
+  it('navigates to /dashboard for invite-type callback, not /reset-password (regression)', async () => {
+    vi.useRealTimers();
+    const { supabase: mockSupabase } = await import('@/lib/supabase');
+    (
+      mockSupabase.auth.onAuthStateChange as ReturnType<typeof vi.fn>
+    ).mockImplementation(() => ({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    }));
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (window as any).location;
@@ -286,7 +328,148 @@ describe('AuthCallbackPage', () => {
       value: {
         ...originalLocation,
         search: '',
-        hash: '#access_token=test-token',
+        hash: '#access_token=invite-tok&type=invite',
+      },
+      writable: true,
+      configurable: true,
+    });
+
+    const mockUser = {
+      id: '1',
+      email: 'test@example.com',
+      app_metadata: {},
+      user_metadata: {},
+      aud: 'authenticated',
+      created_at: new Date().toISOString(),
+    };
+    const mockClient = createMockSupabaseClient();
+    mockClient.auth.getSession = vi.fn().mockResolvedValue({
+      data: { session: { user: mockUser, access_token: 'invite-tok' } },
+      error: null,
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/auth/callback']}>
+        <AuthProvider supabaseClient={mockClient}>
+          <ProfileProvider supabaseClient={mockClient}>
+            <AuthCallbackPage />
+          </ProfileProvider>
+        </AuthProvider>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', {
+        replace: true,
+      });
+    });
+    expect(mockNavigate).not.toHaveBeenCalledWith(
+      '/reset-password',
+      expect.anything()
+    );
+  });
+
+  it('navigates to /reset-password when recovery flag is set and user is already signed in', async () => {
+    vi.useRealTimers();
+    recoveryCallback.active = true;
+
+    const mockUser = {
+      id: '1',
+      email: 'test@example.com',
+      app_metadata: {},
+      user_metadata: {},
+      aud: 'authenticated',
+      created_at: new Date().toISOString(),
+    };
+
+    const mockClient = createMockSupabaseClient();
+    mockClient.auth.getSession = vi.fn().mockResolvedValue({
+      data: {
+        session: {
+          user: mockUser,
+          access_token: 'token',
+        },
+      },
+      error: null,
+    });
+
+    const { supabase: mockSupabase } = await import('@/lib/supabase');
+    (
+      mockSupabase.auth.onAuthStateChange as ReturnType<typeof vi.fn>
+    ).mockImplementation(() => ({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    }));
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (window as any).location;
+    Object.defineProperty(window, 'location', {
+      value: { ...originalLocation, search: '', hash: '' },
+      writable: true,
+      configurable: true,
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/auth/callback']}>
+        <AuthProvider supabaseClient={mockClient}>
+          <ProfileProvider supabaseClient={mockClient}>
+            <AuthCallbackPage />
+          </ProfileProvider>
+        </AuthProvider>
+      </MemoryRouter>
+    );
+
+    await waitFor(
+      () => {
+        expect(mockNavigate).toHaveBeenCalledWith('/reset-password', {
+          replace: true,
+        });
+      },
+      { timeout: 3000 }
+    );
+    expect(mockNavigate).not.toHaveBeenCalledWith(
+      '/dashboard',
+      expect.anything()
+    );
+  });
+
+  it('navigates to /reset-password when recovery flag is set with access token but no type=recovery in hash', async () => {
+    vi.useRealTimers();
+    recoveryCallback.active = true;
+
+    const mockUser = {
+      id: '1',
+      email: 'test@example.com',
+      app_metadata: {},
+      user_metadata: {},
+      aud: 'authenticated',
+      created_at: new Date().toISOString(),
+    };
+
+    const mockClient = createMockSupabaseClient();
+    mockClient.auth.getSession = vi.fn().mockResolvedValue({
+      data: {
+        session: {
+          user: mockUser,
+          access_token: 'token',
+        },
+      },
+      error: null,
+    });
+
+    const { supabase: mockSupabase } = await import('@/lib/supabase');
+    (
+      mockSupabase.auth.onAuthStateChange as ReturnType<typeof vi.fn>
+    ).mockImplementation(() => ({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    }));
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (window as any).location;
+    Object.defineProperty(window, 'location', {
+      value: {
+        ...originalLocation,
+        search: '',
+        hash: '#access_token=rec-token',
       },
       writable: true,
       configurable: true,
@@ -302,11 +485,17 @@ describe('AuthCallbackPage', () => {
       </MemoryRouter>
     );
 
-    // Fast-forward time
-    vi.advanceTimersByTime(2000);
-
-    await waitFor(() => {
-      expect(screen.getByText(/session not established/i)).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(mockNavigate).toHaveBeenCalledWith('/reset-password', {
+          replace: true,
+        });
+      },
+      { timeout: 3000 }
+    );
+    expect(mockNavigate).not.toHaveBeenCalledWith(
+      '/dashboard',
+      expect.anything()
+    );
   });
 });

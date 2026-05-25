@@ -7,6 +7,20 @@ import {
   transformFormToUpdate,
 } from '@beakerstack/shared/validation/profileSchema';
 
+function expectParseFailure(
+  result: {
+    success: boolean;
+    error?: { errors: Array<{ message: string }> };
+  },
+  messagePart: string
+): void {
+  expect(result.success).toBe(false);
+  if (result.success) {
+    throw new Error('expected parse to fail');
+  }
+  expect(result.error!.errors[0].message).toContain(messagePart);
+}
+
 describe('profileInsertSchema', () => {
   it('should accept valid profile data', () => {
     const validData = {
@@ -52,9 +66,7 @@ describe('profileInsertSchema', () => {
 
     const result = profileInsertSchema.safeParse(invalidData);
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.errors[0].message).toContain('at least 3 characters');
-    }
+    expectParseFailure(result, 'at least 3 characters');
   });
 
   it('should reject username that is too long', () => {
@@ -64,11 +76,7 @@ describe('profileInsertSchema', () => {
 
     const result = profileInsertSchema.safeParse(invalidData);
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.errors[0].message).toContain(
-        'no more than 30 characters'
-      );
-    }
+    expectParseFailure(result, 'no more than 30 characters');
   });
 
   it('should reject username with invalid characters', () => {
@@ -78,11 +86,7 @@ describe('profileInsertSchema', () => {
 
     const result = profileInsertSchema.safeParse(invalidData);
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.errors[0].message).toContain(
-        'letters, numbers, and underscores'
-      );
-    }
+    expectParseFailure(result, 'letters, numbers, and underscores');
   });
 
   it('should accept username with underscores and numbers', () => {
@@ -101,11 +105,7 @@ describe('profileInsertSchema', () => {
 
     const result = profileInsertSchema.safeParse(invalidData);
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.errors[0].message).toContain(
-        'no more than 100 characters'
-      );
-    }
+    expectParseFailure(result, 'no more than 100 characters');
   });
 
   it('should accept display_name at max length', () => {
@@ -124,11 +124,7 @@ describe('profileInsertSchema', () => {
 
     const result = profileInsertSchema.safeParse(invalidData);
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.errors[0].message).toContain(
-        'no more than 500 characters'
-      );
-    }
+    expectParseFailure(result, 'no more than 500 characters');
   });
 
   it('should accept bio at max length', () => {
@@ -147,9 +143,7 @@ describe('profileInsertSchema', () => {
 
     const result = profileInsertSchema.safeParse(invalidData);
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.errors[0].message).toContain('valid URL');
-    }
+    expectParseFailure(result, 'valid URL');
   });
 
   it('should reject website without http/https', () => {
@@ -186,9 +180,7 @@ describe('profileInsertSchema', () => {
 
     const result = profileInsertSchema.safeParse(invalidData);
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.errors[0].message).toContain('valid URL');
-    }
+    expectParseFailure(result, 'valid URL');
   });
 
   it('should accept valid avatar_url', () => {

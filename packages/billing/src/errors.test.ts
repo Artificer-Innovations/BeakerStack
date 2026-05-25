@@ -60,6 +60,10 @@ describe('mapUnknownError', () => {
     expect(e.message).toContain('function does not exist');
   });
 
+  it('maps null via JSON.stringify', () => {
+    expect(mapUnknownError(null).message).toBe('null');
+  });
+
   it('maps undefined without throwing (JSON.stringify(undefined) is not a string)', () => {
     const e = mapUnknownError(undefined);
     expect(e.kind).toBe('unknown');
@@ -76,5 +80,43 @@ describe('mapUnknownError', () => {
     const inner = billingError('stripe', 'bad');
     const e = mapUnknownError(inner);
     expect(e).toEqual(inner);
+  });
+
+  it('extracts error_description from object payloads', () => {
+    const e = mapUnknownError({ error_description: 'OAuth denied' });
+    expect(e.message).toBe('OAuth denied');
+  });
+
+  it('extracts msg from object payloads', () => {
+    const e = mapUnknownError({ msg: 'legacy message' });
+    expect(e.message).toBe('legacy message');
+  });
+
+  it('joins code and hint when message is missing', () => {
+    const e = mapUnknownError({ code: 'XX', hint: 'retry later' });
+    expect(e.message).toBe('XX · retry later');
+  });
+
+  it('maps bigint values to string messages', () => {
+    expect(mapUnknownError(42n).message).toBe('42');
+  });
+
+  it('handles cyclic objects when stringify fails', () => {
+    const cyclic: Record<string, unknown> = {};
+    cyclic.self = cyclic;
+    const e = mapUnknownError(cyclic);
+    expect(e.kind).toBe('unknown');
+    expect(typeof e.message).toBe('string');
+  });
+
+  it('returns Unknown error when String(err) throws after stringify fails', () => {
+    const bad: Record<string, unknown> = {
+      toString() {
+        throw new Error('no string');
+      },
+    };
+    bad.self = bad;
+    const e = mapUnknownError(bad);
+    expect(e.message).toBe('Unknown error');
   });
 });

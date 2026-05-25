@@ -22,7 +22,9 @@ const testConfig = defineBillingConfig({
 
 function wrapper({ children }: { children: ReactNode }) {
   return (
-    <BillingConfigProvider config={testConfig}>{children}</BillingConfigProvider>
+    <BillingConfigProvider config={testConfig}>
+      {children}
+    </BillingConfigProvider>
   );
 }
 

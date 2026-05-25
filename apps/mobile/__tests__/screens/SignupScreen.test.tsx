@@ -4,6 +4,7 @@ import { Alert } from 'react-native';
 import SignupScreen from '../../src/screens/SignupScreen';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
+import { MIN_PASSWORD_LENGTH } from '@beakerstack/shared/constants/auth';
 import type { SupabaseClient } from '@supabase/supabase-js';
 // Mock expo-constants
 jest.mock('expo-constants', () => ({
@@ -21,8 +22,13 @@ jest.mock('expo-constants', () => ({
 }));
 
 // Mock supabase
+const mockGetSession = jest.fn();
 jest.mock('../../src/lib/supabase', () => ({
-  supabase: {} as SupabaseClient,
+  supabase: {
+    auth: {
+      getSession: (...args: unknown[]) => mockGetSession(...args),
+    },
+  } as unknown as SupabaseClient,
 }));
 
 // Mock AppHeader
@@ -128,6 +134,7 @@ const renderWithProviders = (
 describe('SignupScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
     jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   });
 
@@ -153,10 +160,8 @@ describe('SignupScreen', () => {
       <SignupScreen navigation={mockNavigation} />
     );
 
-    await waitFor(() => {
-      const submitButton = getByText('Create Account');
-      fireEvent.press(submitButton);
-    });
+    const submitButton = await waitFor(() => getByText('Create Account'));
+    fireEvent.press(submitButton);
 
     await waitFor(() => {
       expect(Alert.alert).toHaveBeenCalledWith(
@@ -166,23 +171,50 @@ describe('SignupScreen', () => {
     });
   });
 
+  it('shows error when password is too short', async () => {
+    const mockClient = createMockSupabaseClient();
+    const { getByPlaceholderText, getByText } = renderWithProviders(
+      <SignupScreen navigation={mockNavigation} />,
+      mockClient
+    );
+
+    const emailInput = await waitFor(() =>
+      getByPlaceholderText('Email address')
+    );
+    const passwordInput = getByPlaceholderText('Password');
+    const confirmPasswordInput = getByPlaceholderText('Confirm password');
+    const submitButton = getByText('Create Account');
+
+    fireEvent.changeText(emailInput, 'test@example.com');
+    fireEvent.changeText(passwordInput, 'short');
+    fireEvent.changeText(confirmPasswordInput, 'short');
+    fireEvent.press(submitButton);
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith(
+        'Password too short',
+        `Password must be at least ${MIN_PASSWORD_LENGTH} characters`
+      );
+    });
+    expect(mockClient.auth.signUp).not.toHaveBeenCalled();
+  });
+
   it('shows error when passwords do not match', async () => {
     const { getByPlaceholderText, getByText } = renderWithProviders(
       <SignupScreen navigation={mockNavigation} />
     );
 
-    const emailInput = getByPlaceholderText('Email address');
+    const emailInput = await waitFor(() =>
+      getByPlaceholderText('Email address')
+    );
     const passwordInput = getByPlaceholderText('Password');
     const confirmPasswordInput = getByPlaceholderText('Confirm password');
+    const submitButton = getByText('Create Account');
 
-    await waitFor(() => {
-      const submitButton = getByText('Create Account');
-
-      fireEvent.changeText(emailInput, 'test@example.com');
-      fireEvent.changeText(passwordInput, 'password123');
-      fireEvent.changeText(confirmPasswordInput, 'differentpassword');
-      fireEvent.press(submitButton);
-    });
+    fireEvent.changeText(emailInput, 'test@example.com');
+    fireEvent.changeText(passwordInput, 'password123');
+    fireEvent.changeText(confirmPasswordInput, 'differentpassword');
+    fireEvent.press(submitButton);
 
     await waitFor(() => {
       expect(Alert.alert).toHaveBeenCalledWith(
@@ -192,25 +224,37 @@ describe('SignupScreen', () => {
     });
   });
 
-  it('handles successful signup', async () => {
+  it('navigates to Dashboard when signup returns a session', async () => {
+    const mockSession = {
+      access_token: 'mock-token',
+      refresh_token: 'mock-refresh',
+      expires_in: 3600,
+      expires_at: Date.now() + 3600000,
+      token_type: 'bearer',
+      user: { id: 'test-user-id', email: 'test@example.com' } as any,
+    };
+    mockGetSession.mockResolvedValueOnce({
+      data: { session: mockSession },
+      error: null,
+    });
+
     const mockClient = createMockSupabaseClient();
     const { getByPlaceholderText, getByText } = renderWithProviders(
       <SignupScreen navigation={mockNavigation} />,
       mockClient
     );
 
-    const emailInput = getByPlaceholderText('Email address');
+    const emailInput = await waitFor(() =>
+      getByPlaceholderText('Email address')
+    );
     const passwordInput = getByPlaceholderText('Password');
     const confirmPasswordInput = getByPlaceholderText('Confirm password');
+    const submitButton = getByText('Create Account');
 
-    await waitFor(() => {
-      const submitButton = getByText('Create Account');
-
-      fireEvent.changeText(emailInput, 'test@example.com');
-      fireEvent.changeText(passwordInput, 'password123');
-      fireEvent.changeText(confirmPasswordInput, 'password123');
-      fireEvent.press(submitButton);
-    });
+    fireEvent.changeText(emailInput, 'test@example.com');
+    fireEvent.changeText(passwordInput, 'password123');
+    fireEvent.changeText(confirmPasswordInput, 'password123');
+    fireEvent.press(submitButton);
 
     await waitFor(() => {
       expect(mockClient.auth.signUp).toHaveBeenCalledWith({
@@ -221,6 +265,37 @@ describe('SignupScreen', () => {
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('Dashboard');
+    });
+  });
+
+  it('navigates to SignupPending when signup returns no session', async () => {
+    mockGetSession.mockResolvedValueOnce({
+      data: { session: null },
+      error: null,
+    });
+
+    const mockClient = createMockSupabaseClient();
+    const { getByPlaceholderText, getByText } = renderWithProviders(
+      <SignupScreen navigation={mockNavigation} />,
+      mockClient
+    );
+
+    const emailInput = await waitFor(() =>
+      getByPlaceholderText('Email address')
+    );
+    const passwordInput = getByPlaceholderText('Password');
+    const confirmPasswordInput = getByPlaceholderText('Confirm password');
+    const submitButton = getByText('Create Account');
+
+    fireEvent.changeText(emailInput, 'test@example.com');
+    fireEvent.changeText(passwordInput, 'password123');
+    fireEvent.changeText(confirmPasswordInput, 'password123');
+    fireEvent.press(submitButton);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('SignupPending', {
+        email: 'test@example.com',
+      });
     });
   });
 
@@ -240,18 +315,17 @@ describe('SignupScreen', () => {
       mockClient
     );
 
-    const emailInput = getByPlaceholderText('Email address');
+    const emailInput = await waitFor(() =>
+      getByPlaceholderText('Email address')
+    );
     const passwordInput = getByPlaceholderText('Password');
     const confirmPasswordInput = getByPlaceholderText('Confirm password');
+    const submitButton = getByText('Create Account');
 
-    await waitFor(() => {
-      const submitButton = getByText('Create Account');
-
-      fireEvent.changeText(emailInput, 'existing@example.com');
-      fireEvent.changeText(passwordInput, 'password123');
-      fireEvent.changeText(confirmPasswordInput, 'password123');
-      fireEvent.press(submitButton);
-    });
+    fireEvent.changeText(emailInput, 'existing@example.com');
+    fireEvent.changeText(passwordInput, 'password123');
+    fireEvent.changeText(confirmPasswordInput, 'password123');
+    fireEvent.press(submitButton);
 
     await waitFor(() => {
       expect(Alert.alert).toHaveBeenCalledWith(

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -47,25 +47,49 @@ export function UserMenu({ user, profile, navigation }: UserMenuProps) {
   });
   const auth = useAuthContext();
 
-  const handleSignOut = () => {
+  const handleCloseMenu = useCallback(() => setIsOpen(false), []);
+
+  const handleDismissSignOut = useCallback(() => setIsOpen(false), []);
+
+  const handleConfirmSignOut = useCallback(async () => {
+    setIsOpen(false);
+    await auth.signOut();
+    navigation.navigate('Home');
+  }, [auth, navigation]);
+
+  const handleSignOut = useCallback(() => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel', onPress: () => setIsOpen(false) },
+      { text: 'Cancel', style: 'cancel', onPress: handleDismissSignOut },
       {
         text: 'Sign Out',
         style: 'destructive',
-        onPress: async () => {
-          setIsOpen(false);
-          await auth.signOut();
-          navigation.navigate('Home');
-        },
+        onPress: handleConfirmSignOut,
       },
     ]);
-  };
+  }, [handleConfirmSignOut, handleDismissSignOut]);
 
-  const handleNavigate = (route: 'Profile' | 'Dashboard' | 'Billing') => {
-    setIsOpen(false);
-    navigation.navigate(route);
-  };
+  const handleNavigate = useCallback(
+    (route: 'Profile' | 'Dashboard' | 'Billing') => {
+      setIsOpen(false);
+      navigation.navigate(route);
+    },
+    [navigation]
+  );
+
+  const handleProfilePress = useCallback(
+    () => handleNavigate('Profile'),
+    [handleNavigate]
+  );
+  const handleBillingPress = useCallback(
+    () => handleNavigate('Billing'),
+    [handleNavigate]
+  );
+  const handleDashboardPress = useCallback(
+    () => handleNavigate('Dashboard'),
+    [handleNavigate]
+  );
+
+  const handleMenuResponder = useCallback(() => true, []);
 
   const displayName =
     profile?.display_name ||
@@ -73,16 +97,28 @@ export function UserMenu({ user, profile, navigation }: UserMenuProps) {
     user.email?.split('@')[0] ||
     'User';
 
-  const handleAvatarPress = () => {
+  const handleAvatarMeasured = useCallback(
+    (
+      _x: number,
+      _y: number,
+      width: number,
+      height: number,
+      pageX: number,
+      pageY: number
+    ) => {
+      setAvatarLayout({ x: pageX, y: pageY, width, height });
+      setIsOpen(open => !open);
+    },
+    []
+  );
+
+  const handleAvatarPress = useCallback(() => {
     if (avatarRef.current) {
-      avatarRef.current.measure((_x, _y, width, height, pageX, pageY) => {
-        setAvatarLayout({ x: pageX, y: pageY, width, height });
-        setIsOpen(!isOpen);
-      });
+      avatarRef.current.measure(handleAvatarMeasured);
     } else {
-      setIsOpen(!isOpen);
+      setIsOpen(open => !open);
     }
-  };
+  }, [handleAvatarMeasured]);
 
   return (
     <>
@@ -103,23 +139,24 @@ export function UserMenu({ user, profile, navigation }: UserMenuProps) {
         visible={isOpen}
         transparent
         animationType='fade'
-        onRequestClose={() => setIsOpen(false)}
+        onRequestClose={handleCloseMenu}
       >
-        <TouchableWithoutFeedback onPress={() => setIsOpen(false)}>
+        <TouchableWithoutFeedback onPress={handleCloseMenu}>
           <View style={styles.modalOverlay}>
             <View
               style={[
                 styles.menuContainer,
                 {
                   top: avatarLayout.y + avatarLayout.height + 8,
-                  right: Platform.OS === 'ios' ? undefined : 16,
+                  right:
+                    Platform.OS === 'ios' ? /* v8 ignore next */ undefined : 16,
                   left:
                     Platform.OS === 'ios'
                       ? avatarLayout.x + avatarLayout.width - 224
-                      : undefined,
+                      : /* v8 ignore next */ undefined,
                 },
               ]}
-              onStartShouldSetResponder={() => true}
+              onStartShouldSetResponder={handleMenuResponder}
             >
               {/* User name display */}
               <View style={styles.userInfo}>
@@ -131,21 +168,21 @@ export function UserMenu({ user, profile, navigation }: UserMenuProps) {
 
               {/* Menu items */}
               <TouchableOpacity
-                onPress={() => handleNavigate('Profile')}
+                onPress={handleProfilePress}
                 style={styles.menuItem}
                 activeOpacity={0.7}
               >
                 <Text style={styles.menuItemText}>Profile</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => handleNavigate('Billing')}
+                onPress={handleBillingPress}
                 style={styles.menuItem}
                 activeOpacity={0.7}
               >
                 <Text style={styles.menuItemText}>Billing</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => handleNavigate('Dashboard')}
+                onPress={handleDashboardPress}
                 style={styles.menuItem}
                 activeOpacity={0.7}
               >

@@ -31,7 +31,7 @@ The `lighthouse` job is therefore **skipped automatically** when `access-mode ==
 Configured in [`lighthouserc.js`](../lighthouserc.js) at the repo root. All assertions use `warn` severity — scores below threshold are surfaced as informational status checks but do not block merging. Change `'warn'` to `'error'` to make failing scores block the PR.
 
 | Category       | Min score |
-|----------------|-----------|
+| -------------- | --------- |
 | Performance    | 0.70      |
 | Accessibility  | 0.90      |
 | Best practices | 0.90      |

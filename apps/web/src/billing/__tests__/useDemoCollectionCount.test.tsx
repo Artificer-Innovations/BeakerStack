@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { useDemoCollectionCount } from '../useDemoCollectionCount';
+import { useDemoCollectionCount } from '@adopter/web/billing/useDemoCollectionCount';
 
 const { rpc, mockClient } = vi.hoisted(() => {
   const rpc = vi.fn();
@@ -52,6 +52,35 @@ describe('useDemoCollectionCount', () => {
     });
     expect(result.current.count).toBe(0);
     expect(result.current.maxItemsInAnyCollection).toBe(0);
+  });
+
+  it('coerces null data to empty array and item_count null to zero', async () => {
+    rpc.mockResolvedValue({
+      data: null,
+      error: null,
+    });
+    const { result } = renderHook(() => useDemoCollectionCount());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(result.current.count).toBe(0);
+    expect(result.current.maxItemsInAnyCollection).toBe(0);
+  });
+
+  it('coerces null item_count entries to zero when computing max', async () => {
+    rpc.mockResolvedValue({
+      data: [
+        { id: '1', item_count: null },
+        { id: '2', item_count: 4 },
+      ],
+      error: null,
+    });
+    const { result } = renderHook(() => useDemoCollectionCount());
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(result.current.count).toBe(2);
+    expect(result.current.maxItemsInAnyCollection).toBe(4);
   });
 
   it('refresh refetches and updates max items', async () => {

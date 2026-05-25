@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@beakerstack/shared/types/database';
-import { Logger } from '@beakerstack/shared/utils/logger';
+import { Logger } from '@beakerstack/logger';
 
 import Constants from 'expo-constants';
 // Handle both expoConfig (SDK 49+) and manifest (older SDKs)
@@ -55,7 +55,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: true,
   },
 });
 

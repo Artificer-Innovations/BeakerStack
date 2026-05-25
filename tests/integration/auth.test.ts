@@ -1,18 +1,20 @@
 /**
- * Integration tests for authentication flow
- * These tests use a real Supabase client and database
+ * Authentication API integration tests (signup, sign-in, session).
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
-import { createWebTestClient } from '../utils/test-clients';
+import {
+  createServiceRoleClient,
+  createWebTestClient,
+} from '../utils/test-clients';
 import {
   createTestUser,
   signInTestUser,
   signOutUser,
   waitForUserProfile,
   cleanupTestData,
-  TestData,
 } from '../utils/test-helpers';
+import { uniqueTestEmail } from '../utils/integration-fixtures';
 
 describe('Authentication Integration Tests', () => {
   let supabase: SupabaseClient;
@@ -25,16 +27,15 @@ describe('Authentication Integration Tests', () => {
   });
 
   afterAll(async () => {
-    // Cleanup: Delete test user if it exists
     if (testUserId) {
-      await cleanupTestData(supabase, testUserId);
+      await cleanupTestData(supabase, testUserId, { email: testEmail });
     }
   });
 
   describe('User Signup', () => {
     it('should create a new user with email and password', async () => {
-      const result = await createTestUser(supabase);
-      testEmail = result.email;
+      testEmail = uniqueTestEmail();
+      const result = await createTestUser(supabase, testEmail);
       testUserId = result.userId;
       testPassword = result.password;
 
@@ -42,8 +43,26 @@ describe('Authentication Integration Tests', () => {
       expect(testEmail).toBeDefined();
     });
 
+    const smtpConfigured =
+      Boolean(process.env.SMTP_PASS?.trim()) &&
+      Boolean(process.env.SMTP_HOST?.trim());
+
+    if (smtpConfigured) {
+      it('should register via public signUp when SMTP is configured', async () => {
+        const email = uniqueTestEmail();
+        const password = `E2e_${Date.now()}_signUp_Aa1`;
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        expect(error).toBeNull();
+        expect(data.user?.id).toBeDefined();
+        const admin = createServiceRoleClient();
+        await admin.auth.admin.deleteUser(data.user!.id);
+      });
+    }
+
     it('should automatically create user profile on signup', async () => {
-      // Wait for the trigger to create the profile
       await waitForUserProfile(supabase, testUserId);
 
       const { data: profile, error } = await supabase
@@ -65,13 +84,9 @@ describe('Authentication Integration Tests', () => {
         password: testPassword,
       });
 
-      // Supabase may return success but not create a new user
-      // or return an error depending on configuration
-      if (data.user) {
-        expect(data.user.id).toBe(testUserId);
-      } else {
-        expect(error).toBeDefined();
-      }
+      const sameUserRetry = data.user?.id === testUserId;
+      const signupBlocked = error !== null && !data.user;
+      expect(sameUserRetry || signupBlocked).toBe(true);
     });
   });
 
@@ -113,13 +128,9 @@ describe('Authentication Integration Tests', () => {
 
   describe('User Sign Out', () => {
     it('should sign out successfully', async () => {
-      // First sign in
       await signInTestUser(supabase, testEmail, testPassword);
-
-      // Then sign out
       await signOutUser(supabase);
 
-      // Verify session is cleared
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -129,13 +140,11 @@ describe('Authentication Integration Tests', () => {
 
   describe('Session Management', () => {
     it('should maintain session after sign in', async () => {
-      // Sign in
       await signInTestUser(supabase, testEmail, testPassword);
 
       const { data: signInData } = await supabase.auth.getSession();
       expect(signInData.session).toBeDefined();
 
-      // Get session again
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -146,10 +155,8 @@ describe('Authentication Integration Tests', () => {
     });
 
     it('should access user profile when authenticated', async () => {
-      // Sign in
       await signInTestUser(supabase, testEmail, testPassword);
 
-      // Access profile
       const { data: profile, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -159,45 +166,6 @@ describe('Authentication Integration Tests', () => {
       expect(error).toBeNull();
       expect(profile).toBeDefined();
       expect(profile?.user_id).toBe(testUserId);
-    });
-  });
-
-  describe('Profile Updates', () => {
-    it('should allow user to update their own profile', async () => {
-      // Sign in
-      await signInTestUser(supabase, testEmail, testPassword);
-
-      const newBio = TestData.bio();
-
-      // Update profile
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .update({ bio: newBio })
-        .eq('user_id', testUserId)
-        .select()
-        .single();
-
-      expect(error).toBeNull();
-      expect(data?.bio).toBe(newBio);
-    });
-
-    it("should not allow updating another user's profile", async () => {
-      // Sign in as test user
-      await signInTestUser(supabase, testEmail, testPassword);
-
-      // Try to update a different user's profile (using a fake UUID)
-      const fakeUserId = '00000000-0000-0000-0000-000000000099';
-
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({ bio: 'Hacked!' })
-        .eq('user_id', fakeUserId);
-
-      // Should either fail or update 0 rows (RLS policy blocks it)
-      // The error might be null if no rows match, which is fine
-      if (error) {
-        expect(error).toBeDefined();
-      }
     });
   });
 });

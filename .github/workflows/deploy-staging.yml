@@ -1,3 +1,5 @@
+# Deploys staging (staging.<domain>) when commits land on develop — typically after a PR into develop is merged.
+# Does not run on feature branches or on pull_request synchronize; use pr-preview-environment.yml for PR previews.
 name: Deploy Staging
 
 on:
@@ -15,13 +17,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy-staging:
+  deploy-backend-staging:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
-    env:
-      DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
-      STACK_NAME: ${{ vars.PR_PREVIEW_STACK_NAME }}
-      VITE_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
-      VITE_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -40,14 +38,6 @@ jobs:
         with:
           version: 2.54.11
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: ${{ vars.PR_PREVIEW_AWS_REGION != '' && vars.PR_PREVIEW_AWS_REGION || 'us-east-1' }}
-
       - name: Apply database migrations
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -56,15 +46,56 @@ jobs:
         run: |
           set -euo pipefail
           cd supabase
-          
+
           # Link to staging Supabase project
           supabase link \
             --project-ref "${STAGING_SUPABASE_PROJECT_REF}" \
             --password "${STAGING_SUPABASE_DB_PASSWORD}" \
             --yes
-          
+
           # Apply only new migrations (does not reset existing data)
           supabase db push --linked
+
+      - name: Apply adopter database migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_SUPABASE_PROJECT_REF: ${{ secrets.STAGING_SUPABASE_PROJECT_REF }}
+          STAGING_SUPABASE_DB_PASSWORD: ${{ secrets.STAGING_SUPABASE_DB_PASSWORD }}
+        run: npm run db:apply-adopter -- --linked
+
+      # Opt-in: skipped in-script when RESEND_SMTP_PASS unset (secrets cannot be used in if:)
+      - name: Regenerate email templates
+        run: npm run email:personalize -- --non-interactive
+
+      - name: Sync Supabase auth email config (staging)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_SUPABASE_PROJECT_REF: ${{ secrets.STAGING_SUPABASE_PROJECT_REF }}
+          STAGING_SUPABASE_DB_PASSWORD: ${{ secrets.STAGING_SUPABASE_DB_PASSWORD }}
+          SUPABASE_AUTH_SITE_URL: ${{ format('https://staging.{0}', vars.PR_PREVIEW_DOMAIN) }}
+          SMTP_HOST: smtp.resend.com
+          SMTP_PORT: '587'
+          SMTP_USER: resend
+          SMTP_PASS: ${{ secrets.RESEND_SMTP_PASS }}
+          SMTP_ADMIN_EMAIL: ${{ vars.SMTP_ADMIN_EMAIL }}
+          SMTP_SENDER_NAME: ${{ vars.SMTP_SENDER_NAME }}
+          SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ${{ secrets.SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID }}
+          SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ${{ secrets.SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SMTP_PASS:-}" ]; then
+            echo "Skipping Supabase auth email config: RESEND_SMTP_PASS is not set."
+            exit 0
+          fi
+          if [ -z "${SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID:-}" ] || [ -z "${SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET:-}" ]; then
+            echo "Skipping Supabase auth email config: SUPABASE_AUTH_EXTERNAL_GOOGLE_* secrets are not set."
+            echo "  Run npm run setup:full (google phase) or: gh secret set SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID"
+            exit 0
+          fi
+          ./scripts/sync-supabase-auth-config.sh \
+            --project-ref "${STAGING_SUPABASE_PROJECT_REF}" \
+            --db-password "${STAGING_SUPABASE_DB_PASSWORD}" \
+            --site-url "${SUPABASE_AUTH_SITE_URL}"
 
       - name: Sync Stripe prices to billing_plans
         env:
@@ -84,6 +115,19 @@ jobs:
           WEBHOOK_DESCRIPTION: BeakerStack staging (${{ secrets.STAGING_SUPABASE_PROJECT_REF }})
         run: node scripts/ensure-stripe-webhook-endpoint.mjs
 
+      - name: Sync edge shared packages
+        run: npm run functions:sync-shared
+
+      - name: Ensure Kit webhook endpoint (staging)
+        continue-on-error: true
+        env:
+          KIT_API_KEY: ${{ secrets.KIT_API_KEY }}
+          KIT_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          WEBHOOK_DESCRIPTION: BeakerStack staging kit-webhook (${{ secrets.STAGING_SUPABASE_PROJECT_REF }})
+        run: |
+          [[ -z "${KIT_API_KEY:-}" ]] && { echo "KIT_API_KEY not set — skipping Kit webhook ensure"; exit 0; }
+          node scripts/ensure-kit-webhook-endpoint.mjs
+
       - name: Deploy Supabase Edge Functions
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -95,6 +139,12 @@ jobs:
           STAGING_STRIPE_SECRET_KEY: ${{ secrets.STAGING_STRIPE_SECRET_KEY }}
           STAGING_STRIPE_WEBHOOK_SECRET: ${{ steps.stripe_webhook_staging.outputs.resolved_webhook_secret }}
           STAGING_BILLING_ALLOWED_ORIGINS: ${{ secrets.STAGING_BILLING_ALLOWED_ORIGINS }}
+          KIT_API_KEY: ${{ secrets.KIT_API_KEY }}
+          KIT_CRON_SECRET: ${{ secrets.KIT_CRON_SECRET }}
+          KIT_WEBHOOK_SECRET: ${{ secrets.KIT_WEBHOOK_SECRET }}
+          STAGING_KIT_API_KEY: ${{ secrets.STAGING_KIT_API_KEY }}
+          STAGING_KIT_CRON_SECRET: ${{ secrets.STAGING_KIT_CRON_SECRET }}
+          STAGING_KIT_WEBHOOK_SECRET: ${{ secrets.STAGING_KIT_WEBHOOK_SECRET }}
         run: |
           set -euo pipefail
           cd supabase
@@ -109,8 +159,57 @@ jobs:
             BILLING_SUPABASE_ANON_KEY="${STAGING_SUPABASE_ANON_KEY}" \
             BILLING_SUPABASE_SERVICE_ROLE_KEY="${STAGING_SUPABASE_SERVICE_ROLE_KEY}" \
             BILLING_ALLOWED_ORIGINS="${STAGING_BILLING_ALLOWED_ORIGINS}"
-          supabase functions deploy stripe-webhook billing-stripe \
+          # Prefer shared KIT_* secrets; fall back to legacy STAGING_KIT_* names.
+          RESOLVED_KIT_API_KEY="${KIT_API_KEY:-${STAGING_KIT_API_KEY:-}}"
+          RESOLVED_KIT_CRON_SECRET="${KIT_CRON_SECRET:-${STAGING_KIT_CRON_SECRET:-}}"
+          RESOLVED_KIT_WEBHOOK_SECRET="${KIT_WEBHOOK_SECRET:-${STAGING_KIT_WEBHOOK_SECRET:-}}"
+          # Only set Kit secrets when configured; empty strings would clobber manual Supabase secrets.
+          [[ -n "${RESOLVED_KIT_API_KEY}" ]] && supabase secrets set KIT_API_KEY="${RESOLVED_KIT_API_KEY}"
+          [[ -n "${RESOLVED_KIT_CRON_SECRET}" ]] && supabase secrets set KIT_CRON_SECRET="${RESOLVED_KIT_CRON_SECRET}"
+          [[ -n "${RESOLVED_KIT_WEBHOOK_SECRET}" ]] && supabase secrets set KIT_WEBHOOK_SECRET="${RESOLVED_KIT_WEBHOOK_SECRET}"
+          supabase functions deploy stripe-webhook billing-stripe waitlist-capture waitlist-ops kit-sync kit-webhook \
             --project-ref "${STAGING_SUPABASE_PROJECT_REF}"
+
+      - name: Ensure kit-sync cron job (staging)
+        env:
+          SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          KIT_CRON_SECRET: ${{ secrets.KIT_CRON_SECRET }}
+          STAGING_KIT_CRON_SECRET: ${{ secrets.STAGING_KIT_CRON_SECRET }}
+        run: |
+          RESOLVED_KIT_CRON_SECRET="${KIT_CRON_SECRET:-${STAGING_KIT_CRON_SECRET:-}}"
+          [[ -z "${RESOLVED_KIT_CRON_SECRET}" ]] && { echo "KIT_CRON_SECRET not set — skipping cron registration"; exit 0; }
+          KIT_CRON_SECRET="${RESOLVED_KIT_CRON_SECRET}" node scripts/ensure-kit-sync-cron.mjs
+
+  deploy-web-staging:
+    needs: [deploy-backend-staging]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    env:
+      DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
+      STACK_NAME: ${{ vars.PR_PREVIEW_STACK_NAME }}
+      VITE_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ vars.PR_PREVIEW_AWS_REGION != '' && vars.PR_PREVIEW_AWS_REGION || 'us-east-1' }}
 
       - name: Resolve infrastructure outputs
         id: infra
@@ -147,6 +246,13 @@ jobs:
             --environment staging \
             --region "${AWS_REGION_VALUE}"
 
+  deploy-finalize-staging:
+    needs: [deploy-web-staging]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    env:
+      DOMAIN: ${{ vars.PR_PREVIEW_DOMAIN }}
+    steps:
       - name: Generate staging signed cookie bootstrap URL
         id: signed_cookies
         shell: bash
@@ -179,7 +285,6 @@ jobs:
           CF_SIGNATURE=$(printf '%s' "${POLICY_JSON}" | \
             openssl dgst -sha1 -sign "${KEY_FILE}" | base64 -w0 | tr '+' '-' | tr '/' '~' | tr '=' '_')
           rm -f "${KEY_FILE}"
-
           BOOTSTRAP_URL="https://${STAGING_DOMAIN}/_preview-auth?policy=${CF_POLICY}&sig=${CF_SIGNATURE}&kid=${CLOUDFRONT_SIGNING_KEY_ID}&dest=/"
           echo "BOOTSTRAP_URL=${BOOTSTRAP_URL}" >> "${GITHUB_OUTPUT}"
           echo "STAGING_URL=https://${STAGING_DOMAIN}" >> "${GITHUB_OUTPUT}"
@@ -237,7 +342,7 @@ jobs:
 
   deploy-mobile-staging:
     if: vars.MOBILE_ENABLED != 'false'
-    needs: [deploy-staging]
+    needs: [deploy-backend-staging]
     runs-on: ubuntu-latest
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}

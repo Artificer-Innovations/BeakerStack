@@ -52,4 +52,56 @@ describe('PricingTable (web)', () => {
     fireEvent.click(secondSelect);
     expect(onSelectPlan).toHaveBeenCalledWith('p2');
   });
+
+  it('prefers onCheckout over onSelectPlan', () => {
+    const onSelectPlan = vi.fn();
+    const onCheckout = vi.fn();
+    render(
+      <PricingTable onSelectPlan={onSelectPlan} onCheckout={onCheckout} />
+    );
+    const [firstSelect] = screen.getAllByRole('button', { name: 'Select' });
+    expect(firstSelect).toBeDefined();
+    fireEvent.click(firstSelect);
+    expect(onCheckout).toHaveBeenCalledWith('p1');
+    expect(onSelectPlan).not.toHaveBeenCalled();
+  });
+
+  it('highlights current plan when highlightCurrent is enabled', () => {
+    const { container } = render(
+      <PricingTable highlightCurrent onSelectPlan={vi.fn()} />
+    );
+    const items = container.querySelectorAll('li');
+    expect(items[0]?.getAttribute('style')).toContain('2px solid');
+    expect(items[1]?.getAttribute('style')).not.toContain('2px solid');
+  });
+
+  it('ignores empty highlightPlanId', () => {
+    const { container } = render(
+      <PricingTable highlightPlanId='' onSelectPlan={vi.fn()} />
+    );
+    const items = container.querySelectorAll('li');
+    items.forEach(li => {
+      expect(li.getAttribute('style')).not.toContain('2px solid');
+    });
+  });
+
+  it('highlights plan by highlightPlanId', () => {
+    const { container } = render(
+      <PricingTable highlightPlanId='p2' onSelectPlan={vi.fn()} />
+    );
+    const items = container.querySelectorAll('li');
+    expect(items[1]?.getAttribute('style')).toContain('2px solid');
+  });
+
+  it('omits action buttons when no handler is provided', () => {
+    render(<PricingTable />);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('shows Get started when unauthenticated', () => {
+    render(<PricingTable isAuthenticated={false} onSelectPlan={vi.fn()} />);
+    expect(screen.getAllByRole('button', { name: 'Get started' }).length).toBe(
+      2
+    );
+  });
 });

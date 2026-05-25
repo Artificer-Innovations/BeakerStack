@@ -3,9 +3,10 @@ import path from 'path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
-import { BRANDING } from '../../packages/shared/src/config/branding';
+import { branding } from '../../adopter/config/branding';
 
 const viteConfigDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(viteConfigDir, '../..');
 const criticalThemePath = path.join(
   viteConfigDir,
   'src/styles/critical-theme.css'
@@ -23,10 +24,10 @@ export default defineConfig(({ mode }) => {
   const htmlBrandingPlugin: Plugin = {
     name: 'html-branding-transform',
     transformIndexHtml(html: string) {
-      const metaDescription = `${BRANDING.displayName} gives you auth, billing, and a cross-platform React foundation — ready to ship your SaaS.`;
-      const ogTitle = `${BRANDING.displayName} — Ship your SaaS faster.`;
+      const metaDescription = `${branding.displayName} gives you auth, billing, and a cross-platform React foundation — ready to ship your SaaS.`;
+      const ogTitle = `${branding.displayName} — Ship your SaaS faster.`;
       let transformed = html
-        .replace(/%APP_TITLE%/g, BRANDING.displayName)
+        .replace(/%APP_TITLE%/g, branding.displayName)
         .replace(/%META_DESCRIPTION%/g, metaDescription)
         .replace(/%OG_TITLE%/g, ogTitle);
 
@@ -75,9 +76,14 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
+        '@adopter': path.resolve(__dirname, '../../adopter'),
         '@beakerstack/shared': path.resolve(
           __dirname,
           '../../packages/shared/src'
+        ),
+        '@beakerstack/logger': path.resolve(
+          __dirname,
+          '../../packages/logger/src'
         ),
       },
     },
@@ -106,44 +112,60 @@ export default defineConfig(({ mode }) => {
       external: ['react-router', 'react-router-dom', '@remix-run/router'],
     },
     test: {
+      root: repoRoot,
       globals: true,
       environment: 'jsdom',
-      setupFiles: ['./src/test/setup.ts'],
+      setupFiles: [path.join(viteConfigDir, 'src/test/setup.ts')],
+      include: [
+        'apps/web/src/**/*.{test,spec}.{ts,tsx}',
+        'adopter/web/**/*.{test,spec}.{ts,tsx}',
+        'adopter/config/**/*.{test,spec}.{ts,tsx}',
+      ],
+      // Placeholder Supabase env when unset (jsdom imports supabase.ts at module load).
+      // CI integration exports real credentials via GITHUB_ENV — those take precedence.
+      env: {
+        VITE_SUPABASE_URL:
+          process.env.VITE_SUPABASE_URL ?? 'http://localhost:54321',
+        VITE_SUPABASE_ANON_KEY:
+          process.env.VITE_SUPABASE_ANON_KEY ?? 'test-anon-key',
+      },
       coverage: {
         provider: 'v8',
-        reporter: ['text', 'json', 'html', 'lcov'],
+        all: true,
+        reportsDirectory: path.join(viteConfigDir, 'coverage'),
+        reporter:
+          process.env.COVERAGE_MERGE === '1'
+            ? ['text', 'json']
+            : ['text', 'json', 'html', 'lcov'],
         // Line/statement ~99.1% with integration-heavy pages (billing matrix, OAuth stash).
         thresholds: {
           statements: 99,
           lines: 99,
         },
+        include: [
+          'apps/web/src/**/*.{ts,tsx}',
+          'adopter/web/**/*.{ts,tsx}',
+          'adopter/config/**/*.{ts,tsx}',
+        ],
         exclude: [
           'node_modules/',
-          'src/test/',
+          'apps/web/src/test/',
           '**/*.d.ts',
           '**/*.config.*',
           '**/dist/',
           '**/build/',
           '**/types/**',
-          // Pure config/data files — no logic to test, always mocked in tests
-          'src/config/landing.ts',
-          'src/config/landing.example.alt.ts',
           // Build-time scripts — run by vite-node at build, not part of the app test suite
-          'scripts/',
+          'apps/web/scripts/',
           // SSR-only landing component — structural duplicate of LandingPage used by the
           // prerender script only; covered by the build-time prerender smoke check
-          'src/components/landing/LandingPageSSR.tsx',
+          'apps/web/src/components/landing/LandingPageSSR.tsx',
           // Thin composition wrappers — routing/providers tested independently
-          'src/PublicShell.tsx',
-          'src/AuthenticatedApp.tsx',
-          // Display-only dashboard showcase components — no business logic;
-          // annotated UI primitives covered visually by preview deployment
-          'src/components/dashboard/AnnotatedPrimitive.tsx',
-          'src/components/dashboard/BooleanFeatureTiles.tsx',
-          'src/components/dashboard/DemoBanner.tsx',
-          'src/components/dashboard/FeatureGateCard.tsx',
-          // Pure TypeScript interface file — no executable code to test
-          '**/components/dashboard/types.ts',
+          'apps/web/src/PublicShell.tsx',
+          'apps/web/src/AuthenticatedApp.tsx',
+          'adopter/web/**/__tests__/**',
+          'adopter/web/**/types.ts',
+          'adopter/config/landing.example.alt.ts',
         ],
       },
     },

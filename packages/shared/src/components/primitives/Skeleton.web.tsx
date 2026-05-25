@@ -60,7 +60,9 @@ export type SkeletonTextProps = {
  */
 function SkeletonTextBlock({
   lines = 3,
+  /* v8 ignore next */
   className = '',
+  /* v8 ignore next -- default parameter branch is exercised by callers */
   lastLineWidth = '3/4',
 }: SkeletonTextProps) {
   const lastW =

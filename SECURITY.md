@@ -26,9 +26,19 @@ Include a description, steps to reproduce, and impact. We aim to acknowledge rep
 - Vulnerabilities in third-party services (Supabase, Stripe, Expo, etc.) — report those vendors directly
 - Downstream applications built from forks unless they are clearly attributable to template code as shipped here
 
+## Admin panel
+
+BeakerStack ships an operator admin surface (`/admin` on web only). See [packages/admin/SECURITY.md](packages/admin/SECURITY.md) for:
+
+- Where admin status is stored (`admin_users`) and how grants work (service-role CLI only)
+- Server-side RPC enforcement and audit logging
+- Production responsibilities (dedicated operator accounts, audit retention, service role hygiene)
+
+Non-admins must not be able to read admin tables or invoke admin RPCs successfully; route guards are not sufficient on their own.
+
 ## Template disclaimer
 
-Beaker Stack is a **starting point**, not a certified secure product. Before production use, review authentication, authorization (especially Row Level Security), billing webhooks, and Edge Function secrets in **your** fork. Customize policies and threat model for your product and compliance needs.
+Beaker Stack is a **starting point**, not a certified secure product. Before production use, review authentication, authorization (especially Row Level Security), billing webhooks, admin grants, and Edge Function secrets in **your** fork. Customize policies and threat model for your product and compliance needs.
 
 ## Supported versions
 

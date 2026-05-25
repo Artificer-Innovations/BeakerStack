@@ -65,6 +65,54 @@ describe('AvatarUpload', () => {
     expect(placeholder).toBeInTheDocument();
   });
 
+  it('opens file picker when Choose File is clicked', () => {
+    render(
+      <AvatarUpload
+        currentAvatarUrl={null}
+        onUploadComplete={mockOnUploadComplete}
+        onRemove={mockOnRemove}
+        userId='user-id-1'
+        supabaseClient={mockSupabaseClient}
+      />
+    );
+    const input = document.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
+    const clickSpy = jest.spyOn(input, 'click');
+    fireEvent.click(screen.getByText('Choose File'));
+    expect(clickSpy).toHaveBeenCalled();
+    clickSpy.mockRestore();
+  });
+
+  it('does not open file picker while uploading', () => {
+    const {
+      useAvatarUpload,
+    } = require('@beakerstack/shared/hooks/useAvatarUpload');
+    useAvatarUpload.mockReturnValue({
+      uploading: true,
+      progress: 50,
+      error: null,
+      uploadAvatar: mockUploadAvatar,
+      removeAvatar: mockRemoveAvatar,
+    });
+    render(
+      <AvatarUpload
+        currentAvatarUrl={null}
+        onUploadComplete={mockOnUploadComplete}
+        onRemove={mockOnRemove}
+        userId='user-id-1'
+        supabaseClient={mockSupabaseClient}
+      />
+    );
+    const input = document.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
+    const clickSpy = jest.spyOn(input, 'click');
+    fireEvent.click(screen.getByText('Uploading...'));
+    expect(clickSpy).not.toHaveBeenCalled();
+    clickSpy.mockRestore();
+  });
+
   it('handles file selection and upload', async () => {
     const {
       useAvatarUpload,
@@ -157,6 +205,52 @@ describe('AvatarUpload', () => {
     expect(screen.getByText('Upload failed')).toBeInTheDocument();
   });
 
+  it('clears preview when upload throws', async () => {
+    mockUploadAvatar.mockRejectedValueOnce(new Error('Upload failed'));
+
+    render(
+      <AvatarUpload
+        currentAvatarUrl={null}
+        onUploadComplete={mockOnUploadComplete}
+        onRemove={mockOnRemove}
+        userId='user-id-1'
+        supabaseClient={mockSupabaseClient}
+      />
+    );
+
+    const fileInput = document.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
+    const file = new File(['content'], 'avatar.jpg', { type: 'image/jpeg' });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(mockUploadAvatar).toHaveBeenCalledWith(file);
+    });
+    expect(mockOnUploadComplete).not.toHaveBeenCalled();
+  });
+
+  it('does not call onRemove when removeAvatar throws', async () => {
+    mockRemoveAvatar.mockRejectedValueOnce(new Error('Remove failed'));
+
+    render(
+      <AvatarUpload
+        currentAvatarUrl='https://example.com/avatar.jpg'
+        onUploadComplete={mockOnUploadComplete}
+        onRemove={mockOnRemove}
+        userId='user-id-1'
+        supabaseClient={mockSupabaseClient}
+      />
+    );
+
+    fireEvent.click(screen.getByText('Remove'));
+
+    await waitFor(() => {
+      expect(mockRemoveAvatar).toHaveBeenCalled();
+    });
+    expect(mockOnRemove).not.toHaveBeenCalled();
+  });
+
   it('handles remove avatar', async () => {
     render(
       <AvatarUpload
@@ -234,6 +328,30 @@ describe('AvatarUpload', () => {
     );
 
     expect(screen.queryByText('Remove')).not.toBeInTheDocument();
+  });
+
+  it('applies cache-busting when profile avatar URL updates', () => {
+    const { rerender } = render(
+      <AvatarUpload
+        currentAvatarUrl='https://example.com/avatar-v1.jpg'
+        onUploadComplete={mockOnUploadComplete}
+        onRemove={mockOnRemove}
+        userId='user-id-1'
+        supabaseClient={mockSupabaseClient}
+      />
+    );
+    rerender(
+      <AvatarUpload
+        currentAvatarUrl='https://example.com/avatar-v2.jpg'
+        onUploadComplete={mockOnUploadComplete}
+        onRemove={mockOnRemove}
+        userId='user-id-1'
+        supabaseClient={mockSupabaseClient}
+      />
+    );
+    const img = screen.getByAltText('Avatar preview');
+    expect(img.getAttribute('src')).toMatch(/avatar-v2\.jpg/);
+    expect(img.getAttribute('src')).toMatch(/[?&]t=/);
   });
 
   it('should display uploadedUrl over currentAvatarUrl when a new image is uploaded', () => {

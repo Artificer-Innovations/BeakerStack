@@ -123,6 +123,7 @@ Your Google OAuth app needs to allow these redirect URLs:
 **Issue: "Invalid client" error**
 
 - Solution: Verify your Client ID and Secret are correct in Supabase Studio
+- **Hosted (preview/staging/production):** If Google OAuth broke after a deploy, CI `config push` may have run without `SUPABASE_AUTH_EXTERNAL_GOOGLE_*` GitHub secrets. Re-enter credentials in the Supabase dashboard, then run `npm run setup:full -- --from=google` and sync secrets in the **github** phase (see [EMAIL_TEMPLATES.md](EMAIL_TEMPLATES.md#hosted-environments-cicd)).
 
 ### Next Steps
 
@@ -354,6 +355,10 @@ You'll need these values:
    - Click "Save"
 
 #### For Production (Supabase Cloud)
+
+**Recommended (Beaker Stack CI):** Run `npm run setup:full -- --from=google` to collect the Google OAuth **Web application** client ID and secret. The **github** phase syncs them as `SUPABASE_AUTH_EXTERNAL_GOOGLE_*` GitHub secrets so deploy workflows can run `config push` without wiping OAuth. See [EMAIL_TEMPLATES.md — Hosted environments](EMAIL_TEMPLATES.md#hosted-environments-cicd).
+
+**Manual alternative:** configure in the dashboard only (no config push), or enter credentials once in the dashboard after each clobbering deploy until GitHub secrets exist.
 
 1. Go to your [Supabase Dashboard](https://app.supabase.com/)
 2. Select your project

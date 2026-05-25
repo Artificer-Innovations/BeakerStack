@@ -45,12 +45,12 @@ export function useBillingStripeActions<
         );
         if (fnErr) throw parseBillingFunctionError(data, fnErr);
         await refreshSubscription();
+        setPending(false);
         return true;
       } catch (e) {
         setError(mapUnknownError(e));
-        return false;
-      } finally {
         setPending(false);
+        return false;
       }
     },
     [supabase, stripeFunctionName, config.productId, refreshSubscription]

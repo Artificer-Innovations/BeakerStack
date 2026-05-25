@@ -5,8 +5,13 @@ const path = require('path');
 
 const projectRoot = __dirname;
 const workspaceRoot = path.resolve(projectRoot, '../..');
+const loggerPkg = path.resolve(projectRoot, '../../packages/logger');
 const sharedPkg = path.resolve(projectRoot, '../../packages/shared');
 const billingPkg = path.resolve(projectRoot, '../../packages/billing');
+const observabilityPkg = path.resolve(
+  projectRoot,
+  '../../packages/observability'
+);
 
 const config = getDefaultConfig(projectRoot);
 
@@ -24,8 +29,16 @@ config.resolver.sourceExts = [
   ...otherExts,
 ];
 
+const adopterDir = path.resolve(projectRoot, '../../adopter');
+
 // Only watch what we need
-config.watchFolders = [sharedPkg, billingPkg];
+config.watchFolders = [
+  loggerPkg,
+  sharedPkg,
+  billingPkg,
+  observabilityPkg,
+  adopterDir,
+];
 
 // Resolve node_modules (mobile first, then root)
 config.resolver.nodeModulesPaths = [
@@ -60,6 +73,43 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (moduleName === 'expo/virtual/env') {
     return {
       filePath: path.resolve(projectRoot, 'shims/expo-virtual-env.js'),
+      type: 'sourceFile',
+    };
+  }
+
+  if (typeof moduleName === 'string' && moduleName.startsWith('@adopter/')) {
+    const subpath = moduleName.slice('@adopter/'.length);
+    const base = path.join(adopterDir, subpath);
+    const candidates = [
+      `${base}.ts`,
+      `${base}.tsx`,
+      `${base}.native.ts`,
+      `${base}.native.tsx`,
+      path.join(base, 'index.ts'),
+      path.join(base, 'index.tsx'),
+    ];
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate)) {
+        return { filePath: candidate, type: 'sourceFile' };
+      }
+    }
+  }
+
+  const workspacePackageAliases = {
+    '@beakerstack/observability': path.join(observabilityPkg, 'src/index.ts'),
+    '@beakerstack/observability/web': path.join(observabilityPkg, 'src/web.ts'),
+    '@beakerstack/observability/native': path.join(
+      observabilityPkg,
+      'src/native.ts'
+    ),
+    '@beakerstack/observability/edge': path.join(
+      observabilityPkg,
+      'src/edge.ts'
+    ),
+  };
+  if (workspacePackageAliases[moduleName]) {
+    return {
+      filePath: workspacePackageAliases[moduleName],
       type: 'sourceFile',
     };
   }

@@ -45,7 +45,7 @@ jest.mock('@supabase/supabase-js', () => ({
 // Mock Logger
 const mockLoggerDebug = jest.fn();
 const mockLoggerInfo = jest.fn();
-jest.mock('@beakerstack/shared/utils/logger', () => ({
+jest.mock('@beakerstack/logger', () => ({
   Logger: {
     debug: mockLoggerDebug,
     info: mockLoggerInfo,
@@ -93,7 +93,7 @@ describe('supabase.ts', () => {
           storage: mockAsyncStorage,
           autoRefreshToken: true,
           persistSession: true,
-          detectSessionInUrl: false,
+          detectSessionInUrl: true,
         },
       })
     );

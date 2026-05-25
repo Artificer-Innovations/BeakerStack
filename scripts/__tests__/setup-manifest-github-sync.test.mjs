@@ -9,15 +9,47 @@ import {
   resolveSetupFromPhase,
 } from '../lib/setup-manifest.mjs';
 
+test('listMissingRequiredGithubCiDetails includes def for github-phase filtering', () => {
+  const details = listMissingRequiredGithubCiDetails({});
+  const stripe = details.find(d => d.name === 'STAGING_STRIPE_SECRET_KEY');
+  assert.ok(stripe?.def);
+  assert.equal(stripe.primaryEnvKey, 'STAGING_STRIPE_SECRET_KEY');
+});
+
+test('listMissingRequiredGithubForCi omits Stripe when SETUP_STRIPE_SKIPPED', () => {
+  const missing = listMissingRequiredGithubForCi({
+    SETUP_STRIPE_SKIPPED: 'true',
+    SUPABASE_ACCESS_TOKEN: 'pat',
+    AWS_ACCESS_KEY_ID: 'x',
+    AWS_SECRET_ACCESS_KEY: 'y',
+  });
+  assert.ok(!missing.some(m => m.name.includes('STRIPE')));
+});
+
+test('collectGithubSecretPayload includes optional KIT_* when set', () => {
+  const payload = collectGithubSecretPayload({
+    KIT_API_KEY: 'k',
+    KIT_CRON_SECRET: 'c',
+    KIT_WEBHOOK_SECRET: 'w',
+  });
+  assert.equal(payload.KIT_API_KEY, 'k');
+  assert.equal(payload.KIT_CRON_SECRET, 'c');
+  assert.equal(payload.KIT_WEBHOOK_SECRET, 'w');
+});
+
 test('listMissingRequiredGithubCiDetails includes primaryEnvKey and groups core before aws', () => {
   const details = listMissingRequiredGithubCiDetails({});
   assert.ok(details.length > 0);
-  const coreIdx = details.findIndex((d) => d.group === 'core');
-  const awsIdx = details.findIndex((d) => d.group === 'aws');
+  const coreIdx = details.findIndex(d => d.group === 'core');
+  const awsIdx = details.findIndex(d => d.group === 'aws');
   assert.ok(coreIdx !== -1 && awsIdx !== -1);
   assert.ok(coreIdx < awsIdx);
-  const core = details.find((d) => d.name === 'SUPABASE_ACCESS_TOKEN');
-  assert.ok(core && core.primaryEnvKey === 'SUPABASE_ACCESS_TOKEN' && core.kind === 'secret');
+  const core = details.find(d => d.name === 'SUPABASE_ACCESS_TOKEN');
+  assert.ok(
+    core &&
+      core.primaryEnvKey === 'SUPABASE_ACCESS_TOKEN' &&
+      core.kind === 'secret'
+  );
 });
 
 test('resolveSetupFromPhase maps gh to github', () => {
@@ -31,7 +63,7 @@ test('mergeGithubSyncEnv: later file layers override earlier; session overrides 
     { AWS_ACCESS_KEY_ID: 'from-session', EXPO_TOKEN: 'tok' },
     { AWS_ACCESS_KEY_ID: 'from-local', STAGING_SUPABASE_URL: 'https://local' },
     { AWS_ACCESS_KEY_ID: 'from-cloud', STAGING_SUPABASE_URL: 'https://cloud' },
-    { AWS_ACCESS_KEY_ID: 'from-aws-file' },
+    { AWS_ACCESS_KEY_ID: 'from-aws-file' }
   );
   assert.equal(merged.AWS_ACCESS_KEY_ID, 'from-session');
   assert.equal(merged.STAGING_SUPABASE_URL, 'https://cloud');
@@ -39,7 +71,12 @@ test('mergeGithubSyncEnv: later file layers override earlier; session overrides 
 });
 
 test('mergeGithubSyncEnv: disk-only keys appear when session omits them', () => {
-  const merged = mergeGithubSyncEnv({}, {}, { AWS_SECRET_ACCESS_KEY: 'sec', SUPABASE_ACCESS_TOKEN: 'pat' }, {});
+  const merged = mergeGithubSyncEnv(
+    {},
+    {},
+    { AWS_SECRET_ACCESS_KEY: 'sec', SUPABASE_ACCESS_TOKEN: 'pat' },
+    {}
+  );
   assert.equal(merged.AWS_SECRET_ACCESS_KEY, 'sec');
   assert.equal(merged.SUPABASE_ACCESS_TOKEN, 'pat');
 });
@@ -58,7 +95,8 @@ test('collectGithubSecretPayload picks up values supplied only via merged disk-s
       STAGING_SUPABASE_DB_PASSWORD: 'pw',
       STAGING_STRIPE_SECRET_KEY: 'sk_test_staging',
       STAGING_STRIPE_WEBHOOK_SECRET: 'whsec_staging',
-      STAGING_BILLING_ALLOWED_ORIGINS: 'https://staging.app.example,https://app.example',
+      STAGING_BILLING_ALLOWED_ORIGINS:
+        'https://staging.app.example,https://app.example',
       PRODUCTION_SUPABASE_URL: 'https://prd.supabase.co',
       PRODUCTION_SUPABASE_ANON_KEY: 'anon2',
       PRODUCTION_SUPABASE_PROJECT_REF: 'ref2',
@@ -75,7 +113,7 @@ test('collectGithubSecretPayload picks up values supplied only via merged disk-s
       PR_PREVIEW_CERTIFICATE_ARN: 'arn:aws:acm:…',
       EXPO_PROJECT_ID: 'uuid',
     },
-    {},
+    {}
   );
   const payload = collectGithubSecretPayload(env);
   assert.equal(payload.AWS_ACCESS_KEY_ID, 'AKIA');
@@ -91,8 +129,12 @@ test('collectGithubSecretPayload picks up values supplied only via merged disk-s
 test('listMissingRequiredGithubForCi: empty env lists all required manifest entries', () => {
   const missing = listMissingRequiredGithubForCi({});
   assert.ok(missing.length > 5);
-  assert.ok(missing.some((m) => m.name === 'AWS_ACCESS_KEY_ID' && m.kind === 'secret'));
-  assert.ok(missing.some((m) => m.name === 'PR_PREVIEW_DOMAIN' && m.kind === 'variable'));
+  assert.ok(
+    missing.some(m => m.name === 'AWS_ACCESS_KEY_ID' && m.kind === 'secret')
+  );
+  assert.ok(
+    missing.some(m => m.name === 'PR_PREVIEW_DOMAIN' && m.kind === 'variable')
+  );
 });
 
 test('listMissingRequiredGithubForCi: satisfied required entries are omitted', () => {
@@ -126,7 +168,7 @@ test('listMissingRequiredGithubForCi: satisfied required entries are omitted', (
       EXPO_TOKEN: 'et',
       EXPO_PROJECT_ID: 'ep',
     },
-    {},
+    {}
   );
   Object.assign(env, {
     PR_PREVIEW_DOMAIN: 'd.example',
@@ -173,7 +215,7 @@ test('listMissingRequiredGithubForCi: optional google block not required', () =>
       PR_PREVIEW_STACK_NAME: 's',
       EXPO_ACCOUNT: 'acct',
     },
-    {},
+    {}
   );
   const missing = listMissingRequiredGithubForCi(env);
   assert.equal(missing.length, 0);

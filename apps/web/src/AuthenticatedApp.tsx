@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
+import { ObservabilityUserSync } from './components/ObservabilityUserSync';
 import { supabase } from './lib/supabase';
 
 /**
@@ -10,6 +11,7 @@ import { supabase } from './lib/supabase';
 export default function AuthenticatedApp() {
   return (
     <AuthProvider supabaseClient={supabase}>
+      <ObservabilityUserSync />
       <ProfileProvider supabaseClient={supabase}>
         <Outlet />
       </ProfileProvider>

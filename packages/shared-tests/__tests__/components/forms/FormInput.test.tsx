@@ -74,6 +74,35 @@ describe('FormInput (Web)', () => {
     expect(screen.queryByText(/required/i)).not.toBeInTheDocument();
   });
 
+  it('renders password input type', () => {
+    const mockOnChange = jest.fn();
+    render(
+      <FormInput
+        label='Password'
+        value=''
+        onChange={mockOnChange}
+        type='password'
+      />
+    );
+    expect(screen.getByLabelText('Password')).toHaveAttribute(
+      'type',
+      'password'
+    );
+  });
+
+  it('uses custom aria-label when provided', () => {
+    const mockOnChange = jest.fn();
+    render(
+      <FormInput
+        label='Hidden label'
+        value=''
+        onChange={mockOnChange}
+        aria-label='Visible field'
+      />
+    );
+    expect(screen.getByLabelText('Visible field')).toBeInTheDocument();
+  });
+
   it('displays placeholder text', () => {
     const mockOnChange = jest.fn();
     render(
@@ -258,7 +287,7 @@ describe('FormInput (Web)', () => {
     const textarea = screen.getByLabelText(
       'Description'
     ) as HTMLTextAreaElement;
-    expect(textarea.disabled).toBe(true);
+    expect(textarea).toBeDisabled();
   });
 
   it('shows required indicator for textarea', () => {
@@ -277,6 +306,6 @@ describe('FormInput (Web)', () => {
     const textarea = screen.getByLabelText(
       'Description'
     ) as HTMLTextAreaElement;
-    expect(textarea.required).toBe(true);
+    expect(textarea).toBeRequired();
   });
 });

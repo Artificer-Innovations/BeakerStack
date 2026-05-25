@@ -1,7 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
+import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import { readAndClearPostAuthRedirect } from '../auth/postAuthRedirect';
+import {
+  finalizeInviteSignup,
+  INVITE_TOKEN_STORAGE_KEY,
+} from './SignupInvitePage';
+import {
+  supabase,
+  hasPasswordRecoveryCallback,
+  clearPasswordRecoveryCallback,
+} from '@/lib/supabase';
 
 export default function AuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);
@@ -13,6 +23,59 @@ export default function AuthCallbackPage() {
   const delayedLoginTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
+
+  const navigateToResetPassword = useCallback(() => {
+    if (navigatedRef.current) return;
+    navigatedRef.current = true;
+    clearPasswordRecoveryCallback();
+    navigate('/reset-password', { replace: true });
+  }, [navigate]);
+
+  const completeInviteSignup = useCallback(
+    (inviteToken: string, userId: string, userEmail: string | undefined) => {
+      void finalizeInviteSignup(inviteToken, userId, userEmail)
+        .then(() =>
+          navigate(getAdopterConfig().postLoginPath, { replace: true })
+        )
+        .catch(() => {
+          setError(
+            'Could not complete invite signup. Try the invite link again.'
+          );
+          setTimeout(() => {
+            navigatedRef.current = true;
+            navigate('/login', { replace: true });
+          }, 3000);
+        });
+    },
+    [navigate]
+  );
+
+  // Handle PASSWORD_RECOVERY before auth.user triggers the /dashboard redirect.
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(event => {
+      if (event === 'PASSWORD_RECOVERY') {
+        navigateToResetPassword();
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [navigateToResetPassword]);
+
+  // Fallback when recovery was detected but PASSWORD_RECOVERY never fires (e.g. stale session).
+  useEffect(() => {
+    if (!hasPasswordRecoveryCallback()) return;
+
+    const fallbackTimer = setTimeout(() => {
+      if (navigatedRef.current) return;
+      const a = authRef.current;
+      if (a.user && !a.loading) {
+        navigateToResetPassword();
+      }
+    }, 1500);
+
+    return () => clearTimeout(fallbackTimer);
+  }, [navigateToResetPassword, auth.user, auth.loading]);
 
   useEffect(() => {
     if (navigatedRef.current) return;
@@ -33,12 +96,28 @@ export default function AuthCallbackPage() {
       return () => clearTimeout(t);
     }
 
+    const recoveryType = hashParams.get('type') || queryParams.get('type');
+    const isRecovery =
+      recoveryType === 'recovery' || hasPasswordRecoveryCallback();
+
+    // Never fall through to auth.user → /dashboard during password recovery.
+    if (isRecovery) return;
+
     if (auth.loading) return;
 
     if (auth.user) {
       navigatedRef.current = true;
+      const inviteToken = sessionStorage.getItem(INVITE_TOKEN_STORAGE_KEY);
+      if (inviteToken) {
+        completeInviteSignup(
+          inviteToken,
+          auth.user.id,
+          auth.user.email ?? undefined
+        );
+        return;
+      }
       const stored = readAndClearPostAuthRedirect();
-      navigate(stored ?? '/dashboard', { replace: true });
+      navigate(stored ?? getAdopterConfig().postLoginPath, { replace: true });
       return;
     }
 
@@ -54,7 +133,7 @@ export default function AuthCallbackPage() {
       if (a.user && !a.loading) {
         navigatedRef.current = true;
         const stored = readAndClearPostAuthRedirect();
-        navigate(stored ?? '/dashboard', { replace: true });
+        navigate(stored ?? getAdopterConfig().postLoginPath, { replace: true });
       } else if (!a.loading) {
         setError(
           'Authentication completed but session not established. Please try again.'
@@ -73,7 +152,7 @@ export default function AuthCallbackPage() {
         delayedLoginTimerRef.current = null;
       }
     };
-  }, [auth.user, auth.loading, navigate]);
+  }, [auth.user, auth.loading, navigate, completeInviteSignup]);
 
   if (error) {
     return (
@@ -102,7 +181,7 @@ export default function AuthCallbackPage() {
       <div className='max-w-md w-full space-y-8 text-center'>
         <div>
           <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white'>
-            Completing sign in...
+            Completing authentication...
           </h2>
           <div className='mt-8 flex justify-center'>
             <svg
