@@ -199,8 +199,8 @@ describe('uncommentSmtpSection', () => {
       'commented header should be gone'
     );
     assert.ok(
-      !result.includes('smtp.sendgrid.net'),
-      'sendgrid placeholder should be gone'
+      !/host\s*=\s*"smtp\.sendgrid\.net"/.test(result),
+      'sendgrid placeholder host should be gone'
     );
     assert.ok(
       !result.includes('# Use a production-ready SMTP server'),

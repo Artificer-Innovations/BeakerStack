@@ -5,7 +5,6 @@ const _sentryLoad = import('@sentry/react').catch(() => null);
 
 interface ErrorBoundaryState {
   hasError: boolean;
-  error: Error | null;
 }
 
 interface Props {
@@ -16,11 +15,11 @@ interface Props {
 export class ErrorBoundary extends React.Component<Props, ErrorBoundaryState> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
+  static getDerivedStateFromError(_error: Error) {
+    return { hasError: true };
   }
 
   override componentDidCatch(error: Error, info: React.ErrorInfo) {

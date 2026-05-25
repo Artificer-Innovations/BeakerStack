@@ -1,8 +1,5 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
-const pkgRoot = path.dirname(fileURLToPath(new URL(import.meta.url)));
 const mergeCoverage = process.env.COVERAGE_MERGE === '1';
 
 export default defineConfig({

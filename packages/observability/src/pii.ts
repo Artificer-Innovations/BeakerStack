@@ -8,7 +8,9 @@ export async function hashUserId(id: string): Promise<string> {
   return `u_${hex}`;
 }
 
-const EMAIL_PATTERN = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+// Bounded quantifiers avoid polynomial backtracking on adversarial input (CodeQL).
+const EMAIL_PATTERN =
+  /[a-zA-Z0-9._%+-]{1,64}@[a-zA-Z0-9.-]{1,253}\.[a-zA-Z]{2,63}/g;
 
 export function scrubEmail(str: string): string {
   return str.replace(EMAIL_PATTERN, '[email]');
