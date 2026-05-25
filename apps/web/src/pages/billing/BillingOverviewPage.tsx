@@ -10,10 +10,7 @@ import {
   type BillingUiStateKind,
 } from '@beakerstack/billing';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
-import {
-  billingConfig,
-  BEAKERSTACK_METER_AI_SUMMARIZE,
-} from '@adopter/config/billing';
+import { billingConfig, METER_AI_SUMMARIZE } from '@adopter/config/billing';
 import { formatMonthYear } from '@beakerstack/billing/presentation';
 import { useDemoCollectionCount } from '@adopter/web/billing/useDemoCollectionCount';
 import { Banner } from '../../components/billing/Banner.web';
@@ -43,8 +40,8 @@ export default function BillingOverviewPage() {
     used,
     limit,
     loading: usageLoad,
-  } = useUsage<typeof billingConfig, typeof BEAKERSTACK_METER_AI_SUMMARIZE>(
-    BEAKERSTACK_METER_AI_SUMMARIZE
+  } = useUsage<typeof billingConfig, typeof METER_AI_SUMMARIZE>(
+    METER_AI_SUMMARIZE
   );
   const { items: invoices, loading: invLoad } = useInvoices<
     typeof billingConfig

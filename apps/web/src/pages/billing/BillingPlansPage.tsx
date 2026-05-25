@@ -11,10 +11,7 @@ import {
 } from '@beakerstack/billing';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import {
-  billingConfig,
-  BEAKERSTACK_METER_AI_SUMMARIZE,
-} from '@adopter/config/billing';
+import { billingConfig, METER_AI_SUMMARIZE } from '@adopter/config/billing';
 import {
   annualListCentsFromSync,
   computeDowngradeBlockers,
@@ -61,8 +58,8 @@ export default function BillingPlansPage() {
   } = useBillingStripeActions<typeof billingConfig>();
   const { used: aiUsed } = useUsage<
     typeof billingConfig,
-    typeof BEAKERSTACK_METER_AI_SUMMARIZE
-  >(BEAKERSTACK_METER_AI_SUMMARIZE);
+    typeof METER_AI_SUMMARIZE
+  >(METER_AI_SUMMARIZE);
   const { count: colCount = 0, maxItemsInAnyCollection = 0 } =
     useDemoCollectionCount();
 

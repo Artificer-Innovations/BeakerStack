@@ -6,7 +6,7 @@ import {
 import { UsageIndicator } from '@beakerstack/billing/web';
 import {
   billingConfig as adopterBillingConfig,
-  BEAKERSTACK_METER_AI_SUMMARIZE,
+  METER_AI_SUMMARIZE,
 } from '@adopter/config/billing';
 import {
   booleanFeatureLabel,
@@ -74,7 +74,7 @@ export default function BillingUsagePage() {
           {Object.keys(plan.usage_limits).map(m => (
             <div key={m} className='mt-3'>
               <UsageIndicator<typeof billingConfig>
-                meter={m as typeof BEAKERSTACK_METER_AI_SUMMARIZE}
+                meter={m as typeof METER_AI_SUMMARIZE}
                 variant='expanded'
                 label={meterCopy[m]?.label ?? m}
                 description={meterCopy[m]?.description}

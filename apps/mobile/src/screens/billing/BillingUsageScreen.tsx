@@ -19,7 +19,7 @@ import {
 } from '@beakerstack/billing/presentation';
 import {
   billingConfig as adopterBillingConfig,
-  BEAKERSTACK_METER_AI_SUMMARIZE,
+  METER_AI_SUMMARIZE,
 } from '@adopter/config/billing';
 import { numericPlanFeature } from '../../billing/planFeatureValue';
 import { useDemoCollectionCount } from '@adopter/mobile/billing/useDemoCollectionCount';
@@ -143,7 +143,7 @@ export function BillingUsageScreen(): ReactElement {
         {Object.keys(plan.usage_limits).map(m => (
           <View key={m} style={billingStyles.meterBlock}>
             <UsageIndicator<typeof billingConfig>
-              meter={m as typeof BEAKERSTACK_METER_AI_SUMMARIZE}
+              meter={m as typeof METER_AI_SUMMARIZE}
               variant='expanded'
               label={meterCopy[m]?.label ?? m}
               description={meterCopy[m]?.description}

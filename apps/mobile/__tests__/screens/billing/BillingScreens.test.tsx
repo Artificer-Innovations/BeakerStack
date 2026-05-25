@@ -13,6 +13,7 @@ import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { BillingOverviewScreen } from '../../../src/screens/billing/BillingOverviewScreen';
 import { BillingUsageScreen } from '../../../src/screens/billing/BillingUsageScreen';
 import { useDemoCollectionCount } from '@adopter/mobile/billing/useDemoCollectionCount';
+import { branding } from '@adopter/config/branding';
 
 jest.mock('@react-navigation/native', () => {
   const actual = jest.requireActual('@react-navigation/native');
@@ -240,7 +241,9 @@ describe('BillingOverviewScreen', () => {
     const { getByText } = renderWithNav(<BillingOverviewScreen />);
     expect(getByText('Payment problem')).toBeTruthy();
     expect(getByText(/Your last payment did not go through/i)).toBeTruthy();
-    expect(getByText(/Beaker Stack web app/i)).toBeTruthy();
+    expect(
+      getByText(new RegExp(`${branding.displayName} web app`, 'i'))
+    ).toBeTruthy();
   });
 
   it('shows downgrade pending banner with target plan name from catalog', () => {
