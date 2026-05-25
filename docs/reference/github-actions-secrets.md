@@ -20,6 +20,7 @@ This file lists repository **secrets** and **variables** the setup wizard can sy
 | `AWS_SESSION_TOKEN`                        | yes      | aws        |
 | `STAGING_SUPABASE_URL`                     | no       | staging    |
 | `STAGING_SUPABASE_ANON_KEY`                | no       | staging    |
+| `STAGING_SUPABASE_SERVICE_ROLE_KEY`        | no       | staging    |
 | `STAGING_SUPABASE_PROJECT_REF`             | no       | staging    |
 | `STAGING_SUPABASE_DB_PASSWORD`             | no       | staging    |
 | `STAGING_STRIPE_SECRET_KEY`                | no       | staging    |
@@ -27,6 +28,7 @@ This file lists repository **secrets** and **variables** the setup wizard can sy
 | `STAGING_BILLING_ALLOWED_ORIGINS`          | yes      | staging    |
 | `PRODUCTION_SUPABASE_URL`                  | no       | production |
 | `PRODUCTION_SUPABASE_ANON_KEY`             | no       | production |
+| `PRODUCTION_SUPABASE_SERVICE_ROLE_KEY`     | no       | production |
 | `PRODUCTION_SUPABASE_PROJECT_REF`          | no       | production |
 | `PRODUCTION_SUPABASE_DB_PASSWORD`          | no       | production |
 | `PRODUCTION_STRIPE_SECRET_KEY`             | no       | production |
@@ -34,6 +36,7 @@ This file lists repository **secrets** and **variables** the setup wizard can sy
 | `PRODUCTION_BILLING_ALLOWED_ORIGINS`       | yes      | production |
 | `PREVIEW_SUPABASE_URL`                     | no       | preview    |
 | `PREVIEW_SUPABASE_ANON_KEY`                | no       | preview    |
+| `PR_TESTING_SUPABASE_SERVICE_ROLE_KEY`     | no       | preview    |
 | `SUPABASE_PREVIEW_PROJECT_REF`             | no       | preview    |
 | `SUPABASE_PREVIEW_DB_PASSWORD`             | no       | preview    |
 | `SUPABASE_PREVIEW_DB_URL`                  | no       | preview    |
