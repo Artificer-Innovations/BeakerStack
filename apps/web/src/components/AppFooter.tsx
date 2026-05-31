@@ -33,6 +33,12 @@ export function AppFooter() {
             aria-label='Legal'
           >
             <Link
+              to='/help'
+              className='text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors'
+            >
+              Help
+            </Link>
+            <Link
               to='/terms'
               className='text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors'
             >

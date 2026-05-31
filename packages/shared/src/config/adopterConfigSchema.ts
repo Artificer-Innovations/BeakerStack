@@ -16,6 +16,7 @@ export const legalSchema = z.object({
   brandUrl: z.string().url(),
   legalEntityName: z.string(),
   contactEmail: z.string().email(),
+  contactPhone: z.string(),
   mailingAddress: z.string(),
 });
 

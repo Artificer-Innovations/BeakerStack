@@ -9,6 +9,7 @@ export default {
     './src/**/*.{js,ts,jsx,tsx}',
     '../../packages/shared/src/components/**/*.{js,ts,jsx,tsx}',
     '../../packages/shared/src/config/**/*.{js,ts}',
+    '../../packages/articles/src/**/*.{js,ts,jsx,tsx}',
     '../../adopter/web/**/*.{js,ts,jsx,tsx}',
   ],
   safelist: [

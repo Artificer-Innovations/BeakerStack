@@ -11,6 +11,8 @@
  * - packages/waitlist/coverage (Vitest)
  * - packages/email/coverage (Vitest)
  * - packages/marketing-email/coverage (Vitest)
+ * - packages/help/coverage (Vitest)
+ * - packages/articles/coverage (Vitest)
  * - packages/observability/coverage (Vitest)
  * - packages/logger/coverage (Vitest)
  */
@@ -29,6 +31,8 @@ const coverageDirs = [
   { name: 'waitlist', path: 'packages/waitlist/coverage' },
   { name: 'email', path: 'packages/email/coverage' },
   { name: 'marketing-email', path: 'packages/marketing-email/coverage' },
+  { name: 'help', path: 'packages/help/coverage' },
+  { name: 'articles', path: 'packages/articles/coverage' },
   { name: 'observability', path: 'packages/observability/coverage' },
   { name: 'logger', path: 'packages/logger/coverage' },
 ];

@@ -36,6 +36,10 @@ const AuthConfirmPage = lazy(() => import('./pages/AuthConfirmPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const PolicyPage = lazy(() => import('./pages/PolicyPage'));
+const HelpPage = lazy(() => import('./pages/HelpPage'));
+const ArticlesIndexPage = lazy(() => import('./pages/ArticlesIndexPage'));
+const ArticlePage = lazy(() => import('./pages/ArticlePage'));
+const ArticlesTagPage = lazy(() => import('./pages/ArticlesTagPage'));
 const BillingOverviewPage = lazy(
   () => import('./pages/billing/BillingOverviewPage')
 );
@@ -109,6 +113,10 @@ function App() {
                 path='/refunds'
                 element={<PolicyPage policy='refunds' />}
               />
+              <Route path='/help' element={<HelpPage />} />
+              <Route path='/articles' element={<ArticlesIndexPage />} />
+              <Route path='/articles/tags/:tag' element={<ArticlesTagPage />} />
+              <Route path='/articles/:slug' element={<ArticlePage />} />
             </Route>
 
             <Route

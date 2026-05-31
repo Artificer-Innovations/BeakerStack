@@ -410,6 +410,21 @@ Resources:
           var request = event.request;
           var uri = request.uri || '/';
           var previewPrefixBase = '${PreviewPrefix}';
+          function mapArticlesPrerenderUri(basePrefix, restOfPath) {
+            if (!restOfPath) return null;
+            if (restOfPath === '/articles' || restOfPath === '/articles/') {
+              return basePrefix + '/prerender-articles/index.html';
+            }
+            var tagMatch = restOfPath.match(/^\/articles\/tags\/([^/]+)\/?$/);
+            if (tagMatch) {
+              return basePrefix + '/prerender-articles/tags/' + tagMatch[1] + '.html';
+            }
+            var articleMatch = restOfPath.match(/^\/articles\/([^/]+)\/?$/);
+            if (articleMatch) {
+              return basePrefix + '/prerender-articles/' + articleMatch[1] + '.html';
+            }
+            return null;
+          }
           var prPathPattern = new RegExp('^/(' + previewPrefixBase + '\\d+)(/.*)?$');
           var match = uri.match(prPathPattern);
           if (!match) {
@@ -419,6 +434,11 @@ Resources:
           var restOfPath = match[2];
           if (!restOfPath || restOfPath === '/') {
             request.uri = '/' + prPrefix + '/prerender-home.html';
+            return request;
+          }
+          var articlesUri = mapArticlesPrerenderUri('/' + prPrefix, restOfPath);
+          if (articlesUri) {
+            request.uri = articlesUri;
             return request;
           }
           var trimmedPath = restOfPath.replace(/^\//, '').replace(/\/$/, '');

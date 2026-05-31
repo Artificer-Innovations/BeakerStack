@@ -94,6 +94,7 @@ public
 apps/web/public/*
 !apps/web/public/landing/
 !apps/web/public/landing/**
+!apps/web/public/sitemap-articles.xml
 
 # Vuepress build output
 .vuepress/dist
