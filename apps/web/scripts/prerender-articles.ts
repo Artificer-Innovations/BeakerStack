@@ -103,6 +103,7 @@ writePrerender(
   indexBody
 );
 
+// Smoke checks: index, article detail, and tag pages must render an <h1> (see build log).
 if (!indexBody.includes('<h1')) {
   console.error('pre-render smoke check: articles index missing <h1>');
   process.exit(1);
