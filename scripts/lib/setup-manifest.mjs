@@ -95,6 +95,12 @@ export const GITHUB_SECRETS = [
   },
   {
     type: 'secret',
+    name: 'STAGING_SUPABASE_SERVICE_ROLE_KEY',
+    envKeys: ['STAGING_SUPABASE_SERVICE_ROLE_KEY'],
+    group: 'staging',
+  },
+  {
+    type: 'secret',
     name: 'STAGING_SUPABASE_PROJECT_REF',
     envKeys: ['STAGING_SUPABASE_PROJECT_REF'],
     group: 'staging',
@@ -138,6 +144,12 @@ export const GITHUB_SECRETS = [
   },
   {
     type: 'secret',
+    name: 'PRODUCTION_SUPABASE_SERVICE_ROLE_KEY',
+    envKeys: ['PRODUCTION_SUPABASE_SERVICE_ROLE_KEY'],
+    group: 'production',
+  },
+  {
+    type: 'secret',
     name: 'PRODUCTION_SUPABASE_PROJECT_REF',
     envKeys: ['PRODUCTION_SUPABASE_PROJECT_REF'],
     group: 'production',
@@ -177,6 +189,12 @@ export const GITHUB_SECRETS = [
     type: 'secret',
     name: 'PREVIEW_SUPABASE_ANON_KEY',
     envKeys: ['PREVIEW_SUPABASE_ANON_KEY', 'PR_TESTING_SUPABASE_ANON_KEY'],
+    group: 'preview',
+  },
+  {
+    type: 'secret',
+    name: 'PR_TESTING_SUPABASE_SERVICE_ROLE_KEY',
+    envKeys: ['PR_TESTING_SUPABASE_SERVICE_ROLE_KEY', 'PREVIEW_SUPABASE_SERVICE_ROLE_KEY'],
     group: 'preview',
   },
   {
@@ -401,12 +419,7 @@ export const GITHUB_VARIABLES = [
 ];
 
 /** Env keys written by setup but not listed on GitHub secret defs (local generated env only). */
-const EXTRA_MERGEABLE_ENV_KEYS = [
-  'STAGING_SUPABASE_SERVICE_ROLE_KEY',
-  'PRODUCTION_SUPABASE_SERVICE_ROLE_KEY',
-  'PREVIEW_SUPABASE_SERVICE_ROLE_KEY',
-  'PR_TESTING_SUPABASE_SERVICE_ROLE_KEY',
-];
+const EXTRA_MERGEABLE_ENV_KEYS = [];
 
 /**
  * Keys allowed when merging a dotenv-style secret file or paste into setup `acc`.
