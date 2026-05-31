@@ -13,9 +13,10 @@ export const TEST_ADOPTER_FIXTURE: AdopterConfig = {
   },
   legal: {
     brandName: 'Test App',
-    brandUrl: 'TestApp.com',
+    brandUrl: 'https://testapp.com',
     legalEntityName: 'Test Entity LLC',
     contactEmail: 'test@example.com',
+    contactPhone: '',
     mailingAddress: '123 Test St, Test City, TS 00000, USA',
   },
   postLoginPath: '/dashboard',
