@@ -1,6 +1,6 @@
 BEGIN;
 
-SELECT plan(8);
+SELECT plan(17);
 
 -- 1. pg_cron extension exists
 SELECT has_extension('pg_cron', 'pg_cron extension is installed');
@@ -72,6 +72,76 @@ SELECT ok(
    WHERE email = 'cron-test@example.com' AND status = 'processing')::int = 1,
   'kit_sync_dequeue returns pending row as processing'
 );
+
+-- 9. kit_sync_runtime_config table exists
+SELECT has_table('public', 'kit_sync_runtime_config', 'kit_sync_runtime_config table exists');
+
+-- 10. RLS is enabled on kit_sync_runtime_config
+SELECT ok(
+  (SELECT c.relrowsecurity
+   FROM pg_class c
+   JOIN pg_namespace n ON n.oid = c.relnamespace
+   WHERE n.nspname = 'public' AND c.relname = 'kit_sync_runtime_config'),
+  'kit_sync_runtime_config has RLS enabled'
+);
+
+-- 11. anon role has no SELECT on kit_sync_runtime_config
+SELECT ok(
+  NOT has_table_privilege('anon', 'public.kit_sync_runtime_config', 'SELECT'),
+  'anon has no SELECT on kit_sync_runtime_config'
+);
+
+-- 12. authenticated role has no SELECT on kit_sync_runtime_config
+-- Supabase default privileges grant both anon and authenticated; test both.
+SELECT ok(
+  NOT has_table_privilege('authenticated', 'public.kit_sync_runtime_config', 'SELECT'),
+  'authenticated has no SELECT on kit_sync_runtime_config'
+);
+
+-- 13. kit_sync_setup_cron executes without error and upserts config row
+SELECT lives_ok(
+  $$ SELECT kit_sync_setup_cron('https://test.supabase.co/functions/v1/kit-sync', 'test-secret-abc') $$,
+  'kit_sync_setup_cron executes without error'
+);
+
+-- 14. config row contains the expected worker_url and cron_secret
+SELECT ok(
+  EXISTS (
+    SELECT 1 FROM public.kit_sync_runtime_config
+    WHERE singleton = true
+      AND worker_url  = 'https://test.supabase.co/functions/v1/kit-sync'
+      AND cron_secret = 'test-secret-abc'
+  ),
+  'kit_sync_runtime_config row has correct worker_url and cron_secret after setup'
+);
+
+-- 15. cron.job row exists for kit-sync-worker
+SELECT ok(
+  EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'kit-sync-worker'),
+  'kit-sync-worker cron job row exists after setup'
+);
+
+-- 16. cron.job.command for kit-sync-worker does not contain the literal secret
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1 FROM cron.job
+    WHERE jobname = 'kit-sync-worker'
+      AND command LIKE '%test-secret-abc%'
+  ),
+  'kit-sync-worker cron command does not inline the bearer secret'
+);
+
+-- 17. service_role has no SELECT on kit_sync_runtime_config via table grant
+-- The SECURITY DEFINER function accesses the table as owner; no grant needed.
+SELECT ok(
+  NOT has_table_privilege('service_role', 'public.kit_sync_runtime_config', 'SELECT'),
+  'service_role has no direct SELECT on kit_sync_runtime_config'
+);
+
+-- Cleanup: unschedule the test cron job to avoid leaving stale rows in
+-- cron.job on non-ephemeral databases (pg_cron commits independently of
+-- the outer pgTAP transaction).
+PERFORM cron.unschedule('kit-sync-worker');
 
 SELECT * FROM finish();
 
