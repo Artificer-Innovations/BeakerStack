@@ -20,6 +20,34 @@ describe('computeRelatedSlugs', () => {
     expect(computeRelatedSlugs(articleA, articles)).toEqual(['b']);
   });
 
+  it('breaks ties by date when shared tag counts match', () => {
+    const current = {
+      slug: 'current',
+      date: '2026-05-15',
+      tags: ['guide', 'extra'],
+    };
+    const tied = [
+      current,
+      { slug: 'newer', date: '2026-05-30', tags: ['guide'] },
+      { slug: 'older', date: '2026-05-01', tags: ['guide'] },
+    ];
+    expect(computeRelatedSlugs(current, tied)).toEqual(['newer', 'older']);
+  });
+
+  it('orders by shared tag count before date', () => {
+    const current = {
+      slug: 'current',
+      date: '2026-05-15',
+      tags: ['alpha', 'beta'],
+    };
+    const ranked = [
+      current,
+      { slug: 'high', date: '2026-05-01', tags: ['alpha', 'beta'] },
+      { slug: 'low', date: '2026-05-30', tags: ['alpha'] },
+    ];
+    expect(computeRelatedSlugs(current, ranked)).toEqual(['high', 'low']);
+  });
+
   it('excludes the current article and articles without shared tags', () => {
     expect(computeRelatedSlugs(articleC, articles)).toEqual([]);
   });
@@ -54,5 +82,11 @@ describe('sortSlugsByArticleDate', () => {
     const slugs = ['missing', 'present'];
     sortSlugsByArticleDate(slugs, [{ slug: 'present', date: '2026-05-30' }]);
     expect(slugs).toEqual(['missing', 'present']);
+  });
+
+  it('leaves order unchanged when both slugs are missing from the article list', () => {
+    const slugs = ['missing-a', 'missing-b'];
+    sortSlugsByArticleDate(slugs, []);
+    expect(slugs).toEqual(['missing-a', 'missing-b']);
   });
 });

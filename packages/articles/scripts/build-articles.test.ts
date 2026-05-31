@@ -73,7 +73,7 @@ Body.
       join(dir, 'live.md'),
       validArticle('live').replace(
         'tags:',
-        'updated: 2026-05-31\nkeywords:\n  - seo\n  - mcp\ntags:'
+        'updated: 2026-05-31\nsnapshotDate: 2026-05-31\nkeywords:\n  - seo\n  - mcp\ntags:'
       ),
       'utf-8'
     );
@@ -85,6 +85,7 @@ Body.
     const manifest = buildArticlesManifest(dir, 'https://beakerstack.com/');
     expect(manifest.articles).toHaveLength(1);
     expect(manifest.articles[0]?.updated).toBe('2026-05-31');
+    expect(manifest.articles[0]?.snapshotDate).toBe('2026-05-31');
     expect(manifest.articles[0]?.keywords).toEqual(['seo', 'mcp']);
     expect(manifest.siteOrigin).toBe('https://beakerstack.com');
   });
