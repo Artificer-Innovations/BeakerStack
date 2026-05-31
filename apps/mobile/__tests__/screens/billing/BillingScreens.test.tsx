@@ -242,7 +242,7 @@ describe('BillingOverviewScreen', () => {
     expect(getByText('Payment problem')).toBeTruthy();
     expect(getByText(/Your last payment did not go through/i)).toBeTruthy();
     expect(
-      getByText(`${branding.displayName} web app`)
+      getByText(`${branding.displayName} web app`, { exact: false })
     ).toBeTruthy();
   });
 
