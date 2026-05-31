@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && vite-node scripts/prerender-home.ts",
+    "build": "npm run build:articles -w @beakerstack/articles && tsc && vite build && vite-node scripts/prerender-home.ts && vite-node scripts/prerender-articles.ts",
     "preview": "vite preview",
     "test": "vitest --run",
     "test:watch": "vitest --watch",
@@ -17,8 +17,10 @@
   },
   "dependencies": {
     "@beakerstack/admin": "^1.0.0",
+    "@beakerstack/articles": "^1.0.0",
     "@beakerstack/billing": "^1.0.0",
     "@beakerstack/email": "^1.0.0",
+    "@beakerstack/help": "^1.0.0",
     "@beakerstack/logger": "^1.0.0",
     "@beakerstack/observability": "^1.0.0",
     "@beakerstack/shared": "^2.0.0",

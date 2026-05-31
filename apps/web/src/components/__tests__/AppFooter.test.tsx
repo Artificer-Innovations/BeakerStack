@@ -16,8 +16,12 @@ function renderFooter() {
 }
 
 describe('AppFooter', () => {
-  it('renders all three policy links', () => {
+  it('renders all policy and help links', () => {
     renderFooter();
+    expect(screen.getByRole('link', { name: 'Help' })).toHaveAttribute(
+      'href',
+      '/help'
+    );
     expect(
       screen.getByRole('link', { name: 'Terms of Service' })
     ).toHaveAttribute('href', '/terms');

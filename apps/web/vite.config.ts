@@ -81,6 +81,11 @@ export default defineConfig(({ mode }) => {
           __dirname,
           '../../packages/shared/src'
         ),
+        '@beakerstack/help': path.resolve(__dirname, '../../packages/help/src'),
+        '@beakerstack/articles': path.resolve(
+          __dirname,
+          '../../packages/articles/src'
+        ),
         '@beakerstack/logger': path.resolve(
           __dirname,
           '../../packages/logger/src'
@@ -160,6 +165,7 @@ export default defineConfig(({ mode }) => {
           // SSR-only landing component — structural duplicate of LandingPage used by the
           // prerender script only; covered by the build-time prerender smoke check
           'apps/web/src/components/landing/LandingPageSSR.tsx',
+          'apps/web/src/components/articles/ArticlesPublicSSR.tsx',
           // Thin composition wrappers — routing/providers tested independently
           'apps/web/src/PublicShell.tsx',
           'apps/web/src/AuthenticatedApp.tsx',

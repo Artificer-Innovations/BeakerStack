@@ -288,7 +288,7 @@ build_web_app() {
   fi
   
   # Check for critical files that should always be present
-  local required_files=("index.html" "prerender-home.html" "assets")
+  local required_files=("index.html" "prerender-home.html" "prerender-articles/index.html" "assets")
   local missing_required=()
   for file in "${required_files[@]}"; do
     if [[ ! -e "${BUILD_DIR}/${file}" ]]; then
@@ -356,6 +356,7 @@ sync_to_s3() {
     --delete \
     --exclude "index.html" \
     --exclude "prerender-home.html" \
+    --exclude "prerender-articles/*" \
     --cache-control "public,max-age=31536000,immutable" \
     --region "${AWS_REGION}" \
     --exact-timestamps
@@ -368,6 +369,12 @@ sync_to_s3() {
 
   log "INFO" "Uploading prerender-home.html (home page pre-render) with short TTL..."
   run_cmd aws s3 cp "${BUILD_DIR}/prerender-home.html" "${s3_uri}/prerender-home.html" \
+    --cache-control "public,max-age=60" \
+    --content-type "text/html; charset=utf-8" \
+    --region "${AWS_REGION}"
+
+  log "INFO" "Uploading prerender-articles/*.html (articles SEO pre-render) with short TTL..."
+  run_cmd aws s3 sync "${BUILD_DIR}/prerender-articles/" "${s3_uri}/prerender-articles/" \
     --cache-control "public,max-age=60" \
     --content-type "text/html; charset=utf-8" \
     --region "${AWS_REGION}"
@@ -388,7 +395,7 @@ sync_to_s3() {
         local rel_path="${file#${BUILD_DIR}/}"
         
         # Skip HTML entry points (handled separately) and anything in assets/ directory
-        if [[ "${rel_path}" == "index.html" ]] || [[ "${rel_path}" == "prerender-home.html" ]] || [[ "${rel_path}" == assets/* ]]; then
+        if [[ "${rel_path}" == "index.html" ]] || [[ "${rel_path}" == "prerender-home.html" ]] || [[ "${rel_path}" == prerender-articles/* ]] || [[ "${rel_path}" == assets/* ]]; then
           continue
         fi
         

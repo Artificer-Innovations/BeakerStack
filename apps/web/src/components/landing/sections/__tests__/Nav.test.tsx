@@ -84,6 +84,48 @@ describe('Nav', () => {
     const mainNav = screen.getByRole('navigation', { name: 'Main' });
     expect(mainNav).toHaveTextContent('Features');
     expect(mainNav).toHaveTextContent('Pricing');
+    expect(mainNav).toHaveTextContent('Articles');
+    expect(mainNav).toHaveTextContent('Help');
+  });
+
+  it('does not duplicate Help when landing config already includes it', () => {
+    render(
+      <MemoryRouter>
+        <Nav
+          config={{
+            ...config,
+            links: [...config.links, { href: '/help', label: 'Help' }],
+          }}
+        />
+      </MemoryRouter>
+    );
+    expect(screen.getAllByRole('link', { name: 'Help' })).toHaveLength(1);
+  });
+
+  it('renders Help as a client route link', () => {
+    renderNav();
+    const helpLink = screen.getByRole('link', { name: 'Help' });
+    expect(helpLink).toHaveAttribute('href', '/help');
+  });
+
+  it('renders Articles as a client route link', () => {
+    renderNav();
+    const articlesLink = screen.getByRole('link', { name: 'Articles' });
+    expect(articlesLink).toHaveAttribute('href', '/articles');
+  });
+
+  it('does not duplicate Articles when landing config already includes it', () => {
+    render(
+      <MemoryRouter>
+        <Nav
+          config={{
+            ...config,
+            links: [...config.links, { href: '/articles', label: 'Articles' }],
+          }}
+        />
+      </MemoryRouter>
+    );
+    expect(screen.getAllByRole('link', { name: 'Articles' })).toHaveLength(1);
   });
 
   it('renders Sign in and Get started buttons', () => {

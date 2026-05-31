@@ -1,7 +1,27 @@
+/* eslint-disable @typescript-eslint/no-unused-vars -- CloudFront Function entrypoint */
 function handler(event) {
-  var request = event.request;
-  var uri = request.uri || '/';
-  var previewPrefixBase = '%%PREVIEW_PREFIX%%';
+  const request = event.request;
+  const uri = request.uri || '/';
+  const previewPrefixBase = '%%PREVIEW_PREFIX%%';
+
+  function mapArticlesPrerenderUri(basePrefix, restOfPath) {
+    // Keep in sync with infra/aws/pr-preview-stack.yml.
+    if (!restOfPath) {
+      return null;
+    }
+    if (restOfPath === '/articles' || restOfPath === '/articles/') {
+      return basePrefix + '/prerender-articles/index.html';
+    }
+    const tagMatch = restOfPath.match(/^\/articles\/tags\/([^/]+)\/?$/);
+    if (tagMatch) {
+      return basePrefix + '/prerender-articles/tags/' + tagMatch[1] + '.html';
+    }
+    const articleMatch = restOfPath.match(/^\/articles\/([^/]+)\/?$/);
+    if (articleMatch) {
+      return basePrefix + '/prerender-articles/' + articleMatch[1] + '.html';
+    }
+    return null;
+  }
 
   // Return a synthetic robots.txt before any S3 routing to avoid the
   // CloudFront HTML error-page fallback (no file at bucket root → 404 →
@@ -21,15 +41,15 @@ function handler(event) {
     };
   }
 
-  var prPathPattern = new RegExp('^/(' + previewPrefixBase + '\\d+)(/.*)?$');
-  var match = uri.match(prPathPattern);
+  const prPathPattern = new RegExp('^/(' + previewPrefixBase + '\\d+)(/.*)?$');
+  const match = uri.match(prPathPattern);
 
   if (!match) {
     return request;
   }
 
-  var prPrefix = match[1];
-  var restOfPath = match[2];
+  const prPrefix = match[1];
+  const restOfPath = match[2];
 
   // No sub-path or root slash -> pre-rendered home page (mirrors Default Root Object for prod/staging)
   if (!restOfPath || restOfPath === '/') {
@@ -37,8 +57,14 @@ function handler(event) {
     return request;
   }
 
+  const articlesUri = mapArticlesPrerenderUri('/' + prPrefix, restOfPath);
+  if (articlesUri) {
+    request.uri = articlesUri;
+    return request;
+  }
+
   // Strip slashes for extension check
-  var trimmedPath = restOfPath.replace(/^\//, '').replace(/\/$/, '');
+  const trimmedPath = restOfPath.replace(/^\//, '').replace(/\/$/, '');
 
   // File path (has extension) -> serve directly
   if (/\.[a-z0-9]+$/i.test(trimmedPath)) {

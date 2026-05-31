@@ -1,0 +1,56 @@
+{
+  "name": "@beakerstack/help",
+  "version": "1.0.0",
+  "description": "Help & Support page UI and build-time markdown for BeakerStack",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./web": "./src/web.ts",
+    "./generated": "./src/generated/help.ts",
+    "./nav": "./src/nav.ts"
+  },
+  "scripts": {
+    "build:help": "tsx scripts/build-help.ts",
+    "lint": "eslint src scripts --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "type-check": "tsc --noEmit",
+    "verify:generated": "tsx scripts/build-help.ts",
+    "test": "NODE_OPTIONS=--max-old-space-size=8192 vitest --run",
+    "test:coverage": "vitest --coverage --run"
+  },
+  "dependencies": {
+    "dompurify": "^3.4.7"
+  },
+  "peerDependencies": {
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "peerDependenciesMeta": {
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.4.2",
+    "@types/dompurify": "^3.0.5",
+    "@testing-library/react": "^14.1.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "18.2.0",
+    "@types/react-dom": "18.2.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "jsdom": "^26.1.0",
+    "marked": "^12.0.2",
+    "prettier": "^3.1.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.3.0",
+    "vitest": "^3.2.4"
+  }
+}
