@@ -1,4 +1,5 @@
 import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
+import { landingConfig } from '@adopter/config/landing';
 import { ExternalLink } from 'lucide-react';
 
 export function DemoBanner() {
@@ -24,7 +25,7 @@ export function DemoBanner() {
         </div>
         <div className='flex flex-wrap gap-3 shrink-0'>
           <a
-            href='https://github.com/Artificer-Innovations/BeakerStack'
+            href={landingConfig.finalCta.secondaryCta?.href}
             target='_blank'
             rel='noopener noreferrer'
             className='inline-flex items-center gap-1.5 rounded-md bg-white/10 hover:bg-white/20 px-4 py-2 text-sm font-medium text-white transition-colors'

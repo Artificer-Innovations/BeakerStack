@@ -223,9 +223,10 @@ describe('DashboardPage', () => {
   it('links to GitHub repo from demo banner', async () => {
     await renderWithAuth(<DashboardPage />);
     const link = screen.getByRole('link', { name: /view on github/i });
+    expect(landingConfig.finalCta.secondaryCta?.href).toBeDefined();
     expect(link).toHaveAttribute(
       'href',
-      landingConfig.finalCta.secondaryCta!.href
+      landingConfig.finalCta.secondaryCta?.href
     );
   });
 
