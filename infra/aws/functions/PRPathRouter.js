@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- CloudFront Function entrypoint */
 function handler(event) {
   const request = event.request;
   const uri = request.uri || '/';
