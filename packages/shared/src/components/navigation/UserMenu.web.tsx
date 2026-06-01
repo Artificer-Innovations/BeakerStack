@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { CreditCard } from 'lucide-react';
+import { CreditCard, Users } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { User } from '@supabase/supabase-js';
 import type { UserProfile } from '../../types/profile';
@@ -88,6 +88,14 @@ export function UserMenu({
               className='block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
             >
               Profile
+            </Link>
+            <Link
+              to='/connections'
+              onClick={() => setIsOpen(false)}
+              className='flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+            >
+              <Users className='h-4 w-4 shrink-0' aria-hidden={true} />
+              Connections
             </Link>
             <Link
               to='/billing'

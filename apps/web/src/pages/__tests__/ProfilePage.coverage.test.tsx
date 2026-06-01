@@ -20,6 +20,7 @@ const profileCtx = vi.hoisted(() => ({
     location: string | null;
     created_at: string;
     updated_at: string;
+    connection_discoverability: 'searchable';
   } | null,
   refreshProfile: vi.fn().mockResolvedValue(undefined),
 }));
@@ -105,6 +106,7 @@ describe('ProfilePage (context-driven UI)', () => {
       location: null,
       created_at: '2024-01-01T00:00:00Z',
       updated_at: '2024-01-01T00:00:00Z',
+      connection_discoverability: 'searchable',
     };
     profileCtx.refreshProfile.mockClear();
     loggerError.mockClear();
