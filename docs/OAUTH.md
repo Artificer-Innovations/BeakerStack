@@ -9,7 +9,24 @@ Beaker Stack ships OAuth UI and session handling for web and mobile. You configu
 - OAuth UI (Google / Apple buttons) on web; native Google Sign-In on mobile
 - **Web:** `signInWithOAuth`, redirect handling, `/auth/callback` route
 - **Mobile:** `@react-native-google-signin/google-signin` → `signInWithIdToken` with Supabase (see `packages/shared/src/hooks/useAuth.native.ts`)
+- **Profile sync:** Google (and Apple) display name and profile photo map into `user_profiles.display_name` and `user_profiles.avatar_url` via DB triggers on `auth.users` — on first signup and on later sign-in when those profile fields are still empty (manual edits in ProfileEditor are preserved)
 - Unit tests for auth flows
+
+### OAuth profile fields
+
+Supabase stores provider claims in `auth.users.raw_user_meta_data`. Beaker Stack copies them into `public.user_profiles` automatically:
+
+| `user_profiles` column | OAuth metadata keys (first non-empty wins) |
+| ---------------------- | ------------------------------------------ |
+| `display_name`         | `full_name`, `name`, then email fallback   |
+| `avatar_url`           | `avatar_url`, `picture`                    |
+
+**When sync runs:**
+
+- **First signup** — `handle_new_user()` trigger creates the profile row with OAuth name and photo.
+- **Returning sign-in** — `sync_oauth_profile_from_auth()` backfills only **empty** (`NULL`) profile fields when Supabase refreshes `raw_user_meta_data`. Non-null values (including user edits) are never overwritten.
+
+Implementation: `supabase/migrations/20260531120200_oauth_profile_sync.sql`. The UI reads `user_profiles` only (`ProfileAvatar`, `UserMenu`, `ProfileHeader`) — no client-side OAuth profile logic is required.
 
 ### What you configure
 

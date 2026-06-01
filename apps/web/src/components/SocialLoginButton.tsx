@@ -4,11 +4,15 @@ import { Logger } from '@beakerstack/logger';
 interface SocialLoginButtonProps {
   onPress: () => Promise<void>;
   mode?: 'signin' | 'signup';
+  disabled?: boolean;
+  provider?: 'Google' | 'Apple';
 }
 
 export function SocialLoginButton({
   onPress,
   mode = 'signin',
+  disabled = false,
+  provider = 'Google',
 }: SocialLoginButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -30,7 +34,13 @@ export function SocialLoginButton({
     <button
       type='button'
       onClick={handleClick}
-      disabled={isLoading}
+      disabled={isLoading || disabled}
+      aria-label={
+        isLoading
+          ? `Connecting to ${provider}`
+          : `${actionText} with ${provider}`
+      }
+      aria-busy={isLoading}
       className={`
         w-full flex items-center justify-center gap-3 px-4 py-2 
         border border-gray-300 dark:border-gray-600 rounded-md shadow-sm
@@ -86,7 +96,9 @@ export function SocialLoginButton({
           />
         </svg>
       )}
-      <span>{isLoading ? 'Connecting...' : `${actionText} with Google`}</span>
+      <span>
+        {isLoading ? 'Connecting...' : `${actionText} with ${provider}`}
+      </span>
     </button>
   );
 }
