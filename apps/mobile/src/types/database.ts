@@ -472,10 +472,190 @@ export type Database = {
         }
         Relationships: []
       }
+      bs_connections: {
+        Row: {
+          accepted_at: string | null
+          blocked_at: string | null
+          blocked_by_user_id: string | null
+          created_at: string
+          declined_at: string | null
+          disconnected_at: string | null
+          id: string
+          initiator_user_id: string
+          recipient_user_id: string
+          status: string
+          user_high: string | null
+          user_low: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          blocked_at?: string | null
+          blocked_by_user_id?: string | null
+          created_at?: string
+          declined_at?: string | null
+          disconnected_at?: string | null
+          id?: string
+          initiator_user_id: string
+          recipient_user_id: string
+          status: string
+          user_high?: string | null
+          user_low?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          blocked_at?: string | null
+          blocked_by_user_id?: string | null
+          created_at?: string
+          declined_at?: string | null
+          disconnected_at?: string | null
+          id?: string
+          initiator_user_id?: string
+          recipient_user_id?: string
+          status?: string
+          user_high?: string | null
+          user_low?: string | null
+        }
+        Relationships: []
+      }
+      bs_connections_audit: {
+        Row: {
+          actor_user_id: string
+          connection_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          other_user_id: string | null
+        }
+        Insert: {
+          actor_user_id: string
+          connection_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          other_user_id?: string | null
+        }
+        Update: {
+          actor_user_id?: string
+          connection_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          other_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bs_connections_audit_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "bs_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_email_settings: {
+        Row: {
+          config: Json
+          created_at: string
+          enabled: boolean
+          id: string
+          product_id: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          product_id: string
+          provider?: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          product_id?: string
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      marketing_email_sync_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          email: string
+          error: string | null
+          event_type: string
+          id: number
+          idempotency_key: string
+          last_attempted_at: string | null
+          payload: Json
+          processed_at: string | null
+          product_id: string
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          email: string
+          error?: string | null
+          event_type: string
+          id?: number
+          idempotency_key: string
+          last_attempted_at?: string | null
+          payload?: Json
+          processed_at?: string | null
+          product_id: string
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          email?: string
+          error?: string | null
+          event_type?: string
+          id?: number
+          idempotency_key?: string
+          last_attempted_at?: string | null
+          payload?: Json
+          processed_at?: string | null
+          product_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      marketing_email_unsubscribes: {
+        Row: {
+          created_at: string
+          email: string
+          id: number
+          product_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: number
+          product_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: number
+          product_id?: string
+        }
+        Relationships: []
+      }
       user_profiles: {
         Row: {
           avatar_url: string | null
           bio: string | null
+          connection_discoverability: Database["public"]["Enums"]["connection_discoverability"]
           created_at: string | null
           display_name: string | null
           id: string
@@ -488,6 +668,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          connection_discoverability?: Database["public"]["Enums"]["connection_discoverability"]
           created_at?: string | null
           display_name?: string | null
           id?: string
@@ -500,6 +681,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          connection_discoverability?: Database["public"]["Enums"]["connection_discoverability"]
           created_at?: string | null
           display_name?: string | null
           id?: string
@@ -697,12 +879,18 @@ export type Database = {
         }
       }
       admin_approve_waitlist_entry: { Args: { p_id: string }; Returns: Json }
+      admin_get_marketing_email_queue_stats: { Args: never; Returns: Json }
+      admin_get_marketing_email_settings: {
+        Args: { p_product_id?: string }
+        Returns: Json
+      }
       admin_get_user: {
         Args: { p_product_id?: string; p_user_id: string }
         Returns: Json
       }
       admin_get_waitlist_entry: { Args: { p_id: string }; Returns: Json }
       admin_get_waitlist_settings: { Args: never; Returns: Json }
+      admin_grant_operator: { Args: { p_user_id: string }; Returns: Json }
       admin_invite_waitlist_email: {
         Args: { p_email: string; p_metadata?: Json }
         Returns: Json
@@ -739,6 +927,11 @@ export type Database = {
       }
       admin_reject_waitlist_entry: { Args: { p_id: string }; Returns: Json }
       admin_resend_waitlist_invite: { Args: { p_id: string }; Returns: Json }
+      admin_revoke_operator: { Args: { p_user_id: string }; Returns: Json }
+      admin_update_marketing_email_settings: {
+        Args: { p_config: Json; p_enabled: boolean; p_product_id: string }
+        Returns: Json
+      }
       admin_update_waitlist_settings: {
         Args: {
           p_copy?: Json
@@ -803,11 +996,7 @@ export type Database = {
         }
       }
       billing_ensure_subscription_plan: {
-        Args: {
-          p_plan_id: string
-          p_product_id: string
-          p_user_id: string
-        }
+        Args: { p_plan_id: string; p_product_id: string; p_user_id: string }
         Returns: {
           cancel_at_period_end: boolean
           canceled_at: string | null
@@ -861,6 +1050,96 @@ export type Database = {
           period_start: string
         }[]
       }
+      connections_accept: {
+        Args: { p_connection_id: string }
+        Returns: {
+          effective_status: string
+          id: string
+          status: string
+        }[]
+      }
+      connections_assert_request_rate_limit: { Args: never; Returns: undefined }
+      connections_block: {
+        Args: { p_other_user_id: string }
+        Returns: {
+          id: string
+          status: string
+        }[]
+      }
+      connections_decline: {
+        Args: { p_connection_id: string }
+        Returns: undefined
+      }
+      connections_disconnect: {
+        Args: { p_connection_id: string }
+        Returns: undefined
+      }
+      connections_effective_status: {
+        Args: { p_created_at: string; p_status: string }
+        Returns: string
+      }
+      connections_get_status: {
+        Args: { p_other_user_id: string }
+        Returns: {
+          connection_id: string
+          effective_status: string
+          is_initiator: boolean
+          status: string
+        }[]
+      }
+      connections_is_pair_blocked: {
+        Args: { p_user_a: string; p_user_b: string }
+        Returns: boolean
+      }
+      connections_list: {
+        Args: { p_limit?: number; p_offset?: number; p_status?: string[] }
+        Returns: {
+          accepted_at: string
+          avatar_url: string
+          created_at: string
+          display_name: string
+          effective_status: string
+          id: string
+          initiator_user_id: string
+          is_initiator: boolean
+          recipient_user_id: string
+          status: string
+          username: string
+        }[]
+      }
+      connections_pending_ttl: { Args: never; Returns: string }
+      connections_request: {
+        Args: { p_recipient_user_id: string }
+        Returns: {
+          effective_status: string
+          id: string
+          initiator_user_id: string
+          recipient_user_id: string
+          status: string
+        }[]
+      }
+      connections_search_users: {
+        Args: { p_limit?: number; p_query: string }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          user_id: string
+          username: string
+        }[]
+      }
+      connections_unblock: {
+        Args: { p_other_user_id: string }
+        Returns: undefined
+      }
+      connections_write_audit: {
+        Args: {
+          p_connection_id: string
+          p_event_type: string
+          p_metadata?: Json
+          p_other_user_id: string
+        }
+        Returns: undefined
+      }
       ensure_billing_subscription: {
         Args: { p_product_id: string }
         Returns: {
@@ -891,6 +1170,39 @@ export type Database = {
       }
       generate_username: { Args: never; Returns: string }
       is_valid_email: { Args: { email: string }; Returns: boolean }
+      kit_sync_dequeue: {
+        Args: { batch_size?: number }
+        Returns: {
+          attempts: number
+          created_at: string
+          email: string
+          error: string | null
+          event_type: string
+          id: number
+          idempotency_key: string
+          last_attempted_at: string | null
+          payload: Json
+          processed_at: string | null
+          product_id: string
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "marketing_email_sync_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      kit_sync_setup_cron: {
+        Args: { p_secret: string; p_url: string }
+        Returns: undefined
+      }
+      kit_webhook_check_rate_limit: {
+        Args: { p_bucket_key: string; p_limit: number; p_window_start: string }
+        Returns: boolean
+      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       waitlist_capture: {
         Args: { p_client_ip?: string; p_email: string; p_metadata?: Json }
         Returns: Json
@@ -903,7 +1215,7 @@ export type Database = {
       waitlist_validate_invite: { Args: { p_token: string }; Returns: Json }
     }
     Enums: {
-      [_ in never]: never
+      connection_discoverability: "searchable" | "username_only" | "hidden"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1033,7 +1345,9 @@ export const Constants = {
     Enums: {},
   },
   public: {
-    Enums: {},
+    Enums: {
+      connection_discoverability: ["searchable", "username_only", "hidden"],
+    },
   },
 } as const
 

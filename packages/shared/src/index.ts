@@ -26,6 +26,7 @@ export * from './contexts/AuthContext';
 
 // Profile types and hooks
 export * from './types/profile';
+export * from './types/connectionDiscoverability';
 export * from './hooks/useProfile';
 export * from './contexts/ProfileContext';
 

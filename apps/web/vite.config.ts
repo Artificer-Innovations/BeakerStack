@@ -86,6 +86,10 @@ export default defineConfig(({ mode }) => {
           __dirname,
           '../../packages/articles/src'
         ),
+        '@beakerstack/connections': path.resolve(
+          __dirname,
+          '../../packages/connections/src'
+        ),
         '@beakerstack/logger': path.resolve(
           __dirname,
           '../../packages/logger/src'

@@ -149,7 +149,7 @@ jobs:
                 return true;
               }
               const runtimePackage = filename.match(
-                /^packages\/(shared|billing|logger|observability|admin|email|waitlist|lifecycle-events|help|articles)\/src\//
+                /^packages\/(shared|billing|logger|observability|admin|email|waitlist|lifecycle-events|help|articles|connections)\/src\//
               );
               if (!runtimePackage) return false;
               if (filename.includes('/__tests__/')) return false;

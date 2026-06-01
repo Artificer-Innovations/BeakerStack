@@ -13,6 +13,7 @@
  * - packages/marketing-email/coverage (Vitest)
  * - packages/help/coverage (Vitest)
  * - packages/articles/coverage (Vitest)
+ * - packages/connections/coverage (Vitest)
  * - packages/observability/coverage (Vitest)
  * - packages/logger/coverage (Vitest)
  */
@@ -33,6 +34,7 @@ const coverageDirs = [
   { name: 'marketing-email', path: 'packages/marketing-email/coverage' },
   { name: 'help', path: 'packages/help/coverage' },
   { name: 'articles', path: 'packages/articles/coverage' },
+  { name: 'connections', path: 'packages/connections/coverage' },
   { name: 'observability', path: 'packages/observability/coverage' },
   { name: 'logger', path: 'packages/logger/coverage' },
 ];

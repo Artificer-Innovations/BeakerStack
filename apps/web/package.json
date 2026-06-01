@@ -18,6 +18,7 @@
   "dependencies": {
     "@beakerstack/admin": "^1.0.0",
     "@beakerstack/articles": "^1.0.0",
+    "@beakerstack/connections": "^1.0.0",
     "@beakerstack/billing": "^1.0.0",
     "@beakerstack/email": "^1.0.0",
     "@beakerstack/help": "^1.0.0",
