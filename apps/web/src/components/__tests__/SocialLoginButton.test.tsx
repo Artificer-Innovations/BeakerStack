@@ -35,6 +35,20 @@ describe('SocialLoginButton', () => {
     expect(screen.getByText('Sign up with Google')).toBeInTheDocument();
   });
 
+  it('uses provider prop for label copy and aria-label', () => {
+    const mockOnPress = vi.fn();
+
+    render(
+      <SocialLoginButton onPress={mockOnPress} provider='Apple' mode='signin' />
+    );
+
+    expect(screen.getByText('Sign in with Apple')).toBeInTheDocument();
+    expect(screen.getByRole('button')).toHaveAttribute(
+      'aria-label',
+      'Sign in with Apple'
+    );
+  });
+
   it('calls onPress once per click and displays loading state', async () => {
     const user = userEvent.setup();
     const { promise: pressPromise, resolve: resolvePress } = createDeferred();
