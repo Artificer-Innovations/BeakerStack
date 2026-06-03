@@ -111,7 +111,7 @@ export function parseHelpMarkdown(raw: string, legal: Legal): HelpContent {
     sections: sectionBlocks.map(({ title: sectionTitle, body }) => ({
       id: slugify(sectionTitle),
       title: sectionTitle,
-      html: sanitizeHelpHtml(marked.parse(body) as string),
+      html: sanitizeHelpHtml(marked.parser(marked.lexer(body))),
       searchText: markdownToPlainText(body),
     })),
   };

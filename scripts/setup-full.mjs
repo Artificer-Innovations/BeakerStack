@@ -87,7 +87,10 @@ import {
   runCmd,
 } from './lib/setup-supabase.mjs';
 import { buildNameVariants } from './rename-project.mjs';
-import { detectRepoIdentity, readBrandingSource } from './lib/detect-repo-identity.mjs';
+import {
+  detectRepoIdentity,
+  readBrandingSource,
+} from './lib/detect-repo-identity.mjs';
 import {
   ACM_CLOUDFRONT_REGION,
   discoverIssuedCertsCoveringApexWildcard,
@@ -457,7 +460,9 @@ export function slugBaseFromAppConfigText(text) {
  * @returns {Promise<string>} lowercase alnum segment, e.g. poststack or beakerstack
  */
 async function readSupabaseProjectSlugBase() {
-  const brandingResult = slugBaseFromBrandingText(await readBrandingSource(REPO_ROOT));
+  const brandingResult = slugBaseFromBrandingText(
+    await readBrandingSource(REPO_ROOT)
+  );
   if (brandingResult) return brandingResult;
   try {
     const appConfigResult = slugBaseFromAppConfigText(
@@ -1208,9 +1213,6 @@ async function resolveAwsPreflightConflictsInteractive(
   }
 }
 
-/**
- * @param {CliFlags} flags
- */
 function ghAuthOk() {
   const r = spawnSync('gh', ['auth', 'status'], {
     cwd: REPO_ROOT,
@@ -1220,9 +1222,6 @@ function ghAuthOk() {
   return r.status === 0;
 }
 
-/**
- * @param {CliFlags} flags
- */
 function easWhoamiOk() {
   const r = spawnSync('npx', ['--yes', 'eas-cli', 'whoami'], {
     cwd: MOBILE_DIR,
@@ -2894,7 +2893,7 @@ async function main() {
   }
 }
 
-if (import.meta.url === url.pathToFileURL(process.argv[1] || '').href) {
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
   main().catch(err => {
     console.error(
       '[setup] Fatal:',

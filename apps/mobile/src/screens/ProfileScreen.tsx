@@ -24,7 +24,6 @@ import { ProfileStats } from '@beakerstack/shared/components/profile/ProfileStat
 // @ts-ignore - Dynamic imports are supported by Metro, TypeScript error is a false positive
 import type { ProfileEditorProps } from '@beakerstack/shared/components/profile/ProfileEditor.native';
 import { loadProfileEditorModule } from './profileEditorLoader';
-let ProfileEditor: React.ComponentType<ProfileEditorProps> | null = null;
 
 type RootStackParamList = {
   Home: undefined;
@@ -78,28 +77,28 @@ export default function ProfileScreen({ navigation }: Props) {
   }
 
   // Render protected content if authenticated
-  return <ProfileScreenContent navigation={navigation} />;
+  return <ProfileScreenContent />;
 }
 
-function ProfileScreenContent({ navigation: _navigation }: Props) {
+function ProfileScreenContent() {
   const [isEditing, setIsEditing] = useState(false);
-  const [componentsLoaded, setComponentsLoaded] = useState(false);
+  const [ProfileEditor, setProfileEditor] =
+    useState<React.ComponentType<ProfileEditorProps> | null>(null);
   const auth = useAuthContext();
   const profile = useProfileContext();
 
   // Lazy load ProfileEditor only when editing
   useEffect(() => {
-    if (isEditing && !componentsLoaded) {
+    if (isEditing && !ProfileEditor) {
       loadProfileEditorModule()
         .then(module => {
-          ProfileEditor = module.ProfileEditor;
-          setComponentsLoaded(true);
+          setProfileEditor(() => module.ProfileEditor);
         })
         .catch(err => {
           Logger.error('[ProfileScreen] Failed to load ProfileEditor:', err);
         });
     }
-  }, [isEditing, componentsLoaded]);
+  }, [isEditing, ProfileEditor]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -158,7 +157,7 @@ function ProfileScreenContent({ navigation: _navigation }: Props) {
 
             {isEditing && (
               <View style={styles.card}>
-                {componentsLoaded && ProfileEditor ? (
+                {ProfileEditor ? (
                   <ProfileEditor
                     onSuccess={() => {
                       // Refresh profile data after successful update
