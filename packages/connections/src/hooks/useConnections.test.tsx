@@ -266,10 +266,18 @@ describe('useConnections', () => {
   });
 
   it('ignores debounced reload after unmount', async () => {
-    vi.useFakeTimers();
-    const clearTimeoutSpy = vi
-      .spyOn(globalThis, 'clearTimeout')
-      .mockImplementation(() => undefined);
+    let debouncedCallback: (() => void) | undefined;
+    const originalSetTimeout = globalThis.setTimeout.bind(globalThis);
+    const setTimeoutSpy = vi
+      .spyOn(globalThis, 'setTimeout')
+      .mockImplementation((handler, delay, ...args) => {
+        if (typeof handler === 'function' && delay === 400) {
+          debouncedCallback = handler as () => void;
+        }
+        return originalSetTimeout(handler, delay, ...args);
+      });
+    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout');
+
     try {
       let calls = 0;
       const supabase = createMockSupabase(async () => {
@@ -279,14 +287,17 @@ describe('useConnections', () => {
       const { unmount } = renderHook(() =>
         useConnections({ supabase, userId: UUID_A })
       );
-      await vi.waitFor(() => expect(calls).toBe(1));
+      await waitFor(() => expect(calls).toBe(1));
       emitConnectionChange(supabase);
+      expect(debouncedCallback).toBeDefined();
       unmount();
-      await vi.advanceTimersByTimeAsync(450);
+      debouncedCallback?.();
+      await Promise.resolve();
       expect(calls).toBe(1);
+      expect(clearTimeoutSpy).toHaveBeenCalled();
     } finally {
+      setTimeoutSpy.mockRestore();
       clearTimeoutSpy.mockRestore();
-      vi.useRealTimers();
     }
   });
 });
