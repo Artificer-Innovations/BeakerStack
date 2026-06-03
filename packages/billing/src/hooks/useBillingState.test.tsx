@@ -87,6 +87,15 @@ describe('useBillingState', () => {
     expect(result.current.kind).toBe('trialing');
   });
 
+  it('classifies trialing without trial_end as trialing', () => {
+    hp.subscription = testSubscription({
+      status: 'trialing',
+      trial_end: null,
+    });
+    const { result } = renderHook(() => useBillingState());
+    expect(result.current.kind).toBe('trialing');
+  });
+
   it('classifies cancel_at_period_end without pending target as cancelled_pending', () => {
     hp.subscription = testSubscription({
       status: 'active',

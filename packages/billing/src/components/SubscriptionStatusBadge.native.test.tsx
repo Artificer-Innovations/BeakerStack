@@ -72,6 +72,15 @@ describe('SubscriptionStatusBadge (native)', () => {
     expect(screen.getAllByLabelText('Active').length).toBeGreaterThan(0);
   });
 
+  it('keeps raw status label for unrecognized statuses', () => {
+    render(
+      <SubscriptionStatusBadge
+        subscription={testSubscription({ status: 'canceled' })}
+      />
+    );
+    expect(screen.getByLabelText('canceled')).toBeInTheDocument();
+  });
+
   it('shows em dash in cancelling label when period end is missing', () => {
     render(
       <SubscriptionStatusBadge

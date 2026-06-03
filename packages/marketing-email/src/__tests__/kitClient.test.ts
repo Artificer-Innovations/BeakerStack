@@ -123,6 +123,24 @@ describe('KitClient', () => {
         'Kit API POST /forms/f/subscribers → 400 Bad Request'
       );
     });
+
+    it('handles response.text() rejection on HTTP error', async () => {
+      fetchMock.mockReturnValue(
+        Promise.resolve({
+          ok: false,
+          status: 502,
+          statusText: 'Bad Gateway',
+          text: () => Promise.reject(new Error('body unreadable')),
+        } as Response)
+      );
+      const err = await client
+        .subscribeToForm('u@e.com', 'f')
+        .catch(e => e as KitClientError);
+      expect(err.code).toBe('kit_api_502');
+      expect(err.message).toBe(
+        'Kit API POST /forms/f/subscribers → 502 Bad Gateway'
+      );
+    });
   });
 
   describe('applyTag', () => {

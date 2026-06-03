@@ -142,4 +142,40 @@ describe('ObservabilityProvider (web)', () => {
       expect.any(Function)
     );
   });
+
+  it('ignores Sentry load after unmount', async () => {
+    vi.resetModules();
+
+    let resolvePendingSentry!: (value: typeof SentryMock) => void;
+    const pendingSentry = new Promise<typeof SentryMock>(resolve => {
+      resolvePendingSentry = resolve;
+    });
+    vi.doMock('@sentry/react', () => pendingSentry);
+
+    const { ObservabilityProvider } =
+      await import('../components/ObservabilityProvider.web.js');
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      const { unmount } = render(
+        <ObservabilityProvider config={config}>
+          <div>child</div>
+        </ObservabilityProvider>
+      );
+      unmount();
+      resolvePendingSentry(SentryMock);
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      const unmountedWarnings = consoleSpy.mock.calls.filter(([message]) =>
+        String(message).toLowerCase().includes('unmounted')
+      );
+      expect(unmountedWarnings).toHaveLength(0);
+    } finally {
+      consoleSpy.mockRestore();
+      vi.resetModules();
+      vi.doUnmock('@sentry/react');
+    }
+  });
 });

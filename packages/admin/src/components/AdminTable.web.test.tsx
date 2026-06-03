@@ -123,4 +123,21 @@ describe('AdminTable', () => {
     await user.click(screen.getByText('Ada'));
     expect(onRowClick).toHaveBeenCalledWith({ id: '1', name: 'Ada' });
   });
+
+  it('ignores non-activation keys on clickable rows', async () => {
+    const onRowClick = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <AdminTable
+        columns={columns}
+        rows={[{ id: '1', name: 'Ada' }]}
+        getRowKey={r => r.id}
+        onRowClick={onRowClick}
+      />
+    );
+    const row = screen.getByRole('button', { name: 'View details for 1' });
+    row.focus();
+    await user.keyboard('{ArrowDown}');
+    expect(onRowClick).not.toHaveBeenCalled();
+  });
 });
