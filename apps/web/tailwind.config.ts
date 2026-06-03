@@ -11,6 +11,7 @@ export default {
     '../../packages/shared/src/config/**/*.{js,ts}',
     '../../packages/articles/src/**/*.{js,ts,jsx,tsx}',
     '../../packages/connections/src/**/*.{js,ts,jsx,tsx}',
+    '../../packages/help/src/**/*.{js,ts,jsx,tsx}',
     '../../adopter/web/**/*.{js,ts,jsx,tsx}',
   ],
   safelist: [
