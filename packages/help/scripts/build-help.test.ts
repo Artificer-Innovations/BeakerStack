@@ -99,6 +99,12 @@ OAuth-secured MCP-compatible row-level access.
     );
   });
 
+  it('leaves malformed bracket syntax unchanged', () => {
+    expect(markdownToPlainText('[unclosed')).toBe('[unclosed');
+    expect(markdownToPlainText('[not a link]')).toBe('[not a link]');
+    expect(markdownToPlainText('[open](no-close')).toBe('[open](no-close');
+  });
+
   it('lineAt returns empty string for out-of-range indexes', () => {
     expect(lineAt(['a'], 3)).toBe('');
   });

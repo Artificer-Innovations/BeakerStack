@@ -14,6 +14,11 @@ See [MCP](/articles/what-is-mcp) and <a href="/articles/oauth-vs-api-keys-mcp">O
       'what-is-mcp',
     ]);
   });
+
+  it('ignores the tags listing slug', () => {
+    const body = 'Browse [tags](/articles/tags) and [post](/articles/my-post).';
+    expect(extractInternalArticleLinks(body)).toEqual(['my-post']);
+  });
 });
 
 describe('validateInternalLinks', () => {
