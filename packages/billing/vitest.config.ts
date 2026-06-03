@@ -22,6 +22,7 @@ export default defineConfig({
       reporter: mergeCoverage
         ? ['text', 'json']
         : ['text', 'json', 'html', 'lcov'],
+      include: ['src/**/*.{ts,tsx}'],
       thresholds: {
         statements: 95,
         branches: 85,

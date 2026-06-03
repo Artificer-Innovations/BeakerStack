@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2020",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
@@ -23,7 +23,7 @@
       "@adopter/web/*": ["../../adopter/web/*"],
       "@beakerstack/shared/*": ["../../packages/shared/src/*"]
     },
-    "types": ["vite/client"]
+    "types": ["vite/client", "node"]
   },
   "include": [
     "src/**/*",
