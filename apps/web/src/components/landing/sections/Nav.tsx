@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { LandingConfig } from '@adopter/config/landing';
+import { ARTICLES_NAV_LINK } from '@beakerstack/articles/nav';
+import { HELP_NAV_LINK } from '@beakerstack/help/nav';
 import { useMarketingAuthHint } from '../../../hooks/useMarketingAuthHint';
 import { getPrPreviewAssetBasePath } from '../../../lib/prPreviewAssetBasePath';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
@@ -9,10 +11,49 @@ interface NavProps {
   config: LandingConfig['nav'] & { brand: LandingConfig['brand'] };
 }
 
+function NavLinkItem({
+  href,
+  label,
+  className,
+  onNavigate,
+}: {
+  href: string;
+  label: string;
+  className: string;
+  onNavigate?: () => void;
+}) {
+  if (href.startsWith('/')) {
+    return (
+      <Link to={href} className={className} onClick={onNavigate}>
+        {label}
+      </Link>
+    );
+  }
+
+  return (
+    <a
+      href={href}
+      className={className}
+      onClick={onNavigate}
+      rel='noopener noreferrer'
+    >
+      {label}
+    </a>
+  );
+}
+
 export function Nav({ config }: NavProps) {
   const marketingAuthHint = useMarketingAuthHint();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const navLinks = [
+    ...config.links.filter(
+      link =>
+        link.href !== HELP_NAV_LINK.href && link.href !== ARTICLES_NAV_LINK.href
+    ),
+    ARTICLES_NAV_LINK,
+    HELP_NAV_LINK,
+  ];
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -40,14 +81,13 @@ export function Nav({ config }: NavProps) {
         </Link>
 
         <nav className='hidden md:flex items-center gap-8' aria-label='Main'>
-          {config.links.map(link => (
-            <a
+          {navLinks.map(link => (
+            <NavLinkItem
               key={link.href}
               href={link.href}
+              label={link.label}
               className='text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors'
-            >
-              {link.label}
-            </a>
+            />
           ))}
         </nav>
 
@@ -124,15 +164,14 @@ export function Nav({ config }: NavProps) {
           aria-label='Mobile'
         >
           <ContentContainer className='py-4 flex flex-col gap-1'>
-            {config.links.map(link => (
-              <a
+            {navLinks.map(link => (
+              <NavLinkItem
                 key={link.href}
                 href={link.href}
+                label={link.label}
                 className='text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors py-2.5 border-b border-gray-100 dark:border-gray-800 last:border-0'
-                onClick={() => setMenuOpen(false)}
-              >
-                {link.label}
-              </a>
+                onNavigate={() => setMenuOpen(false)}
+              />
             ))}
             {marketingAuthHint ? (
               <Link

@@ -13,6 +13,7 @@ export default defineConfig({
       reporter: mergeCoverage
         ? ['text', 'json']
         : ['text', 'json', 'html', 'lcov'],
+      include: ['src/**/*.{ts,tsx}'],
       exclude: [
         'node_modules/',
         '**/*.d.ts',

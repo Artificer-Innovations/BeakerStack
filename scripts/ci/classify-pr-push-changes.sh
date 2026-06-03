@@ -89,7 +89,8 @@ is_package_runtime_source() {
   case "${f}" in
     packages/shared/src/* | packages/billing/src/* | packages/logger/src/* | \
     packages/observability/src/* | packages/admin/src/* | packages/email/src/* | \
-    packages/waitlist/src/* | packages/lifecycle-events/src/*)
+    packages/waitlist/src/* | packages/lifecycle-events/src/* | packages/help/src/* | \
+    packages/articles/src/* | packages/connections/src/*)
       return 0
       ;;
   esac
@@ -101,7 +102,8 @@ is_package_web_only_runtime_source() {
   local f="$1"
   case "${f}" in
     packages/admin/src/* | packages/email/src/* | packages/waitlist/src/* | \
-    packages/lifecycle-events/src/*)
+    packages/lifecycle-events/src/* | packages/help/src/* | packages/articles/src/* | \
+    packages/connections/src/*)
       return 0
       ;;
   esac
@@ -137,6 +139,14 @@ classify_path() {
       match_app_code=true
       match_web_deploy=true
       match_mobile_deploy=true
+      ;;
+    adopter/content/help.md)
+      match_app_code=true
+      match_web_deploy=true
+      ;;
+    adopter/content/articles/*)
+      match_app_code=true
+      match_web_deploy=true
       ;;
     adopter/db/*)
       match_app_code=true
@@ -535,6 +545,21 @@ self_test() {
   assert_classify packages/admin/src/adminClient.ts mobile_deploy false
   assert_classify packages/lifecycle-events/src/index.ts web_deploy true
   assert_classify packages/lifecycle-events/src/index.ts mobile_deploy false
+  assert_classify packages/help/src/components/HelpContent.web.tsx web_deploy true
+  assert_classify packages/help/src/components/HelpContent.web.test.tsx web_deploy false
+  assert_classify packages/articles/src/components/ArticlesIndex.web.tsx web_deploy true
+  assert_classify packages/connections/src/components/ConnectionSearchPanel.web.tsx web_deploy true
+  assert_classify packages/connections/src/components/ConnectionSearchPanel.web.test.tsx web_deploy false
+  assert_classify supabase/migrations/20260601160000_bs_connections_v1.sql supabase_schema true
+  assert_classify adopter/content/help.md web_deploy true
+  assert_classify adopter/content/help.md mobile_deploy false
+  assert_classify adopter/content/articles/getting-started-with-beaker-stack.md web_deploy true
+  assert_derived help-content-markdown-push \
+    run_unit true run_web true \
+    -- adopter/content/help.md
+  assert_derived articles-content-markdown-push \
+    run_unit true run_web true \
+    -- adopter/content/articles/getting-started-with-beaker-stack.md
   assert_classify tests/integration/auth.test.ts app_code true
   assert_classify tests/integration/auth.test.ts integration_tests true
   assert_classify tests/integration/auth.test.ts supabase_schema false
