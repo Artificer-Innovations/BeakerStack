@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import * as RN from 'react-native';
@@ -12,6 +12,10 @@ vi.mock('../hooks/useCustomerPortal.js', () => ({
 describe('CustomerPortalLink (native)', () => {
   beforeEach(() => {
     vi.spyOn(RN.Linking, 'openURL').mockResolvedValue(undefined as never);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('wraps string children in Text and opens portal URL via Linking on press', async () => {

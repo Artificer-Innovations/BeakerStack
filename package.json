@@ -285,7 +285,9 @@
       "ajv": "^8.18.0"
     },
     "uuid": "14.0.0",
-    "diff": "^8.0.2"
+    "diff": "^8.0.2",
+    "vitest": "^4.1.8",
+    "@vitest/coverage-v8": "^4.1.8"
   },
   "lint-staged": {
     "*.{ts,tsx,js,mjs,cjs}": [
