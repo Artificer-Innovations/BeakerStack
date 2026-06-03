@@ -25,6 +25,12 @@ describe('articleUtils', () => {
     expect(markdownToPlainText('- item\n\n# Title')).toContain('item');
   });
 
+  it('leaves malformed bracket syntax unchanged', () => {
+    expect(markdownToPlainText('[unclosed')).toBe('[unclosed');
+    expect(markdownToPlainText('[not a link]')).toBe('[not a link]');
+    expect(markdownToPlainText('[open](no-close')).toBe('[open](no-close');
+  });
+
   it('builds excerpts and truncates long copy', () => {
     expect(buildExcerpt('Short text')).toBe('Short text');
     const long = 'word '.repeat(80);

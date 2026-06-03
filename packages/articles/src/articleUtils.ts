@@ -13,19 +13,40 @@ export function slugifyTag(tag: string): string {
     .replace(/^-|-$/g, '');
 }
 
+/** Linear-time markdown link label extraction (avoids ReDoS-prone link regexes). */
+function stripMarkdownLinks(text: string): string {
+  let out = '';
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] === '[') {
+      const labelStart = i + 1;
+      const bracketEnd = text.indexOf(']', labelStart);
+      if (bracketEnd !== -1 && text[bracketEnd + 1] === '(') {
+        const urlEnd = text.indexOf(')', bracketEnd + 2);
+        if (urlEnd !== -1) {
+          out += text.slice(labelStart, bracketEnd);
+          i = urlEnd + 1;
+          continue;
+        }
+      }
+    }
+    out += text[i];
+    i += 1;
+  }
+  return out;
+}
+
 export function computeReadingTimeMinutes(markdown: string): number {
-  const words = markdown
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/`[^`]+`/g, ' ')
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+  const words = stripMarkdownLinks(
+    markdown.replace(/```[\s\S]*?```/g, ' ').replace(/`[^`]+`/g, ' ')
+  )
     .split(/\s+/)
     .filter(Boolean).length;
   return Math.max(1, Math.ceil(words / 200));
 }
 
 export function markdownToPlainText(markdown: string): string {
-  return markdown
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+  return stripMarkdownLinks(markdown)
     .replace(/^[ \t]*[-*+] /gm, '')
     .replace(/[#*_`>~]/g, '')
     .replace(/\n+/g, ' ')

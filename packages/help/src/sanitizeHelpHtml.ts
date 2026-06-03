@@ -3,7 +3,7 @@ import DOMPurify from 'dompurify';
 
 const purify = DOMPurify(new JSDOM('').window);
 
-/** Sanitize article HTML generated from trusted repo markdown at build time. */
-export function sanitizeArticleHtml(html: string): string {
+/** Sanitize help HTML generated from trusted repo markdown at build time. */
+export function sanitizeHelpHtml(html: string): string {
   return purify.sanitize(html);
 }
