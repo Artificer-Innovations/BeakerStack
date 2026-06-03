@@ -5,6 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import { marked } from 'marked';
 import { format, resolveConfig } from 'prettier';
 import type { Legal } from '../../../adopter/config/legal.ts';
+import { sanitizeHelpHtml } from '../src/sanitizeHelpHtml.js';
 import type { HelpContent } from '../src/types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -34,21 +35,35 @@ export function lineAt(lines: readonly string[], index: number): string {
   return lines.at(index) ?? '';
 }
 
+function stripMarkdownLinks(text: string): string {
+  let out = '';
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] === '[') {
+      const labelStart = i + 1;
+      const bracketEnd = text.indexOf(']', labelStart);
+      if (bracketEnd !== -1 && text[bracketEnd + 1] === '(') {
+        const urlEnd = text.indexOf(')', bracketEnd + 2);
+        if (urlEnd !== -1) {
+          out += text.slice(labelStart, bracketEnd);
+          i = urlEnd + 1;
+          continue;
+        }
+      }
+    }
+    out += text[i];
+    i += 1;
+  }
+  return out;
+}
+
 export function markdownToPlainText(markdown: string): string {
-  return markdown
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+  return stripMarkdownLinks(markdown)
     .replace(/^[ \t]*[-*+] /gm, '')
     .replace(/[#*_`>~]/g, '')
     .replace(/\n+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-}
-
-function sanitizeHelpHtml(html: string): string {
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/\s(on\w+)=("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"');
 }
 
 export function parseHelpMarkdown(raw: string, legal: Legal): HelpContent {

@@ -1,8 +1,8 @@
 import { JSDOM } from 'jsdom';
 import DOMPurify from 'dompurify';
 
-/** Sanitize article HTML generated from trusted repo markdown at build time. */
-export function sanitizeArticleHtml(html: string): string {
+/** Sanitize help HTML generated from trusted repo markdown at build time. */
+export function sanitizeHelpHtml(html: string): string {
   const window = new JSDOM('').window;
   return DOMPurify(window).sanitize(html);
 }

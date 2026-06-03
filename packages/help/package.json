@@ -21,7 +21,8 @@
     "test:coverage": "vitest --coverage --run"
   },
   "dependencies": {
-    "dompurify": "^3.4.7"
+    "dompurify": "^3.4.7",
+    "jsdom": "^26.1.0"
   },
   "peerDependencies": {
     "react": "18.2.0",
@@ -44,7 +45,6 @@
     "@vitest/coverage-v8": "^4.1.8",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
-    "jsdom": "^26.1.0",
     "marked": "^12.0.2",
     "prettier": "^3.1.0",
     "react": "18.2.0",
