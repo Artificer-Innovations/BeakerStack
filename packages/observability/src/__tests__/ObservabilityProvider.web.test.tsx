@@ -142,4 +142,17 @@ describe('ObservabilityProvider (web)', () => {
       expect.any(Function)
     );
   });
+
+  it('ignores Sentry load after unmount', async () => {
+    const { unmount } = render(
+      <ObservabilityProvider config={config}>
+        <div>child</div>
+      </ObservabilityProvider>
+    );
+    unmount();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(SentryMock.setUser).not.toHaveBeenCalled();
+  });
 });

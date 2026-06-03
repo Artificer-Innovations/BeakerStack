@@ -249,4 +249,44 @@ describe('useConnections', () => {
     expect(channel.on).not.toHaveBeenCalled();
     expect(channel.subscribe).not.toHaveBeenCalled();
   });
+
+  it('refresh reloads connections', async () => {
+    let calls = 0;
+    const supabase = createMockSupabase(async () => {
+      calls += 1;
+      return { data: calls === 1 ? [row] : [], error: null };
+    });
+    const { result } = renderHook(() =>
+      useConnections({ supabase, userId: UUID_A })
+    );
+    await waitFor(() => expect(result.current.rows).toHaveLength(1));
+    await result.current.refresh();
+    await waitFor(() => expect(result.current.rows).toHaveLength(0));
+    expect(calls).toBe(2);
+  });
+
+  it('ignores debounced reload after unmount', async () => {
+    vi.useFakeTimers();
+    const clearTimeoutSpy = vi
+      .spyOn(globalThis, 'clearTimeout')
+      .mockImplementation(() => undefined);
+    try {
+      let calls = 0;
+      const supabase = createMockSupabase(async () => {
+        calls += 1;
+        return { data: [row], error: null };
+      });
+      const { unmount } = renderHook(() =>
+        useConnections({ supabase, userId: UUID_A })
+      );
+      await vi.waitFor(() => expect(calls).toBe(1));
+      emitConnectionChange(supabase);
+      unmount();
+      await vi.advanceTimersByTimeAsync(450);
+      expect(calls).toBe(1);
+    } finally {
+      clearTimeoutSpy.mockRestore();
+      vi.useRealTimers();
+    }
+  });
 });

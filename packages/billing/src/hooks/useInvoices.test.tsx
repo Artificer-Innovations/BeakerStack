@@ -190,4 +190,41 @@ describe('useInvoices', () => {
     expect(result.current.items).toEqual([]);
     expect(result.current.hasMore).toBe(false);
   });
+
+  it('preserves existing items when loadMore fails', async () => {
+    const inv: BillingInvoiceRow = {
+      id: 'inv1',
+      user_id: 'user-1',
+      stripe_invoice_id: 'in_1',
+      stripe_customer_id: 'cus',
+      stripe_subscription_id: null,
+      amount_due: 100,
+      amount_paid: 0,
+      currency: 'usd',
+      status: 'open',
+      description: null,
+      hosted_invoice_url: null,
+      invoice_pdf_url: null,
+      period_start: null,
+      period_end: null,
+      created_at: '2026-01-02T00:00:00.000Z',
+      finalized_at: null,
+      paid_at: null,
+    };
+    range
+      .mockResolvedValueOnce({
+        data: Array.from({ length: 20 }, (_, i) => ({ ...inv, id: `i${i}` })),
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: new Error('page two failed'),
+      });
+    const { result } = renderHook(() => useInvoices({ pageSize: 20 }));
+    await waitFor(() => expect(result.current.items.length).toBe(20));
+    await result.current.loadMore();
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+    expect(result.current.items).toHaveLength(20);
+    expect(result.current.hasMore).toBe(false);
+  });
 });

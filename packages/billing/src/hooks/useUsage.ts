@@ -33,7 +33,7 @@ export function useUsage<
   const [snap, setSnap] = useState<RpcRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<BillingError | null>(null);
-  const fetchUsageRef = useRef<() => Promise<void>>(async () => {});
+  const fetchUsageRef = useRef<(() => Promise<void>) | undefined>(undefined);
 
   const fetchUsage = useCallback(async () => {
     setLoading(true);
@@ -112,7 +112,7 @@ export function useUsage<
           row?.product_id === config.productId &&
           row?.event_type === meterKey
         ) {
-          void fetchUsageRef.current();
+          void fetchUsageRef.current?.();
         }
       }
     ).subscribe();

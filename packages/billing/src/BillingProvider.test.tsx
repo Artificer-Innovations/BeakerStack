@@ -569,7 +569,7 @@ describe('BillingProvider', () => {
     let resolveSession: (value: {
       data: { session: { user: { id: string } } | null };
     }) => void = () => {};
-    auth.getSession.mockImplementation(
+    auth.getSession.mockImplementationOnce(
       () =>
         new Promise(resolve => {
           resolveSession = resolve;
@@ -584,5 +584,106 @@ describe('BillingProvider', () => {
     resolveSession({ data: { session: { user: { id: 'late-user' } } } });
     await Promise.resolve();
     expect(db.maybeSingle).not.toHaveBeenCalled();
+  });
+
+  it('ignores plan query result after unmount', async () => {
+    let resolvePlan: (value: {
+      data: ReturnType<typeof testPlan> | null;
+      error: null;
+    }) => void = () => {};
+    auth.state.session = { user: { id: 'u-plan-unmount' } };
+    const row = {
+      ...testSubscription(),
+      user_id: 'u-plan-unmount',
+      plan_id: 'plan_free',
+    };
+    db.maybeSingle.mockResolvedValue({ data: row, error: null });
+    db.planMaybeSingle.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          resolvePlan = resolve;
+        })
+    );
+    const { unmount } = render(
+      <BillingProvider config={testBillingConfig} {...providerProps}>
+        <PlanReader />
+      </BillingProvider>
+    );
+    await waitFor(() => expect(db.planMaybeSingle).toHaveBeenCalled());
+    unmount();
+    resolvePlan({ data: testPlan({ display_name: 'Late plan' }), error: null });
+    await Promise.resolve();
+  });
+
+  it('ignores ensure_billing_subscription result after unmount', async () => {
+    let resolveRpc: (value: { error: null }) => void = () => {};
+    auth.state.session = { user: { id: 'u-rpc-unmount' } };
+    db.rpc.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          resolveRpc = resolve;
+        })
+    );
+    const { unmount } = render(
+      <BillingProvider config={testBillingConfig} {...providerProps}>
+        <Reader />
+      </BillingProvider>
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('uid').textContent).toBe('u-rpc-unmount')
+    );
+    await waitFor(() => expect(db.rpc).toHaveBeenCalled());
+    unmount();
+    resolveRpc({ error: null });
+    await Promise.resolve();
+  });
+
+  it('ignores plan query errors after unmount', async () => {
+    let rejectPlan: (error: Error) => void = () => {};
+    auth.state.session = { user: { id: 'u-plan-err-unmount' } };
+    const row = {
+      ...testSubscription(),
+      user_id: 'u-plan-err-unmount',
+      plan_id: 'plan_free',
+    };
+    db.maybeSingle.mockResolvedValue({ data: row, error: null });
+    db.planMaybeSingle.mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectPlan = reject;
+        })
+    );
+    const { unmount } = render(
+      <BillingProvider config={testBillingConfig} {...providerProps}>
+        <PlanReader />
+      </BillingProvider>
+    );
+    await waitFor(() => expect(db.planMaybeSingle).toHaveBeenCalled());
+    unmount();
+    rejectPlan(new Error('late plan fail'));
+    await Promise.resolve();
+  });
+
+  it('ignores ensure_billing_subscription errors after unmount', async () => {
+    let rejectRpc: (error: Error) => void = () => {};
+    auth.state.session = { user: { id: 'u-rpc-err-unmount' } };
+    db.rpc.mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectRpc = reject;
+        })
+    );
+    const { unmount } = render(
+      <BillingProvider config={testBillingConfig} {...providerProps}>
+        <Reader />
+      </BillingProvider>
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('uid').textContent).toBe('u-rpc-err-unmount')
+    );
+    await waitFor(() => expect(db.rpc).toHaveBeenCalled());
+    unmount();
+    rejectRpc(new Error('late rpc fail'));
+    await Promise.resolve();
   });
 });
