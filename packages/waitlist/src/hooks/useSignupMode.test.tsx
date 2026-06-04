@@ -3,6 +3,15 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { useSignupMode } from './useSignupMode.js';
 import * as client from '../waitlistClient.js';
 
+type ConsoleErrorSpy = ReturnType<typeof vi.spyOn<typeof console, 'error'>>;
+
+function expectNoUnmountedConsoleWarnings(consoleSpy: ConsoleErrorSpy) {
+  const unmountedWarnings = consoleSpy.mock.calls.filter(args =>
+    args.some(arg => String(arg).toLowerCase().includes('unmounted'))
+  );
+  expect(unmountedWarnings).toHaveLength(0);
+}
+
 describe('useSignupMode', () => {
   it('loads public settings and exposes mode flags', async () => {
     vi.spyOn(client, 'getPublicWaitlistSettings').mockResolvedValue({
@@ -31,14 +40,21 @@ describe('useSignupMode', () => {
           resolveSettings = resolve;
         })
     );
-    const supabase = {} as never;
-    const { unmount } = renderHook(() => useSignupMode(supabase));
-    await waitFor(() =>
-      expect(client.getPublicWaitlistSettings).toHaveBeenCalled()
-    );
-    unmount();
-    resolveSettings({ signup_mode: 'open', copy: {}, metadata_schema: [] });
-    await Promise.resolve();
-    vi.restoreAllMocks();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const supabase = {} as never;
+      const { unmount } = renderHook(() => useSignupMode(supabase));
+      await waitFor(() =>
+        expect(client.getPublicWaitlistSettings).toHaveBeenCalled()
+      );
+      unmount();
+      resolveSettings({ signup_mode: 'open', copy: {}, metadata_schema: [] });
+      await Promise.resolve();
+
+      expectNoUnmountedConsoleWarnings(consoleSpy);
+    } finally {
+      consoleSpy.mockRestore();
+      vi.restoreAllMocks();
+    }
   });
 });
