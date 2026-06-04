@@ -31,6 +31,7 @@ describe('useSignupMode', () => {
           resolveSettings = resolve;
         })
     );
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const supabase = {} as never;
     const { unmount } = renderHook(() => useSignupMode(supabase));
     await waitFor(() =>
@@ -39,6 +40,13 @@ describe('useSignupMode', () => {
     unmount();
     resolveSettings({ signup_mode: 'open', copy: {}, metadata_schema: [] });
     await Promise.resolve();
+
+    const unmountedWarnings = consoleSpy.mock.calls.filter(([message]) =>
+      String(message).toLowerCase().includes('unmounted')
+    );
+    expect(unmountedWarnings).toHaveLength(0);
+
+    consoleSpy.mockRestore();
     vi.restoreAllMocks();
   });
 });

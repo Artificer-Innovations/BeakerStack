@@ -591,6 +591,7 @@ describe('BillingProvider', () => {
       data: ReturnType<typeof testPlan> | null;
       error: null;
     }) => void = () => {};
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     auth.state.session = { user: { id: 'u-plan-unmount' } };
     const row = {
       ...testSubscription(),
@@ -612,11 +613,20 @@ describe('BillingProvider', () => {
     await waitFor(() => expect(db.planMaybeSingle).toHaveBeenCalled());
     unmount();
     resolvePlan({ data: testPlan({ display_name: 'Late plan' }), error: null });
-    await Promise.resolve();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const unmountedWarnings = consoleSpy.mock.calls.filter(([message]) =>
+      String(message).toLowerCase().includes('unmounted')
+    );
+    expect(unmountedWarnings).toHaveLength(0);
+    consoleSpy.mockRestore();
   });
 
   it('ignores ensure_billing_subscription result after unmount', async () => {
     let resolveRpc: (value: { error: null }) => void = () => {};
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     auth.state.session = { user: { id: 'u-rpc-unmount' } };
     db.rpc.mockImplementationOnce(
       () =>
@@ -635,11 +645,20 @@ describe('BillingProvider', () => {
     await waitFor(() => expect(db.rpc).toHaveBeenCalled());
     unmount();
     resolveRpc({ error: null });
-    await Promise.resolve();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const unmountedWarnings = consoleSpy.mock.calls.filter(([message]) =>
+      String(message).toLowerCase().includes('unmounted')
+    );
+    expect(unmountedWarnings).toHaveLength(0);
+    consoleSpy.mockRestore();
   });
 
   it('ignores plan query errors after unmount', async () => {
     let rejectPlan: (error: Error) => void = () => {};
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     auth.state.session = { user: { id: 'u-plan-err-unmount' } };
     const row = {
       ...testSubscription(),
@@ -661,11 +680,20 @@ describe('BillingProvider', () => {
     await waitFor(() => expect(db.planMaybeSingle).toHaveBeenCalled());
     unmount();
     rejectPlan(new Error('late plan fail'));
-    await Promise.resolve();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const unmountedWarnings = consoleSpy.mock.calls.filter(([message]) =>
+      String(message).toLowerCase().includes('unmounted')
+    );
+    expect(unmountedWarnings).toHaveLength(0);
+    consoleSpy.mockRestore();
   });
 
   it('ignores ensure_billing_subscription errors after unmount', async () => {
     let rejectRpc: (error: Error) => void = () => {};
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     auth.state.session = { user: { id: 'u-rpc-err-unmount' } };
     db.rpc.mockImplementationOnce(
       () =>
@@ -684,6 +712,14 @@ describe('BillingProvider', () => {
     await waitFor(() => expect(db.rpc).toHaveBeenCalled());
     unmount();
     rejectRpc(new Error('late rpc fail'));
-    await Promise.resolve();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const unmountedWarnings = consoleSpy.mock.calls.filter(([message]) =>
+      String(message).toLowerCase().includes('unmounted')
+    );
+    expect(unmountedWarnings).toHaveLength(0);
+    consoleSpy.mockRestore();
   });
 });
