@@ -249,4 +249,55 @@ describe('useConnections', () => {
     expect(channel.on).not.toHaveBeenCalled();
     expect(channel.subscribe).not.toHaveBeenCalled();
   });
+
+  it('refresh reloads connections', async () => {
+    let calls = 0;
+    const supabase = createMockSupabase(async () => {
+      calls += 1;
+      return { data: calls === 1 ? [row] : [], error: null };
+    });
+    const { result } = renderHook(() =>
+      useConnections({ supabase, userId: UUID_A })
+    );
+    await waitFor(() => expect(result.current.rows).toHaveLength(1));
+    await result.current.refresh();
+    await waitFor(() => expect(result.current.rows).toHaveLength(0));
+    expect(calls).toBe(2);
+  });
+
+  it('ignores debounced reload after unmount', async () => {
+    let debouncedCallback: (() => void) | undefined;
+    const originalSetTimeout = globalThis.setTimeout.bind(globalThis);
+    const setTimeoutSpy = vi
+      .spyOn(globalThis, 'setTimeout')
+      .mockImplementation((handler, delay, ...args) => {
+        if (typeof handler === 'function' && delay === 400) {
+          debouncedCallback = handler as () => void;
+        }
+        return originalSetTimeout(handler, delay, ...args);
+      });
+    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout');
+
+    try {
+      let calls = 0;
+      const supabase = createMockSupabase(async () => {
+        calls += 1;
+        return { data: [row], error: null };
+      });
+      const { unmount } = renderHook(() =>
+        useConnections({ supabase, userId: UUID_A })
+      );
+      await waitFor(() => expect(calls).toBe(1));
+      emitConnectionChange(supabase);
+      expect(debouncedCallback).toBeDefined();
+      unmount();
+      debouncedCallback?.();
+      await Promise.resolve();
+      expect(calls).toBe(1);
+      expect(clearTimeoutSpy).toHaveBeenCalled();
+    } finally {
+      setTimeoutSpy.mockRestore();
+      clearTimeoutSpy.mockRestore();
+    }
+  });
 });

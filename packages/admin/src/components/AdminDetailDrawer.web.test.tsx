@@ -307,4 +307,20 @@ describe('AdminDetailDrawer', () => {
     await user.click(screen.getByLabelText('Close'));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('does not trap Tab when focus is not on the last element', async () => {
+    const user = userEvent.setup();
+    render(
+      <AdminDetailDrawer open title='User' onClose={vi.fn()}>
+        <input aria-label='Notes' />
+        <button type='button'>Save</button>
+      </AdminDetailDrawer>
+    );
+    const notes = screen.getByLabelText('Notes');
+    const save = screen.getByRole('button', { name: 'Save' });
+    await user.click(notes);
+    expect(document.activeElement).toBe(notes);
+    await user.tab();
+    expect(document.activeElement).toBe(save);
+  });
 });

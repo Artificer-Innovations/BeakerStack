@@ -345,6 +345,23 @@ describe('UserMenu (Web)', () => {
     });
   });
 
+  it('should close menu when Connections link is clicked', async () => {
+    renderWithProviders(<UserMenu user={mockUser} profile={mockProfile} />);
+    const menuButton = screen.getByLabelText('User menu');
+    fireEvent.click(menuButton);
+    await waitFor(() =>
+      expect(
+        screen.getByRole('link', { name: 'Connections' })
+      ).toBeInTheDocument()
+    );
+
+    fireEvent.click(screen.getByRole('link', { name: 'Connections' }));
+
+    await waitFor(() => {
+      expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+    });
+  });
+
   it('should not render email row when user has no email', async () => {
     const userWithoutEmail: User = { ...mockUser, email: undefined };
     renderWithProviders(

@@ -34,4 +34,12 @@ describe('parseBillingFunctionError', () => {
     expect(err.kind).toBe('stripe');
     expect(err.message).toBe('Billing request failed');
   });
+
+  it('ignores whitespace-only error strings in the body', () => {
+    const err = parseBillingFunctionError(
+      { error: '   ' },
+      new Error('invoke')
+    );
+    expect(err.message).toContain('invoke');
+  });
 });
