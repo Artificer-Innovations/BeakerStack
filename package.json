@@ -257,7 +257,6 @@
     },
     "joi": "17.13.4",
     "ts-deepmerge": "8.0.0",
-    "minimatch": "^9.0.9",
     "cacache": {
       "tar": "7.5.16"
     },
