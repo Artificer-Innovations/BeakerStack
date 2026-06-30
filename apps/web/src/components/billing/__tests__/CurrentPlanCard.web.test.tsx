@@ -216,4 +216,28 @@ describe('CurrentPlanCard', () => {
     );
     expect(screen.getByText(/^Renews on /)).toBeInTheDocument();
   });
+
+  it('renders complimentary access copy when isComped', () => {
+    render(
+      <MemoryRouter>
+        <CurrentPlanCard
+          plan={plan}
+          subscription={{ ...subscription, status: 'comped' }}
+          isFree={false}
+          isComped
+          onManagePayment={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+    expect(screen.getByText('Pro')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Complimentary access — billing is managed by our team/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Manage payment/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /Change plan/i })
+    ).not.toBeInTheDocument();
+  });
 });

@@ -64,14 +64,14 @@ SELECT ok(
 );
 
 SELECT ok(
-    (SELECT (features ->> 'byok_enabled')::boolean FROM public.billing_plans WHERE id = 'beakerstack_vip'),
-    'beakerstack_vip includes byok_enabled'
+    (SELECT (features ->> 'feature_b')::boolean FROM public.billing_plans WHERE id = 'beakerstack_vip'),
+    'beakerstack_vip includes Max-equivalent feature_b'
 );
 
 SELECT is(
-    (SELECT (usage_limits ->> 'thought_capture_byok')::int FROM public.billing_plans WHERE id = 'beakerstack_vip'),
+    (SELECT (usage_limits ->> 'ai_summarize')::int FROM public.billing_plans WHERE id = 'beakerstack_vip'),
     -1,
-    'beakerstack_vip includes unlimited thought_capture_byok meter'
+    'beakerstack_vip includes unlimited ai_summarize meter'
 );
 
 -- ── Fixtures ─────────────────────────────────────────────────────────────────

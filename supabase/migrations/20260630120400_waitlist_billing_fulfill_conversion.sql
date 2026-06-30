@@ -150,4 +150,6 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION public.waitlist_billing_fulfill_conversion(uuid, uuid, text, text[]) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.waitlist_billing_fulfill_conversion(uuid, uuid, text, text[]) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.waitlist_billing_fulfill_conversion(uuid, uuid, text, text[]) FROM anon;
 GRANT EXECUTE ON FUNCTION public.waitlist_billing_fulfill_conversion(uuid, uuid, text, text[]) TO service_role;

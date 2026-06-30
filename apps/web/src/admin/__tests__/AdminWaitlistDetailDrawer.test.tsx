@@ -20,6 +20,18 @@ vi.mock('@beakerstack/waitlist', async importOriginal => {
   };
 });
 
+const mockSetProvisioningIntent = vi.fn();
+
+vi.mock('@beakerstack/waitlist-billing/web', async importOriginal => {
+  const actual =
+    await importOriginal<typeof import('@beakerstack/waitlist-billing/web')>();
+  return {
+    ...actual,
+    setWaitlistEntryProvisioningIntent: (...args: unknown[]) =>
+      mockSetProvisioningIntent(...args),
+  };
+});
+
 const mockApprove = vi.mocked(approveWaitlistEntry);
 const mockReject = vi.mocked(rejectWaitlistEntry);
 const mockResend = vi.mocked(resendWaitlistInvite);
@@ -50,6 +62,7 @@ describe('AdminWaitlistDetailDrawer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     invokeMock.mockResolvedValue({ data: {}, error: null });
+    mockSetProvisioningIntent.mockResolvedValue({ ok: true });
     mockApprove.mockResolvedValue({
       invite_token: 'tok',
       email: 'wait@example.com',
@@ -425,5 +438,92 @@ describe('AdminWaitlistDetailDrawer', () => {
     expect(writeText).toHaveBeenCalledWith(
       expect.stringContaining('/signup/invite#token=tok')
     );
+  });
+
+  it('approves with VIP provisioning intent when enabled', async () => {
+    const user = userEvent.setup();
+    render(
+      <AdminWaitlistDetailDrawer
+        entry={pendingEntry}
+        open
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+      />
+    );
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: /grant complimentary vip on signup/i,
+      })
+    );
+    await user.type(
+      screen.getByLabelText(/^reason \(required\)$/i),
+      'Founder friend'
+    );
+    await user.click(screen.getByRole('button', { name: /^approve$/i }));
+    await waitFor(() => expect(mockApprove).toHaveBeenCalled());
+    expect(mockApprove).toHaveBeenCalledWith(
+      expect.anything(),
+      'e1',
+      expect.objectContaining({
+        provisioningIntent: {
+          kind: 'billing_comp',
+          planId: 'beakerstack_vip',
+          reason: 'Founder friend',
+        },
+      })
+    );
+  });
+
+  it('requires VIP reason before approving pending entry', async () => {
+    const user = userEvent.setup();
+    render(
+      <AdminWaitlistDetailDrawer
+        entry={pendingEntry}
+        open
+        onClose={vi.fn()}
+        onUpdated={vi.fn()}
+      />
+    );
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: /grant complimentary vip on signup/i,
+      })
+    );
+    await user.click(screen.getByRole('button', { name: /^approve$/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /reason when granting vip access/i
+    );
+    expect(mockApprove).not.toHaveBeenCalled();
+  });
+
+  it('saves VIP provisioning intent on approved entries', async () => {
+    const onUpdated = vi.fn();
+    const user = userEvent.setup();
+    const approvedEntry = {
+      ...pendingEntry,
+      status: 'approved' as const,
+      approved_at: '2024-01-02T00:00:00Z',
+      has_active_invite: true,
+    };
+    render(
+      <AdminWaitlistDetailDrawer
+        entry={approvedEntry}
+        open
+        onClose={vi.fn()}
+        onUpdated={onUpdated}
+      />
+    );
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: /grant complimentary vip on signup/i,
+      })
+    );
+    await user.type(
+      screen.getByLabelText(/^reason \(required\)$/i),
+      'Retroactive VIP'
+    );
+    await user.click(screen.getByRole('button', { name: /save vip intent/i }));
+    await waitFor(() => expect(mockSetProvisioningIntent).toHaveBeenCalled());
+    expect(onUpdated).toHaveBeenCalled();
   });
 });
