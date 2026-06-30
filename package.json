@@ -78,7 +78,7 @@
     "gen:types:staging": "supabase gen types typescript --project-id $STAGING_PROJECT_REF > apps/mobile/src/types/database.ts && cp apps/mobile/src/types/database.ts apps/web/src/types/database.ts",
     "test": "npm run test:unit && npm run test:integration && npm run test:db",
     "test:all": "npm run test && npm run test:e2e",
-    "test:unit": "npm run test:unit:mobile && npm run test:unit:web && npm run test:unit:shared && npm run test:unit:billing && npm run test:unit:admin && npm run test:unit:lifecycle-events && npm run test:unit:waitlist && npm run test:unit:email && npm run test:unit:marketing-email && npm run test:unit:help && npm run test:unit:articles && npm run test:unit:logger && npm run test:unit:observability && npm run test:unit:connections && npm run test:unit:scripts",
+    "test:unit": "npm run test:unit:mobile && npm run test:unit:web && npm run test:unit:shared && npm run test:unit:billing && npm run test:unit:admin && npm run test:unit:lifecycle-events && npm run test:unit:waitlist && npm run test:unit:waitlist-billing && npm run test:unit:email && npm run test:unit:marketing-email && npm run test:unit:help && npm run test:unit:articles && npm run test:unit:logger && npm run test:unit:observability && npm run test:unit:connections && npm run test:unit:scripts",
     "test:unit:mobile": "cd apps/mobile && npm test && cd ../../packages/adopter-tests && npm test",
     "test:unit:web": "cd apps/web && npm test",
     "test:unit:shared": "cd packages/shared-tests && npm run test",
@@ -86,6 +86,7 @@
     "test:unit:admin": "cd packages/admin && npm test",
     "test:unit:lifecycle-events": "cd packages/lifecycle-events && npm test",
     "test:unit:waitlist": "cd packages/waitlist && npm test",
+    "test:unit:waitlist-billing": "cd packages/waitlist-billing && npm test",
     "test:unit:email": "cd packages/email && npm test",
     "test:unit:marketing-email": "cd packages/marketing-email && npm test",
     "test:unit:help": "cd packages/help && npm test",
@@ -204,6 +205,8 @@
     "billing:apply-plans": "tsx scripts/apply-billing-plans-from-config.ts",
     "admin:grant": "tsx scripts/grant-admin.ts",
     "admin:revoke": "tsx scripts/revoke-admin.ts",
+    "admin:invite": "node scripts/admin-waitlist-invite.mjs",
+    "admin:waitlist-vip": "node scripts/admin-waitlist-vip.mjs",
     "functions:sync-shared": "node scripts/sync-edge-shared.mjs"
   },
   "devDependencies": {

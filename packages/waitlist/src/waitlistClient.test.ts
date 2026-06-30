@@ -12,6 +12,7 @@ import {
   listWaitlistEntries,
   rejectWaitlistEntry,
   resendWaitlistInvite,
+  setWaitlistEntryProvisioningIntent,
   updateAdminWaitlistSettings,
   validateInvite,
 } from './waitlistClient.js';
@@ -391,6 +392,9 @@ describe('waitlistClient', () => {
       expect(args).toEqual({
         p_email: 'new@example.com',
         p_metadata: { note: 'vip' },
+        p_provisioning_intent: null,
+        p_update_provisioning_intent: false,
+        p_allowed_comp_plan_ids: null,
       });
       return {
         data: {
@@ -404,7 +408,9 @@ describe('waitlistClient', () => {
       };
     });
     expect(
-      await inviteWaitlistEmail(ok, 'new@example.com', { note: 'vip' })
+      await inviteWaitlistEmail(ok, 'new@example.com', {
+        metadata: { note: 'vip' },
+      })
     ).toEqual({
       ok: true,
       invite_token: 'tok',
@@ -433,12 +439,54 @@ describe('waitlistClient', () => {
       expect(args).toEqual({
         p_email: 'x@y.com',
         p_metadata: {},
+        p_provisioning_intent: null,
+        p_update_provisioning_intent: false,
+        p_allowed_comp_plan_ids: null,
       });
       return { data: { ok: true }, error: null };
     });
     expect(await inviteWaitlistEmail(defaultMeta, 'x@y.com')).toEqual({
       ok: true,
     });
+  });
+
+  it('approveWaitlistEntry forwards provisioning intent options', async () => {
+    const client = createSupabase((name, args) => {
+      expect(name).toBe('admin_approve_waitlist_entry');
+      expect(args).toEqual({
+        p_id: 'e1',
+        p_provisioning_intent: {
+          kind: 'billing_comp',
+          planId: 'beakerstack_vip',
+          reason: 'Partner',
+        },
+        p_update_provisioning_intent: true,
+        p_allowed_comp_plan_ids: ['beakerstack_vip'],
+      });
+      return { data: { ok: true }, error: null };
+    });
+    expect(
+      await approveWaitlistEntry(client, 'e1', {
+        provisioningIntent: {
+          kind: 'billing_comp',
+          planId: 'beakerstack_vip',
+          reason: 'Partner',
+        },
+        allowedCompPlanIds: ['beakerstack_vip'],
+      })
+    ).toEqual({ ok: true });
+  });
+
+  it('setWaitlistEntryProvisioningIntent maps rpc results', async () => {
+    const ok = createSupabase(() => ({
+      data: { ok: true, provisioning_intent: { kind: 'billing_comp' } },
+      error: null,
+    }));
+    expect(
+      await setWaitlistEntryProvisioningIntent(ok, 'e1', null, [
+        'beakerstack_vip',
+      ])
+    ).toEqual({ ok: true, provisioning_intent: { kind: 'billing_comp' } });
   });
 
   it('buildInviteUrl strips trailing slash and encodes token', () => {

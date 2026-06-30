@@ -145,11 +145,21 @@ export default function BillingPlansPage() {
     [current, colCount, maxItemsInAnyCollection, aiUsed, hasPaidStripe, plans]
   );
 
+  const isComped = billingKind === 'comped';
+
   const getPrimary = useCallback(
     (p: Plan): Primary => {
       if (!current) {
         return {
           label: '…',
+          disabled: true,
+          loading: false,
+        };
+      }
+      if (isComped) {
+        return {
+          label:
+            p.id === current.id ? 'Current plan' : 'Included with your account',
           disabled: true,
           loading: false,
         };
@@ -247,6 +257,7 @@ export default function BillingPlansPage() {
       startCheckout,
       updateSubscription,
       pending,
+      isComped,
     ]
   );
 

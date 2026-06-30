@@ -29,6 +29,9 @@ export function SubscriptionStatusBadge({
   if (st === 'free') {
     label = 'Free';
     classes += 'bg-gray-100 text-gray-800';
+  } else if (st === 'comped') {
+    label = 'Complimentary';
+    classes += 'bg-indigo-100 text-indigo-800';
   } else if (st === 'past_due') {
     label = 'Payment failed';
     classes += 'bg-red-100 text-red-800';

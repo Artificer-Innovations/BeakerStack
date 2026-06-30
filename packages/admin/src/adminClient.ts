@@ -119,6 +119,52 @@ export async function revokeOperator(
   if (code === 'cannot_self_revoke') throw new Error('cannot_self_revoke');
 }
 
+export type GrantBillingCompParams = {
+  userId: string;
+  productId: string;
+  planId: string;
+  reason: string;
+  expiresAt?: string | null;
+};
+
+export async function grantBillingComp(
+  supabase: SupabaseClient,
+  params: GrantBillingCompParams
+): Promise<void> {
+  const { data, error } = await supabase.rpc('admin_grant_billing_comp', {
+    p_user_id: params.userId,
+    p_product_id: params.productId,
+    p_plan_id: params.planId,
+    p_reason: params.reason,
+    p_expires_at: params.expiresAt ?? undefined,
+  });
+  if (error) throw rpcError(error);
+  if (isNotFound(data)) throw new Error('not_found');
+  const code = errorCode(data);
+  if (code === 'invalid_reason') throw new Error('invalid_reason');
+  if (code === 'invalid_plan') throw new Error('invalid_plan');
+  if (code === 'stripe_subscription_active') {
+    throw new Error('stripe_subscription_active');
+  }
+}
+
+export async function revokeBillingComp(
+  supabase: SupabaseClient,
+  userId: string,
+  productId: string,
+  reason?: string
+): Promise<void> {
+  const { data, error } = await supabase.rpc('admin_revoke_billing_comp', {
+    p_user_id: userId,
+    p_product_id: productId,
+    p_reason: reason ?? undefined,
+  });
+  if (error) throw rpcError(error);
+  if (isNotFound(data)) throw new Error('not_found');
+  const code = errorCode(data);
+  if (code === 'no_free_plan') throw new Error('no_free_plan');
+}
+
 export async function recordAuditEvent(
   supabase: SupabaseClient,
   input: RecordAuditEventInput

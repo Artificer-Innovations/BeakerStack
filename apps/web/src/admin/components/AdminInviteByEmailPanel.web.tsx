@@ -3,10 +3,15 @@ import {
   buildInviteUrl,
   emitLifecycleEvent,
   getAdminWaitlistSettings,
-  inviteWaitlistEmail,
 } from '@beakerstack/waitlist';
+import {
+  inviteWaitlistEmailWithIntent,
+  WaitlistVipInviteFields,
+  type WaitlistProvisioningIntentInput,
+} from '@beakerstack/waitlist-billing/web';
 import { supabase } from '../../lib/supabase';
 import { waitlistConfig } from '@adopter/config/waitlist';
+import { waitlistBillingConfig } from '@adopter/config/waitlist-billing';
 
 function mapInviteError(code: string): string {
   switch (code) {
@@ -14,6 +19,10 @@ function mapInviteError(code: string): string {
       return 'Enter a valid email address.';
     case 'already_converted':
       return 'This email already completed signup.';
+    case 'invalid_reason':
+      return 'Enter a reason when granting VIP access.';
+    case 'plan_not_allowed':
+      return 'That VIP plan is not allowed for waitlist invites.';
     case 'not_found':
       return 'You do not have permission to send invites.';
     default:
@@ -33,6 +42,10 @@ export function AdminInviteByEmailPanel({
   const [invite, setInvite] = useState<{ link: string; email: string } | null>(
     null
   );
+  const [provisioningIntent, setProvisioningIntent] =
+    useState<WaitlistProvisioningIntentInput | null>(null);
+  const [vipTouched, setVipTouched] = useState(false);
+  const [vipEnabled, setVipEnabled] = useState(false);
 
   useEffect(() => {
     void getAdminWaitlistSettings(supabase).then(settings => {
@@ -40,35 +53,62 @@ export function AdminInviteByEmailPanel({
     });
   }, []);
 
-  const sendInviteEmail = async (inviteUrl: string, to: string) => {
+  const sendInviteEmail = async (
+    inviteUrl: string,
+    to: string,
+    entryId: string
+  ) => {
     const logoUrl = `${waitlistConfig.appOrigin}/email-logo.png`;
     const html = waitlistConfig.emailTemplates.inviteHtml.replace(
       /{{logoUrl}}/g,
       logoUrl
     );
-    await supabase.functions.invoke(waitlistConfig.opsFunctionName, {
-      body: {
-        action: 'send_invite_email',
-        email: to,
-        inviteUrl,
-        subject: waitlistConfig.emailTemplates.inviteSubject,
-        html,
-      },
-    });
+    const { data, error: fnErr } = await supabase.functions.invoke(
+      waitlistConfig.opsFunctionName,
+      {
+        body: {
+          action: 'send_invite_email',
+          entryId,
+          email: to,
+          inviteUrl,
+          subject: waitlistConfig.emailTemplates.inviteSubject,
+          html,
+        },
+      }
+    );
+    if (fnErr) throw new Error(fnErr.message);
+    const body = data as { error?: string };
+    if (body?.error === 'email_not_configured') {
+      throw new Error(
+        'Email delivery is not configured. Copy the invite link below.'
+      );
+    }
+    if (body?.error) throw new Error(body.error);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = email.trim();
     if (!trimmed) return;
+    if (vipEnabled && !provisioningIntent) {
+      setError('Enter a reason when granting VIP access.');
+      return;
+    }
 
     setBusy(true);
     setError(null);
     setInvite(null);
     try {
-      const result = await inviteWaitlistEmail(supabase, trimmed);
+      const result = await inviteWaitlistEmailWithIntent(
+        supabase,
+        waitlistBillingConfig,
+        trimmed,
+        {
+          provisioningIntent: vipTouched ? provisioningIntent : undefined,
+        }
+      );
       if (result?.error) throw new Error(mapInviteError(result.error));
-      if (!result?.invite_token || !result.email) {
+      if (!result?.invite_token || !result.email || !result.entry_id) {
         throw new Error('Invite was not created.');
       }
 
@@ -77,12 +117,14 @@ export function AdminInviteByEmailPanel({
         result.invite_token
       );
       setInvite({ link, email: result.email });
-      await sendInviteEmail(link, result.email);
+      await sendInviteEmail(link, result.email, result.entry_id);
       await emitLifecycleEvent('waitlist.approved', {
         email: result.email,
         entryId: result.entry_id,
       });
       setEmail('');
+      setProvisioningIntent(null);
+      setVipTouched(false);
       onInvited?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create invite.');
@@ -115,31 +157,45 @@ export function AdminInviteByEmailPanel({
       </p>
 
       <form
-        className='mt-4 flex flex-col gap-3 sm:flex-row sm:items-end'
+        className='mt-4 flex flex-col gap-3'
         onSubmit={e => void handleSubmit(e)}
       >
-        <div className='flex-1'>
-          <label htmlFor='admin-invite-email' className='sr-only'>
-            Email address
-          </label>
-          <input
-            id='admin-invite-email'
-            type='email'
-            autoComplete='email'
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder='name@example.com'
-            disabled={busy}
-            className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50'
-          />
+        <div className='flex flex-col gap-3 sm:flex-row sm:items-end'>
+          <div className='flex-1'>
+            <label htmlFor='admin-invite-email' className='sr-only'>
+              Email address
+            </label>
+            <input
+              id='admin-invite-email'
+              type='email'
+              autoComplete='email'
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder='name@example.com'
+              disabled={busy}
+              className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50'
+            />
+          </div>
+          <button
+            type='submit'
+            disabled={busy || !email.trim()}
+            className='shrink-0 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50'
+          >
+            {busy ? 'Sending…' : 'Send invite'}
+          </button>
         </div>
-        <button
-          type='submit'
-          disabled={busy || !email.trim()}
-          className='shrink-0 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50'
-        >
-          {busy ? 'Sending…' : 'Send invite'}
-        </button>
+
+        <WaitlistVipInviteFields
+          defaultCompPlanId={
+            waitlistBillingConfig.defaultCompPlanId ?? 'beakerstack_vip'
+          }
+          disabled={busy}
+          onChange={intent => {
+            setVipTouched(true);
+            setProvisioningIntent(intent);
+          }}
+          onVipEnabledChange={setVipEnabled}
+        />
       </form>
 
       {error ? (
