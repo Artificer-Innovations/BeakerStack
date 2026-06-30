@@ -450,6 +450,23 @@ describe('waitlistClient', () => {
     });
   });
 
+  it('inviteWaitlistEmail accepts legacy bare metadata object', async () => {
+    const legacy = createSupabase((name, args) => {
+      expect(name).toBe('admin_invite_waitlist_email');
+      expect(args).toEqual({
+        p_email: 'legacy@example.com',
+        p_metadata: { note: 'vip' },
+        p_provisioning_intent: null,
+        p_update_provisioning_intent: false,
+        p_allowed_comp_plan_ids: null,
+      });
+      return { data: { ok: true }, error: null };
+    });
+    expect(
+      await inviteWaitlistEmail(legacy, 'legacy@example.com', { note: 'vip' })
+    ).toEqual({ ok: true });
+  });
+
   it('approveWaitlistEntry forwards provisioning intent options', async () => {
     const client = createSupabase((name, args) => {
       expect(name).toBe('admin_approve_waitlist_entry');

@@ -125,7 +125,10 @@ export function AdminUserDetailDrawer({
           reason: compReason.trim(),
         });
       } else if (actionPending === 'revoke_comp') {
-        await revokeBillingComp(supabase, userId, adminProductId);
+        await revokeBillingComp(supabase, {
+          userId,
+          productId: adminProductId,
+        });
       }
       dismissDialog();
       await refreshDetail();
@@ -152,9 +155,7 @@ export function AdminUserDetailDrawer({
   const isSelf =
     userId !== null && currentUserId !== null && userId === currentUserId;
 
-  const hasCompAccess =
-    Boolean(detail?.comp_grant) ||
-    (detail?.subscription?.['status'] as string | undefined) === 'comped';
+  const hasCompAccess = Boolean(detail?.comp_grant);
 
   const vipPlanName =
     billingConfig.plans.find(p => p.id === COMP_VIP_PLAN_ID)?.displayName ??

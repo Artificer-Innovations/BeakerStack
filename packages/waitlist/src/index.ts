@@ -17,8 +17,10 @@ export {
   rejectWaitlistEntry,
   resendWaitlistInvite,
   inviteWaitlistEmail,
+  normalizeInviteWaitlistEmailOptions,
   setWaitlistEntryProvisioningIntent,
   buildInviteUrl,
+  type InviteWaitlistEmailOptions,
 } from './waitlistClient.js';
 export {
   parseStoredProvisioningIntent,

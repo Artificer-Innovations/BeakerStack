@@ -282,11 +282,49 @@ describe('adminClient', () => {
     }
   });
 
+  it('grantBillingComp passes null expiresAt to RPC', async () => {
+    const sb = mockSupabase(name =>
+      name === 'admin_grant_billing_comp' ? { ok: true } : null
+    );
+    await grantBillingComp(sb, {
+      userId: 'u1',
+      productId: 'beakerstack',
+      planId: 'beakerstack_vip',
+      reason: 'VIP partner',
+      expiresAt: null,
+    });
+    expect(sb.rpc).toHaveBeenCalledWith('admin_grant_billing_comp', {
+      p_user_id: 'u1',
+      p_product_id: 'beakerstack',
+      p_plan_id: 'beakerstack_vip',
+      p_reason: 'VIP partner',
+      p_expires_at: null,
+    });
+  });
+
+  it('grantBillingComp throws on unexpected RPC error codes', async () => {
+    const sb = mockSupabase(name =>
+      name === 'admin_grant_billing_comp' ? { error: 'no_free_plan' } : null
+    );
+    await expect(
+      grantBillingComp(sb, {
+        userId: 'u1',
+        productId: 'beakerstack',
+        planId: 'beakerstack_vip',
+        reason: 'x',
+      })
+    ).rejects.toThrow('no_free_plan');
+  });
+
   it('revokeBillingComp calls admin_revoke_billing_comp RPC', async () => {
     const sb = mockSupabase(name =>
       name === 'admin_revoke_billing_comp' ? { ok: true } : null
     );
-    await revokeBillingComp(sb, 'u1', 'beakerstack', 'done');
+    await revokeBillingComp(sb, {
+      userId: 'u1',
+      productId: 'beakerstack',
+      reason: 'done',
+    });
     expect(sb.rpc).toHaveBeenCalledWith('admin_revoke_billing_comp', {
       p_user_id: 'u1',
       p_product_id: 'beakerstack',

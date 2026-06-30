@@ -1,6 +1,6 @@
 -- pgTAP: complimentary billing grants — schema, RPC access, grant/revoke flows
 BEGIN;
-SELECT plan(26);
+SELECT plan(27);
 
 -- ── Schema / security ────────────────────────────────────────────────────────
 SELECT has_table('public', 'billing_comp_grants', 'billing_comp_grants table exists');
@@ -69,9 +69,15 @@ SELECT ok(
 );
 
 SELECT is(
-    (SELECT (usage_limits ->> 'ai_summarize')::int FROM public.billing_plans WHERE id = 'beakerstack_vip'),
-    -1,
-    'beakerstack_vip includes unlimited ai_summarize meter'
+    (SELECT features FROM public.billing_plans WHERE id = 'beakerstack_vip'),
+    (SELECT features FROM public.billing_plans WHERE id = 'beakerstack_max'),
+    'beakerstack_vip features match beakerstack_max'
+);
+
+SELECT is(
+    (SELECT usage_limits FROM public.billing_plans WHERE id = 'beakerstack_vip'),
+    (SELECT usage_limits FROM public.billing_plans WHERE id = 'beakerstack_max'),
+    'beakerstack_vip usage_limits match beakerstack_max'
 );
 
 -- ── Fixtures ─────────────────────────────────────────────────────────────────

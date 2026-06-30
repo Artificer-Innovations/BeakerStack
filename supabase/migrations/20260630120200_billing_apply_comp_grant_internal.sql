@@ -78,7 +78,8 @@ BEGIN
 
     SELECT * INTO v_sub
     FROM public.billing_subscriptions s
-    WHERE s.user_id = p_user_id AND s.product_id = p_product_id;
+    WHERE s.user_id = p_user_id AND s.product_id = p_product_id
+    FOR UPDATE;
 
     IF v_sub.stripe_subscription_id IS NOT NULL THEN
         RETURN jsonb_build_object('error', 'stripe_subscription_active');
@@ -125,7 +126,13 @@ BEGIN
         canceled_at = NULL,
         pending_target_plan_id = NULL,
         updated_at = now()
-    WHERE s.user_id = p_user_id AND s.product_id = p_product_id;
+    WHERE s.user_id = p_user_id
+      AND s.product_id = p_product_id
+      AND s.stripe_subscription_id IS NULL;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('error', 'stripe_subscription_active');
+    END IF;
 
     INSERT INTO public.billing_comp_grants (
         user_id, product_id, plan_id, comped_by, comp_reason, comp_expires_at

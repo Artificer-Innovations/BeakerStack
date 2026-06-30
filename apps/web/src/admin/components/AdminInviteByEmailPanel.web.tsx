@@ -46,6 +46,7 @@ export function AdminInviteByEmailPanel({
     useState<WaitlistProvisioningIntentInput | null>(null);
   const [vipTouched, setVipTouched] = useState(false);
   const [vipEnabled, setVipEnabled] = useState(false);
+  const [vipFormKey, setVipFormKey] = useState(0);
 
   useEffect(() => {
     void getAdminWaitlistSettings(supabase).then(settings => {
@@ -125,6 +126,8 @@ export function AdminInviteByEmailPanel({
       setEmail('');
       setProvisioningIntent(null);
       setVipTouched(false);
+      setVipEnabled(false);
+      setVipFormKey(k => k + 1);
       onInvited?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create invite.');
@@ -186,9 +189,8 @@ export function AdminInviteByEmailPanel({
         </div>
 
         <WaitlistVipInviteFields
-          defaultCompPlanId={
-            waitlistBillingConfig.defaultCompPlanId ?? 'beakerstack_vip'
-          }
+          key={vipFormKey}
+          defaultCompPlanId={waitlistBillingConfig.defaultCompPlanId}
           disabled={busy}
           onChange={intent => {
             setVipTouched(true);

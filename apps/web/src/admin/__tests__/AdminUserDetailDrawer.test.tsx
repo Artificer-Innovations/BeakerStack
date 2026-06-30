@@ -555,11 +555,10 @@ describe('AdminUserDetailDrawer', () => {
     );
     await user.click(screen.getByRole('button', { name: /^confirm$/i }));
     await waitFor(() =>
-      expect(mockRevokeBillingComp).toHaveBeenCalledWith(
-        expect.anything(),
-        'u1',
-        'beakerstack'
-      )
+      expect(mockRevokeBillingComp).toHaveBeenCalledWith(expect.anything(), {
+        userId: 'u1',
+        productId: 'beakerstack',
+      })
     );
   });
 

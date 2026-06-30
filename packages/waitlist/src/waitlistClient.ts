@@ -13,6 +13,31 @@ import {
   type WaitlistProvisioningIntentInput,
 } from './provisioning.js';
 
+export type InviteWaitlistEmailOptions = {
+  metadata?: Record<string, unknown>;
+  provisioningIntent?: WaitlistProvisioningIntentInput | null;
+  allowedCompPlanIds?: string[];
+};
+
+function isInviteWaitlistEmailOptions(
+  value: Record<string, unknown>
+): value is InviteWaitlistEmailOptions {
+  return (
+    'metadata' in value ||
+    'provisioningIntent' in value ||
+    'allowedCompPlanIds' in value
+  );
+}
+
+/** Supports legacy callers that passed a bare metadata object as the third arg. */
+export function normalizeInviteWaitlistEmailOptions(
+  options?: InviteWaitlistEmailOptions | Record<string, unknown>
+): InviteWaitlistEmailOptions {
+  if (!options) return {};
+  if (isInviteWaitlistEmailOptions(options)) return options;
+  return { metadata: options };
+}
+
 export const DEFAULT_WAITLIST_ADMIN_SETTINGS: WaitlistAdminSettings = {
   signup_mode: 'open',
   default_plan_id: 'beakerstack_free',
@@ -251,11 +276,7 @@ export async function resendWaitlistInvite(
 export async function inviteWaitlistEmail(
   supabase: SupabaseClient,
   email: string,
-  options: {
-    metadata?: Record<string, unknown>;
-    provisioningIntent?: WaitlistProvisioningIntentInput | null;
-    allowedCompPlanIds?: string[];
-  } = {}
+  options?: InviteWaitlistEmailOptions | Record<string, unknown>
 ): Promise<{
   ok?: boolean;
   entry_id?: string;
@@ -264,15 +285,16 @@ export async function inviteWaitlistEmail(
   created?: boolean;
   error?: string;
 } | null> {
-  const updateIntent = options.provisioningIntent !== undefined;
+  const normalized = normalizeInviteWaitlistEmailOptions(options);
+  const updateIntent = normalized.provisioningIntent !== undefined;
   const { data, error } = await supabase.rpc('admin_invite_waitlist_email', {
     p_email: email,
-    p_metadata: options.metadata ?? {},
+    p_metadata: normalized.metadata ?? {},
     p_provisioning_intent: updateIntent
-      ? toRpcProvisioningIntent(options.provisioningIntent ?? null)
+      ? toRpcProvisioningIntent(normalized.provisioningIntent ?? null)
       : null,
     p_update_provisioning_intent: updateIntent,
-    p_allowed_comp_plan_ids: options.allowedCompPlanIds ?? null,
+    p_allowed_comp_plan_ids: normalized.allowedCompPlanIds ?? null,
   });
   if (error) return { error: error.message };
   if ((data as { error?: string })?.error) return data as { error: string };

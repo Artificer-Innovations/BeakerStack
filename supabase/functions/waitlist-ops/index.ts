@@ -190,11 +190,31 @@ Deno.serve(async req => {
         }
       );
       if (fulfillResult?.error) {
+        const fulfillError = fulfillResult.error;
+        const isAllowlistMisconfig =
+          fulfillError === 'plan_not_allowed' ||
+          fulfillError === 'invalid_plan';
         console.error(
-          'waitlist_billing_fulfill_conversion',
-          fulfillResult.error
+          JSON.stringify({
+            event: 'waitlist_billing_fulfill_conversion_failed',
+            error: fulfillError,
+            severity: isAllowlistMisconfig
+              ? 'config_mismatch'
+              : 'provision_error',
+            entry_id: consumeResult.entry_id,
+            user_id: userId,
+            comp_plan_ids: compPlanIds,
+          })
         );
-        return jsonResponse({ error: 'plan_provision_failed' }, 500, req);
+        return jsonResponse(
+          {
+            error: isAllowlistMisconfig
+              ? fulfillError
+              : 'plan_provision_failed',
+          },
+          500,
+          req
+        );
       }
     }
 

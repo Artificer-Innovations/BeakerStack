@@ -248,9 +248,7 @@ export function AdminWaitlistDetailDrawer({
       {entry.status === 'pending' ? (
         <div className='mt-4'>
           <WaitlistVipInviteFields
-            defaultCompPlanId={
-              waitlistBillingConfig.defaultCompPlanId ?? 'beakerstack_vip'
-            }
+            defaultCompPlanId={waitlistBillingConfig.defaultCompPlanId}
             disabled={busy}
             onChange={intent => {
               setApproveIntentTouched(true);
@@ -264,9 +262,7 @@ export function AdminWaitlistDetailDrawer({
       {entry.status === 'approved' ? (
         <div className='mt-4 space-y-3'>
           <WaitlistVipInviteFields
-            defaultCompPlanId={
-              waitlistBillingConfig.defaultCompPlanId ?? 'beakerstack_vip'
-            }
+            defaultCompPlanId={waitlistBillingConfig.defaultCompPlanId}
             initialMetadata={entry.metadata}
             disabled={busy}
             onChange={intent => {
