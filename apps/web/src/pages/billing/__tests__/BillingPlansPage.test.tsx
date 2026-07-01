@@ -828,6 +828,11 @@ describe('BillingPlansPage', () => {
       trial_end: null,
     };
     renderPage();
+    expect(
+      screen.getByText(
+        /You have complimentary access\. Plan changes and Stripe checkout are not available on this account\./i
+      )
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Current plan' })).toBeDisabled();
     const included = screen.getAllByRole('button', {
       name: 'Included with your account',

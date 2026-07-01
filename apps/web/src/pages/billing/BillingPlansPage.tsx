@@ -29,6 +29,7 @@ import {
 } from '../../components/billing/CadenceToggle.web';
 import { BillingPageShell } from '../../components/billing/BillingPageShell.web';
 import { BillingTabs } from '../../components/billing/BillingTabs.web';
+import { Banner } from '../../components/billing/Banner.web';
 import { ConfirmDowngradeModal } from '../../components/billing/ConfirmDowngradeModal.web';
 import { PlanCard } from '../../components/billing/PlanCard.web';
 
@@ -278,6 +279,12 @@ export default function BillingPlansPage() {
       <div className='mt-6'>
         <CadenceToggle />
       </div>
+      {isComped ? (
+        <Banner variant='info' className='mt-6'>
+          You have complimentary access. Plan changes and Stripe checkout are
+          not available on this account.
+        </Banner>
+      ) : null}
       {welcomeFromPricing && welcomePlanMeta ? (
         <div
           role='status'
