@@ -1,15 +1,22 @@
 import { useState } from 'react';
 import { AdminDetailDrawer } from '@beakerstack/admin/web';
 import {
-  approveWaitlistEntry,
   buildInviteUrl,
   emitLifecycleEvent,
+  parseStoredProvisioningIntent,
   rejectWaitlistEntry,
   resendWaitlistInvite,
   type WaitlistEntryRow,
 } from '@beakerstack/waitlist';
+import {
+  approveWaitlistEntryWithIntent,
+  setWaitlistEntryProvisioningIntent,
+  WaitlistVipInviteFields,
+  type WaitlistProvisioningIntentInput,
+} from '@beakerstack/waitlist-billing/web';
 import { supabase } from '../../lib/supabase';
 import { waitlistConfig } from '@adopter/config/waitlist';
+import { waitlistBillingConfig } from '@adopter/config/waitlist-billing';
 
 function formatDate(value: string | null | undefined) {
   if (!value) return '—';
@@ -29,6 +36,19 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function mapProvisioningError(code: string): string {
+  switch (code) {
+    case 'invalid_reason':
+      return 'Enter a reason when granting VIP access.';
+    case 'invalid_status':
+      return 'VIP intent can only be saved on pending or approved entries.';
+    case 'plan_not_allowed':
+      return 'That VIP plan is not allowed for waitlist invites.';
+    default:
+      return code;
+  }
+}
+
 export function AdminWaitlistDetailDrawer({
   entry,
   open,
@@ -43,8 +63,19 @@ export function AdminWaitlistDetailDrawer({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [approveIntent, setApproveIntent] =
+    useState<WaitlistProvisioningIntentInput | null>(null);
+  const [approveIntentTouched, setApproveIntentTouched] = useState(false);
+  const [approveVipEnabled, setApproveVipEnabled] = useState(false);
+  const [saveIntent, setSaveIntent] =
+    useState<WaitlistProvisioningIntentInput | null>(null);
+  const [saveIntentTouched, setSaveIntentTouched] = useState(false);
+  const [saveVipEnabled, setSaveVipEnabled] = useState(false);
 
   if (!entry) return null;
+
+  const storedIntent = parseStoredProvisioningIntent(entry.metadata);
+  const hasVipIntent = storedIntent?.kind === 'billing_comp';
 
   const sendInviteEmail = async (
     token: string,
@@ -82,11 +113,21 @@ export function AdminWaitlistDetailDrawer({
   };
 
   const handleApprove = async () => {
+    if (approveVipEnabled && !approveIntent) {
+      setError('Enter a reason when granting VIP access.');
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
-      const result = await approveWaitlistEntry(supabase, entry.id);
-      if (result?.error) throw new Error(result.error);
+      const result = await approveWaitlistEntryWithIntent(
+        supabase,
+        waitlistBillingConfig,
+        entry.id,
+        approveIntentTouched ? approveIntent : undefined
+      );
+      if (result?.error) throw new Error(mapProvisioningError(result.error));
       if (result?.invite_token && result.email) {
         await sendInviteEmail(result.invite_token, result.email, entry.id);
         await emitLifecycleEvent('waitlist.approved', {
@@ -94,9 +135,35 @@ export function AdminWaitlistDetailDrawer({
           entryId: entry.id,
         });
       }
+      setApproveIntentTouched(false);
       onUpdated();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Approve failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSaveVipIntent = async () => {
+    if (saveVipEnabled && !saveIntent) {
+      setError('Enter a reason when granting VIP access.');
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await setWaitlistEntryProvisioningIntent(
+        supabase,
+        waitlistBillingConfig,
+        entry.id,
+        saveIntentTouched ? saveIntent : null
+      );
+      if (result?.error) throw new Error(mapProvisioningError(result.error));
+      setSaveIntentTouched(false);
+      onUpdated();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Save failed');
     } finally {
       setBusy(false);
     }
@@ -146,6 +213,7 @@ export function AdminWaitlistDetailDrawer({
     <AdminDetailDrawer open={open} title={entry.email} onClose={onClose}>
       <dl className='space-y-3 text-sm'>
         <DetailRow label='Status' value={entry.status} />
+        {hasVipIntent ? <DetailRow label='VIP on signup' value='Yes' /> : null}
         <DetailRow label='Submitted' value={formatDate(entry.submitted_at)} />
         <DetailRow label='Approved' value={formatDate(entry.approved_at)} />
         <DetailRow label='Rejected' value={formatDate(entry.rejected_at)} />
@@ -173,6 +241,43 @@ export function AdminWaitlistDetailDrawer({
             onClick={() => void copyLink()}
           >
             Copy invite link
+          </button>
+        </div>
+      ) : null}
+
+      {entry.status === 'pending' ? (
+        <div className='mt-4'>
+          <WaitlistVipInviteFields
+            defaultCompPlanId={waitlistBillingConfig.defaultCompPlanId}
+            disabled={busy}
+            onChange={intent => {
+              setApproveIntentTouched(true);
+              setApproveIntent(intent);
+            }}
+            onVipEnabledChange={setApproveVipEnabled}
+          />
+        </div>
+      ) : null}
+
+      {entry.status === 'approved' ? (
+        <div className='mt-4 space-y-3'>
+          <WaitlistVipInviteFields
+            defaultCompPlanId={waitlistBillingConfig.defaultCompPlanId}
+            initialMetadata={entry.metadata}
+            disabled={busy}
+            onChange={intent => {
+              setSaveIntentTouched(true);
+              setSaveIntent(intent);
+            }}
+            onVipEnabledChange={setSaveVipEnabled}
+          />
+          <button
+            type='button'
+            disabled={busy || !saveIntentTouched}
+            className='px-3 py-1.5 text-sm font-medium rounded-md border border-indigo-600 text-indigo-700 hover:bg-indigo-50 disabled:opacity-50'
+            onClick={() => void handleSaveVipIntent()}
+          >
+            Save VIP intent
           </button>
         </div>
       ) : null}

@@ -52,10 +52,12 @@ export default function BillingOverviewPage() {
   const { count: colCount, loading: colLoad } = useDemoCollectionCount();
   const { user } = useAuthContext();
 
+  const isComped = kind === 'comped';
   const isFree =
-    kind === 'free' ||
-    currentPlan?.price_cents === 0 ||
-    !subscription?.stripe_subscription_id;
+    !isComped &&
+    (kind === 'free' ||
+      currentPlan?.price_cents === 0 ||
+      !subscription?.stripe_subscription_id);
 
   const pendingTargetName =
     subscription?.pending_target_plan_id != null
@@ -111,6 +113,7 @@ export default function BillingOverviewPage() {
             plan={currentPlan}
             subscription={subscription}
             isFree={!!isFree}
+            isComped={isComped}
             onManagePayment={() => void openPortal()}
             managePaymentPending={portalPend}
             periodSubcopy={periodSubcopy}
@@ -178,6 +181,14 @@ function OverviewBanners({
   );
 
   if (kind === 'loading' || kind === 'no_subscription') return null;
+  if (kind === 'comped') {
+    return (
+      <Banner variant='info' title='Complimentary access'>
+        Your plan is included at no charge. Checkout and the Stripe customer
+        portal are not available for complimentary accounts.
+      </Banner>
+    );
+  }
   if (kind === 'payment_failed') {
     return (
       <Banner variant='error' title='Payment problem'>

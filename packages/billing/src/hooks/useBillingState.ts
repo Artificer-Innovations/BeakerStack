@@ -18,7 +18,8 @@ export type BillingUiStateKind =
   | 'payment_failed'
   | 'trialing'
   | 'trial_ending'
-  | 'downgrade_pending';
+  | 'downgrade_pending'
+  | 'comped';
 
 export type BillingUiState = {
   kind: BillingUiStateKind;
@@ -37,6 +38,7 @@ function deriveKind(
 
   const st = subscription.status.toLowerCase();
   if (st === 'free') return 'free';
+  if (st === 'comped') return 'comped';
   if (st === 'past_due') return 'payment_failed';
 
   if (st === 'trialing') {

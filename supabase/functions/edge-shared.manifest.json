@@ -16,9 +16,7 @@
       "tsupConfig": "tsup.config.ts",
       "outDir": "supabase/functions/_shared/_generated/email",
       "npmName": "@beakerstack/email",
-      "dependsOn": [
-        "logger"
-      ]
+      "dependsOn": ["logger"]
     },
     {
       "id": "observability-edge",
@@ -27,9 +25,7 @@
       "tsupConfig": "tsup.config.edge.ts",
       "outDir": "supabase/functions/_shared/_generated/observability",
       "npmName": "@beakerstack/observability/edge",
-      "dependsOn": [
-        "logger"
-      ]
+      "dependsOn": ["logger"]
     },
     {
       "id": "lifecycle-events",
@@ -38,9 +34,7 @@
       "tsupConfig": "tsup.config.ts",
       "outDir": "supabase/functions/_shared/_generated/lifecycle-events",
       "npmName": "@beakerstack/lifecycle-events",
-      "dependsOn": [
-        "logger"
-      ]
+      "dependsOn": ["logger"]
     },
     {
       "id": "marketing-email-kit",
@@ -58,10 +52,16 @@
       "tsupConfig": "tsup.config.marketing-edge.ts",
       "outDir": "supabase/functions/_shared/_generated/marketing-email-edge",
       "npmName": "@beakerstack/marketing-email/edge",
-      "dependsOn": [
-        "logger",
-        "lifecycle-events"
-      ]
+      "dependsOn": ["logger", "lifecycle-events"]
+    },
+    {
+      "id": "waitlist-billing-edge",
+      "package": "packages/waitlist-billing",
+      "entry": "src/edge.ts",
+      "tsupConfig": "tsup.config.edge.ts",
+      "outDir": "supabase/functions/_shared/_generated/waitlist-billing",
+      "npmName": "@beakerstack/waitlist-billing/edge",
+      "dependsOn": []
     }
   ]
 }

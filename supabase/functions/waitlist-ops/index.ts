@@ -4,6 +4,7 @@ import {
   jsonResponse,
 } from '../_shared/waitlist-origins.ts';
 import { enqueueMarketingEmail } from '@beakerstack/marketing-email/edge';
+import { fulfillWaitlistConversion } from '@beakerstack/waitlist-billing/edge';
 import {
   createLogEmailAdapter,
   createResendEmailAdapter,
@@ -150,33 +151,98 @@ Deno.serve(async req => {
       ok?: boolean;
       error?: string;
       already_converted?: boolean;
+      entry_id?: string;
       default_plan_id?: string;
+      provisioning_intent?: unknown;
     };
     if (consumeResult?.error) {
       return jsonResponse({ error: consumeResult.error }, 400, req);
     }
 
-    if (consumeResult.ok && !consumeResult.already_converted) {
-      if (consumeResult.default_plan_id) {
-        // Billing productId may be caller-supplied (admin choosing product for billing).
-        const billingProductId =
-          body.productId?.trim() ||
-          Deno.env.get('WAITLIST_PRODUCT_ID') ||
-          'beakerstack';
-        const { error: planErr } = await admin.rpc(
-          'billing_ensure_subscription_plan',
-          {
-            p_product_id: billingProductId,
-            p_plan_id: consumeResult.default_plan_id,
-            p_user_id: userId,
-          }
-        );
-        if (planErr) {
-          console.error('billing_ensure_subscription_plan', planErr.message);
-          return jsonResponse({ error: 'plan_provision_failed' }, 500, req);
-        }
-      }
+    const billingProductId =
+      body.productId?.trim() ||
+      Deno.env.get('WAITLIST_PRODUCT_ID') ||
+      'beakerstack';
+    const compPlanIds = (
+      Deno.env.get('WAITLIST_COMP_PLAN_IDS') ?? 'beakerstack_vip'
+    )
+      .split(',')
+      .map(id => id.trim())
+      .filter(Boolean);
 
+    let fulfillResult: {
+      comp_applied?: boolean;
+      plan_applied?: boolean;
+      unchanged?: boolean;
+      error?: string;
+    } | null = null;
+
+    if (consumeResult.ok && consumeResult.entry_id) {
+      fulfillResult = await fulfillWaitlistConversion(
+        admin,
+        {
+          productId: billingProductId,
+          compPlanIds,
+        },
+        {
+          userId,
+          entryId: consumeResult.entry_id,
+        }
+      );
+      if (fulfillResult?.error) {
+        const fulfillError = fulfillResult.error;
+        const isAllowlistMisconfig =
+          fulfillError === 'plan_not_allowed' ||
+          fulfillError === 'invalid_plan';
+        console.error(
+          JSON.stringify({
+            event: 'waitlist_billing_fulfill_conversion_failed',
+            error: fulfillError,
+            severity: isAllowlistMisconfig
+              ? 'config_mismatch'
+              : 'provision_error',
+            entry_id: consumeResult.entry_id,
+            user_id: userId,
+            comp_plan_ids: compPlanIds,
+          })
+        );
+        return jsonResponse(
+          {
+            error: isAllowlistMisconfig
+              ? fulfillError
+              : 'plan_provision_failed',
+          },
+          500,
+          req
+        );
+      }
+    }
+
+    const provisionedByIntent =
+      fulfillResult?.comp_applied === true ||
+      fulfillResult?.plan_applied === true ||
+      fulfillResult?.unchanged === true;
+
+    if (
+      consumeResult.ok &&
+      !provisionedByIntent &&
+      consumeResult.default_plan_id
+    ) {
+      const { error: planErr } = await admin.rpc(
+        'billing_ensure_subscription_plan',
+        {
+          p_product_id: billingProductId,
+          p_plan_id: consumeResult.default_plan_id,
+          p_user_id: userId,
+        }
+      );
+      if (planErr) {
+        console.error('billing_ensure_subscription_plan', planErr.message);
+        return jsonResponse({ error: 'plan_provision_failed' }, 500, req);
+      }
+    }
+
+    if (consumeResult.ok && !consumeResult.already_converted) {
       // Use the JWT-verified email only — never the caller-supplied userEmail,
       // which could route the Kit event to an arbitrary address.
       const consumeEmail = user.email?.toLowerCase().trim() ?? null;

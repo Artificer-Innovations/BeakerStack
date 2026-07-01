@@ -192,4 +192,84 @@ describe('AdminInviteByEmailPanel', () => {
       expect.stringContaining('/signup/invite#token=secret')
     );
   });
+
+  it('requires a VIP reason when complimentary access is enabled', async () => {
+    const user = userEvent.setup();
+    render(<AdminInviteByEmailPanel />);
+    await screen.findByText(/signup is invite-only/i);
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: /grant complimentary vip on signup/i,
+      })
+    );
+    await user.type(screen.getByLabelText(/email address/i), 'vip@example.com');
+    await user.click(screen.getByRole('button', { name: /send invite/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /reason when granting vip access/i
+    );
+    expect(mockInvite).not.toHaveBeenCalled();
+  });
+
+  it('sends invite with provisioning intent when VIP is enabled', async () => {
+    const user = userEvent.setup();
+    render(<AdminInviteByEmailPanel />);
+    await screen.findByText(/signup is invite-only/i);
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: /grant complimentary vip on signup/i,
+      })
+    );
+    await user.type(
+      screen.getByLabelText(/^reason \(required\)$/i),
+      'Design partner'
+    );
+    await user.type(screen.getByLabelText(/email address/i), 'vip@example.com');
+    await user.click(screen.getByRole('button', { name: /send invite/i }));
+    await waitFor(() => expect(mockInvite).toHaveBeenCalled());
+    expect(mockInvite).toHaveBeenCalledWith(
+      expect.anything(),
+      'vip@example.com',
+      expect.objectContaining({
+        provisioningIntent: {
+          kind: 'billing_comp',
+          planId: 'beakerstack_vip',
+          reason: 'Design partner',
+        },
+      })
+    );
+  });
+
+  it('maps invalid_reason and plan_not_allowed invite errors', async () => {
+    mockInvite.mockResolvedValueOnce({ error: 'invalid_reason' });
+    const user = userEvent.setup();
+    render(<AdminInviteByEmailPanel />);
+    await user.type(screen.getByLabelText(/email address/i), 'a@b.com');
+    await user.click(screen.getByRole('button', { name: /send invite/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /reason when granting vip access/i
+    );
+
+    mockInvite.mockResolvedValueOnce({ error: 'plan_not_allowed' });
+    await user.click(screen.getByRole('button', { name: /send invite/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /not allowed for waitlist invites/i
+    );
+  });
+
+  it('shows email_not_configured message when invite email cannot be sent', async () => {
+    mockInvoke.mockResolvedValueOnce({
+      data: { error: 'email_not_configured' },
+      error: null,
+    });
+    const user = userEvent.setup();
+    render(<AdminInviteByEmailPanel />);
+    await user.type(
+      screen.getByLabelText(/email address/i),
+      'invitee@example.com'
+    );
+    await user.click(screen.getByRole('button', { name: /send invite/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /email delivery is not configured/i
+    );
+  });
 });

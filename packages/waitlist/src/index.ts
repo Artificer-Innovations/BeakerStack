@@ -17,8 +17,20 @@ export {
   rejectWaitlistEntry,
   resendWaitlistInvite,
   inviteWaitlistEmail,
+  normalizeInviteWaitlistEmailOptions,
+  setWaitlistEntryProvisioningIntent,
   buildInviteUrl,
+  type InviteWaitlistEmailOptions,
 } from './waitlistClient.js';
+export {
+  parseStoredProvisioningIntent,
+  toRpcProvisioningIntent,
+  isWaitlistCompIntentInput,
+  type WaitlistCompIntentInput,
+  type WaitlistPlanIntentInput,
+  type WaitlistProvisioningIntent,
+  type WaitlistProvisioningIntentInput,
+} from './provisioning.js';
 export {
   useSignupMode,
   type UseSignupModeResult,

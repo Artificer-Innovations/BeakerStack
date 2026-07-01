@@ -13,6 +13,7 @@ export function CurrentPlanCard({
   plan,
   subscription,
   isFree,
+  isComped = false,
   onManagePayment,
   managePaymentPending = false,
   /** When set, replaces default renewal / trial / end copy for paid rows (e.g. scheduled downgrade). */
@@ -21,6 +22,7 @@ export function CurrentPlanCard({
   plan: Plan | null;
   subscription: SubscriptionRow | null;
   isFree: boolean;
+  isComped?: boolean;
   onManagePayment: () => void;
   managePaymentPending?: boolean;
   periodSubcopy?: string | null;
@@ -44,7 +46,22 @@ export function CurrentPlanCard({
 
   return (
     <div className='space-y-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 sm:p-8 shadow-sm'>
-      {isFree ? (
+      {isComped ? (
+        <>
+          <div className='flex flex-wrap items-center gap-2'>
+            <h2 className='text-2xl font-bold text-gray-900 dark:text-white'>
+              {plan.display_name}
+            </h2>
+            {subscription && (
+              <SubscriptionStatusBadge subscription={subscription} />
+            )}
+          </div>
+          <p className='text-sm text-gray-600 dark:text-gray-300'>
+            Complimentary access — billing is managed by our team. No payment
+            method or checkout is required.
+          </p>
+        </>
+      ) : isFree ? (
         <>
           <h2 className='text-2xl font-bold text-gray-900 dark:text-white'>
             You&apos;re on the Free plan
@@ -83,24 +100,26 @@ export function CurrentPlanCard({
                 : `Renews on ${periodEnd}`}
         </p>
       )}
-      <div className='flex flex-col gap-3 sm:flex-row sm:flex-wrap'>
-        <Link
-          to='/billing/plans'
-          className='inline-flex w-full min-h-[40px] sm:w-auto items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 sm:inline-flex sm:min-w-[8rem]'
-        >
-          {isFree ? 'Upgrade to Pro' : 'Change plan'}
-        </Link>
-        {!isFree && subscription?.stripe_customer_id ? (
-          <Button
-            type='button'
-            variant='secondary'
-            onPress={onManagePayment}
-            loading={managePaymentPending}
+      {!isComped ? (
+        <div className='flex flex-col gap-3 sm:flex-row sm:flex-wrap'>
+          <Link
+            to='/billing/plans'
+            className='inline-flex w-full min-h-[40px] sm:w-auto items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 sm:inline-flex sm:min-w-[8rem]'
           >
-            Manage payment &amp; invoices
-          </Button>
-        ) : null}
-      </div>
+            {isFree ? 'Upgrade to Pro' : 'Change plan'}
+          </Link>
+          {!isFree && subscription?.stripe_customer_id ? (
+            <Button
+              type='button'
+              variant='secondary'
+              onPress={onManagePayment}
+              loading={managePaymentPending}
+            >
+              Manage payment &amp; invoices
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

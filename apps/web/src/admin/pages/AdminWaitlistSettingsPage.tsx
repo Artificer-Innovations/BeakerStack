@@ -28,15 +28,30 @@ export default function AdminWaitlistSettingsPage() {
     enabled: false,
     label: '',
   });
+  const [loadedDefaultPlanId, setLoadedDefaultPlanId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     void (async () => {
       setLoading(true);
       const data = await getAdminWaitlistSettings(supabase);
-      setSettings(data);
       if (data) {
+        setLoadedDefaultPlanId(data.default_plan_id);
+        const publicPlans = billingConfig.plans.filter(p => p.isPublic);
+        const storedDefaultIsPublic = publicPlans.some(
+          p => p.id === data.default_plan_id
+        );
+        const normalized =
+          !storedDefaultIsPublic && publicPlans[0]
+            ? { ...data, default_plan_id: publicPlans[0].id }
+            : data;
+        setSettings(normalized);
         setUseCaseField(
-          resolveUseCaseFieldEditorState(data.metadata_schema, waitlistConfig)
+          resolveUseCaseFieldEditorState(
+            normalized.metadata_schema,
+            waitlistConfig
+          )
         );
       }
       setLoading(false);
@@ -62,6 +77,7 @@ export default function AdminWaitlistSettingsPage() {
       });
       if (!updated) throw new Error('Failed to save settings');
       setSettings(updated);
+      setLoadedDefaultPlanId(updated.default_plan_id);
       setUseCaseField(
         resolveUseCaseFieldEditorState(updated.metadata_schema, waitlistConfig)
       );
@@ -80,6 +96,11 @@ export default function AdminWaitlistSettingsPage() {
       </div>
     );
   }
+
+  const publicPlans = billingConfig.plans.filter(p => p.isPublic);
+  const storedDefaultIsPublic =
+    loadedDefaultPlanId == null ||
+    publicPlans.some(p => p.id === loadedDefaultPlanId);
 
   return (
     <div className='space-y-6'>
@@ -117,6 +138,17 @@ export default function AdminWaitlistSettingsPage() {
           <span className='text-sm font-medium text-gray-700'>
             Starting plan on invite signup
           </span>
+          {!storedDefaultIsPublic && loadedDefaultPlanId ? (
+            <p
+              className='mt-1 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950'
+              role='status'
+            >
+              Stored default{' '}
+              <code className='font-mono'>{loadedDefaultPlanId}</code> is not a
+              public plan. Choose a public plan below; use per-invite VIP for
+              complimentary access.
+            </p>
+          ) : null}
           <select
             className='mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm'
             value={settings.default_plan_id}
@@ -124,7 +156,7 @@ export default function AdminWaitlistSettingsPage() {
               setSettings({ ...settings, default_plan_id: e.target.value })
             }
           >
-            {billingConfig.plans.map(p => (
+            {publicPlans.map(p => (
               <option key={p.id} value={p.id}>
                 {p.displayName} ({p.id})
               </option>

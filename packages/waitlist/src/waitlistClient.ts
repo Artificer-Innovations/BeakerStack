@@ -8,6 +8,35 @@ import type {
   WaitlistMetadataField,
   WaitlistPublicSettings,
 } from './types.js';
+import {
+  toRpcProvisioningIntent,
+  type WaitlistProvisioningIntentInput,
+} from './provisioning.js';
+
+export type InviteWaitlistEmailOptions = {
+  metadata?: Record<string, unknown>;
+  provisioningIntent?: WaitlistProvisioningIntentInput | null;
+  allowedCompPlanIds?: string[];
+};
+
+function isInviteWaitlistEmailOptions(
+  value: Record<string, unknown>
+): value is InviteWaitlistEmailOptions {
+  return (
+    'metadata' in value ||
+    'provisioningIntent' in value ||
+    'allowedCompPlanIds' in value
+  );
+}
+
+/** Supports legacy callers that passed a bare metadata object as the third arg. */
+export function normalizeInviteWaitlistEmailOptions(
+  options?: InviteWaitlistEmailOptions | Record<string, unknown>
+): InviteWaitlistEmailOptions {
+  if (!options) return {};
+  if (isInviteWaitlistEmailOptions(options)) return options;
+  return { metadata: options };
+}
 
 export const DEFAULT_WAITLIST_ADMIN_SETTINGS: WaitlistAdminSettings = {
   signup_mode: 'open',
@@ -89,14 +118,28 @@ export async function consumeInvite(
   token: string,
   userId: string,
   userEmail?: string | null
-): Promise<{ ok?: boolean; error?: string; default_plan_id?: string }> {
+): Promise<{
+  ok?: boolean;
+  error?: string;
+  already_converted?: boolean;
+  entry_id?: string;
+  default_plan_id?: string;
+  provisioning_intent?: unknown;
+}> {
   const { data, error } = await supabase.rpc('waitlist_consume_invite', {
     p_token: token,
     p_user_id: userId,
     p_user_email: userEmail ?? null,
   });
   if (error) return { error: error.message };
-  return data as { ok?: boolean; error?: string; default_plan_id?: string };
+  return data as {
+    ok?: boolean;
+    error?: string;
+    already_converted?: boolean;
+    entry_id?: string;
+    default_plan_id?: string;
+    provisioning_intent?: unknown;
+  };
 }
 
 export async function listWaitlistEntries(
@@ -173,15 +216,25 @@ export async function updateAdminWaitlistSettings(
 
 export async function approveWaitlistEntry(
   supabase: SupabaseClient,
-  id: string
+  id: string,
+  options: {
+    provisioningIntent?: WaitlistProvisioningIntentInput | null;
+    allowedCompPlanIds?: string[];
+  } = {}
 ): Promise<{
   ok?: boolean;
   invite_token?: string;
   email?: string;
   error?: string;
 } | null> {
+  const updateIntent = options.provisioningIntent !== undefined;
   const { data, error } = await supabase.rpc('admin_approve_waitlist_entry', {
     p_id: id,
+    p_provisioning_intent: updateIntent
+      ? toRpcProvisioningIntent(options.provisioningIntent ?? null)
+      : null,
+    p_update_provisioning_intent: updateIntent,
+    p_allowed_comp_plan_ids: options.allowedCompPlanIds ?? null,
   });
   if (error) return { error: error.message };
   if ((data as { error?: string })?.error) return data as { error: string };
@@ -223,7 +276,7 @@ export async function resendWaitlistInvite(
 export async function inviteWaitlistEmail(
   supabase: SupabaseClient,
   email: string,
-  metadata?: Record<string, unknown>
+  options?: InviteWaitlistEmailOptions | Record<string, unknown>
 ): Promise<{
   ok?: boolean;
   entry_id?: string;
@@ -232,9 +285,16 @@ export async function inviteWaitlistEmail(
   created?: boolean;
   error?: string;
 } | null> {
+  const normalized = normalizeInviteWaitlistEmailOptions(options);
+  const updateIntent = normalized.provisioningIntent !== undefined;
   const { data, error } = await supabase.rpc('admin_invite_waitlist_email', {
     p_email: email,
-    p_metadata: metadata ?? {},
+    p_metadata: normalized.metadata ?? {},
+    p_provisioning_intent: updateIntent
+      ? toRpcProvisioningIntent(normalized.provisioningIntent ?? null)
+      : null,
+    p_update_provisioning_intent: updateIntent,
+    p_allowed_comp_plan_ids: normalized.allowedCompPlanIds ?? null,
   });
   if (error) return { error: error.message };
   if ((data as { error?: string })?.error) return data as { error: string };
@@ -244,6 +304,32 @@ export async function inviteWaitlistEmail(
     invite_token?: string;
     email?: string;
     created?: boolean;
+  };
+}
+
+export async function setWaitlistEntryProvisioningIntent(
+  supabase: SupabaseClient,
+  entryId: string,
+  provisioningIntent: WaitlistProvisioningIntentInput | null,
+  allowedCompPlanIds?: string[]
+): Promise<{
+  ok?: boolean;
+  error?: string;
+  provisioning_intent?: unknown;
+} | null> {
+  const { data, error } = await supabase.rpc(
+    'admin_set_waitlist_entry_provisioning_intent',
+    {
+      p_entry_id: entryId,
+      p_provisioning_intent: toRpcProvisioningIntent(provisioningIntent),
+      p_allowed_comp_plan_ids: allowedCompPlanIds ?? null,
+    }
+  );
+  if (error) return { error: error.message };
+  return data as {
+    ok?: boolean;
+    error?: string;
+    provisioning_intent?: unknown;
   };
 }
 

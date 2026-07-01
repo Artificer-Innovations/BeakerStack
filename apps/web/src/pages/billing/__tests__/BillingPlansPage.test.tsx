@@ -807,6 +807,40 @@ describe('BillingPlansPage', () => {
     expect(checkoutSpies.scheduleCancelToFree).not.toHaveBeenCalled();
   });
 
+  it('disables plan changes when billing kind is comped', () => {
+    plansState.billingKind = 'comped';
+    plansState.current = plansState.maxPlan;
+    plansState.subscription = {
+      id: 's_vip',
+      user_id: 'u1',
+      product_id: 'beakerstack',
+      plan_id: 'beakerstack_max',
+      stripe_customer_id: null,
+      stripe_subscription_id: null,
+      stripe_price_id: null,
+      status: 'comped',
+      current_period_start: null,
+      current_period_end: null,
+      cancel_at_period_end: false,
+      pending_target_plan_id: null,
+      canceled_at: null,
+      trial_start: null,
+      trial_end: null,
+    };
+    renderPage();
+    expect(
+      screen.getByText(
+        /You have complimentary access\. Plan changes and Stripe checkout are not available on this account\./i
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Current plan' })).toBeDisabled();
+    const included = screen.getAllByRole('button', {
+      name: 'Included with your account',
+    });
+    expect(included.length).toBeGreaterThan(0);
+    included.forEach(btn => expect(btn).toBeDisabled());
+  });
+
   it('does not reload when downgrade modal confirm resolves false', async () => {
     const user = userEvent.setup();
     const reload = vi.fn();

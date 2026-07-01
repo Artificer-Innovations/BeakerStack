@@ -1,13 +1,22 @@
 import { useEffect, useState } from 'react';
 import {
   getUser,
+  grantBillingComp,
   grantOperator,
+  revokeBillingComp,
   revokeOperator,
   type AdminUserDetail,
 } from '@beakerstack/admin';
 import { AdminDetailDrawer } from '@beakerstack/admin/web';
+import { billingConfig } from '@adopter/config/billing';
 import { supabase } from '../../lib/supabase';
 import { adminProductId } from '../adminUsageColumns';
+
+const COMP_VIP_PLAN_ID = 'beakerstack_vip';
+
+type OperatorAction = 'grant' | 'revoke';
+type CompAction = 'grant_comp' | 'revoke_comp';
+type PendingAction = OperatorAction | CompAction | null;
 
 function formatDate(value: string | null | undefined) {
   if (!value) return '—';
@@ -16,6 +25,20 @@ function formatDate(value: string | null | undefined) {
   } catch {
     return value;
   }
+}
+
+function compErrorMessage(code: string): string {
+  switch (code) {
+    case 'stripe_subscription_active':
+      return 'User has an active Stripe subscription. Cancel or migrate billing before granting complimentary access.';
+    case 'invalid_reason':
+      return 'Reason is required (max 500 characters).';
+    case 'invalid_plan':
+      return 'Invalid complimentary plan.';
+    case 'no_free_plan':
+      return 'No public free plan configured for this product.';
+  }
+  return code;
 }
 
 export function AdminUserDetailDrawer({
@@ -36,9 +59,8 @@ export function AdminUserDetailDrawer({
   const [detail, setDetail] = useState<AdminUserDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [actionPending, setActionPending] = useState<'grant' | 'revoke' | null>(
-    null
-  );
+  const [actionPending, setActionPending] = useState<PendingAction>(null);
+  const [compReason, setCompReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -46,6 +68,7 @@ export function AdminUserDetailDrawer({
     if (!open || !userId) {
       setDetail(null);
       setActionPending(null);
+      setCompReason('');
       setActionError(null);
       return;
     }
@@ -79,6 +102,12 @@ export function AdminUserDetailDrawer({
     }
   };
 
+  const dismissDialog = () => {
+    setActionPending(null);
+    setCompReason('');
+    setActionError(null);
+  };
+
   const handleConfirmAction = async () => {
     if (!userId || !actionPending) return;
     setActionLoading(true);
@@ -86,19 +115,38 @@ export function AdminUserDetailDrawer({
     try {
       if (actionPending === 'grant') {
         await grantOperator(supabase, userId);
-      } else {
+      } else if (actionPending === 'revoke') {
         await revokeOperator(supabase, userId);
+      } else if (actionPending === 'grant_comp') {
+        await grantBillingComp(supabase, {
+          userId,
+          productId: adminProductId,
+          planId: COMP_VIP_PLAN_ID,
+          reason: compReason.trim(),
+        });
+      } else if (actionPending === 'revoke_comp') {
+        await revokeBillingComp(supabase, {
+          userId,
+          productId: adminProductId,
+        });
       }
-      setActionPending(null);
+      dismissDialog();
       await refreshDetail();
       onAccessChanged?.();
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Action failed';
-      setActionError(
-        msg === 'cannot_self_revoke'
-          ? "You can't revoke your own admin access"
-          : msg
-      );
+      if (msg === 'cannot_self_revoke') {
+        setActionError("You can't revoke your own admin access");
+      } else if (
+        msg === 'stripe_subscription_active' ||
+        msg === 'invalid_reason' ||
+        msg === 'invalid_plan' ||
+        msg === 'no_free_plan'
+      ) {
+        setActionError(compErrorMessage(msg));
+      } else {
+        setActionError(msg);
+      }
     } finally {
       setActionLoading(false);
     }
@@ -106,6 +154,46 @@ export function AdminUserDetailDrawer({
 
   const isSelf =
     userId !== null && currentUserId !== null && userId === currentUserId;
+
+  const hasCompAccess = Boolean(detail?.comp_grant);
+
+  const vipPlanName =
+    billingConfig.plans.find(p => p.id === COMP_VIP_PLAN_ID)?.displayName ??
+    'VIP (complimentary)';
+
+  const confirmTitle = (() => {
+    switch (actionPending) {
+      case 'grant':
+        return 'Grant admin access';
+      case 'revoke':
+        return 'Revoke admin access';
+      case 'grant_comp':
+        return 'Grant complimentary VIP';
+      case 'revoke_comp':
+        return 'Revoke complimentary access';
+      default:
+        return '';
+    }
+  })();
+
+  const confirmBody = (() => {
+    const email = detail?.auth.email ?? 'this user';
+    switch (actionPending) {
+      case 'grant':
+        return `Grant admin access to ${email}?`;
+      case 'revoke':
+        return `Revoke admin access from ${email}?`;
+      case 'grant_comp':
+        return `Grant ${vipPlanName} to ${email}? This does not create a Stripe subscription.`;
+      case 'revoke_comp':
+        return `Revoke complimentary access for ${email}? They will return to the public free plan.`;
+      default:
+        return '';
+    }
+  })();
+
+  const confirmDisabled =
+    actionLoading || (actionPending === 'grant_comp' && !compReason.trim());
 
   return (
     <AdminDetailDrawer open={open} title={title} onClose={onClose}>
@@ -182,12 +270,81 @@ export function AdminUserDetailDrawer({
                   </button>
                 </>
               )}
-              {actionError && (
-                <p className='text-xs text-red-600' role='alert'>
-                  {actionError}
+            </div>
+          </section>
+
+          <section>
+            <h3 className='font-semibold text-gray-900'>Billing</h3>
+            <dl className='mt-2 space-y-1 text-gray-600'>
+              <div className='flex justify-between gap-4'>
+                <dt>Plan</dt>
+                <dd className='text-gray-900'>
+                  {(detail.plan?.['display_name'] as string) ??
+                    detail.subscription?.['plan_id'] ??
+                    '—'}
+                </dd>
+              </div>
+              <div className='flex justify-between gap-4'>
+                <dt>Status</dt>
+                <dd>{(detail.subscription?.['status'] as string) ?? '—'}</dd>
+              </div>
+            </dl>
+            {detail.comp_grant ? (
+              <div className='mt-3 space-y-1 rounded-md bg-indigo-50/80 px-3 py-2 text-xs text-indigo-950'>
+                <p className='font-medium text-indigo-900'>
+                  Complimentary access
                 </p>
+                <p>
+                  <span className='text-indigo-700'>Reason:</span>{' '}
+                  {detail.comp_grant.comp_reason}
+                </p>
+                {detail.comp_grant.comped_by_email ? (
+                  <p>
+                    <span className='text-indigo-700'>Granted by:</span>{' '}
+                    {detail.comp_grant.comped_by_email}
+                  </p>
+                ) : null}
+                <p>
+                  <span className='text-indigo-700'>Granted:</span>{' '}
+                  {formatDate(detail.comp_grant.comped_at)}
+                </p>
+                {detail.comp_grant.comp_expires_at ? (
+                  <p>
+                    <span className='text-indigo-700'>Expires:</span>{' '}
+                    {formatDate(detail.comp_grant.comp_expires_at)}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            <div className='mt-3 flex flex-wrap gap-2'>
+              {!hasCompAccess ? (
+                <button
+                  type='button'
+                  disabled={actionLoading}
+                  className='rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50'
+                  onClick={() => {
+                    setCompReason('');
+                    setActionPending('grant_comp');
+                  }}
+                >
+                  Grant complimentary VIP
+                </button>
+              ) : (
+                <button
+                  type='button'
+                  disabled={actionLoading}
+                  className='rounded bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50'
+                  onClick={() => setActionPending('revoke_comp')}
+                >
+                  Revoke complimentary access
+                </button>
               )}
             </div>
+            {actionError && actionPending === null ? (
+              <p className='mt-2 text-xs text-red-600' role='alert'>
+                {actionError}
+              </p>
+            ) : null}
           </section>
 
           {actionPending && (
@@ -198,37 +355,48 @@ export function AdminUserDetailDrawer({
               className='fixed inset-0 z-50 flex items-center justify-center bg-black/40'
               data-testid='confirm-dialog'
             >
-              <div className='w-80 rounded-lg bg-white p-6 shadow-xl'>
+              <div className='w-80 max-w-[calc(100vw-2rem)] rounded-lg bg-white p-6 shadow-xl'>
                 <h4
                   id='confirm-dialog-title'
                   className='text-sm font-semibold text-gray-900'
                 >
-                  {actionPending === 'grant'
-                    ? 'Grant admin access'
-                    : 'Revoke admin access'}
+                  {confirmTitle}
                 </h4>
-                <p className='mt-2 text-sm text-gray-600'>
-                  {actionPending === 'grant'
-                    ? `Grant admin access to ${detail.auth.email ?? 'this user'}?`
-                    : `Revoke admin access from ${detail.auth.email ?? 'this user'}?`}
-                </p>
+                <p className='mt-2 text-sm text-gray-600'>{confirmBody}</p>
+                {actionPending === 'grant_comp' ? (
+                  <label className='mt-3 block text-sm text-gray-700'>
+                    <span className='font-medium'>Reason (required)</span>
+                    <textarea
+                      className='mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm'
+                      rows={3}
+                      maxLength={500}
+                      value={compReason}
+                      onChange={e => setCompReason(e.target.value)}
+                      placeholder='e.g. design partner, press access'
+                      data-testid='comp-grant-reason'
+                    />
+                  </label>
+                ) : null}
+                {actionError ? (
+                  <p className='mt-2 text-xs text-red-600' role='alert'>
+                    {actionError}
+                  </p>
+                ) : null}
                 <div className='mt-4 flex justify-end gap-3'>
                   <button
                     type='button'
                     disabled={actionLoading}
                     className='rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50'
-                    onClick={() => {
-                      setActionPending(null);
-                      setActionError(null);
-                    }}
+                    onClick={dismissDialog}
                   >
                     Cancel
                   </button>
                   <button
                     type='button'
-                    disabled={actionLoading}
+                    disabled={confirmDisabled}
                     className={`rounded px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 ${
-                      actionPending === 'grant'
+                      actionPending === 'grant' ||
+                      actionPending === 'grant_comp'
                         ? 'bg-indigo-600 hover:bg-indigo-700'
                         : 'bg-red-600 hover:bg-red-700'
                     }`}
@@ -258,24 +426,6 @@ export function AdminUserDetailDrawer({
               </dl>
             </section>
           )}
-
-          <section>
-            <h3 className='font-semibold text-gray-900'>Billing</h3>
-            <dl className='mt-2 space-y-1 text-gray-600'>
-              <div className='flex justify-between gap-4'>
-                <dt>Plan</dt>
-                <dd className='text-gray-900'>
-                  {(detail.plan?.['display_name'] as string) ??
-                    detail.subscription?.['plan_id'] ??
-                    '—'}
-                </dd>
-              </div>
-              <div className='flex justify-between gap-4'>
-                <dt>Status</dt>
-                <dd>{(detail.subscription?.['status'] as string) ?? '—'}</dd>
-              </div>
-            </dl>
-          </section>
 
           {detail.usage_aggregates.length > 0 && (
             <section>

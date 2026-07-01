@@ -15,6 +15,7 @@ module.exports = {
   ],
   moduleNameMapper: {
     '^@/utils/(.*)$': '<rootDir>/utils/$1',
+    '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   setupFilesAfterEnv: ['<rootDir>/utils/integration-setup.ts'],
   testTimeout: 60000,
