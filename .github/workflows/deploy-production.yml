@@ -188,6 +188,9 @@ jobs:
       STACK_NAME: ${{ vars.PR_PREVIEW_STACK_NAME }}
       VITE_SUPABASE_URL: ${{ secrets.PRODUCTION_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ secrets.PRODUCTION_SUPABASE_ANON_KEY }}
+      VITE_SENTRY_DSN: ${{ secrets.PRODUCTION_SENTRY_DSN }}
+      VITE_SENTRY_ENVIRONMENT: production
+      VITE_SENTRY_RELEASE: ${{ github.sha }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -235,6 +238,9 @@ jobs:
         shell: bash
         env:
           AWS_REGION_VALUE: ${{ vars.PR_PREVIEW_AWS_REGION != '' && vars.PR_PREVIEW_AWS_REGION || 'us-east-1' }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
         run: |
           set -euo pipefail
           ./scripts/pr-preview/deploy-web.sh \

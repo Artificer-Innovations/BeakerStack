@@ -88,14 +88,33 @@ interface ObservabilityConfig {
 
 ## Deployed environments (CI / EAS)
 
-Local wiring is complete in the template. **Preview, staging, and production** require build-time secrets and workflow changes — tracked in [GitHub issue #299](https://github.com/Artificer-Innovations/BeakerStack/issues/299) (`setup:sentry` wizard):
+Staging, production, and PR preview web deploys pass `VITE_SENTRY_*` when GitHub secrets are set. Staging/production also upload source maps via `@sentry/vite-plugin` when `SENTRY_AUTH_TOKEN` + `SENTRY_ORG` + `SENTRY_PROJECT` are present.
 
-- GitHub secrets: `PREVIEW_SENTRY_DSN`, `STAGING_SENTRY_DSN`, `PRODUCTION_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`
-- Workflow env: `VITE_SENTRY_DSN`, `VITE_SENTRY_ENVIRONMENT`, `VITE_SENTRY_RELEASE` on web deploy jobs
-- EAS: `EXPO_PUBLIC_SENTRY_DSN` and related vars in `eas.json` / EAS secrets
-- Post-build source map upload via `@sentry/cli`
+| GitHub setting          | Kind     | Used for                                          |
+| ----------------------- | -------- | ------------------------------------------------- |
+| `STAGING_SENTRY_DSN`    | secret   | `VITE_SENTRY_DSN` on staging + PR preview         |
+| `PRODUCTION_SENTRY_DSN` | secret   | `VITE_SENTRY_DSN` on production                   |
+| `SENTRY_AUTH_TOKEN`     | secret   | Vite plugin source map upload (staging/prod only) |
+| `SENTRY_ORG`            | variable | Sentry org slug                                   |
+| `SENTRY_PROJECT`        | variable | Sentry project slug                               |
 
-Until #299 lands, deployed web/mobile builds will not report to Sentry unless you set secrets manually.
+Workflow mapping:
+
+- **staging** (`deploy-staging.yml`): `VITE_SENTRY_ENVIRONMENT=staging`, release=`github.sha`
+- **production** (`deploy-production.yml`): `VITE_SENTRY_ENVIRONMENT=production`
+- **PR preview** (`pr-preview-environment.yml`): reuses `STAGING_SENTRY_DSN` with `VITE_SENTRY_ENVIRONMENT=preview` (no source-map upload)
+
+EAS / mobile: set `EXPO_PUBLIC_SENTRY_*` in `eas.json` / EAS secrets when enabling native crash reporting.
+
+## Crash symbolication (source maps)
+
+Staging and production builds enable `@sentry/vite-plugin` when auth token, org, project, and release are all set. Maps are generated as `hidden` sourcemaps and deleted after upload (`filesToDeleteAfterUpload`) so `.map` files are not published to S3.
+
+Upload failures are **soft-failed** (`errorHandler` logs a warning and lets the build continue) so a Sentry outage or expired auth token cannot block a deploy — that release just ships without symbolication.
+
+The SDK `release` field (`VITE_SENTRY_RELEASE`) must match the release name used at upload time — workflows set both to `${{ github.sha }}`.
+
+Set `EXPO_PUBLIC_SENTRY_RELEASE` at mobile build time to match if uploading native symbols separately.
 
 ## Sampling and spend control
 
@@ -122,23 +141,6 @@ The scrubbing utilities are exported from the package root for use in other cont
 ```ts
 import { hashUserId, scrubEmail } from '@beakerstack/observability';
 ```
-
-## Crash symbolication (source maps)
-
-To get human-readable stack traces in Sentry you need to upload source maps as part of CI. The SDK `release` field must match the release id used at upload time.
-
-```yaml
-# .github/workflows/deploy.yml (example — see #299 for full wiring)
-- name: Upload source maps to Sentry
-  run: npx @sentry/cli releases files "$RELEASE" upload-sourcemaps ./dist
-  env:
-    SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-    SENTRY_ORG: your-org
-    SENTRY_PROJECT: beakerstack
-    RELEASE: ${{ github.sha }}
-```
-
-Set `VITE_SENTRY_RELEASE=${{ github.sha }}` (web) and `EXPO_PUBLIC_SENTRY_RELEASE` (mobile) at build time to match.
 
 ## Using the hook
 

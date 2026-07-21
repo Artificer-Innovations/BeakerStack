@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { branding } from '../../adopter/config/branding';
 
@@ -20,6 +21,15 @@ export default defineConfig(({ mode }) => {
   const isDev = mode === 'development';
   // Respect VITE_BASE_PATH for asset URLs (defaults to '/' for local development)
   const basePath = env.VITE_BASE_PATH || '/';
+
+  const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN?.trim();
+  const sentryOrg = process.env.SENTRY_ORG?.trim();
+  const sentryProject = process.env.SENTRY_PROJECT?.trim();
+  const sentryRelease =
+    env.VITE_SENTRY_RELEASE?.trim() || process.env.VITE_SENTRY_RELEASE?.trim();
+  const enableSentrySourceMaps = Boolean(
+    sentryAuthToken && sentryOrg && sentryProject && sentryRelease
+  );
 
   const htmlBrandingPlugin: Plugin = {
     name: 'html-branding-transform',
@@ -70,6 +80,26 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       htmlBrandingPlugin,
+      ...(enableSentrySourceMaps
+        ? [
+            sentryVitePlugin({
+              org: sentryOrg,
+              project: sentryProject,
+              authToken: sentryAuthToken,
+              release: { name: sentryRelease },
+              sourcemaps: {
+                assets: './dist/**',
+                filesToDeleteAfterUpload: './dist/**/*.map',
+              },
+              // Soft-fail: never block staging/prod deploys on Sentry outages
+              // or bad auth — ship the build, lose symbols for that release.
+              errorHandler: err => {
+                console.warn('[sentry] source map upload failed:', err);
+              },
+              telemetry: false,
+            }),
+          ]
+        : []),
       // mkcert is disabled - we use HTTP for multi-device development
       // to avoid mixed content issues with Supabase (which runs on HTTP)
     ],
@@ -100,6 +130,8 @@ export default defineConfig(({ mode }) => {
       __DEV__: JSON.stringify(isDev),
     },
     build: {
+      // Hidden: generate maps for Sentry upload without //# sourceMappingURL in bundles.
+      sourcemap: enableSentrySourceMaps ? 'hidden' : false,
       rollupOptions: {
         output: {
           manualChunks(id) {

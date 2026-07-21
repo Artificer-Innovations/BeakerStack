@@ -355,6 +355,9 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           VITE_SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
+          VITE_SENTRY_DSN: ${{ secrets.STAGING_SENTRY_DSN }}
+          VITE_SENTRY_ENVIRONMENT: preview
+          VITE_SENTRY_RELEASE: ${{ github.sha }}
         run: |
           set -euo pipefail
           PR_NUMBER_VALUE="${PR_NUMBER}"
