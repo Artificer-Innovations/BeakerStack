@@ -565,7 +565,7 @@ Resources:
               # wildcard so only our own storage buckets are permitted, not arbitrary Supabase
               # tenants. Origins are sourced from per-environment GitHub secrets and injected
               # via CloudFormation parameters — empty values are harmless (CSP ignores whitespace).
-              Value: !Sub "default-src 'self'; script-src 'self' 'sha256-FIEUlQEkz8Wc0NMOe90xjaENbkODxpO7+UD6KIqw/Ac='; connect-src 'self' https://*.supabase.co wss://*.supabase.co; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://placehold.co ${ProductionSupabaseUrl} ${StagingSupabaseUrl} ${PreviewSupabaseUrl}; font-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+              Value: !Sub "default-src 'self'; script-src 'self' 'sha256-FIEUlQEkz8Wc0NMOe90xjaENbkODxpO7+UD6KIqw/Ac='; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://plausible.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://placehold.co ${ProductionSupabaseUrl} ${StagingSupabaseUrl} ${PreviewSupabaseUrl}; font-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
               Override: true
 
   # Production CloudFront Distribution (beakerstack.com)

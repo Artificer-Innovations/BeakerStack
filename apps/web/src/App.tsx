@@ -6,9 +6,11 @@ import { resolveAdopterRouteAuth } from '@beakerstack/shared/navigation/adopterE
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { adopterRouteExtensions } from '@adopter/web/routeExtensions';
 import { supabase } from './lib/supabase';
+import { PlausibleAnalytics } from '@beakerstack/analytics/web';
 import { AppFooter } from './components/AppFooter';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { ScrollToTop } from './components/ScrollToTop';
+import { analyticsConfig } from './config/analytics';
 import { LAYOUT } from './lib/layoutConstants';
 
 const publicAdopterRouteExtensions = adopterRouteExtensions.filter(
@@ -101,6 +103,7 @@ function App() {
     <div className={LAYOUT.outer}>
       <AppErrorBoundary>
         <ScrollToTop />
+        <PlausibleAnalytics config={analyticsConfig} />
         <Suspense fallback={<PageFallback />}>
           <Routes>
             <Route element={<RootLayout />}>

@@ -109,6 +109,27 @@ The defaults are conservative:
 
 Override per-environment in `apps/web/src/config/observability.ts` or `apps/mobile/src/config/observability.ts`.
 
+## Product analytics (Plausible)
+
+BeakerStack uses **`@beakerstack/analytics`** for privacy-oriented **web traffic** metrics (unique visitors, pageviews, top pages). This is separate from Sentry:
+
+| Concern                        | Package                      | Env (web)                 |
+| ------------------------------ | ---------------------------- | ------------------------- |
+| Errors, performance, replay    | `@beakerstack/observability` | `VITE_SENTRY_DSN`         |
+| Pageviews, visitors, referrers | `@beakerstack/analytics`     | `VITE_PLAUSIBLE_DOMAIN`   |
+| Event API (optional proxy)     | `@beakerstack/analytics`     | `VITE_PLAUSIBLE_ENDPOINT` |
+
+Uses Plausible **v2** via `@plausible-analytics/tracker` (bundled at build time — no external script tag). `<PlausibleAnalytics />` in `App.tsx` calls `init()` once; SPA pageviews use the tracker's history hooks. Admin routes (`/admin`) are excluded by default.
+
+| Piece       | Location                                                                               |
+| ----------- | -------------------------------------------------------------------------------------- |
+| Package     | `packages/analytics` — `@beakerstack/analytics/web`                                    |
+| Config      | `apps/web/src/config/analytics.ts`                                                     |
+| Client init | `apps/web/src/App.tsx` — `<PlausibleAnalytics config={analyticsConfig} />`             |
+| CSP         | `infra/aws/pr-preview-stack.yml` — `connect-src` includes `https://plausible.io` (API) |
+
+Leave `VITE_PLAUSIBLE_DOMAIN` empty locally to disable. For local testing, set domain plus `VITE_PLAUSIBLE_CAPTURE_ON_LOCALHOST=true`. Hosted: production uses `vars.PR_PREVIEW_DOMAIN` (apex); staging and PR preview use `staging.{domain}` / `deploy.{domain}`.
+
 ## PII scrubbing
 
 The package scrubs PII before sending to Sentry:

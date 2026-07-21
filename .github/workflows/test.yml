@@ -198,6 +198,9 @@ jobs:
           - shard: observability
             script: test:coverage:observability
             coverage_path: packages/observability/coverage
+          - shard: analytics
+            script: test:coverage:analytics
+            coverage_path: packages/analytics/coverage
           - shard: scripts
             script: test:unit:scripts
             coverage_path: ''
@@ -463,7 +466,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          shards=(mobile web shared billing admin lifecycle-events waitlist email marketing-email help articles connections logger observability)
+          shards=(mobile web shared billing admin lifecycle-events waitlist email marketing-email help articles connections logger observability analytics)
           for shard in "${shards[@]}"; do
             echo "Downloading unit-coverage-reports-${shard}"
             gh run download "${GITHUB_RUN_ID}" \
@@ -477,7 +480,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          shards=(mobile web shared billing admin lifecycle-events waitlist email marketing-email help articles connections logger observability scripts)
+          shards=(mobile web shared billing admin lifecycle-events waitlist email marketing-email help articles connections logger observability analytics scripts)
           for shard in "${shards[@]}"; do
             gh run download "${GITHUB_RUN_ID}" \
               --repo "${GITHUB_REPOSITORY}" \
@@ -631,6 +634,7 @@ jobs:
             packages/lifecycle-events/coverage
             packages/logger/coverage
             packages/observability/coverage
+            packages/analytics/coverage
           if-no-files-found: warn
 
       - name: Fail if upstream test jobs failed
