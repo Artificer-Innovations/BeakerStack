@@ -91,6 +91,11 @@ export default defineConfig(({ mode }) => {
                 assets: './dist/**',
                 filesToDeleteAfterUpload: './dist/**/*.map',
               },
+              // Soft-fail: never block staging/prod deploys on Sentry outages
+              // or bad auth — ship the build, lose symbols for that release.
+              errorHandler: err => {
+                console.warn('[sentry] source map upload failed:', err);
+              },
               telemetry: false,
             }),
           ]

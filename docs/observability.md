@@ -110,6 +110,8 @@ EAS / mobile: set `EXPO_PUBLIC_SENTRY_*` in `eas.json` / EAS secrets when enabli
 
 Staging and production builds enable `@sentry/vite-plugin` when auth token, org, project, and release are all set. Maps are generated as `hidden` sourcemaps and deleted after upload (`filesToDeleteAfterUpload`) so `.map` files are not published to S3.
 
+Upload failures are **soft-failed** (`errorHandler` logs a warning and lets the build continue) so a Sentry outage or expired auth token cannot block a deploy — that release just ships without symbolication.
+
 The SDK `release` field (`VITE_SENTRY_RELEASE`) must match the release name used at upload time — workflows set both to `${{ github.sha }}`.
 
 Set `EXPO_PUBLIC_SENTRY_RELEASE` at mobile build time to match if uploading native symbols separately.
