@@ -44,8 +44,8 @@ describe('ConnectionUserRow', () => {
       />
     );
     const image = container.querySelector('img');
-    expect(image).toBeTruthy();
-    fireEvent.error(image!);
+    expect(image).toBeInstanceOf(HTMLImageElement);
+    fireEvent.error(image as HTMLImageElement);
     expect(container.querySelector('img')).toBeNull();
     expect(container.querySelector('.rounded-full')).toBeTruthy();
   });
