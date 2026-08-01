@@ -119,6 +119,55 @@ export async function revokeOperator(
   if (code === 'cannot_self_revoke') throw new Error('cannot_self_revoke');
 }
 
+export type GrantBillingCompParams = {
+  userId: string;
+  productId: string;
+  planId: string;
+  reason: string;
+  expiresAt?: string | null;
+};
+
+export type RevokeBillingCompParams = {
+  userId: string;
+  productId: string;
+  reason?: string;
+};
+
+function throwIfRpcPayloadError(data: unknown): void {
+  const code = errorCode(data);
+  if (code && code !== 'not_found') throw new Error(code);
+}
+
+export async function grantBillingComp(
+  supabase: SupabaseClient,
+  params: GrantBillingCompParams
+): Promise<void> {
+  const { data, error } = await supabase.rpc('admin_grant_billing_comp', {
+    p_user_id: params.userId,
+    p_product_id: params.productId,
+    p_plan_id: params.planId,
+    p_reason: params.reason,
+    p_expires_at: params.expiresAt ?? null,
+  });
+  if (error) throw rpcError(error);
+  if (isNotFound(data)) throw new Error('not_found');
+  throwIfRpcPayloadError(data);
+}
+
+export async function revokeBillingComp(
+  supabase: SupabaseClient,
+  params: RevokeBillingCompParams
+): Promise<void> {
+  const { data, error } = await supabase.rpc('admin_revoke_billing_comp', {
+    p_user_id: params.userId,
+    p_product_id: params.productId,
+    p_reason: params.reason ?? undefined,
+  });
+  if (error) throw rpcError(error);
+  if (isNotFound(data)) throw new Error('not_found');
+  throwIfRpcPayloadError(data);
+}
+
 export async function recordAuditEvent(
   supabase: SupabaseClient,
   input: RecordAuditEventInput

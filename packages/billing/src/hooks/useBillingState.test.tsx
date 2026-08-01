@@ -125,6 +125,16 @@ describe('useBillingState', () => {
     expect(result.current.kind).toBe('free');
   });
 
+  it('classifies comped without stripe subscription as comped', () => {
+    hp.subscription = testSubscription({
+      status: 'comped',
+      stripe_subscription_id: null,
+      plan_id: 'beakerstack_vip',
+    });
+    const { result } = renderHook(() => useBillingState());
+    expect(result.current.kind).toBe('comped');
+  });
+
   it('classifies active with stripe as paid_active', () => {
     hp.subscription = testSubscription({
       status: 'active',

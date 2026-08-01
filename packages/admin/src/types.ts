@@ -33,6 +33,15 @@ export type AdminUserDetail = {
   profile: Record<string, unknown> | null;
   subscription: Record<string, unknown> | null;
   plan: Record<string, unknown> | null;
+  comp_grant?: {
+    id: string;
+    plan_id: string;
+    comped_at: string;
+    comped_by: string;
+    comped_by_email: string | null;
+    comp_reason: string;
+    comp_expires_at: string | null;
+  } | null;
   admin: {
     is_admin: boolean;
     granted_at: string | null;

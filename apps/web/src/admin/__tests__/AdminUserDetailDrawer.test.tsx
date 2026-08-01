@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { getUser, grantOperator, revokeOperator } from '@beakerstack/admin';
+import {
+  getUser,
+  grantOperator,
+  revokeOperator,
+  grantBillingComp,
+  revokeBillingComp,
+} from '@beakerstack/admin';
 import { AdminUserDetailDrawer } from '../components/AdminUserDetailDrawer.web';
 
 vi.mock('@beakerstack/admin', async importOriginal => {
@@ -11,6 +17,8 @@ vi.mock('@beakerstack/admin', async importOriginal => {
     getUser: vi.fn(),
     grantOperator: vi.fn(),
     revokeOperator: vi.fn(),
+    grantBillingComp: vi.fn(),
+    revokeBillingComp: vi.fn(),
   };
 });
 
@@ -21,6 +29,8 @@ vi.mock('../../lib/supabase', () => ({
 const mockGetUser = vi.mocked(getUser);
 const mockGrantOperator = vi.mocked(grantOperator);
 const mockRevokeOperator = vi.mocked(revokeOperator);
+const mockGrantBillingComp = vi.mocked(grantBillingComp);
+const mockRevokeBillingComp = vi.mocked(revokeBillingComp);
 
 const sampleDetail = {
   auth: {
@@ -70,6 +80,8 @@ describe('AdminUserDetailDrawer', () => {
     mockGetUser.mockResolvedValue(sampleDetail);
     mockGrantOperator.mockResolvedValue(undefined);
     mockRevokeOperator.mockResolvedValue(undefined);
+    mockGrantBillingComp.mockResolvedValue(undefined);
+    mockRevokeBillingComp.mockResolvedValue(undefined);
   });
 
   it('loads and displays user detail when open', async () => {
@@ -493,5 +505,148 @@ describe('AdminUserDetailDrawer', () => {
     await screen.findByText('Profile');
     const dashes = screen.getAllByText('—');
     expect(dashes.length).toBeGreaterThan(0);
+  });
+
+  it('grants complimentary VIP with a required reason', async () => {
+    const user = userEvent.setup();
+    render(
+      <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
+    );
+    await screen.findByText('No admin access');
+    await user.click(
+      screen.getByRole('button', { name: /grant complimentary vip/i })
+    );
+    expect(screen.getByRole('button', { name: /^confirm$/i })).toBeDisabled();
+    await user.type(screen.getByTestId('comp-grant-reason'), 'Design partner');
+    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    await waitFor(() =>
+      expect(mockGrantBillingComp).toHaveBeenCalledWith(expect.anything(), {
+        userId: 'u1',
+        productId: 'beakerstack',
+        planId: 'beakerstack_vip',
+        reason: 'Design partner',
+      })
+    );
+  });
+
+  it('shows comp grant metadata and revokes complimentary access', async () => {
+    const user = userEvent.setup();
+    mockGetUser.mockResolvedValue({
+      ...sampleDetail,
+      subscription: { plan_id: 'beakerstack_vip', status: 'comped' },
+      comp_grant: {
+        id: 'cg1',
+        plan_id: 'beakerstack_vip',
+        comped_by: 'admin1',
+        comp_reason: 'Press access',
+        comped_by_email: 'admin@example.com',
+        comped_at: '2024-06-01T00:00:00Z',
+        comp_expires_at: '2025-06-01T00:00:00Z',
+      },
+    });
+    render(
+      <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
+    );
+    await screen.findByText('Complimentary access');
+    expect(screen.getByText('Press access')).toBeInTheDocument();
+    expect(screen.getByText('admin@example.com')).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: /revoke complimentary access/i })
+    );
+    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    await waitFor(() =>
+      expect(mockRevokeBillingComp).toHaveBeenCalledWith(expect.anything(), {
+        userId: 'u1',
+        productId: 'beakerstack',
+      })
+    );
+  });
+
+  it('shows comp grant metadata without granter email', async () => {
+    mockGetUser.mockResolvedValue({
+      ...sampleDetail,
+      subscription: { plan_id: 'beakerstack_vip', status: 'comped' },
+      comp_grant: {
+        id: 'cg2',
+        plan_id: 'beakerstack_vip',
+        comped_by: 'admin1',
+        comp_reason: 'Beta tester',
+        comped_by_email: null,
+        comped_at: '2024-06-01T00:00:00Z',
+        comp_expires_at: null,
+      },
+    });
+    render(
+      <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
+    );
+    await screen.findByText('Beta tester');
+    expect(screen.queryByText(/granted by/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/expires/i)).not.toBeInTheDocument();
+  });
+
+  it('shows friendly comp grant error for stripe_subscription_active', async () => {
+    const user = userEvent.setup();
+    mockGrantBillingComp.mockRejectedValueOnce(
+      new Error('stripe_subscription_active')
+    );
+    render(
+      <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
+    );
+    await screen.findByText('No admin access');
+    await user.click(
+      screen.getByRole('button', { name: /grant complimentary vip/i })
+    );
+    await user.type(screen.getByTestId('comp-grant-reason'), 'Should fail');
+    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    expect(
+      await screen.findByText(/active Stripe subscription/i)
+    ).toBeInTheDocument();
+  });
+
+  it('maps invalid_reason comp grant errors', async () => {
+    const user = userEvent.setup();
+    mockGrantBillingComp.mockRejectedValueOnce(new Error('invalid_reason'));
+    render(
+      <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
+    );
+    await screen.findByText('No admin access');
+    await user.click(
+      screen.getByRole('button', { name: /grant complimentary vip/i })
+    );
+    await user.type(screen.getByTestId('comp-grant-reason'), 'Test reason');
+    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    expect(await screen.findByText(/reason is required/i)).toBeInTheDocument();
+  });
+
+  it('maps invalid_plan comp grant errors', async () => {
+    const user = userEvent.setup();
+    mockGrantBillingComp.mockRejectedValueOnce(new Error('invalid_plan'));
+    render(
+      <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
+    );
+    await screen.findByText('No admin access');
+    await user.click(
+      screen.getByRole('button', { name: /grant complimentary vip/i })
+    );
+    await user.type(screen.getByTestId('comp-grant-reason'), 'Test reason');
+    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    expect(
+      await screen.findByText(/invalid complimentary plan/i)
+    ).toBeInTheDocument();
+  });
+
+  it('maps no_free_plan comp grant errors', async () => {
+    const user = userEvent.setup();
+    mockGrantBillingComp.mockRejectedValueOnce(new Error('no_free_plan'));
+    render(
+      <AdminUserDetailDrawer open userId='u1' title='User' onClose={vi.fn()} />
+    );
+    await screen.findByText('No admin access');
+    await user.click(
+      screen.getByRole('button', { name: /grant complimentary vip/i })
+    );
+    await user.type(screen.getByTestId('comp-grant-reason'), 'Test reason');
+    await user.click(screen.getByRole('button', { name: /^confirm$/i }));
+    expect(await screen.findByText(/public free plan/i)).toBeInTheDocument();
   });
 });

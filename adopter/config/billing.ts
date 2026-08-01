@@ -5,6 +5,17 @@ import {
 import { branding } from './branding';
 import { appIdentity } from './app-identity';
 
+const beakerstackMaxFeatures = {
+  containers_per_account_max: -1,
+  items_per_container_max: -1,
+  feature_a: true,
+  feature_b: true,
+} as const;
+
+const beakerstackMaxUsageLimits = {
+  ai_summarize: -1,
+} as const;
+
 /**
  * Adopter-owned billing config (Free / Pro / Max). IDs match `supabase/seed.sql`.
  * Stripe price IDs live in `public.billing_plans` (synced via `npm run billing:sync-stripe`).
@@ -70,18 +81,28 @@ export const billingConfig = defineBillingConfig({
       stripePriceIdMonthly: null,
       stripePriceIdAnnual: null,
       stripeProductId: null,
-      features: {
-        containers_per_account_max: -1,
-        items_per_container_max: -1,
-        feature_a: true,
-        feature_b: true,
-      },
-      usageLimits: {
-        ai_summarize: -1,
-      },
+      features: { ...beakerstackMaxFeatures },
+      usageLimits: { ...beakerstackMaxUsageLimits },
       trialPeriodDays: 5,
       isPublic: true,
       displayOrder: 3,
+    },
+    {
+      id: 'beakerstack_vip',
+      displayName: 'VIP (complimentary)',
+      description:
+        'Complimentary Max-equivalent access (operator-granted only)',
+      planCardTagline: 'Complimentary access',
+      priceCents: 0,
+      billingPeriod: 'monthly',
+      stripePriceIdMonthly: null,
+      stripePriceIdAnnual: null,
+      stripeProductId: null,
+      features: { ...beakerstackMaxFeatures },
+      usageLimits: { ...beakerstackMaxUsageLimits },
+      trialPeriodDays: 0,
+      isPublic: false,
+      displayOrder: 99,
     },
   ],
   planFeatureRows: [

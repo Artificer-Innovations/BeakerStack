@@ -20,5 +20,8 @@ export function subscriptionStatusLabel(
   if (sub.status === 'free') {
     return 'Free';
   }
+  if (sub.status === 'comped') {
+    return 'Complimentary';
+  }
   return sub.status;
 }

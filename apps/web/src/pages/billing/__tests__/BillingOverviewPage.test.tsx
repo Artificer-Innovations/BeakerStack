@@ -427,4 +427,24 @@ describe('BillingOverviewPage', () => {
     );
     expect(openPortalSpy).toHaveBeenCalled();
   });
+
+  it('shows complimentary access banner when billing kind is comped', () => {
+    state.kind = 'comped';
+    Object.assign(state.subscription, {
+      stripe_subscription_id: null,
+      status: 'comped',
+      plan_id: 'beakerstack_vip',
+    });
+    render(
+      <MemoryRouter>
+        <BillingOverviewPage />
+      </MemoryRouter>
+    );
+    expect(screen.getByText('Complimentary access')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Checkout and the Stripe customer portal are not available/i
+      )
+    ).toBeInTheDocument();
+  });
 });
