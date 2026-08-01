@@ -1,11 +1,6 @@
 import { BillingProvider } from '@beakerstack/billing';
 import { useState } from 'react';
-import {
-  Link,
-  useLocation,
-  useNavigate,
-  useSearchParams,
-} from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import { AppHeaderWithAdmin } from '../components/AppHeaderWithAdmin';

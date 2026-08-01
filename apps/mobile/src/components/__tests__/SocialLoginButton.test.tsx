@@ -46,12 +46,8 @@ describe('SocialLoginButton', () => {
       <SocialLoginButton onPress={mockOnPress} />
     );
 
-    await act(async () => {
-      fireEvent.press(getByText('Sign in with Google'));
-      await waitFor(() =>
-        expect(queryByText('Sign in with Google')).toBeNull()
-      );
-    });
+    fireEvent.press(getByText('Sign in with Google'));
+    await waitFor(() => expect(queryByText('Sign in with Google')).toBeNull());
 
     expect(mockOnPress).toHaveBeenCalledTimes(1);
 
@@ -63,10 +59,8 @@ describe('SocialLoginButton', () => {
     // Button should be tappable again after promise resolves
     mockOnPress.mockResolvedValueOnce();
 
-    await act(async () => {
-      fireEvent.press(getByText('Sign in with Google'));
-      await waitFor(() => expect(mockOnPress).toHaveBeenCalledTimes(2));
-    });
+    fireEvent.press(getByText('Sign in with Google'));
+    await waitFor(() => expect(mockOnPress).toHaveBeenCalledTimes(2));
   });
 
   it('logs a warning when onPress rejects', async () => {

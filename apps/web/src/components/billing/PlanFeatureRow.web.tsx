@@ -1,5 +1,6 @@
+import type { ReactElement } from 'react';
 import { Check, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 export function PlanFeatureRow({
   name,
@@ -9,7 +10,7 @@ export function PlanFeatureRow({
   name: string;
   available: boolean;
   showUpgradeLink?: boolean;
-}): JSX.Element {
+}): ReactElement {
   return (
     <div className='flex items-center justify-between border-b border-gray-100 dark:border-gray-700 py-2 text-sm'>
       <div className='flex items-center gap-2 text-gray-900 dark:text-white'>

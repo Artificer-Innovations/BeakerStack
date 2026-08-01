@@ -1,14 +1,19 @@
 /**
- * Jest stub for Metro’s `expo/virtual/env` alias (`shims/expo-virtual-env.js`).
- * The Expo Babel plugin rewrites EXPO_PUBLIC_* reads; it may use default and/or
- * named exports off this module.
+ * Jest stub for Metro's `expo/virtual/env` alias.
+ * Expo SDK 57's babel plugin rewrites `process.env.EXPO_PUBLIC_*` reads to:
+ *   import { env } from 'expo/virtual/env'; env.EXPO_PUBLIC_*
  */
 'use strict';
 
-const base = (typeof process !== 'undefined' && process.env) || {};
-const d = Object.assign({}, base);
+const env =
+  typeof process !== 'undefined' &&
+  process.env != null &&
+  typeof process.env === 'object'
+    ? process.env
+    : {};
 
-module.exports = Object.assign(
-  { __esModule: true, default: d },
-  d
-);
+module.exports = {
+  __esModule: true,
+  env,
+  default: { env },
+};

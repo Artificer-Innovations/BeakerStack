@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import AdminDashboardPage from '../pages/AdminDashboardPage';
 import * as statsModule from '../hooks/useAdminOverviewStats';
 
@@ -168,7 +168,9 @@ describe('AdminDashboardPage', () => {
         <AdminDashboardPage />
       </MemoryRouter>
     );
-    expect(screen.getByText('Enabled · 3 pending · 2 failed')).toBeInTheDocument();
+    expect(
+      screen.getByText('Enabled · 3 pending · 2 failed')
+    ).toBeInTheDocument();
   });
 
   it('shows "Disabled · 12 pending · 2 failed" when disabled with backlog', () => {
@@ -184,7 +186,9 @@ describe('AdminDashboardPage', () => {
         <AdminDashboardPage />
       </MemoryRouter>
     );
-    expect(screen.getByText('Disabled · 12 pending · 2 failed')).toBeInTheDocument();
+    expect(
+      screen.getByText('Disabled · 12 pending · 2 failed')
+    ).toBeInTheDocument();
   });
 
   it('applies red styling when there are failures', () => {

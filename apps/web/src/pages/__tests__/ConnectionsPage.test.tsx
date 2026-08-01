@@ -6,7 +6,7 @@ import {
 } from '@beakerstack/connections';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import ConnectionsPage from '../ConnectionsPage';
 
 const mockRefresh = vi.fn();

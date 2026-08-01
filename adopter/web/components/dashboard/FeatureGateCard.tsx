@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Check, Lock } from 'lucide-react';
 import { usePlan } from '@beakerstack/billing';
 import { FeatureGate } from '@beakerstack/billing/web';

@@ -1,4 +1,4 @@
-import { Navigate, useParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router';
 import { PolicyPublicHeader } from '../components/PolicyPublicHeader';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';

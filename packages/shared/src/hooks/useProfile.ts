@@ -147,12 +147,19 @@ class ProfileRealtimeRegistry {
         );
         // Check if unsubscribe exists before calling it
         if (typeof entry.channel.unsubscribe === 'function') {
-          entry.channel.unsubscribe().catch(err => {
-            Logger.warn(
-              '[ProfileRealtimeRegistry] Channel unsubscribe error:',
-              err
-            );
-          });
+          const result = entry.channel.unsubscribe();
+          // Supabase returns a Promise; mocks may return void
+          if (
+            result != null &&
+            typeof (result as Promise<unknown>).catch === 'function'
+          ) {
+            (result as Promise<unknown>).catch(err => {
+              Logger.warn(
+                '[ProfileRealtimeRegistry] Channel unsubscribe error:',
+                err
+              );
+            });
+          }
         } else {
           Logger.warn(
             '[ProfileRealtimeRegistry] Channel does not have unsubscribe method'

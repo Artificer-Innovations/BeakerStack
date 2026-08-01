@@ -1,10 +1,13 @@
 import { describe, it, expect } from '@jest/globals';
-import TestRenderer from 'react-test-renderer';
+import TestRenderer, { act } from 'react-test-renderer';
 import { Skeleton } from '@beakerstack/shared/components/primitives/Skeleton.native';
 
 describe('Skeleton.native — coverage gaps', () => {
   it('Skeleton.Text uses default line count of 3', () => {
-    const tree = TestRenderer.create(<Skeleton.Text />);
+    let tree!: TestRenderer.ReactTestRenderer;
+    act(() => {
+      tree = TestRenderer.create(<Skeleton.Text />);
+    });
     const lines = tree.root.findAll(
       node =>
         typeof node.props.style?.height === 'number' &&

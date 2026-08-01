@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act, waitFor } from '@testing-library/react';
-import { Routes, Route, MemoryRouter } from 'react-router-dom';
+import { Routes, Route, MemoryRouter } from 'react-router';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { useProfileContext } from '@beakerstack/shared/contexts/ProfileContext';
 import AuthenticatedApp from '../AuthenticatedApp';

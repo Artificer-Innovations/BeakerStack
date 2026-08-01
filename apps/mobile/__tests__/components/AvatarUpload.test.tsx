@@ -51,7 +51,7 @@ jest.mock('@beakerstack/shared/hooks/useAvatarUpload', () => ({
   })),
 }));
 
-const mockSupabaseClient = {} as SupabaseClient;
+const mockSupabaseClient = {} as unknown as SupabaseClient;
 
 describe('AvatarUpload.native', () => {
   const mockOnUploadComplete = jest.fn();

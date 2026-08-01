@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 /** Invoice / generic status (not subscription — see SubscriptionStatusBadge in @beakerstack/billing/web). */
 
 const base =
@@ -36,7 +37,7 @@ export function StatusBadge({
 }: {
   status: string;
   className?: string;
-}): JSX.Element {
+}): ReactElement {
   const s = (status || '').toLowerCase();
   const m = styles[s] ?? {
     label: status,

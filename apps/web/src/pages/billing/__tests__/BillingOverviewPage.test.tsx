@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import type { BillingUiStateKind, Plan } from '@beakerstack/billing';
 import BillingOverviewPage from '../BillingOverviewPage';
 

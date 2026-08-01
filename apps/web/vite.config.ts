@@ -113,12 +113,10 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    // Externalize router packages in SSR/vite-node context so both
-    // react-router-dom (ESM, used by app components) and
-    // react-router-dom/server (CJS) resolve through the same CJS
-    // require() call and share a single NavigationContext instance.
+    // Externalize router in SSR/vite-node so ESM app imports and CJS
+    // react-router/server share one NavigationContext instance.
     ssr: {
-      external: ['react-router', 'react-router-dom', '@remix-run/router'],
+      external: ['react-router'],
     },
     test: {
       root: repoRoot,

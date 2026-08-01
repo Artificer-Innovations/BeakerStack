@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router';
 import type { AdminNavItem } from '../types.js';
 import { AdminBreadcrumbs } from './AdminBreadcrumbs.web.js';
 

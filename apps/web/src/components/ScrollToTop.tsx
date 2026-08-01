@@ -1,6 +1,6 @@
 import { Logger } from '@beakerstack/logger';
 import { useLayoutEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 
 const HASH_SCROLL_MAX_FRAMES = 60;
 

@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import {
   useCustomerPortal,
   useInvoices,
@@ -168,7 +169,7 @@ function OverviewBanners({
   pendingTargetName?: string;
   onReactivate: () => void;
   reactivatePending: boolean;
-}): JSX.Element | null {
+}): ReactElement | null {
   const reactivateAction = (
     <Button
       type='button'

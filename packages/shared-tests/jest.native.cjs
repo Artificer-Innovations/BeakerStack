@@ -20,10 +20,7 @@ module.exports = {
     ),
     '^@adopter/(.*)$': path.join(root, 'adopter/$1'),
     '^react-native$': 'react-native-web',
-    '^react-router-dom$': path.join(
-      __dirname,
-      '__mocks__/react-router-dom.tsx'
-    ),
+    '^react-router$': path.join(__dirname, '__mocks__/react-router.tsx'),
     '^react-native-svg$': path.join(
       __dirname,
       '__mocks__/react-native-svg.tsx'

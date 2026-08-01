@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import type { ReactNode } from 'react';
 
 export type BannerVariant = 'info' | 'success' | 'warning' | 'error';
@@ -24,7 +25,7 @@ export function Banner({
   children: ReactNode;
   action?: ReactNode;
   className?: string;
-}): JSX.Element {
+}): ReactElement {
   return (
     <div
       className={`rounded-lg border p-4 ${variantClass[variant]} ${className}`.trim()}

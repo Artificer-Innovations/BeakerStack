@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import { BrowserRouter, MemoryRouter } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter } from 'react-router';
 import '@testing-library/jest-dom';
 import { ProtectedRoute } from '@beakerstack/shared/components/auth/ProtectedRoute.web';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';

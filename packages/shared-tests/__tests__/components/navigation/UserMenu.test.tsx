@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import '@testing-library/jest-dom';
 import { UserMenu } from '@beakerstack/shared/components/navigation/UserMenu.web';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { AdminLayout } from '@beakerstack/admin/web';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { adminNavItems } from './adminNav';

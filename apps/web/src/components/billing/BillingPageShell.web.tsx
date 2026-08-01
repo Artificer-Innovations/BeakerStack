@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { ReactElement } from 'react';
 import { AppHeaderWithAdmin } from '../AppHeaderWithAdmin';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 
@@ -6,7 +7,7 @@ export function BillingPageShell({
   children,
 }: {
   children: ReactNode;
-}): JSX.Element {
+}): ReactElement {
   return (
     <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
       <AppHeaderWithAdmin />
