@@ -1,5 +1,7 @@
 const { getDefaultConfig } = require('expo/metro-config');
-const exclusionList = require('metro-config/src/defaults/exclusionList');
+// Metro 0.84+ only exports this helper under the private path.
+const exclusionList =
+  require('metro-config/private/defaults/exclusionList').default;
 const fs = require('fs');
 const path = require('path');
 
