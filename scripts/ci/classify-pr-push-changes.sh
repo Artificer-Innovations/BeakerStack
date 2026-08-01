@@ -88,7 +88,7 @@ is_package_runtime_source() {
   is_package_test_path "${f}" && return 1
   case "${f}" in
     packages/shared/src/* | packages/billing/src/* | packages/logger/src/* | \
-    packages/observability/src/* | packages/admin/src/* | packages/email/src/* | \
+    packages/observability/src/* | packages/analytics/src/* | packages/admin/src/* | packages/email/src/* | \
     packages/waitlist/src/* | packages/lifecycle-events/src/* | packages/help/src/* | \
     packages/articles/src/* | packages/connections/src/*)
       return 0
@@ -103,7 +103,7 @@ is_package_web_only_runtime_source() {
   case "${f}" in
     packages/admin/src/* | packages/email/src/* | packages/waitlist/src/* | \
     packages/lifecycle-events/src/* | packages/help/src/* | packages/articles/src/* | \
-    packages/connections/src/*)
+    packages/connections/src/* | packages/analytics/src/*)
       return 0
       ;;
   esac

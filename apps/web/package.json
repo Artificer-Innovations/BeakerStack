@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@beakerstack/admin": "^1.0.0",
+    "@beakerstack/analytics": "^1.0.0",
     "@beakerstack/articles": "^1.0.0",
     "@beakerstack/billing": "^1.0.0",
     "@beakerstack/connections": "^1.0.0",

@@ -190,6 +190,7 @@ jobs:
       STACK_NAME: ${{ vars.PR_PREVIEW_STACK_NAME }}
       VITE_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+      VITE_PLAUSIBLE_DOMAIN: ${{ format('staging.{0}', vars.PR_PREVIEW_DOMAIN) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

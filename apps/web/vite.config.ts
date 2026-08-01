@@ -94,6 +94,20 @@ export default defineConfig(({ mode }) => {
           __dirname,
           '../../packages/logger/src'
         ),
+        '@beakerstack/analytics/web': path.resolve(
+          __dirname,
+          '../../packages/analytics/src/web.ts'
+        ),
+        '@beakerstack/analytics': path.resolve(
+          __dirname,
+          '../../packages/analytics/src'
+        ),
+        // @plausible-analytics/tracker has no `exports` map — only `"module": "./plausible.js"`.
+        // Vite fails to resolve the package entry without this alias (web vitest + build).
+        '@plausible-analytics/tracker': path.resolve(
+          repoRoot,
+          'node_modules/@plausible-analytics/tracker/plausible.js'
+        ),
       },
     },
     define: {
