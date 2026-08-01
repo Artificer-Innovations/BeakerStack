@@ -1,5 +1,10 @@
 import React from 'react';
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import {
+  fireEvent,
+  render,
+  waitFor,
+  within,
+} from '@testing-library/react-native';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -233,7 +238,6 @@ function restoreBillingFeatureMocks(): void {
 describe('DashboardScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
     restoreDefaultSupabaseRpc();
     (supabase.functions.invoke as jest.Mock).mockReset();
     (supabase.functions.invoke as jest.Mock).mockResolvedValue({
@@ -274,6 +278,7 @@ describe('DashboardScreen', () => {
   });
 
   it('redirects to Home when not authenticated', async () => {
+    jest.useFakeTimers();
     (supabase.auth.getSession as jest.Mock).mockResolvedValue({
       data: { session: null },
       error: null,
@@ -734,29 +739,33 @@ describe('DashboardScreen', () => {
       return Promise.resolve({ data: null, error: null });
     });
 
-    const { getByText, queryByText, getAllByLabelText, getAllByText } =
-      renderWithProviders(<DashboardScreen navigation={mockNavigation} />);
+    const { getByText, queryByText, getByRole } = renderWithProviders(
+      <DashboardScreen navigation={mockNavigation} />
+    );
 
     await waitFor(() => {
       expect(getByText('gonecol2…')).toBeTruthy();
     });
 
-    const collectionCards = getAllByText('Collection');
-    const lastCollectionCard = collectionCards.at(-1);
-    if (!lastCollectionCard) {
-      throw new Error('expected at least one collection card');
-    }
-    fireEvent.press(lastCollectionCard);
-
-    const deleteButtons = getAllByLabelText('Delete collection');
-    const lastDeleteButton = deleteButtons.at(-1);
-    if (!lastDeleteButton) {
-      throw new Error('expected at least one delete button');
-    }
-    fireEvent.press(lastDeleteButton);
+    fireEvent.press(getByText('gonecol2…'));
 
     await waitFor(() => {
-      expect(queryByText(/gonecol2/)).toBeNull();
+      expect(getByRole('button', { selected: true })).toBeTruthy();
+    });
+
+    fireEvent.press(
+      within(getByRole('button', { selected: true })).getByText('Del')
+    );
+
+    await waitFor(() => {
+      expect(supabase.rpc).toHaveBeenCalledWith(
+        'billing_demo_delete_collection',
+        expect.objectContaining({ p_collection_id: 'gonecol2' })
+      );
+    });
+
+    await waitFor(() => {
+      expect(queryByText('gonecol2…')).toBeNull();
       expect(getByText('keepcol1…')).toBeTruthy();
     });
   });

@@ -210,6 +210,7 @@
     "functions:sync-shared": "node scripts/sync-edge-shared.mjs"
   },
   "devDependencies": {
+    "@babel/highlight": "^7.25.9",
     "@babel/plugin-transform-runtime": "^7.28.3",
     "@changesets/changelog-github": "0.6.0",
     "@changesets/cli": "2.31.0",
@@ -303,7 +304,12 @@
       "joi": "17.13.4",
       "ts-deepmerge": "8.0.0",
       "uuid": "14.0.0",
-      "js-yaml": "4.3.0"
+      "js-yaml": "4.3.0",
+      "@babel/highlight": "^7.25.9"
+    },
+    "@babel/highlight": "^7.25.9",
+    "@babel/code-frame@7.23.5": {
+      "@babel/highlight": "^7.25.9"
     },
     "@expo/cli": {
       "@xmldom/xmldom": "0.8.13",
