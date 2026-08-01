@@ -51,6 +51,6 @@ See [SECURITY.md](./SECURITY.md).
 ## Imports
 
 - **Shared:** `@beakerstack/admin` (requires `react` — e.g. `useIsAdmin`)
-- **Web components:** `@beakerstack/admin/web` (requires `react`, `react-dom`, and `react-router` v6+)
+- **Web components:** `@beakerstack/admin/web` (requires `react`, `react-dom`, and `react-router` v8+)
 
-Peer dependencies use semver ranges (`^18.2.0`, `^6.0.0`) so consumers are not pinned to an exact patch release.
+Peer dependencies use semver ranges (`^19.2.8`, `^8.3.0`) so consumers are not pinned to an exact patch release.

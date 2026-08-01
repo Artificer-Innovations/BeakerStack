@@ -58,7 +58,7 @@ Reference inventory — the argument is above.
 | Tests     | Unit, integration, Maestro E2E, pgTAP DB tests; colocated with decision matrix                                      | [TESTING](docs/TESTING.md)                                       |
 | Agents    | Typed configs, generated DB types, package boundaries, test placement rules — conventions in ARCHITECTURE + TESTING | [ARCHITECTURE](docs/ARCHITECTURE.md), [TESTING](docs/TESTING.md) |
 
-Stack: React 18.2, Vite 5, Expo SDK ~57, React Native 0.86, Node 22.22 in CI.
+Stack: React 19.2.8, Vite 7, Expo SDK ~57, React Native 0.86, Node 22.22 in CI.
 
 ## Screenshots
 
