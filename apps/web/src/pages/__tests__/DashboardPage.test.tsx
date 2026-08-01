@@ -10,6 +10,7 @@ import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';
 import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import { brandNameRegex } from '@adopter/config/branding';
 import { billingConfig } from '@adopter/config/billing';
+import { landingConfig } from '@adopter/config/landing';
 import { supabase } from '@/lib/supabase';
 
 const mockNavigate = vi.fn();
@@ -222,9 +223,10 @@ describe('DashboardPage', () => {
   it('links to GitHub repo from demo banner', async () => {
     await renderWithAuth(<DashboardPage />);
     const link = screen.getByRole('link', { name: /view on github/i });
+    expect(landingConfig.finalCta.secondaryCta?.href).toBeDefined();
     expect(link).toHaveAttribute(
       'href',
-      'https://github.com/Artificer-Innovations/BeakerStack'
+      landingConfig.finalCta.secondaryCta?.href
     );
   });
 

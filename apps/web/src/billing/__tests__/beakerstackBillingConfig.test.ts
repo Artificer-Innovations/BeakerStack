@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  BEAKERSTACK_METER_AI_SUMMARIZE,
-  billingConfig,
-} from '@adopter/config/billing';
+import { METER_AI_SUMMARIZE, billingConfig } from '@adopter/config/billing';
 
 describe('billingConfig', () => {
   it('defines a parsed product with public plans', () => {
@@ -13,6 +10,6 @@ describe('billingConfig', () => {
   });
 
   it('exposes meter key constant for AI usage', () => {
-    expect(BEAKERSTACK_METER_AI_SUMMARIZE).toBe('ai_summarize');
+    expect(METER_AI_SUMMARIZE).toBe('ai_summarize');
   });
 });

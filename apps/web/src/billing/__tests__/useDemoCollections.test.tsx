@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useDemoCollections } from '@adopter/web/billing/useDemoCollections';
+import { appIdentity } from '@adopter/config/app-identity';
 
 const { rpc, mockClient } = vi.hoisted(() => {
   const rpc = vi.fn();
@@ -113,7 +114,7 @@ describe('useDemoCollections', () => {
     });
     expect(rpc).toHaveBeenCalledWith(
       'billing_demo_add_collection',
-      expect.objectContaining({ p_product_id: 'beakerstack' })
+      expect.objectContaining({ p_product_id: appIdentity.productId })
     );
   });
 
@@ -138,7 +139,7 @@ describe('useDemoCollections', () => {
     expect(rpc).toHaveBeenCalledWith(
       'billing_demo_delete_collection',
       expect.objectContaining({
-        p_product_id: 'beakerstack',
+        p_product_id: appIdentity.productId,
         p_collection_id: 'x',
       })
     );
@@ -168,7 +169,7 @@ describe('useDemoCollections', () => {
     expect(rpc).toHaveBeenCalledWith(
       'billing_demo_add_item',
       expect.objectContaining({
-        p_product_id: 'beakerstack',
+        p_product_id: appIdentity.productId,
         p_collection_id: 'col',
       })
     );

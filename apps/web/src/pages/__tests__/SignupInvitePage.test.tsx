@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { billingConfig } from '@adopter/config/billing';
 import SignupInvitePage, {
   finalizeInviteSignup,
   getInviteTokenFromHash,
@@ -111,7 +112,7 @@ describe('SignupInvitePage helpers', () => {
         body: expect.objectContaining({
           action: 'consume',
           token: 'tok',
-          productId: 'beakerstack',
+          productId: billingConfig.productId,
         }),
       })
     );

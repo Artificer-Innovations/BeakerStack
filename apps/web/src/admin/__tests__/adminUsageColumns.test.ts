@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { adminProductId, getAdminUsageMeterKeys } from '../adminUsageColumns';
+import { billingConfig } from '@adopter/config/billing';
 
 describe('adminUsageColumns', () => {
   it('exports product id from billing config', () => {
-    expect(adminProductId).toBe('beakerstack');
+    expect(adminProductId).toBe(billingConfig.productId);
   });
 
   it('collects usage meter keys from all plans', () => {

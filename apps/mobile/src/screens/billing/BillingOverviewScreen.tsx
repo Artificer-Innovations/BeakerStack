@@ -11,10 +11,7 @@ import {
 import { formatMonthYear } from '@beakerstack/billing/presentation';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
-import {
-  billingConfig,
-  BEAKERSTACK_METER_AI_SUMMARIZE,
-} from '@adopter/config/billing';
+import { billingConfig, METER_AI_SUMMARIZE } from '@adopter/config/billing';
 import { numericPlanFeature } from '../../billing/planFeatureValue';
 import { useDemoCollectionCount } from '@adopter/mobile/billing/useDemoCollectionCount';
 import { BillingLayout } from './BillingLayout';
@@ -139,8 +136,8 @@ export function BillingOverviewScreen(): ReactElement {
     used,
     limit,
     loading: usageLoad,
-  } = useUsage<typeof billingConfig, typeof BEAKERSTACK_METER_AI_SUMMARIZE>(
-    BEAKERSTACK_METER_AI_SUMMARIZE
+  } = useUsage<typeof billingConfig, typeof METER_AI_SUMMARIZE>(
+    METER_AI_SUMMARIZE
   );
   const {
     count: colCount,
