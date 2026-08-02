@@ -22,7 +22,7 @@
     "@sentry/react": "^8",
     "@sentry/react-native": ">=6",
     "react": "19.2.8",
-    "react-native": ">=0.73.0"
+    "react-native": ">=0.86.0"
   },
   "peerDependenciesMeta": {
     "@sentry/react-native": {

@@ -69,16 +69,9 @@ config.resolver.blockList = exclusionList([
   /[/\\]\.git[/\\].*/,
 ]);
 
-// Metro alias for expo/virtual/env -> shim file
-// This prevents build failures if a stray import remains in shared code
+// Do not alias expo/virtual/env — Expo SDK 57's babel rewrite expects the
+// Metro-provided virtual module (`import { env } from 'expo/virtual/env'`).
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (moduleName === 'expo/virtual/env') {
-    return {
-      filePath: path.resolve(projectRoot, 'shims/expo-virtual-env.js'),
-      type: 'sourceFile',
-    };
-  }
-
   if (typeof moduleName === 'string' && moduleName.startsWith('@adopter/')) {
     const subpath = moduleName.slice('@adopter/'.length);
     const base = path.join(adopterDir, subpath);

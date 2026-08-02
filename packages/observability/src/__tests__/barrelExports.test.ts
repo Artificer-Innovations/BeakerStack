@@ -1,4 +1,24 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('@sentry/react-native', () => ({
+  init: vi.fn(),
+  getClient: vi.fn(() => null),
+  captureException: vi.fn(),
+  captureMessage: vi.fn(),
+  setUser: vi.fn(),
+  addBreadcrumb: vi.fn(),
+  withScope: vi.fn((fn: (s: unknown) => unknown) => fn({})),
+  startSpan: vi.fn((_opts: unknown, fn: () => unknown) => fn()),
+  reactNavigationIntegration: vi.fn(() => ({
+    registerNavigationContainer: vi.fn(),
+  })),
+  reactNativeTracingIntegration: vi.fn(() => ({})),
+}));
+
+vi.mock('react-native', () => ({
+  Text: 'Text',
+  View: 'View',
+}));
 
 describe('root barrel exports', () => {
   it('exports PII helpers', async () => {
