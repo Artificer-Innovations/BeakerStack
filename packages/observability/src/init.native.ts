@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Logger } from '@beakerstack/logger';
 // Static import: Metro async `import()` from packages/* (watchFolders) throws
 // "undefined is not a function" because asyncRequire is not wired for that
