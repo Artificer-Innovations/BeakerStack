@@ -14,6 +14,15 @@ jest.mock('@beakerstack/logger', () => ({
   },
 }));
 
+/** RN-web maps Image to role="presentation" with empty alt in newer builds. */
+function getRenderedImage(): HTMLImageElement {
+  const image = document.querySelector('img');
+  if (!image) {
+    throw new Error('Expected an <img> element');
+  }
+  return image;
+}
+
 describe('ProfileAvatar (Native)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -31,7 +40,7 @@ describe('ProfileAvatar (Native)', () => {
     };
 
     render(<ProfileAvatar profile={profile} />);
-    const image = screen.getByRole('img');
+    const image = getRenderedImage();
     expect(image).toBeInTheDocument();
   });
 
@@ -142,7 +151,7 @@ describe('ProfileAvatar (Native)', () => {
     };
 
     render(<ProfileAvatar profile={profile} />);
-    const image = screen.getByRole('img');
+    const image = getRenderedImage();
     const src = image.getAttribute('src') ?? '';
     expect(src).toContain('?v=1');
     expect(src).toContain('&t=');
@@ -168,7 +177,7 @@ describe('ProfileAvatar (Native)', () => {
         updated_at: '2024-01-01',
       };
       render(<ProfileAvatar profile={profile} />);
-      const image = screen.getByRole('img');
+      const image = getRenderedImage();
       expect(image.getAttribute('src')).toContain('10.0.2.2');
     } finally {
       Object.defineProperty(Platform, 'OS', {

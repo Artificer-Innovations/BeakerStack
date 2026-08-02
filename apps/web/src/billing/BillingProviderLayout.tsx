@@ -1,5 +1,5 @@
 import { BillingProvider } from '@beakerstack/billing';
-import { Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router';
 import { appBasePath } from '../lib/appBasePath';
 import { supabase } from '../lib/supabase';
 import { billingConfig } from '@adopter/config/billing';

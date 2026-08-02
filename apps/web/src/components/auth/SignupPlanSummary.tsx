@@ -1,6 +1,6 @@
 import { usePlanCatalog } from '@beakerstack/billing';
-import { useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useMemo, type ReactElement } from 'react';
+import { useSearchParams } from 'react-router';
 import { resolveWaitlistModeCopy, useSignupMode } from '@beakerstack/waitlist';
 import { billingConfig } from '@adopter/config/billing';
 import { supabase } from '../../lib/supabase';
@@ -24,7 +24,7 @@ export function PlanIntentSummary({
   mode = 'signup',
 }: {
   mode?: PlanIntentMode;
-}): JSX.Element | null {
+}): ReactElement | null {
   const [search] = useSearchParams();
   const planId = search.get('plan');
   const cadence = getCadenceFromSearch(search);

@@ -1,5 +1,5 @@
 import { render, screen, act } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
 import { ProfileProvider } from '@beakerstack/shared/contexts/ProfileContext';

@@ -73,6 +73,11 @@ jest.mock('@beakerstack/logger', () => ({
   },
 }));
 
+/** RN-web maps Image to role="presentation" with empty alt in newer builds. */
+function getRenderedImages(): HTMLImageElement[] {
+  return Array.from(document.querySelectorAll('img'));
+}
+
 // Mock Platform
 jest.mock('react-native', () => {
   const RN = jest.requireActual('react-native');
@@ -140,8 +145,7 @@ describe('AvatarUpload (Native)', () => {
       />
     );
 
-    const image = screen.getByRole('img');
-    expect(image).toBeInTheDocument();
+    expect(getRenderedImages().length).toBeGreaterThan(0);
   });
 
   it('renders Choose File button', () => {
@@ -582,8 +586,7 @@ describe('AvatarUpload (Native)', () => {
     );
 
     // Should show uploaded URL
-    const images = screen.queryAllByRole('img');
-    expect(images.length).toBeGreaterThan(0);
+    expect(getRenderedImages().length).toBeGreaterThan(0);
   });
 
   it('handles preview URL', async () => {
@@ -636,8 +639,7 @@ describe('AvatarUpload (Native)', () => {
     );
 
     // URL should be fixed for Android emulator
-    const images = screen.queryAllByRole('img');
-    expect(images.length).toBeGreaterThan(0);
+    expect(getRenderedImages().length).toBeGreaterThan(0);
 
     Platform.OS = 'ios';
     // @ts-expect-error test-only assignment to global __DEV__
@@ -854,7 +856,7 @@ describe('AvatarUpload (Native)', () => {
       />
     );
 
-    expect(screen.getAllByRole('img').length).toBeGreaterThan(0);
+    expect(getRenderedImages().length).toBeGreaterThan(0);
 
     rerender(
       <AvatarUpload
@@ -866,7 +868,7 @@ describe('AvatarUpload (Native)', () => {
       />
     );
 
-    expect(screen.getAllByRole('img').length).toBeGreaterThan(0);
+    expect(getRenderedImages().length).toBeGreaterThan(0);
   });
 
   it('handles button disabled state during upload', () => {

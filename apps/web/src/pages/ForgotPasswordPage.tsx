@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { AppHeaderWithAdmin } from '../components/AppHeaderWithAdmin';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';

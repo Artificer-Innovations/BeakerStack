@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { CreditCard, Users } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import type { User } from '@supabase/supabase-js';
 import type { UserProfile } from '../../types/profile';
 import { useAuthContext } from '../../contexts/AuthContext';

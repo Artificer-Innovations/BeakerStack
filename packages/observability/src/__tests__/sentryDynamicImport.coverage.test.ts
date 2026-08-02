@@ -46,10 +46,10 @@ describe('Sentry dynamic import fallbacks', () => {
     }
   });
 
-  it('withErrorBoundary.native survives a rejected @sentry/react-native import', async () => {
-    vi.doMock('@sentry/react-native', () =>
-      Promise.reject(new Error('chunk failed'))
-    );
+  it('withErrorBoundary.native still renders fallback when Sentry is a stub', async () => {
+    vi.doMock('@sentry/react-native', () => ({
+      captureException: undefined,
+    }));
     const { ErrorBoundary } =
       await import('../components/withErrorBoundary.native.js');
     const React = await import('react');

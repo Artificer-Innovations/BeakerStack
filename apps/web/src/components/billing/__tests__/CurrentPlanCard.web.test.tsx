@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import type { Plan, SubscriptionRow } from '@beakerstack/billing';
 import { CurrentPlanCard } from '../CurrentPlanCard.web';
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useProfileContext } from '../../contexts/ProfileContext';

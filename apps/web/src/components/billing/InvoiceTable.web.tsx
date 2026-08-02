@@ -1,5 +1,6 @@
+import type { ReactElement } from 'react';
 import type { BillingInvoiceRow } from '@beakerstack/billing';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Button } from '@beakerstack/shared/components/primitives/Button.web';
 import { Skeleton } from '@beakerstack/shared/components/primitives/Skeleton.web';
 import {
@@ -20,7 +21,7 @@ export function InvoiceTable({
   hasMore: boolean;
   onLoadMore: () => void;
   loadMorePending?: boolean;
-}): JSX.Element {
+}): ReactElement {
   if (loading && items.length === 0) {
     return <Skeleton className='h-40 w-full rounded-lg' />;
   }

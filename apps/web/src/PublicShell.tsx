@@ -1,4 +1,4 @@
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import App from './App';
 
 export interface PublicShellProps {
@@ -7,13 +7,7 @@ export interface PublicShellProps {
 
 export function PublicShell({ basePath }: PublicShellProps) {
   return (
-    <BrowserRouter
-      basename={basePath}
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
-    >
+    <BrowserRouter basename={basePath}>
       <App />
     </BrowserRouter>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import { AppHeaderWithAdmin } from '../components/AppHeaderWithAdmin';

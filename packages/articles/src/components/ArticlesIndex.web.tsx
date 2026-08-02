@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { listArticles } from '../articleQueries.js';
 import { slugifyTag } from '../articleUtils.js';
 import { ArticlesIndexHead } from './ArticleHead.web.js';

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { getArticlesByTag, getTagLabel } from '../articleQueries.js';
 import { TagListingHead } from './ArticleHead.web.js';
 import { formatArticleDate } from './ArticleProse.web.js';

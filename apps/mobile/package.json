@@ -4,23 +4,23 @@
   "version": "1.0.0",
   "main": "index.js",
   "overrides": {
-    "react": "18.2.0",
-    "react-native": "0.73.6",
-    "react-test-renderer": "18.2.0"
+    "react": "19.2.8",
+    "react-native": "0.86.0",
+    "react-test-renderer": "19.2.8"
   },
   "scripts": {
     "eas-build-pre-install": "node scripts/generate-google-services.js",
     "eas-build-post-install": "node scripts/apply-patches.js",
     "start": "expo start",
-    "android": "expo run:android",
+    "android": "sh -c 'adb uninstall com.anonymous.beakerstack >/dev/null 2>&1 || true; adb reverse tcp:8081 tcp:8081 >/dev/null 2>&1 || true; exec npx expo run:android \"$@\"' --",
     "ios": "expo run:ios",
     "prebuild": "expo prebuild",
     "prebuild:clean": "expo prebuild --clean",
-    "android:clean": "sh -c 'if [ -d android ]; then rm -rf android/build android/app/build android/.gradle android/.cxx android/app/.cxx || true; fi; if command -v adb >/dev/null 2>&1 && adb devices | grep -q \"device$\"; then adb uninstall com.anonymous.beakerstack 2>/dev/null || true; fi; npx expo run:android'",
+    "android:clean": "sh -c 'if [ -d android ]; then rm -rf android/build android/app/build android/.gradle android/.cxx android/app/.cxx || true; fi; if command -v adb >/dev/null 2>&1 && adb devices | grep -q \"device$\"; then adb uninstall com.anonymous.beakerstack 2>/dev/null || true; fi; npx expo run:android \"$@\"' --",
     "ios:clean": "sh -c 'if [ -d ios ]; then rm -rf ios/build ios/DerivedData || true; rm -rf ~/Library/Developer/Xcode/DerivedData/* 2>/dev/null || true; fi; if command -v xcrun >/dev/null 2>&1 && xcrun simctl list devices | grep -qi \"booted\"; then xcrun simctl list devices | grep -i \"booted\" | sed \"s/.*(\\([^)]*\\)).*/\\1/\" | xargs -I {} xcrun simctl uninstall {} com.anonymous.beakerstack 2>/dev/null || true; fi; cd ../.. && node apps/mobile/scripts/apply-patches.js && cd apps/mobile && npx expo run:ios'",
     "rebuild": "sh -c 'echo \"🔨 Starting iOS rebuild...\"; if command -v xcrun >/dev/null 2>&1; then if ! xcrun simctl list devices | grep -qi \"booted\"; then echo \"⚠️  Warning: No booted iOS simulators detected. Make sure your simulator is running.\"; fi; fi; ../../scripts/clean-rebuild.sh && npx expo run:ios'",
     "rebuild:ios": "npm run rebuild",
-    "rebuild:android": "sh -c 'echo \"🔨 Starting Android rebuild...\"; if command -v adb >/dev/null 2>&1; then if ! adb devices | grep -q \"device$\"; then echo \"⚠️  Warning: No Android devices/emulators detected. Make sure your emulator is running.\"; fi; fi; ../../scripts/clean-rebuild.sh && npx expo run:android'",
+    "rebuild:android": "sh -c 'echo \"🔨 Starting Android rebuild...\"; if command -v adb >/dev/null 2>&1; then if ! adb devices | grep -q \"device$\"; then echo \"⚠️  Warning: No Android devices/emulators detected. Make sure your emulator is running.\"; fi; fi; ../../scripts/clean-rebuild.sh && npx expo run:android \"$@\"' --",
     "android:uninstall": "adb uninstall com.anonymous.beakerstack || echo 'App not installed or no device connected'",
     "ios:uninstall": "sh -c 'if command -v xcrun >/dev/null 2>&1; then booted=$(xcrun simctl list devices | grep -i \"booted\" | sed \"s/.*(\\([^)]*\\)).*/\\1/\" | head -1); if [ -n \"$booted\" ]; then xcrun simctl uninstall \"$booted\" com.anonymous.beakerstack && echo \"App uninstalled from simulator $booted\" || echo \"App not installed or uninstall failed\"; else echo \"No booted iOS simulator found\"; fi; else echo \"xcrun not available\"; fi'",
     "test": "jest --runInBand --detectOpenHandles --forceExit",
@@ -50,34 +50,34 @@
     "@beakerstack/billing": "^1.0.0",
     "@beakerstack/logger": "^1.0.0",
     "@beakerstack/observability": "^1.0.0",
-    "@react-native-async-storage/async-storage": "1.21.0",
-    "@react-native-google-signin/google-signin": "13.3.1",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-google-signin/google-signin": "^16.1.4",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.9.26",
-    "@sentry/react-native": "^6.22.0",
+    "@sentry/react-native": "~7.11.0",
     "@supabase/supabase-js": "^2.38.0",
-    "expo": "~50.0.0",
-    "expo-constants": "~15.4.6",
-    "expo-dev-client": "~3.3.12",
-    "expo-file-system": "~16.0.9",
-    "expo-image-picker": "~14.7.1",
-    "expo-status-bar": "~1.11.1",
-    "expo-updates": "~0.24.13",
-    "react": "18.2.0",
-    "react-native": "0.73.6",
-    "react-native-get-random-values": "~1.8.0",
-    "react-native-safe-area-context": "4.8.2",
-    "react-native-screens": "~3.29.0",
-    "react-native-svg": "14.1.0",
+    "expo": "~57.0.0",
+    "expo-constants": "~57.0.3",
+    "expo-dev-client": "~57.0.5",
+    "expo-file-system": "~57.0.0",
+    "expo-image-picker": "~57.0.2",
+    "expo-status-bar": "~57.0.0",
+    "expo-updates": "~57.0.6",
+    "react": "19.2.8",
+    "react-native": "0.86.0",
+    "react-native-get-random-values": "~1.11.0",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native-svg": "15.15.4",
     "react-native-url-polyfill": "^2.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@babel/runtime": "^7.23.0",
-    "@expo/config-plugins": "^7.9.2",
+    "@expo/config-plugins": "~57.0.3",
     "@testing-library/jest-native": "^5.4.3",
-    "@testing-library/react-native": "^12.9.0",
-    "@types/react": "18.2.0",
+    "@testing-library/react-native": "^13.2.2",
+    "@types/react": "^19.2.0",
     "@types/react-test-renderer": "^19.1.0",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
@@ -85,17 +85,18 @@
     "eas-cli": "^16.28.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
-    "jest-expo": "~50.0.4",
+    "jest-expo": "~57.0.1",
     "patch-package": "^8.0.0",
-    "react-refresh": "^0.18.0",
-    "react-test-renderer": "18.2.0",
+    "react-refresh": "^0.14.2",
+    "react-test-renderer": "19.2.8",
     "sharp": "^0.35.0",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "@react-native/jest-preset": "0.86.0"
   },
   "jest": {
-    "preset": "react-native",
+    "preset": "jest-expo",
     "transformIgnorePatterns": [
-      "node_modules/(?!(react-native|@react-native|@react-navigation|expo|@expo|expo-status-bar|react-native-safe-area-context|react-native-screens|react-native-svg)/)"
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|react-native-url-polyfill|react-native-get-random-values|expo-modules-core)"
     ],
     "testEnvironment": "node",
     "setupFilesAfterEnv": [
@@ -107,7 +108,11 @@
       "^@beakerstack/test-utils/(.*)$": "<rootDir>/../../packages/test-utils/src/$1",
       "^@adopter/(.*)$": "<rootDir>/../../adopter/$1",
       "^react-native-svg$": "<rootDir>/__mocks__/react-native-svg.ts",
-      "^expo/virtual/env$": "<rootDir>/jest/expo-virtual-env-mock.cjs"
+      "^expo/virtual/env$": "<rootDir>/jest/expo-virtual-env-mock.cjs",
+      "^expo/src/winter$": "<rootDir>/jest/winter-mock.cjs",
+      "^expo/src/winter/(.*)$": "<rootDir>/jest/winter-mock.cjs",
+      "^.*/expo/src/winter$": "<rootDir>/jest/winter-mock.cjs",
+      "^.*/expo/src/winter/.*$": "<rootDir>/jest/winter-mock.cjs"
     },
     "collectCoverageFrom": [
       "src/**/*.{ts,tsx}",
@@ -131,6 +136,9 @@
         "functions": 96,
         "lines": 99
       }
-    }
+    },
+    "setupFiles": [
+      "<rootDir>/jest/setup-env.cjs"
+    ]
   }
 }

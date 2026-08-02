@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { ClipboardList, Mail, Settings, Users } from 'lucide-react';
 import { useAdminOverviewStats } from '../hooks/useAdminOverviewStats';
 import type { SignupMode } from '@beakerstack/waitlist';
@@ -36,8 +36,7 @@ export default function AdminOverviewPage() {
     loading || value === null ? '—' : String(value);
 
   const hasFailed =
-    marketingEmail?.settings != null &&
-    (marketingEmail.stats?.failed ?? 0) > 0;
+    marketingEmail?.settings != null && (marketingEmail.stats?.failed ?? 0) > 0;
 
   return (
     <div className='space-y-6'>

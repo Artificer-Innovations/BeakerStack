@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router';
 import { BillingConfigProvider } from '@beakerstack/billing';
 import {
   formatWaitlistPricingCta,

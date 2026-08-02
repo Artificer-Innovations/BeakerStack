@@ -39,7 +39,7 @@ locally ensure the following are available:
 - `aws` CLI v2
 - `supabase` CLI ≥ 2.54.11
 - `psql` (PostgreSQL client) for teardown
-- `npx` (Node.js ≥ 18)
+- `npx` (Node.js ≥ 22.22)
 - `jq` (JSON parsing in scripts)
 - Optional: set `SUPABASE_MAX_RETRIES` (default `3`) to raise retry attempts when Supabase CLI operations are flaky.
 

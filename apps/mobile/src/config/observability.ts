@@ -5,7 +5,8 @@ function optionalEnv(value: string | undefined): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
-const env = typeof process !== 'undefined' && process.env ? process.env : {};
+const env: Record<string, string | undefined> =
+  typeof process !== 'undefined' && process.env ? process.env : {};
 
 const sentryRelease = optionalEnv(env['EXPO_PUBLIC_SENTRY_RELEASE']);
 const sentryEnvironment = optionalEnv(env['EXPO_PUBLIC_SENTRY_ENVIRONMENT']);

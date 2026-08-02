@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import type { BillingInvoiceRow } from '@beakerstack/billing';
 import { ConstraintWarning } from '../ConstraintWarning.web';
 import { StatCard } from '../StatCard.web';

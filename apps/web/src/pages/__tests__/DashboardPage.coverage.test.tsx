@@ -6,7 +6,7 @@ import type { ReactElement } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import { BillingProvider } from '@beakerstack/billing';
 import DashboardPage from '@adopter/web/pages/DashboardPage';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';
@@ -40,8 +40,8 @@ vi.mock('@/lib/supabase', () => ({
   supabaseRpc: supabaseMock,
 }));
 
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
+vi.mock('react-router', async () => {
+  const actual = await vi.importActual('react-router');
   return {
     ...actual,
     useNavigate: () => vi.fn(),

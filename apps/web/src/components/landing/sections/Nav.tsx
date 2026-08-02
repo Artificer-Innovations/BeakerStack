@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import type { LandingConfig } from '@adopter/config/landing';
 import { ARTICLES_NAV_LINK } from '@beakerstack/articles/nav';
 import { HELP_NAV_LINK } from '@beakerstack/help/nav';

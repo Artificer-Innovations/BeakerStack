@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router';
 import { AdminLayoutShell } from './AdminLayoutShell';
 
 const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'));

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { getArticleBySlug } from '../articleQueries.js';
 import { slugifyTag } from '../articleUtils.js';
 import { ArticleHead } from './ArticleHead.web.js';
