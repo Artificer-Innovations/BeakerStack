@@ -52,16 +52,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Preview must reflect the cumulative PR (base..head), not only the
+          # last push. Last-push scoping can skip web/mobile when an earlier
+          # commit in the same PR touched that app (see #411).
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-          ./scripts/ci/classify-pr-event.sh \
-            "${{ github.event.action }}" \
-            "${{ github.event.before }}" \
-            "${HEAD_SHA}" \
-            "${{ github.base_ref }}"
+          BASE_REF="origin/${{ github.base_ref }}"
+          ./scripts/ci/classify-pr-push-changes.sh "${BASE_REF}" "${HEAD_SHA}"
 
       - name: Log when preview deploy is skipped
         if: steps.classify.outputs.run_deploy != 'true'
-        run: echo "Skipping PR preview deploy (no relevant changes in this push)."
+        run: echo "Skipping PR preview deploy (no relevant changes in this PR vs base)."
 
   deploy-preview-infra:
     if: >-

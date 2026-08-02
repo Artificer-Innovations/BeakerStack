@@ -237,6 +237,9 @@ function restoreBillingFeatureMocks(): void {
 
 describe('DashboardScreen', () => {
   beforeEach(() => {
+    // Prior tests use fake timers for auth redirects; always reset so async
+    // waitFor in later cases cannot hang under a leaked fake-timer clock.
+    jest.useRealTimers();
     jest.clearAllMocks();
     restoreDefaultSupabaseRpc();
     (supabase.functions.invoke as jest.Mock).mockReset();
@@ -305,15 +308,13 @@ describe('DashboardScreen', () => {
       error: null,
     });
 
-    const { getByText } = renderWithProviders(
+    const { findByText } = renderWithProviders(
       <DashboardScreen navigation={mockNavigation} />
     );
 
-    await waitFor(() => {
-      expect(getByText('Simulate AI summarize')).toBeTruthy();
-      expect(getByText('Boolean feature gates')).toBeTruthy();
-    });
-  });
+    expect(await findByText('Simulate AI summarize')).toBeTruthy();
+    expect(await findByText('Boolean feature gates')).toBeTruthy();
+  }, 15000);
 
   it('records metered usage and shows fake AI summary when Simulate AI summarize is pressed', async () => {
     const { getByText } = renderWithProviders(
