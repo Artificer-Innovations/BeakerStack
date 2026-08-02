@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import type { LandingConfig } from '@adopter/config/landing';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 

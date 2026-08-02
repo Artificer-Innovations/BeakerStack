@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import type { BillingPlanConfig, Plan } from '@beakerstack/billing';
 import { useBillingConfig } from '@beakerstack/billing';
 import { Button } from '@beakerstack/shared/components/primitives/Button.web';
@@ -43,7 +44,7 @@ export function PlanCard({
   };
   mode?: 'authenticated' | 'public';
   supplementalBadge?: string;
-}): JSX.Element {
+}): ReactElement {
   void mode;
   const billingConfig = useBillingConfig<typeof adopterBillingConfig>();
   const cfgPlan = billingConfig.plans.find(p => p.id === plan.id) as

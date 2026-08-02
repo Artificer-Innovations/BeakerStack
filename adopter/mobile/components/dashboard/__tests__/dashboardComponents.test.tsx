@@ -171,18 +171,10 @@ describe('CollectionsGrid', () => {
   });
 
   it('marks selected collection with accessibility state', () => {
-    const { getByText, UNSAFE_getAllByType } = renderGrid(
-      [makeCol('col-sel')],
-      {
-        selectedId: 'col-sel',
-      }
-    );
-    const { Pressable } = require('react-native');
-    const cards = UNSAFE_getAllByType(Pressable).filter(
-      (p: { props: { accessibilityState?: { selected?: boolean } } }) =>
-        p.props.accessibilityState?.selected === true
-    );
-    expect(cards.length).toBeGreaterThan(0);
+    const { getByText, getByRole } = renderGrid([makeCol('col-sel')], {
+      selectedId: 'col-sel',
+    });
+    expect(getByRole('button', { selected: true })).toBeTruthy();
     expect(getByText('col-sel…')).toBeTruthy();
   });
 

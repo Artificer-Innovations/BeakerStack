@@ -1,5 +1,6 @@
+import type { ReactElement } from 'react';
 import type { BillingInvoiceRow } from '@beakerstack/billing';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import {
   formatDate,
   formatMoneyCents,
@@ -14,7 +15,7 @@ export function InvoiceList({
   items: BillingInvoiceRow[];
   limit?: number;
   showViewAll?: boolean;
-}): JSX.Element | null {
+}): ReactElement | null {
   if (items.length === 0) {
     return null;
   }

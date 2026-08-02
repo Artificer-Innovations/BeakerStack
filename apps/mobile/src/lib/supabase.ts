@@ -2,7 +2,7 @@ import 'react-native-url-polyfill/auto';
 import 'react-native-get-random-values';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@beakerstack/shared/types/database';
 import { Logger } from '@beakerstack/logger';
 
@@ -50,6 +50,8 @@ Logger.info(
   `${realtimeUrl}/realtime/v1/websocket`
 );
 
+// Cast through SupabaseClient: createClient<Database> and package props disagree
+// on generic arity across supabase-js 2.105 + Expo 57 type resolution.
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,
@@ -57,6 +59,6 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: true,
   },
-});
+}) as unknown as SupabaseClient;
 
-export type SupabaseClient = typeof supabase;
+export type { SupabaseClient };

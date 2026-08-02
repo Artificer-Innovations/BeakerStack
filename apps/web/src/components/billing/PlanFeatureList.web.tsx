@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { Check, X } from 'lucide-react';
 import type { Plan } from '@beakerstack/billing';
 import { useBillingConfig } from '@beakerstack/billing';
@@ -18,7 +19,7 @@ export function PlanFeatureList({
 }: {
   plan: Plan;
   mode?: 'authenticated' | 'public';
-}): JSX.Element {
+}): ReactElement {
   void mode;
   const billingConfig = useBillingConfig<typeof adopterBillingConfig>();
   const rows = mergePlanFeatureRows(billingConfig);

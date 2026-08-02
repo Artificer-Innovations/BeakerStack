@@ -17,7 +17,8 @@ describe('ConnectionUserRow', () => {
     expect(screen.getByText('@alice')).toBeInTheDocument();
     expect(screen.getByText('Pending')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Connect' })).toBeInTheDocument();
-    expect(screen.getByRole('img')).toHaveAttribute(
+    // Empty-alt avatars are exposed as role="presentation" in current Testing Library.
+    expect(document.querySelector('img')).toHaveAttribute(
       'src',
       'https://example.com/a.png'
     );
@@ -42,7 +43,9 @@ describe('ConnectionUserRow', () => {
         avatarUrl='https://example.com/broken.png'
       />
     );
-    fireEvent.error(screen.getByRole('img'));
+    const image = container.querySelector('img');
+    expect(image).toBeInstanceOf(HTMLImageElement);
+    fireEvent.error(image as HTMLImageElement);
     expect(container.querySelector('img')).toBeNull();
     expect(container.querySelector('.rounded-full')).toBeTruthy();
   });

@@ -1,7 +1,8 @@
+import type { ReactElement } from 'react';
 import { resolveCadence } from '@beakerstack/billing';
 import type { Plan, SubscriptionRow } from '@beakerstack/billing';
 import { SubscriptionStatusBadge } from '@beakerstack/billing/web';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Button } from '@beakerstack/shared/components/primitives/Button.web';
 import {
   annualListCentsFromSync,
@@ -26,7 +27,7 @@ export function CurrentPlanCard({
   onManagePayment: () => void;
   managePaymentPending?: boolean;
   periodSubcopy?: string | null;
-}): JSX.Element | null {
+}): ReactElement | null {
   if (!plan) {
     return null;
   }

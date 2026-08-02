@@ -1,5 +1,5 @@
 import { useInvoices } from '@beakerstack/billing';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { billingConfig } from '@adopter/config/billing';
 import { BillingPageShell } from '../../components/billing/BillingPageShell.web';
 import { BillingTabs } from '../../components/billing/BillingTabs.web';

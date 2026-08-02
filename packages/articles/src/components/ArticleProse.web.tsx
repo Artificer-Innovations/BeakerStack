@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import type { ArticleRecord } from '../types.js';
 import { slugifyTag } from '../articleUtils.js';
 import { sanitizeArticleHtmlForRender } from '../sanitizeArticleHtmlForRender.js';

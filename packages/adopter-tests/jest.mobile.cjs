@@ -10,8 +10,12 @@ module.exports = {
     defaultPlatform: 'ios',
     platforms: ['android', 'ios', 'native'],
   },
-  testEnvironment: require.resolve('react-native/jest/react-native-env.js'),
-  setupFiles: [require.resolve('react-native/jest/setup.js')],
+  testEnvironment:
+    require.resolve('@react-native/jest-preset/jest/react-native-env.js'),
+  setupFiles: [
+    path.join(__dirname, 'jest.setup-env.cjs'),
+    require.resolve('@react-native/jest-preset/jest/setup.js'),
+  ],
   roots: [adopterMobilePath],
   rootDir: root,
   setupFilesAfterEnv: [
@@ -35,6 +39,11 @@ module.exports = {
       root,
       'apps/mobile/jest/expo-virtual-env-mock.cjs'
     ),
+    '^expo/src/winter$': path.join(root, 'apps/mobile/jest/winter-mock.cjs'),
+    '^expo/src/winter/(.*)$': path.join(
+      root,
+      'apps/mobile/jest/winter-mock.cjs'
+    ),
   },
   transform: {
     '^.+\\.(ts|tsx|js|jsx)$': [
@@ -42,7 +51,7 @@ module.exports = {
       { configFile: path.join(__dirname, 'babel.config.cjs') },
     ],
     '^.+\\.(bmp|gif|jpg|jpeg|mp4|png|psd|svg|webp)$':
-      require.resolve('react-native/jest/assetFileTransformer.js'),
+      require.resolve('@react-native/jest-preset/jest/assetFileTransformer.js'),
   },
   transformIgnorePatterns: [
     'node_modules/(?!((jest-)?react-native|@react-native(-community)?)/)',

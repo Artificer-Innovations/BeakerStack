@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 import { AppHeaderWithAdmin } from '../components/AppHeaderWithAdmin';
 

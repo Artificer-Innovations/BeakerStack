@@ -10,7 +10,7 @@ import {
   useUsage,
 } from '@beakerstack/billing';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 import {
   billingConfig,
   BEAKERSTACK_METER_AI_SUMMARIZE,

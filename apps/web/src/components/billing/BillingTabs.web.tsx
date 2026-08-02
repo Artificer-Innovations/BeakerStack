@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink } from 'react-router';
 
 const tabs: { to: string; end?: boolean; label: string }[] = [
   { to: '/billing', end: true, label: 'Overview' },

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act, waitFor } from '@testing-library/react';
-import { useHref } from 'react-router-dom';
+import { useHref } from 'react-router';
 import { PublicShell } from '../PublicShell';
 
 vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost:54321');

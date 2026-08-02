@@ -2148,7 +2148,7 @@ INSERT INTO user_profiles (id, full_name, bio) VALUES
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 22.22+ and npm
 - Docker Desktop (for Supabase local)
 - Supabase CLI: `npm install -g supabase`
 - React Native development environment (Xcode for iOS, Android Studio for Android)
@@ -2774,7 +2774,7 @@ Use `BrowserRouter` with `basename` support for path-based PR previews:
 
 ```typescript
 // apps/web/src/main.tsx
-import { BrowserRouter } from 'react-router-dom'
+import { BrowserRouter } from 'react-router'
 
 // Get base path from environment variable (e.g., /pr-123 or / for prod/staging)
 const basePath = import.meta.env.VITE_BASE_PATH || '/'
@@ -2824,7 +2824,7 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks: {
             // Vendor splitting for better caching
-            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+            'react-vendor': ['react', 'react-dom', 'react-router'],
             supabase: ['@supabase/supabase-js'],
           },
         },

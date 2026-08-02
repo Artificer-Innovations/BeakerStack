@@ -81,6 +81,17 @@ jobs:
             "${HEAD_SHA}" \
             "${{ github.base_ref }}"
 
+  npm-audit:
+    needs: test-scope
+    if: github.event.action != 'edited' || github.event.changes.base
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-node
+      - name: npm audit (zero vulnerabilities)
+        run: npm audit --audit-level=low
+
   lint:
     needs: test-scope
     if: >-

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import { ContentContainer } from '@beakerstack/shared/components/layout/ContentContainer.web';
 import { ThemeToggle } from './ThemeToggle';

@@ -1,5 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
+// Static import — see init.native.ts for why dynamic import() is unsafe here.
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: optional peer dep — not installed in some type-check environments
+import * as Sentry from '@sentry/react-native';
 import type { ObservabilityConfig, ObservabilityHandle } from '../types.js';
 import { ObservabilityContext } from '../context.js';
 import { hashUserId, scrubEmail } from '../pii.js';
@@ -16,22 +20,6 @@ export function ObservabilityProvider({
   children,
   navigationRef,
 }: Props) {
-  const [Sentry, setSentry] = useState<any>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore: optional peer dep — not installed in type-check environments
-    import('@sentry/react-native')
-      .then(s => {
-        if (!cancelled) setSentry(s);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   useEffect(() => {
     if (!navigationRef?.current) return;
     getReactNavigationIntegration()?.registerNavigationContainer(navigationRef);
@@ -40,26 +28,29 @@ export function ObservabilityProvider({
   const handle = useMemo<ObservabilityHandle>(
     () => ({
       captureException(err, context) {
-        Sentry?.captureException(err, context ? { extra: context } : undefined);
+        Sentry.captureException?.(
+          err,
+          context ? { extra: context } : undefined
+        );
       },
       captureMessage(msg, level = 'info') {
-        Sentry?.captureMessage(msg, level);
+        Sentry.captureMessage?.(msg, level);
       },
       setUser(id) {
         if (id === null) {
-          Sentry?.setUser(null);
+          Sentry.setUser?.(null);
         } else {
-          void hashUserId(id).then(hash => Sentry?.setUser({ id: hash }));
+          void hashUserId(id).then(hash => Sentry.setUser?.({ id: hash }));
         }
       },
       addBreadcrumb(crumb) {
-        Sentry?.addBreadcrumb({
+        Sentry.addBreadcrumb?.({
           ...crumb,
           message: scrubEmail(crumb.message),
         });
       },
       withScope(fn) {
-        if (!Sentry) return fn(null);
+        if (typeof Sentry.withScope !== 'function') return fn(null);
         let result!: ReturnType<typeof fn>;
         Sentry.withScope((scope: unknown) => {
           result = fn(scope);
@@ -67,7 +58,7 @@ export function ObservabilityProvider({
         return result;
       },
       startSpan<T>(name: string, fn: () => T): T {
-        if (!Sentry) return fn();
+        if (typeof (Sentry as any).startSpan !== 'function') return fn();
         let result!: T;
         (Sentry as any).startSpan({ name }, () => {
           result = fn();
@@ -75,7 +66,7 @@ export function ObservabilityProvider({
         return result;
       },
     }),
-    [Sentry]
+    []
   );
 
   return (

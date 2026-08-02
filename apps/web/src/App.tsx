@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode } from 'react';
-import { Routes, Route, Outlet } from 'react-router-dom';
+import { Routes, Route, Outlet } from 'react-router';
 import { AdminRoute } from '@beakerstack/admin/web';
 import { ProtectedRoute } from '@beakerstack/shared/components/auth/ProtectedRoute.web';
 import { resolveAdopterRouteAuth } from '@beakerstack/shared/navigation/adopterExtensions';

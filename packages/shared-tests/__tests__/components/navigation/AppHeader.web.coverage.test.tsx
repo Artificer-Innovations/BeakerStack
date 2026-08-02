@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import '@testing-library/jest-dom';
 import { AppHeader } from '@beakerstack/shared/components/navigation/AppHeader.web';
 import { AuthProvider } from '@beakerstack/shared/contexts/AuthContext';

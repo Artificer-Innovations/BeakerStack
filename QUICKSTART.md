@@ -27,7 +27,7 @@ If you are only browsing upstream and not using the template, you can `git clone
 npm install
 ```
 
-Use **Node.js 20.19+** (`>=20.19.0` in `package.json`; `.nvmrc` pins major 20). GitHub Actions uses Node 20.
+Use **Node.js 22.22+** (`>=22.22.0` in `package.json`; `.nvmrc` pins 22.22). GitHub Actions uses Node 22.22.
 
 ---
 

@@ -31,4 +31,4 @@ body:
     id: environment
     attributes:
       label: Environment
-      placeholder: "Node 20, macOS, local Supabase"
+      placeholder: "Node 22, macOS, local Supabase"

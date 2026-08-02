@@ -1,6 +1,6 @@
 import { BillingProvider } from '@beakerstack/billing';
 import { useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useAuthContext } from '@beakerstack/shared/contexts/AuthContext';
 import { getAdopterConfig } from '@beakerstack/shared/config/adopterRuntime';
 import { AppHeaderWithAdmin } from '../components/AppHeaderWithAdmin';

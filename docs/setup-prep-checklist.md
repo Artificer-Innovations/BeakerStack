@@ -23,7 +23,7 @@ Do not commit filled-in values or `.env*` files with secrets.
 
 ## Track A — Local
 
-**No wizard questions.** Needs Node 20 (or ≥18), npm, Docker, Supabase CLI → `npm install` → `npm run setup` → **(1)**.
+**No wizard questions.** Needs Node 22.22+, npm, Docker, Supabase CLI → `npm install` → `npm run setup` → **(1)**.
 
 **After:** copy keys from `supabase status` into `.env.local` if placeholders remain → `npm run dev:all` (http://localhost:5173).
 

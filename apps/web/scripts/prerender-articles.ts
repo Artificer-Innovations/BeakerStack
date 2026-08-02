@@ -22,7 +22,7 @@ configureAdopter(adopterConfig);
 
 const { createElement } = await import('react');
 const { renderToStaticMarkup } = await import('react-dom/server');
-const { MemoryRouter } = await import('react-router-dom');
+const { MemoryRouter } = await import('react-router');
 const { ThemeProvider } = await import('../src/contexts/ThemeContext');
 const { ARTICLES } =
   await import('../../../packages/articles/src/generated/articles.ts');

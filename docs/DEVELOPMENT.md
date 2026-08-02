@@ -4,7 +4,7 @@ Day-to-day commands for working on Beaker Stack (or a fork). For first-time setu
 
 ## Prerequisites
 
-- **Node.js 20.19+** required (`>=20.19.0` in root `package.json`), npm `>=9`
+- **Node.js 22.22+** required (`>=22.22.0` in root `package.json`), npm `>=9`
 - **Docker Desktop** and **Supabase CLI** for local database/auth
 - Native toolchains (Xcode, Android Studio) only if you build iOS/Android locally
 - **Maestro** for `npm run test:e2e` (optional until you run E2E)
