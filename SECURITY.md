@@ -43,3 +43,10 @@ Beaker Stack is a **starting point**, not a certified secure product. Before pro
 ## Supported versions
 
 Security fixes are applied on the active development branch and included in subsequent template releases and package semver bumps. Forks are responsible for merging those updates.
+
+## Dependency security
+
+- **Lockfile is authoritative.** Install with `npm ci` (CI already does). Commit `package-lock.json` for every dependency change; do not regenerate it casually on a dirty tree.
+- **Pin known-good versions for advisories.** Prefer root `overrides` with exact versions (or tight ranges) so transitive CVE fixes stay explicit. Avoid leaving “audit-zero” pins as floating caret ranges in bare `devDependencies` without a matching override.
+- **Direct deps only when npm needs them.** Some overrides (e.g. `form-data`) omit transitive children unless they are also declared at the root — keep those pinned exactly and mirrored in `overrides`.
+- **Gate on audit.** CI runs `npm audit`; keep the tree at zero vulnerabilities (or document a time-boxed exception in the PR).
