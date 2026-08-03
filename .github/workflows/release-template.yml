@@ -44,8 +44,9 @@ jobs:
             YEAR=$(date +%Y)
             # CalVer YYYY.NNN only (exclude semver-shaped tags like 2026.1.0)
             LAST_N=$(git tag -l | grep -E "^${YEAR}\\.[0-9]{3}$" | sed "s/${YEAR}\.//" | sort -n | tail -1)
-            NEXT_N=$(( ${LAST_N:-0} + 1 ))
-            printf -v PADDED_N "%03d" $NEXT_N
+            # 10# forces decimal: bare 008 is invalid octal in bash arithmetic
+            NEXT_N=$(( 10#${LAST_N:-0} + 1 ))
+            printf -v PADDED_N "%03d" "$NEXT_N"
             echo "tag=${YEAR}.${PADDED_N}" >> $GITHUB_OUTPUT
           fi
 
