@@ -298,7 +298,7 @@
       "mime-types": "2.1.35"
     },
     "ws": "8.21.0",
-    "fast-uri": "3.1.4",
+    "fast-uri": "3.1.5",
     "fast-xml-builder": "^1.1.7",
     "@xmldom/xmldom": "0.8.13",
     "@expo/plist": "0.5.2",
