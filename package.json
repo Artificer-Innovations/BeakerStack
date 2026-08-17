@@ -215,7 +215,7 @@
     "@changesets/changelog-github": "0.6.0",
     "@changesets/cli": "2.31.0",
     "@playwright/test": "^1.60.0",
-    "@supabase/supabase-js": "^2.38.0",
+    "@supabase/supabase-js": "2.105.4",
     "@types/jest": "^29.5.8",
     "@types/node": "^20.10.0",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
@@ -263,9 +263,11 @@
     "tar": "7.5.22",
     "tmp": "^0.2.6",
     "yaml": "^2.8.3",
-    "js-yaml": "4.3.0",
+    "js-yaml": "4.3.1",
+    "dompurify": "3.4.13",
+    "nanoid": "3.3.18",
     "gray-matter": {
-      "js-yaml": "4.3.0"
+      "js-yaml": "4.3.1"
     },
     "brace-expansion@1": "1.1.18",
     "brace-expansion@2": "2.1.4",
@@ -318,14 +320,15 @@
       "joi": "17.13.4",
       "ts-deepmerge": "8.0.0",
       "uuid": "14.0.0",
-      "js-yaml": "4.3.0"
+      "js-yaml": "4.3.1",
+      "nanoid": "3.3.18"
     },
     "@expo/cli": {
       "@xmldom/xmldom": "0.8.13",
       "@expo/plist": "0.5.2",
       "form-data": "3.0.5",
       "tar": "7.5.22",
-      "js-yaml": "4.3.0",
+      "js-yaml": "4.3.1",
       "send": "^0.19.0"
     },
     "@expo/metro-config": {
