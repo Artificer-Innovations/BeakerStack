@@ -48,12 +48,12 @@ function readUInt(input, bits, offset, isBigEndian) {
     return methods[methodName](input, offset);
 }
 exports.readUInt = readUInt;
-const MIN_BOX_HEADER = 8;
+const MIN_BOX_HEADER = 8; // GHSA-5p2g-fcmc-qvqq: ISO BMFF size 0 cannot advance the cursor.
 function readBox(input, offset) {
     if (input.length - offset < MIN_BOX_HEADER)
         return;
     const boxSize = (0, exports.readUInt32BE)(input, offset);
-    // Size 0 (and any value below the header) cannot advance the cursor.
+    // GHSA-5p2g-fcmc-qvqq: size 0 (and any value below the header) cannot advance the cursor.
     if (boxSize < MIN_BOX_HEADER)
         return;
     if (input.length - offset < boxSize)
@@ -73,6 +73,7 @@ function findBox(input, boxName, startOffset) {
         if (box.name === boxName)
             return box;
         const nextOffset = offset + box.size;
+        // GHSA-5p2g-fcmc-qvqq: cursor must advance each iteration.
         if (nextOffset <= offset)
             break;
         offset = nextOffset;

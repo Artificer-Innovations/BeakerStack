@@ -12,7 +12,7 @@ const utils_1 = require("./utils");
  */
 const SIZE_HEADER = 4 + 4; // 8
 const FILE_LENGTH_OFFSET = 4; // MSB => BIG ENDIAN
-const MIN_ENTRY_LENGTH = 8;
+const MIN_ENTRY_LENGTH = 8; // GHSA-w3rx-r6r6-pgpr: ICNS entries shorter than the 8-byte header must not spin.
 /**
  * Image Entry
  *
@@ -87,9 +87,11 @@ exports.ICNS = {
                 break;
             const imageHeader = readImageHeader(input, imageOffset);
             const entryLength = imageHeader[1];
+            // GHSA-w3rx-r6r6-pgpr: reject entries shorter than the 8-byte header.
             if (entryLength < MIN_ENTRY_LENGTH)
                 break;
             const nextOffset = imageOffset + entryLength;
+            // GHSA-w3rx-r6r6-pgpr: cursor must advance each iteration.
             if (nextOffset <= imageOffset)
                 break;
             const imageSize = getImageSize(imageHeader[0]);
