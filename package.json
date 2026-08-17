@@ -128,7 +128,7 @@
     "test:coverage:observability": "cd packages/observability && npm run test:coverage",
     "test:coverage:connections": "cd packages/connections && npm run test:coverage",
     "test:coverage:merge": "node scripts/merge-coverage.js",
-    "test:unit:scripts": "node --test scripts/__tests__/rename-project.test.mjs scripts/__tests__/detect-repo-identity.test.mjs scripts/__tests__/setup-aws-discover.test.mjs scripts/__tests__/setup-dotenv.test.mjs scripts/__tests__/setup-manifest-github-sync.test.mjs scripts/__tests__/setup-secret-input.test.mjs scripts/__tests__/setup-supabase-pick-recommend.test.mjs scripts/__tests__/setup-supabase-slug.test.mjs scripts/__tests__/billing-webhook-guards.test.mjs scripts/__tests__/setup-stripe.test.mjs scripts/__tests__/ensure-stripe-webhook.test.mjs scripts/__tests__/merge-coverage.test.mjs scripts/__tests__/merge-istanbul-coverage.test.mjs scripts/__tests__/format-supabase-test-summary.test.mjs scripts/__tests__/format-playwright-e2e-pr-comment.test.mjs scripts/__tests__/merge-playwright-json-reports.test.mjs scripts/__tests__/setup-route53-email-records.test.mjs scripts/__tests__/setup-resend-api.test.mjs scripts/__tests__/setup-resend-keys.test.mjs scripts/__tests__/setup-google-oauth.test.mjs scripts/__tests__/email-config-subjects.test.mjs scripts/__tests__/sync-edge-shared.test.mjs scripts/__tests__/db-apply-adopter.test.mjs scripts/__tests__/resolve-adopter-database-url.test.mjs scripts/__tests__/setup-kit.test.mjs scripts/__tests__/setup-kit-script.test.mjs scripts/__tests__/ensure-kit-webhook.test.mjs && ./scripts/ci/classify-pr-push-changes.sh --self-test && ./scripts/pr-preview/check-preview-deploy-needed.sh --self-test && node scripts/check-no-legacy-adopter-paths.mjs",
+    "test:unit:scripts": "node --test scripts/__tests__/image-size-loop-guards.test.mjs scripts/__tests__/rename-project.test.mjs scripts/__tests__/detect-repo-identity.test.mjs scripts/__tests__/setup-aws-discover.test.mjs scripts/__tests__/setup-dotenv.test.mjs scripts/__tests__/setup-manifest-github-sync.test.mjs scripts/__tests__/setup-secret-input.test.mjs scripts/__tests__/setup-supabase-pick-recommend.test.mjs scripts/__tests__/setup-supabase-slug.test.mjs scripts/__tests__/billing-webhook-guards.test.mjs scripts/__tests__/setup-stripe.test.mjs scripts/__tests__/ensure-stripe-webhook.test.mjs scripts/__tests__/merge-coverage.test.mjs scripts/__tests__/merge-istanbul-coverage.test.mjs scripts/__tests__/format-supabase-test-summary.test.mjs scripts/__tests__/format-playwright-e2e-pr-comment.test.mjs scripts/__tests__/merge-playwright-json-reports.test.mjs scripts/__tests__/setup-route53-email-records.test.mjs scripts/__tests__/setup-resend-api.test.mjs scripts/__tests__/setup-resend-keys.test.mjs scripts/__tests__/setup-google-oauth.test.mjs scripts/__tests__/email-config-subjects.test.mjs scripts/__tests__/sync-edge-shared.test.mjs scripts/__tests__/db-apply-adopter.test.mjs scripts/__tests__/resolve-adopter-database-url.test.mjs scripts/__tests__/setup-kit.test.mjs scripts/__tests__/setup-kit-script.test.mjs scripts/__tests__/ensure-kit-webhook.test.mjs && ./scripts/ci/classify-pr-push-changes.sh --self-test && ./scripts/pr-preview/check-preview-deploy-needed.sh --self-test && node scripts/check-no-legacy-adopter-paths.mjs",
     "lint": "npm run lint:mobile && npm run lint:web && npm run lint:adopter && npm run lint:shared && npm run lint:billing && npm run lint:admin && npm run lint:lifecycle-events && npm run lint:waitlist && npm run lint:email && npm run lint:marketing-email && npm run lint:help && npm run lint:articles && npm run lint:logger && npm run lint:observability && npm run lint:connections && npm run lint:repo && npm run lint:supabase",
     "lint:mobile": "eslint apps/mobile/src --ext ts,tsx --report-unused-disable-directives",
     "lint:web": "eslint apps/web/src --ext ts,tsx --report-unused-disable-directives",
@@ -232,7 +232,9 @@
     "eslint-plugin-jest-dom": "^5.5.0",
     "eslint-plugin-testing-library": "^7.16.2",
     "husky": "^8.0.3",
+    "image-size": "file:vendor/image-size",
     "jest": "^29.7.0",
+    "js-yaml": "4.3.1",
     "lint-staged": "^15.5.2",
     "mime-types": "2.1.35",
     "nyc": "^17.1.0",
@@ -263,10 +265,13 @@
     "tar": "7.5.22",
     "tmp": "^0.2.6",
     "yaml": "^2.8.3",
-    "js-yaml": "4.3.0",
+    "js-yaml": "4.3.1",
     "gray-matter": {
-      "js-yaml": "4.3.0"
+      "js-yaml": "4.3.1"
     },
+    "nanoid": "3.3.18",
+    "dompurify": "3.4.13",
+    "image-size": "file:vendor/image-size",
     "brace-expansion@1": "1.1.18",
     "brace-expansion@2": "2.1.4",
     "brace-expansion@5": "5.0.9",
@@ -318,14 +323,15 @@
       "joi": "17.13.4",
       "ts-deepmerge": "8.0.0",
       "uuid": "14.0.0",
-      "js-yaml": "4.3.0"
+      "js-yaml": "4.3.1",
+      "nanoid": "3.3.18"
     },
     "@expo/cli": {
       "@xmldom/xmldom": "0.8.13",
       "@expo/plist": "0.5.2",
       "form-data": "3.0.5",
       "tar": "7.5.22",
-      "js-yaml": "4.3.0",
+      "js-yaml": "4.3.1",
       "send": "^0.19.0"
     },
     "@expo/metro-config": {

@@ -54,6 +54,7 @@ module.exports = {
     '*.config.js',
     '*.config.ts',
     'infra/aws/functions/',
+    'vendor/',
   ],
   overrides: [
     {
