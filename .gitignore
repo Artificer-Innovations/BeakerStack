@@ -259,6 +259,9 @@ coverage/
 # Build outputs
 build/
 dist/
+# Vendored image-size ships its published dist (Metro override).
+!vendor/image-size/dist/
+!vendor/image-size/dist/**
 *.tgz
 *.tar.gz
 

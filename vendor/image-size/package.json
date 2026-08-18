@@ -1,0 +1,20 @@
+{
+  "name": "@beakerstack/image-size",
+  "version": "1.2.1",
+  "private": true,
+  "description": "Vendored image-size@1.2.1 with ICNS/findBox loop guards for Metro. Not published.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "bin/image-size.js"
+  ],
+  "engines": {
+    "node": ">=16.x"
+  },
+  "bin": "bin/image-size.js",
+  "license": "MIT",
+  "dependencies": {
+    "queue": "6.0.2"
+  }
+}
