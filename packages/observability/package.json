@@ -16,7 +16,8 @@
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc --noEmit",
     "test": "NODE_OPTIONS=--max-old-space-size=8192 vitest --run",
-    "test:coverage": "vitest --coverage --run"
+    "test:coverage": "vitest --coverage --run",
+    "test:mutation": "stryker run"
   },
   "peerDependencies": {
     "@sentry/react": "^8",
