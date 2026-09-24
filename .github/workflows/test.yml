@@ -525,9 +525,11 @@ jobs:
         run: |
           mkdir -p coverage ci
           node scripts/merge-coverage.js
+          node scripts/crap-report.mjs
           cat ci/unit-coverage-*.log > ci/test-output.log 2>/dev/null || touch ci/test-output.log
           node scripts/format-ci-summary.mjs \
             --coverage coverage/coverage-summary.json \
+            --crap coverage/crap-summary.json \
             --test-log ci/test-output.log \
             --json-output ci/summary.json \
             --markdown-output ci/comment.md

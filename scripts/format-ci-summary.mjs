@@ -2,6 +2,10 @@
 
 import fs from 'fs';
 import path from 'path';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const { formatCrapCommentSection } = require('./lib/crap-summary.js');
 
 const args = process.argv.slice(2);
 
@@ -9,6 +13,7 @@ let coveragePath;
 let testLogPath;
 let jsonOutputPath;
 let markdownOutputPath;
+let crapPath;
 let printComment = false;
 
 for (let i = 0; i < args.length; i++) {
@@ -19,6 +24,9 @@ for (let i = 0; i < args.length; i++) {
       break;
     case '--test-log':
       testLogPath = args[++i];
+      break;
+    case '--crap':
+      crapPath = args[++i];
       break;
     case '--print-comment':
       printComment = true;
@@ -77,9 +85,7 @@ const parseSummaryLine = (line, label) => {
     return summary;
   }
 
-  const cleaned = stripAnsi(line)
-    .replace(`${label}:`, '')
-    .trim();
+  const cleaned = stripAnsi(line).replace(`${label}:`, '').trim();
 
   cleaned.split(',').forEach(token => {
     const match = token.trim().match(/(\d+)\s+([a-zA-Z]+)/);
@@ -222,8 +228,11 @@ if (failingSuites.length > 0) {
   commentLines.push('✅ All reported test suites passed.', '');
 }
 
+const crapData = readJson(crapPath);
+commentLines.push(...formatCrapCommentSection(crapData));
+
 commentLines.push(
-  '_Coverage artifacts: `coverage-summary`, `coverage-packages`._'
+  '_Coverage artifacts: `coverage-summary`, `coverage-packages` (includes CRAP under `coverage/crap-report/`)._'
 );
 
 const comment = commentLines.join('\n');
@@ -235,6 +244,7 @@ const result = {
     tests: testsSummary,
     failingSuites,
   },
+  crap: crapData,
   comment,
 };
 
@@ -255,4 +265,3 @@ if (printComment) {
 if (!jsonOutputPath && !markdownOutputPath) {
   process.stdout.write(JSON.stringify(result));
 }
-
