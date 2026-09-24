@@ -29,11 +29,11 @@ export type BillingUiState = {
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-const SIMPLE_STATUS_KINDS: Record<string, BillingUiStateKind> = {
-  free: 'free',
-  comped: 'comped',
-  past_due: 'payment_failed',
-};
+const SIMPLE_STATUS_KINDS = new Map<string, BillingUiStateKind>([
+  ['free', 'free'],
+  ['comped', 'comped'],
+  ['past_due', 'payment_failed'],
+]);
 
 const PAID_ACTIVE_STATUSES = new Set([
   'active',
@@ -80,7 +80,7 @@ function deriveKind(
   if (!subscription) return 'no_subscription';
 
   const st = subscription.status.toLowerCase();
-  const simple = SIMPLE_STATUS_KINDS[st];
+  const simple = SIMPLE_STATUS_KINDS.get(st);
   if (simple) return simple;
 
   if (st === 'trialing') {

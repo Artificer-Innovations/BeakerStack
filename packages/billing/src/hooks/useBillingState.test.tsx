@@ -167,4 +167,16 @@ describe('useBillingState', () => {
     const { result } = renderHook(() => useBillingState());
     expect(result.current.kind).toBe('paid_active');
   });
+
+  // Regression: the status lookup must not resolve Object.prototype keys
+  // (constructor, toString, __proto__) to an inherited value — those unknown
+  // statuses have to fall through to the paid_active default.
+  it.each(['constructor', 'toString', '__proto__', 'hasOwnProperty'])(
+    'treats prototype-named status %s as unrecognized (paid_active)',
+    status => {
+      hp.subscription = testSubscription({ status });
+      const { result } = renderHook(() => useBillingState());
+      expect(result.current.kind).toBe('paid_active');
+    }
+  );
 });

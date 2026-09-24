@@ -7,7 +7,7 @@ import {
   type ProfileFormInput,
 } from '../../validation/profileSchema';
 import { ZodError } from 'zod';
-import { FormInput } from '../forms/FormInput.web';
+import { FormInput, type FormInputProps } from '../forms/FormInput.web';
 import { FormButton } from '../forms/FormButton.web';
 import { FormError } from '../forms/FormError.web';
 import { AvatarUpload } from './AvatarUpload.web';
@@ -371,7 +371,7 @@ interface ProfileFormFieldProps {
   onChange: (field: keyof ProfileFormInput, value: string) => void;
   placeholder: string;
   disabled: boolean;
-  type?: string;
+  type?: FormInputProps['type'];
   multiline?: boolean;
   rows?: number;
 }

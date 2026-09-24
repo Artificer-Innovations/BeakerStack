@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 import {
   mapUnknownError,
   useBillingContext,
@@ -245,7 +246,7 @@ interface FeatureButtonProps {
   label: string;
   enabled: boolean;
   loading: boolean;
-  onStyle: object;
+  onStyle: StyleProp<ViewStyle>;
   enabledMsg: string;
   disabledMsg: string;
   showToast: (msg: string) => void;
