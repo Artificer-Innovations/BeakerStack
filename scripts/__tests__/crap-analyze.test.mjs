@@ -30,27 +30,71 @@ test('locationIsInRange handles line-only and column bounds', () => {
   assert.equal(locationIsInRange({ line: 10, column: 2 }, range), true);
 });
 
-test('getCoverageForFunction counts statements inside fn loc', () => {
+test('getCoverageForFunction excludes nested function statements', () => {
   const fileCoverage = {
     fnMap: {
       0: {
-        name: 'add',
-        decl: { start: { line: 1, column: 0 }, end: { line: 1, column: 3 } },
-        loc: { start: { line: 1, column: 0 }, end: { line: 3, column: 1 } },
+        name: 'outer',
+        decl: { start: { line: 1, column: 0 }, end: { line: 1, column: 5 } },
+        loc: { start: { line: 1, column: 0 }, end: { line: 6, column: 1 } },
+      },
+      1: {
+        name: 'inner',
+        decl: { start: { line: 3, column: 10 }, end: { line: 3, column: 15 } },
+        loc: { start: { line: 3, column: 10 }, end: { line: 5, column: 3 } },
       },
     },
     statementMap: {
-      0: { start: { line: 1, column: 0 }, end: { line: 1, column: 10 } },
-      1: { start: { line: 2, column: 2 }, end: { line: 2, column: 10 } },
-      2: { start: { line: 9, column: 0 }, end: { line: 9, column: 5 } },
+      0: { start: { line: 2, column: 2 }, end: { line: 2, column: 10 } },
+      1: { start: { line: 4, column: 4 }, end: { line: 4, column: 12 } },
     },
-    s: { 0: 1, 1: 0, 2: 1 },
+    s: { 0: 1, 1: 0 },
   };
 
   assert.deepEqual(getCoverageForFunction('0', fileCoverage), {
     covered: 1,
-    total: 2,
+    total: 1,
   });
+  assert.deepEqual(getCoverageForFunction('1', fileCoverage), {
+    covered: 0,
+    total: 1,
+  });
+});
+
+test('matchAstFunction distinguishes same-line arrow functions by column', () => {
+  const source = `const a = () => 1, b = (x: number) => (x ? 1 : 0);\n`;
+  const functions = collectAstFunctions('same-line.ts', source);
+  assert.ok(functions.length >= 2);
+
+  const used = new Set();
+  const first = matchAstFunction(
+    {
+      name: 'a',
+      loc: {
+        start: { line: 1, column: 10 },
+        end: { line: 1, column: 17 },
+      },
+    },
+    functions,
+    used
+  );
+  const second = matchAstFunction(
+    {
+      name: 'b',
+      loc: {
+        start: { line: 1, column: 24 },
+        end: { line: 1, column: 48 },
+      },
+    },
+    functions,
+    used
+  );
+
+  assert.ok(first);
+  assert.ok(second);
+  assert.notEqual(first.startColumn, second.startColumn);
+  assert.ok(first.startColumn < second.startColumn);
+  assert.ok(second.complexity >= first.complexity);
 });
 
 test('collectAstFunctions and matchAstFunction find nested complexity', () => {

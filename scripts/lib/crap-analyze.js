@@ -61,6 +61,8 @@ function locationIsInRange(location, range) {
 
 /**
  * Statement coverage for an Istanbul function entry.
+ * Statements that belong to nested function-like ranges are excluded so the
+ * coverage denominator matches cyclomaticComplexity (which skips nested fns).
  *
  * @param {string} functionId
  * @param {Record<string, unknown>} fileCoverage
@@ -80,14 +82,38 @@ function getCoverageForFunction(functionId, fileCoverage) {
     );
   const hits = /** @type {Record<string, number>} */ (fileCoverage.s || {});
 
+  const outerLoc = coverageFn.loc || coverageFn.decl;
+  const nestedRanges = Object.entries(fnMap)
+    .filter(([id]) => id !== functionId)
+    .map(([, fn]) => fn.loc || fn.decl)
+    .filter(
+      range =>
+        range &&
+        outerLoc &&
+        locationIsInRange(range.start, outerLoc) &&
+        locationIsInRange(range.end, outerLoc) &&
+        // Require a strictly nested range (not the same span).
+        (range.start?.line !== outerLoc.start?.line ||
+          range.end?.line !== outerLoc.end?.line ||
+          range.start?.column !== outerLoc.start?.column ||
+          range.end?.column !== outerLoc.end?.column)
+    );
+
   const statementIds = Object.entries(statementMap)
     .filter(([, { start, end }]) => {
-      return (
+      const inOuter =
         locationIsInRange(start, coverageFn.decl) ||
         locationIsInRange(end, coverageFn.decl) ||
         locationIsInRange(start, coverageFn.loc) ||
-        locationIsInRange(end, coverageFn.loc)
+        locationIsInRange(end, coverageFn.loc);
+      if (!inOuter) {
+        return false;
+      }
+      const inNested = nestedRanges.some(
+        range =>
+          locationIsInRange(start, range) || locationIsInRange(end, range)
       );
+      return !inNested;
     })
     .map(([id]) => id);
 
@@ -250,31 +276,65 @@ function collectAstFunctions(sourcePath, sourceText) {
 
 /**
  * Match an Istanbul fnMap entry to the best overlapping AST function.
+ * Uses column ranges as a tie-breaker for same-line functions, and never
+ * reuses an already-claimed AST candidate when `used` is provided.
  *
- * @param {{ loc?: { start?: { line?: number }, end?: { line?: number } }, line?: number, name?: string }} coverageFn
- * @param {{ startLine: number, endLine: number, complexity: number, descriptor: string }[]} astFunctions
+ * @param {{
+ *   loc?: { start?: { line?: number, column?: number }, end?: { line?: number, column?: number } },
+ *   decl?: { start?: { line?: number, column?: number }, end?: { line?: number, column?: number } },
+ *   line?: number,
+ *   name?: string,
+ * }} coverageFn
+ * @param {{ startLine: number, endLine: number, startColumn: number, endColumn: number, complexity: number, descriptor: string }[]} astFunctions
+ * @param {Set<number>} [used]
  */
-function matchAstFunction(coverageFn, astFunctions) {
+function matchAstFunction(coverageFn, astFunctions, used = new Set()) {
   const startLine = coverageFn.loc?.start?.line ?? coverageFn.line ?? 0;
   const endLine = coverageFn.loc?.end?.line ?? startLine;
+  const startColumn =
+    coverageFn.loc?.start?.column ?? coverageFn.decl?.start?.column ?? 0;
+  const endColumn =
+    coverageFn.loc?.end?.column ?? coverageFn.decl?.end?.column ?? startColumn;
 
   let best = null;
-  let bestScore = -1;
+  let bestIndex = -1;
+  let bestScore = Number.NEGATIVE_INFINITY;
 
-  for (const candidate of astFunctions) {
+  for (let i = 0; i < astFunctions.length; i++) {
+    if (used.has(i)) {
+      continue;
+    }
+    const candidate = astFunctions[i];
     const overlapStart = Math.max(startLine, candidate.startLine);
     const overlapEnd = Math.min(endLine, candidate.endLine);
     const overlap = overlapEnd - overlapStart + 1;
     if (overlap <= 0) {
       continue;
     }
-    // Prefer tighter matches (smaller AST range that still covers the istanbul loc).
-    const span = candidate.endLine - candidate.startLine + 1;
-    const score = overlap * 1000 - span;
+
+    const spanLines = candidate.endLine - candidate.startLine + 1;
+    const startLineDelta = Math.abs(candidate.startLine - startLine);
+    const startColDelta = Math.abs(candidate.startColumn - startColumn);
+    const endColDelta = Math.abs(candidate.endColumn - endColumn);
+
+    // Prefer more line overlap, then tighter spans, then closer start columns
+    // (critical for multiple arrow functions on the same line).
+    const score =
+      overlap * 1_000_000 -
+      spanLines * 1_000 -
+      startLineDelta * 100 -
+      startColDelta * 10 -
+      endColDelta;
+
     if (score > bestScore) {
       bestScore = score;
       best = candidate;
+      bestIndex = i;
     }
+  }
+
+  if (bestIndex >= 0) {
+    used.add(bestIndex);
   }
 
   return best;
@@ -338,13 +398,14 @@ function analyzeFile(absolutePath, fileCoverage) {
   }
 
   const uncoveredLines = getUncoveredLines(fileCoverage);
+  const usedAst = new Set();
 
   for (const [functionId, coverageFn] of Object.entries(fnMap)) {
     const coverageData = getCoverageForFunction(functionId, fileCoverage);
     const coverage =
       coverageData.total === 0 ? 1 : coverageData.covered / coverageData.total;
 
-    const matched = matchAstFunction(coverageFn, astFunctions);
+    const matched = matchAstFunction(coverageFn, astFunctions, usedAst);
     const complexity = matched?.complexity ?? 1;
     const descriptor =
       matched?.descriptor ||

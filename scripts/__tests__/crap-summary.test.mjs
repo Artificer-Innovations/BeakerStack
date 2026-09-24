@@ -94,4 +94,10 @@ test('formatCrapCommentSection handles no offenders and missing summary', () => 
 
   const missing = formatCrapCommentSection(null).join('\n');
   assert.match(missing, /CRAP summary not available/);
+
+  const unavailable = formatCrapCommentSection({ unavailable: true }).join(
+    '\n'
+  );
+  assert.match(unavailable, /CRAP summary not available/);
+  assert.doesNotMatch(unavailable, /No functions above/);
 });

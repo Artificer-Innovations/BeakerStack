@@ -108,7 +108,7 @@ function buildCrapSummary(entries, options = {}) {
  * @returns {string[]}
  */
 function formatCrapCommentSection(summary) {
-  if (!summary) {
+  if (!summary || summary.unavailable) {
     return ['#### CRAP analysis', '', '_CRAP summary not available._', ''];
   }
 
@@ -143,10 +143,16 @@ function formatCrapCommentSection(summary) {
   return lines;
 }
 
+/** Sentinel written when CRAP analysis is skipped or fails. */
+function unavailableCrapSummary() {
+  return { unavailable: true };
+}
+
 module.exports = {
   DEFAULT_THRESHOLD,
   DEFAULT_TOP_N,
   flattenCrapReport,
   buildCrapSummary,
   formatCrapCommentSection,
+  unavailableCrapSummary,
 };

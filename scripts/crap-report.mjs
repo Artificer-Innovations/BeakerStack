@@ -20,6 +20,7 @@ const {
   DEFAULT_TOP_N,
   flattenCrapReport,
   buildCrapSummary,
+  unavailableCrapSummary,
 } = require('./lib/crap-summary.js');
 const {
   normalizeIstanbulCoverage,
@@ -80,9 +81,11 @@ function main() {
     console.warn(
       `⚠ CRAP analysis skipped: coverage file not found at ${path.relative(repoRoot, coveragePath)}`
     );
-    const emptySummary = buildCrapSummary([], { threshold, topN });
     fs.mkdirSync(path.dirname(summaryPath), { recursive: true });
-    fs.writeFileSync(summaryPath, JSON.stringify(emptySummary, null, 2));
+    fs.writeFileSync(
+      summaryPath,
+      JSON.stringify(unavailableCrapSummary(), null, 2)
+    );
     return;
   }
 
@@ -138,9 +141,11 @@ try {
 } catch (error) {
   console.error('CRAP analysis failed:', error);
   try {
-    const emptySummary = buildCrapSummary([], { threshold, topN });
     fs.mkdirSync(path.dirname(summaryPath), { recursive: true });
-    fs.writeFileSync(summaryPath, JSON.stringify(emptySummary, null, 2));
+    fs.writeFileSync(
+      summaryPath,
+      JSON.stringify(unavailableCrapSummary(), null, 2)
+    );
   } catch {
     // ignore secondary write failures
   }
