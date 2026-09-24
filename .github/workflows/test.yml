@@ -616,6 +616,9 @@ jobs:
         env:
           COMMENT_BODY: ${{ steps.build-summary.outputs.comment }}
 
+      - name: Enforce CRAP threshold
+        run: node scripts/crap-gate.mjs
+
       - name: Upload coverage summary
         if: always()
         uses: actions/upload-artifact@v4

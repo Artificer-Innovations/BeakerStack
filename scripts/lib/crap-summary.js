@@ -6,7 +6,7 @@
  * CRAP = complexity² × (1 − coverage)³ + complexity
  */
 
-const DEFAULT_THRESHOLD = 30;
+const DEFAULT_THRESHOLD = 16;
 const DEFAULT_TOP_N = 10;
 
 /**
@@ -97,6 +97,20 @@ function buildCrapSummary(entries, options = {}) {
 }
 
 /**
+ * Return the entries whose CRAP strictly exceeds the threshold — i.e. the
+ * functions that should fail an enforced gate. Strict `>` is deliberate: a
+ * function sitting exactly at the threshold is allowed (threshold is the
+ * ceiling, not the first failing value).
+ *
+ * @param {CrapFunctionEntry[]} entries
+ * @param {number} [threshold]
+ * @returns {CrapFunctionEntry[]} sorted by CRAP descending (input order preserved)
+ */
+function findCrapViolations(entries, threshold = DEFAULT_THRESHOLD) {
+  return (entries || []).filter(entry => entry.crap > threshold);
+}
+
+/**
  * Format a markdown section for the CI coverage PR comment.
  *
  * @param {{
@@ -153,6 +167,7 @@ module.exports = {
   DEFAULT_TOP_N,
   flattenCrapReport,
   buildCrapSummary,
+  findCrapViolations,
   formatCrapCommentSection,
   unavailableCrapSummary,
 };
