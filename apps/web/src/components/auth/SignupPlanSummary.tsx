@@ -45,33 +45,57 @@ export function PlanIntentSummary({
 
   if (!planId || !hasPaidPlanIntent(search)) return null;
 
-  if (modeLoading) {
-    return (
-      <div className='rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm'>
-        <p className='text-sm text-gray-500 dark:text-gray-400'>
-          Loading plan…
-        </p>
-      </div>
-    );
-  }
+  if (modeLoading) return <PlanLoadingCard />;
 
   if (isInviteOnly || isClosed) return null;
 
-  if (loading) {
-    return (
-      <div className='rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm'>
-        <p className='text-sm text-gray-500 dark:text-gray-400'>
-          Loading plan…
-        </p>
-      </div>
-    );
-  }
+  if (loading) return <PlanLoadingCard />;
 
   if (!catalogPlan || catalogPlan.price_cents === 0) return null;
 
-  const isAnnual = cadence === 'annual' && catalogPlan.price_cents > 0;
+  const { priceHeadline, priceSubline, savingsCallout } = resolvePriceView(
+    catalogPlan.id,
+    catalogPlan.price_cents,
+    cadence
+  );
+
+  const bullets = planSignupBullets(catalogPlan.id).slice(
+    0,
+    mode === 'login' ? 2 : 3
+  );
+
+  const headerLabel =
+    mode === 'login'
+      ? 'Plan from pricing'
+      : signupMode === 'waitlist'
+        ? modeCopy.tier_panel_header
+        : 'Your selection';
+
+  return (
+    <PlanIntentSummaryCard
+      mode={mode}
+      headerLabel={headerLabel}
+      displayName={catalogPlan.display_name}
+      savingsCallout={savingsCallout}
+      priceHeadline={priceHeadline}
+      priceSubline={priceSubline}
+      bullets={bullets}
+    />
+  );
+}
+
+function resolvePriceView(
+  planId: string,
+  priceCents: number,
+  cadence: ReturnType<typeof getCadenceFromSearch>
+): {
+  priceHeadline: string;
+  priceSubline: string;
+  savingsCallout: string | null;
+} {
+  const isAnnual = cadence === 'annual' && priceCents > 0;
   const annualCents = isAnnual
-    ? annualListCentsFromSync(catalogPlan.id, catalogPlan.price_cents)
+    ? annualListCentsFromSync(planId, priceCents)
     : null;
 
   const fmt = (cents: number) =>
@@ -82,54 +106,72 @@ export function PlanIntentSummary({
     }).format(cents / 100);
 
   const priceHeadline =
-    isAnnual && annualCents != null
-      ? fmt(annualCents)
-      : fmt(catalogPlan.price_cents);
+    isAnnual && annualCents != null ? fmt(annualCents) : fmt(priceCents);
 
   const priceSubline =
     cadence === 'annual' ? 'per year, billed annually' : 'per month';
 
   const savingsCopy = isAnnual
-    ? planAnnualSavingsCopy(catalogPlan.id, catalogPlan.price_cents)
+    ? planAnnualSavingsCopy(planId, priceCents)
     : null;
   const savingsCallout = savingsCopy
     ? formatSavingsCalloutFromCopy(savingsCopy)
     : null;
 
-  const bullets = planSignupBullets(catalogPlan.id).slice(
-    0,
-    mode === 'login' ? 2 : 3
-  );
+  return { priceHeadline, priceSubline, savingsCallout };
+}
 
+function PlanLoadingCard(): ReactElement {
+  return (
+    <div className='rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm'>
+      <p className='text-sm text-gray-500 dark:text-gray-400'>Loading plan…</p>
+    </div>
+  );
+}
+
+function PlanIntentSummaryCard({
+  mode,
+  headerLabel,
+  displayName,
+  savingsCallout,
+  priceHeadline,
+  priceSubline,
+  bullets,
+}: {
+  mode: PlanIntentMode;
+  headerLabel: string;
+  displayName: string;
+  savingsCallout: string | null;
+  priceHeadline: string;
+  priceSubline: string;
+  bullets: string[];
+}): ReactElement {
+  const isLogin = mode === 'login';
   return (
     <div
       className={
-        mode === 'login'
+        isLogin
           ? 'rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm'
           : 'rounded-xl border border-indigo-200 dark:border-indigo-700 bg-indigo-50/80 dark:bg-indigo-900/30 p-6 shadow-sm ring-1 ring-indigo-100 dark:ring-indigo-800'
       }
     >
       <p
         className={
-          mode === 'login'
+          isLogin
             ? 'text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400'
             : 'text-xs font-semibold uppercase tracking-wide text-indigo-800 dark:text-indigo-300'
         }
       >
-        {mode === 'login'
-          ? 'Plan from pricing'
-          : signupMode === 'waitlist'
-            ? modeCopy.tier_panel_header
-            : 'Your selection'}
+        {headerLabel}
       </p>
       <h3
         className={
-          mode === 'login'
+          isLogin
             ? 'mt-1 text-lg font-semibold text-gray-900 dark:text-white'
             : 'mt-1 text-xl font-bold text-gray-900 dark:text-white'
         }
       >
-        {catalogPlan.display_name}
+        {displayName}
       </h3>
       {savingsCallout ? (
         <p className='mt-1 text-xs font-semibold text-amber-900 dark:text-amber-300'>
@@ -139,7 +181,7 @@ export function PlanIntentSummary({
       <div className='mt-3'>
         <p
           className={
-            mode === 'login'
+            isLogin
               ? 'text-xl font-bold text-gray-900 dark:text-white'
               : 'text-2xl font-bold text-gray-900 dark:text-white'
           }

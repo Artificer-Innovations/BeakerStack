@@ -50,25 +50,21 @@ export type ListUsersParams = {
   productId?: string;
 };
 
-export async function listUsers(
-  supabase: SupabaseClient,
-  params: ListUsersParams = {}
-): Promise<AdminListUsersResult | null> {
-  const { data, error } = await supabase.rpc('admin_list_users', {
+function listUsersRpcArgs(params: ListUsersParams): Record<string, unknown> {
+  return {
     p_limit: params.limit ?? 25,
     p_offset: params.offset ?? 0,
     p_search: params.search ?? undefined,
     p_sort: params.sort ?? 'signup',
     p_sort_dir: params.sortDir ?? 'desc',
     p_product_id: params.productId ?? 'beakerstack',
-  });
-  if (error) throw rpcError(error);
-  if (isNotFound(data)) return null;
+  };
+}
 
-  if (!isRecord(data)) {
-    throw new Error('admin_list_users returned unexpected payload');
-  }
-
+function parseListUsersResult(
+  data: Record<string, unknown>,
+  params: ListUsersParams
+): AdminListUsersResult {
   const users = (data['users'] as AdminUserListRow[] | undefined) ?? [];
   const total = Number(data['total'] ?? 0);
   const limit = Number(data['limit'] ?? params.limit ?? 25);
@@ -79,6 +75,24 @@ export async function listUsers(
   }
 
   return { users, total, limit, offset };
+}
+
+export async function listUsers(
+  supabase: SupabaseClient,
+  params: ListUsersParams = {}
+): Promise<AdminListUsersResult | null> {
+  const { data, error } = await supabase.rpc(
+    'admin_list_users',
+    listUsersRpcArgs(params)
+  );
+  if (error) throw rpcError(error);
+  if (isNotFound(data)) return null;
+
+  if (!isRecord(data)) {
+    throw new Error('admin_list_users returned unexpected payload');
+  }
+
+  return parseListUsersResult(data, params);
 }
 
 export async function getUser(

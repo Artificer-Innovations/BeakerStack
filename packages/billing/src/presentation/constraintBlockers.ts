@@ -20,26 +20,19 @@ function booleanFeatureEnabled(plan: Plan, key: string): boolean {
   return v === true || v === 1;
 }
 
-/**
- * Downgrade constraints: **hard** (numeric/meter) vs **soft** (boolean features you would lose).
- * Spec §3.3 originally made all constraints hard for v1; we treat boolean entitlement loss as soft so
- * users can acknowledge downgrade when nothing must be deleted (only capability loss).
- */
-export function computeDowngradeBlockers(
-  currentPlan: Plan,
+type ConstraintCopy = ReturnType<typeof mergeDowngradeConstraintCopy>;
+
+function computeHardBlockers(
   targetPlan: Plan,
   options: {
     collectionCount: number;
     maxItemsInAnyCollection: number;
     aiUsedThisPeriod: number;
   },
-  allPlans: Plan[],
-  billingConfig: ProductBillingConfig
-): DowngradeBlockersResult {
-  const copy = mergeDowngradeConstraintCopy(billingConfig);
+  copy: ConstraintCopy,
+  targetPlanName: string
+): string[] {
   const hard: string[] = [];
-  const soft: string[] = [];
-  const targetPlanName = targetPlan.display_name ?? targetPlan.id;
 
   const tCap = targetPlan.features['containers_per_account_max'] as
     | number
@@ -83,6 +76,19 @@ export function computeDowngradeBlockers(
     );
   }
 
+  return hard;
+}
+
+function computeSoftBlockers(
+  currentPlan: Plan,
+  targetPlan: Plan,
+  allPlans: Plan[],
+  billingConfig: ProductBillingConfig,
+  copy: ConstraintCopy,
+  targetPlanName: string
+): string[] {
+  const soft: string[] = [];
+
   for (const row of mergePlanFeatureRows(billingConfig)) {
     if (row.kind !== 'boolean') continue;
     if (
@@ -102,6 +108,38 @@ export function computeDowngradeBlockers(
       );
     }
   }
+
+  return soft;
+}
+
+/**
+ * Downgrade constraints: **hard** (numeric/meter) vs **soft** (boolean features you would lose).
+ * Spec §3.3 originally made all constraints hard for v1; we treat boolean entitlement loss as soft so
+ * users can acknowledge downgrade when nothing must be deleted (only capability loss).
+ */
+export function computeDowngradeBlockers(
+  currentPlan: Plan,
+  targetPlan: Plan,
+  options: {
+    collectionCount: number;
+    maxItemsInAnyCollection: number;
+    aiUsedThisPeriod: number;
+  },
+  allPlans: Plan[],
+  billingConfig: ProductBillingConfig
+): DowngradeBlockersResult {
+  const copy = mergeDowngradeConstraintCopy(billingConfig);
+  const targetPlanName = targetPlan.display_name ?? targetPlan.id;
+
+  const hard = computeHardBlockers(targetPlan, options, copy, targetPlanName);
+  const soft = computeSoftBlockers(
+    currentPlan,
+    targetPlan,
+    allPlans,
+    billingConfig,
+    copy,
+    targetPlanName
+  );
 
   return { hard, soft };
 }

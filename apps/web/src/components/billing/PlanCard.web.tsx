@@ -82,48 +82,91 @@ export function PlanCard({
       {tag ? (
         <p className='text-sm text-gray-500 dark:text-gray-400'>{tag}</p>
       ) : null}
-      <div className='mt-4'>
-        <p className='text-3xl font-bold text-gray-900 dark:text-white'>
-          {priceHeadline}
-        </p>
-        {priceSubline && (
-          <p className='text-sm text-gray-500 dark:text-gray-400'>
-            {priceSubline}
-          </p>
-        )}
-        {plan.price_cents > 0 && plan.trial_period_days > 0 ? (
-          <p className='mt-2 text-sm text-gray-600 dark:text-gray-300'>
-            {plan.trial_period_days}-day trial, then billed{' '}
-            {billingCadence === 'annual' ? 'annually' : 'monthly'} at this rate.
-          </p>
-        ) : null}
-      </div>
-      {hasWarnings && (
-        <div className='mt-4 grow space-y-2'>
-          {hard.map((m, i) => (
-            <ConstraintWarning key={`h-${i}`} message={m} />
-          ))}
-          {soft.map((m, i) => (
-            <ConstraintWarning key={`s-${i}`} message={m} />
-          ))}
-        </div>
-      )}
+      <PlanPricing
+        plan={plan}
+        priceHeadline={priceHeadline}
+        priceSubline={priceSubline}
+        billingCadence={billingCadence}
+      />
+      {hasWarnings && <PlanWarnings hard={hard} soft={soft} />}
       <div className={hasWarnings ? 'mt-2' : 'mt-6 grow'}>
         <PlanFeatureList plan={plan} />
       </div>
       {primary ? (
-        <div className='mt-6'>
-          <Button
-            type='button'
-            variant={primary.variant ?? 'primary'}
-            onPress={primary.onClick}
-            disabled={primary.disabled || hardBlocked}
-            loading={primary.loading}
-          >
-            {hardBlocked ? 'Resolve issues to downgrade' : primary.label}
-          </Button>
-        </div>
+        <PlanPrimaryButton primary={primary} hardBlocked={hardBlocked} />
       ) : null}
+    </div>
+  );
+}
+
+function PlanPricing({
+  plan,
+  priceHeadline,
+  priceSubline,
+  billingCadence,
+}: {
+  plan: Plan;
+  priceHeadline: string;
+  priceSubline?: string;
+  billingCadence: 'monthly' | 'annual';
+}): ReactElement {
+  return (
+    <div className='mt-4'>
+      <p className='text-3xl font-bold text-gray-900 dark:text-white'>
+        {priceHeadline}
+      </p>
+      {priceSubline && (
+        <p className='text-sm text-gray-500 dark:text-gray-400'>
+          {priceSubline}
+        </p>
+      )}
+      {plan.price_cents > 0 && plan.trial_period_days > 0 ? (
+        <p className='mt-2 text-sm text-gray-600 dark:text-gray-300'>
+          {plan.trial_period_days}-day trial, then billed{' '}
+          {billingCadence === 'annual' ? 'annually' : 'monthly'} at this rate.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function PlanWarnings({
+  hard,
+  soft,
+}: {
+  hard: string[];
+  soft: string[];
+}): ReactElement {
+  return (
+    <div className='mt-4 grow space-y-2'>
+      {hard.map((m, i) => (
+        <ConstraintWarning key={`h-${i}`} message={m} />
+      ))}
+      {soft.map((m, i) => (
+        <ConstraintWarning key={`s-${i}`} message={m} />
+      ))}
+    </div>
+  );
+}
+
+function PlanPrimaryButton({
+  primary,
+  hardBlocked,
+}: {
+  primary: NonNullable<Parameters<typeof PlanCard>[0]['primary']>;
+  hardBlocked: boolean;
+}): ReactElement {
+  return (
+    <div className='mt-6'>
+      <Button
+        type='button'
+        variant={primary.variant ?? 'primary'}
+        onPress={primary.onClick}
+        disabled={primary.disabled || hardBlocked}
+        loading={primary.loading}
+      >
+        {hardBlocked ? 'Resolve issues to downgrade' : primary.label}
+      </Button>
     </div>
   );
 }

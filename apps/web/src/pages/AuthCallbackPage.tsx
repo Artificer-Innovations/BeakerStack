@@ -77,63 +77,43 @@ export default function AuthCallbackPage() {
     return () => clearTimeout(fallbackTimer);
   }, [navigateToResetPassword, auth.user, auth.loading]);
 
-  useEffect(() => {
-    if (navigatedRef.current) return;
+  const navigateAfterAuth = useCallback(() => {
+    const stored = readAndClearPostAuthRedirect();
+    navigate(stored ?? getAdopterConfig().postLoginPath, { replace: true });
+  }, [navigate]);
 
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const queryParams = new URLSearchParams(window.location.search);
-    const errorParam = queryParams.get('error') || hashParams.get('error');
-    const errorDescription =
-      queryParams.get('error_description') ||
-      hashParams.get('error_description');
-
-    if (errorParam) {
+  const handleAuthError = useCallback(
+    (errorDescription: string | null) => {
       setError(errorDescription || 'Authentication failed. Please try again.');
       const t = setTimeout(() => {
         navigatedRef.current = true;
         navigate('/login', { replace: true });
       }, 3000);
       return () => clearTimeout(t);
-    }
+    },
+    [navigate]
+  );
 
-    const recoveryType = hashParams.get('type') || queryParams.get('type');
-    const isRecovery =
-      recoveryType === 'recovery' || hasPasswordRecoveryCallback();
-
-    // Never fall through to auth.user → /dashboard during password recovery.
-    if (isRecovery) return;
-
-    if (auth.loading) return;
-
-    if (auth.user) {
+  const handleAuthenticatedUser = useCallback(
+    (user: NonNullable<typeof auth.user>) => {
       navigatedRef.current = true;
       const inviteToken = sessionStorage.getItem(INVITE_TOKEN_STORAGE_KEY);
       if (inviteToken) {
-        completeInviteSignup(
-          inviteToken,
-          auth.user.id,
-          auth.user.email ?? undefined
-        );
+        completeInviteSignup(inviteToken, user.id, user.email ?? undefined);
         return;
       }
-      const stored = readAndClearPostAuthRedirect();
-      navigate(stored ?? getAdopterConfig().postLoginPath, { replace: true });
-      return;
-    }
+      navigateAfterAuth();
+    },
+    [completeInviteSignup, navigateAfterAuth]
+  );
 
-    const accessToken =
-      hashParams.get('access_token') || queryParams.get('access_token');
-    if (!accessToken) {
-      return;
-    }
-
+  const startDelayedSessionCheck = useCallback(() => {
     const timer = setTimeout(() => {
       if (navigatedRef.current) return;
       const a = authRef.current;
       if (a.user && !a.loading) {
         navigatedRef.current = true;
-        const stored = readAndClearPostAuthRedirect();
-        navigate(stored ?? getAdopterConfig().postLoginPath, { replace: true });
+        navigateAfterAuth();
       } else if (!a.loading) {
         setError(
           'Authentication completed but session not established. Please try again.'
@@ -152,7 +132,50 @@ export default function AuthCallbackPage() {
         delayedLoginTimerRef.current = null;
       }
     };
-  }, [auth.user, auth.loading, navigate, completeInviteSignup]);
+  }, [navigate, navigateAfterAuth]);
+
+  useEffect(() => {
+    if (navigatedRef.current) return;
+
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const queryParams = new URLSearchParams(window.location.search);
+    const errorParam = queryParams.get('error') || hashParams.get('error');
+    const errorDescription =
+      queryParams.get('error_description') ||
+      hashParams.get('error_description');
+
+    if (errorParam) {
+      return handleAuthError(errorDescription);
+    }
+
+    const recoveryType = hashParams.get('type') || queryParams.get('type');
+    const isRecovery =
+      recoveryType === 'recovery' || hasPasswordRecoveryCallback();
+
+    // Never fall through to auth.user → /dashboard during password recovery.
+    if (isRecovery) return;
+
+    if (auth.loading) return;
+
+    if (auth.user) {
+      handleAuthenticatedUser(auth.user);
+      return;
+    }
+
+    const accessToken =
+      hashParams.get('access_token') || queryParams.get('access_token');
+    if (!accessToken) {
+      return;
+    }
+
+    return startDelayedSessionCheck();
+  }, [
+    auth.user,
+    auth.loading,
+    handleAuthError,
+    handleAuthenticatedUser,
+    startDelayedSessionCheck,
+  ]);
 
   if (error) {
     return (
