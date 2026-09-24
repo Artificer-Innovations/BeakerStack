@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       package:
-        description: Vitest package to mutate, or all
+        description: Package or app to mutate, or all
         required: true
         default: all
         type: choice
@@ -22,6 +22,8 @@ on:
           - observability
           - waitlist
           - waitlist-billing
+          - web
+          - mobile
       pr_number:
         description: Pull request number to comment on (optional)
         required: false
@@ -77,6 +79,7 @@ jobs:
           path: |
             reports/mutation/
             packages/*/reports/mutation/
+            apps/*/reports/mutation/
 
       - name: Comment mutation summary on the pull request
         if: success()

@@ -7,21 +7,36 @@ const {
   calculateMetrics,
 } = require('mutation-testing-metrics');
 
-/** Vitest packages included in `npm run test:mutation`. */
-const MUTATION_PACKAGES = [
-  'admin',
-  'articles',
-  'billing',
-  'connections',
-  'email',
-  'help',
-  'lifecycle-events',
-  'logger',
-  'marketing-email',
-  'observability',
-  'waitlist',
-  'waitlist-billing',
+/**
+ * Projects included in `npm run test:mutation`.
+ * `dir` is the workspace path that contains `reports/mutation/mutation.json`.
+ */
+const MUTATION_TARGETS = [
+  { name: 'admin', dir: 'packages/admin' },
+  { name: 'articles', dir: 'packages/articles' },
+  { name: 'billing', dir: 'packages/billing' },
+  { name: 'connections', dir: 'packages/connections' },
+  { name: 'email', dir: 'packages/email' },
+  { name: 'help', dir: 'packages/help' },
+  { name: 'lifecycle-events', dir: 'packages/lifecycle-events' },
+  { name: 'logger', dir: 'packages/logger' },
+  { name: 'marketing-email', dir: 'packages/marketing-email' },
+  { name: 'observability', dir: 'packages/observability' },
+  { name: 'waitlist', dir: 'packages/waitlist' },
+  { name: 'waitlist-billing', dir: 'packages/waitlist-billing' },
+  { name: 'web', dir: 'apps/web' },
+  { name: 'mobile', dir: 'apps/mobile' },
 ];
+
+const MUTATION_PACKAGES = MUTATION_TARGETS.map(target => target.name);
+
+/**
+ * @param {string} name
+ */
+function mutationReportDir(name) {
+  const target = MUTATION_TARGETS.find(entry => entry.name === name);
+  return target ? target.dir : path.join('packages', name);
+}
 
 /**
  * @param {import('mutation-testing-report-schema').MutationTestResult} report
@@ -135,8 +150,7 @@ function loadPackageReports(repoRoot, packages = MUTATION_PACKAGES) {
   for (const name of packages) {
     const reportFile = path.join(
       repoRoot,
-      'packages',
-      name,
+      mutationReportDir(name),
       'reports',
       'mutation',
       'mutation.json'
@@ -188,7 +202,9 @@ function writeMergedMutationReports(options) {
 }
 
 module.exports = {
+  MUTATION_TARGETS,
   MUTATION_PACKAGES,
+  mutationReportDir,
   summarizeReport,
   buildMergedMutationReport,
   buildMutationSummary,

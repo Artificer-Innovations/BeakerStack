@@ -104,6 +104,26 @@ test('writeMergedMutationReports reads package JSON and writes a combined report
   assert.equal(summary.byPackage.logger.survived, 2);
 });
 
+test('writeMergedMutationReports reads app reports from apps/', () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'mutation-app-'));
+  const webDir = path.join(repoRoot, 'apps', 'web', 'reports', 'mutation');
+  fs.mkdirSync(webDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(webDir, 'mutation.json'),
+    JSON.stringify(report(3, 1))
+  );
+
+  const result = writeMergedMutationReports({
+    repoRoot,
+    packages: ['web', 'mobile'],
+  });
+
+  assert.equal(result.written, true);
+  assert.deepEqual(result.missing, ['mobile']);
+  assert.equal(result.summary.byPackage.web.killed, 3);
+  assert.ok(result.summary.total.mutationScore > 70);
+});
+
 test('writeMergedMutationReports fails closed when nothing was produced', () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'mutation-empty-'));
   const result = writeMergedMutationReports({

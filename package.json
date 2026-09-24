@@ -130,7 +130,7 @@
     "test:coverage:merge": "node scripts/merge-coverage.js && npm run test:crap && npm run test:crap:gate",
     "test:crap": "node scripts/crap-report.mjs",
     "test:crap:gate": "node scripts/crap-gate.mjs",
-    "test:mutation": "npm run test:mutation:admin && npm run test:mutation:articles && npm run test:mutation:billing && npm run test:mutation:connections && npm run test:mutation:email && npm run test:mutation:help && npm run test:mutation:lifecycle-events && npm run test:mutation:logger && npm run test:mutation:marketing-email && npm run test:mutation:observability && npm run test:mutation:waitlist && npm run test:mutation:waitlist-billing && npm run test:mutation:merge",
+    "test:mutation": "npm run test:mutation:admin && npm run test:mutation:articles && npm run test:mutation:billing && npm run test:mutation:connections && npm run test:mutation:email && npm run test:mutation:help && npm run test:mutation:lifecycle-events && npm run test:mutation:logger && npm run test:mutation:marketing-email && npm run test:mutation:observability && npm run test:mutation:waitlist && npm run test:mutation:waitlist-billing && npm run test:mutation:web && npm run test:mutation:mobile && npm run test:mutation:merge",
     "test:mutation:merge": "node scripts/merge-mutation-reports.js",
     "test:mutation:admin": "cd packages/admin && npm run test:mutation",
     "test:mutation:articles": "cd packages/articles && npm run test:mutation",
@@ -144,6 +144,8 @@
     "test:mutation:observability": "cd packages/observability && npm run test:mutation",
     "test:mutation:waitlist": "cd packages/waitlist && npm run test:mutation",
     "test:mutation:waitlist-billing": "cd packages/waitlist-billing && npm run test:mutation",
+    "test:mutation:web": "cd apps/web && npm run test:mutation",
+    "test:mutation:mobile": "cd apps/mobile && npm run test:mutation",
     "test:unit:scripts": "node --test scripts/__tests__/image-size-loop-guards.test.mjs scripts/__tests__/rename-project.test.mjs scripts/__tests__/detect-repo-identity.test.mjs scripts/__tests__/setup-aws-discover.test.mjs scripts/__tests__/setup-dotenv.test.mjs scripts/__tests__/setup-manifest-github-sync.test.mjs scripts/__tests__/setup-secret-input.test.mjs scripts/__tests__/setup-supabase-pick-recommend.test.mjs scripts/__tests__/setup-supabase-slug.test.mjs scripts/__tests__/billing-webhook-guards.test.mjs scripts/__tests__/setup-stripe.test.mjs scripts/__tests__/ensure-stripe-webhook.test.mjs scripts/__tests__/merge-coverage.test.mjs scripts/__tests__/merge-mutation-reports.test.mjs scripts/__tests__/merge-istanbul-coverage.test.mjs scripts/__tests__/normalize-istanbul-coverage.test.mjs scripts/__tests__/crap-summary.test.mjs scripts/__tests__/crap-analyze.test.mjs scripts/__tests__/format-supabase-test-summary.test.mjs scripts/__tests__/format-playwright-e2e-pr-comment.test.mjs scripts/__tests__/merge-playwright-json-reports.test.mjs scripts/__tests__/setup-route53-email-records.test.mjs scripts/__tests__/setup-resend-api.test.mjs scripts/__tests__/setup-resend-keys.test.mjs scripts/__tests__/setup-google-oauth.test.mjs scripts/__tests__/email-config-subjects.test.mjs scripts/__tests__/sync-edge-shared.test.mjs scripts/__tests__/db-apply-adopter.test.mjs scripts/__tests__/resolve-adopter-database-url.test.mjs scripts/__tests__/setup-kit.test.mjs scripts/__tests__/setup-kit-script.test.mjs scripts/__tests__/ensure-kit-webhook.test.mjs && ./scripts/ci/classify-pr-push-changes.sh --self-test && ./scripts/pr-preview/check-preview-deploy-needed.sh --self-test && node scripts/check-no-legacy-adopter-paths.mjs",
     "lint": "npm run lint:mobile && npm run lint:web && npm run lint:adopter && npm run lint:shared && npm run lint:billing && npm run lint:admin && npm run lint:lifecycle-events && npm run lint:waitlist && npm run lint:email && npm run lint:marketing-email && npm run lint:help && npm run lint:articles && npm run lint:logger && npm run lint:observability && npm run lint:connections && npm run lint:repo && npm run lint:supabase",
     "lint:mobile": "eslint apps/mobile/src --ext ts,tsx --report-unused-disable-directives",
@@ -232,6 +234,7 @@
     "@changesets/cli": "2.31.0",
     "@playwright/test": "^1.60.0",
     "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/jest-runner": "^10.0.0",
     "@stryker-mutator/vitest-runner": "^10.0.0",
     "@supabase/supabase-js": "^2.38.0",
     "@types/jest": "^29.5.8",
@@ -378,12 +381,15 @@
       "ajv": "8.20.0",
       "picomatch": "4.0.7"
     },
+    "@nestjs/cli": {
+      "glob": "10.5.0",
+      "webpack": "5.111.1"
+    },
     "crap-score": {
       "@nestjs/common": "11.1.29",
       "@nestjs/core": "11.1.29",
       "body-parser": "1.20.8",
       "file-type": "21.3.4",
-      "glob": "10.5.0",
       "multer": "2.4.0",
       "webpack": "5.111.1"
     },

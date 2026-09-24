@@ -439,27 +439,31 @@ ROLLBACK;
 
 Mutation testing uses [Stryker](https://stryker-mutator.io/) to introduce small code changes (“mutants”) and check whether unit tests catch them. A high mutation score means tests assert behavior, not just that code runs.
 
-Jest packages (`packages/shared` via `shared-tests`, mobile), `apps/web`, integration, E2E, and pgTAP are out of scope. Scores are report-only (`break: null`).
+`packages/shared` (tested via `shared-tests`), integration, E2E, and pgTAP are out of scope. Scores are report-only (`break: null`).
 
 **In-scope Vitest packages:** `admin`, `articles`, `billing`, `connections`, `email`, `help`, `lifecycle-events`, `logger`, `marketing-email`, `observability`, `waitlist`, `waitlist-billing`
+
+**In-scope apps:** `apps/web` (Vitest, via `vite.config.ts`) and `apps/mobile` (Jest)
 
 Shared defaults live in `stryker.base.json`; each package has a `stryker.config.mjs` that sets `mutate` globs (generated content under `src/generated/` is excluded for help/articles). Config uses `inPlace: true` so Vitest path aliases (e.g. `react-native` → `react-native-web` at the monorepo root) keep resolving; Stryker restores originals after the run.
 
 ```bash
-# One package (recommended while iterating)
+# One package or app (recommended while iterating)
 npm run test:mutation:logger
 npm run test:mutation:billing
+npm run test:mutation:web
+npm run test:mutation:mobile
 
-# All in-scope packages (slow; sequential), then merge
+# All in-scope packages and apps (slow; sequential), then merge
 npm run test:mutation
 
 # Re-merge existing JSON reports without re-running mutants
 npm run test:mutation:merge
 ```
 
-Each package writes `packages/<pkg>/reports/mutation/mutation.html` and `mutation.json`. Incremental results are stored in `packages/<pkg>/reports/stryker-incremental.json` to speed re-runs. Score thresholds are report-only (`break: null`) until a baseline is established.
+Each project writes `reports/mutation/mutation.html` and `mutation.json` under its workspace (`packages/<pkg>` or `apps/<app>`). Incremental results are stored in that workspace's `reports/stryker-incremental.json` to speed re-runs. Score thresholds are report-only (`break: null`) until a baseline is established.
 
-`npm run test:mutation:merge` combines whatever package JSON reports exist (same idea as `npm run test:coverage:merge`):
+`npm run test:mutation:merge` combines whatever JSON reports exist (same idea as `npm run test:coverage:merge`):
 
 - `reports/mutation/mutation-summary.json` — overall score plus per-package killed/survived counts. The overall score is weighted by mutant count, so a large package outweighs a small one.
 - `reports/mutation/mutation.html` — one browsable report, grouped by package.
