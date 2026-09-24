@@ -52,12 +52,47 @@ function mergeBranchMap(left, right) {
  * @param {Record<string, unknown> | undefined} right
  */
 function mergeSourceMap(left, right) {
-  const merged = {
+  return {
     ...(left ?? {}),
     ...(right ?? {}),
   };
+}
 
-  return Object.keys(merged).length > 0 ? merged : undefined;
+/**
+ * Ensure Istanbul map fields exist so consumers (e.g. CRAP analysis) can
+ * safely Object.keys() them even for empty/"all" coverage stubs.
+ *
+ * @param {Record<string, unknown>} fileCoverage
+ * @returns {Record<string, unknown>}
+ */
+function ensureCoverageMaps(fileCoverage) {
+  return {
+    ...fileCoverage,
+    s:
+      fileCoverage.s && typeof fileCoverage.s === 'object'
+        ? fileCoverage.s
+        : {},
+    f:
+      fileCoverage.f && typeof fileCoverage.f === 'object'
+        ? fileCoverage.f
+        : {},
+    b:
+      fileCoverage.b && typeof fileCoverage.b === 'object'
+        ? fileCoverage.b
+        : {},
+    statementMap:
+      fileCoverage.statementMap && typeof fileCoverage.statementMap === 'object'
+        ? fileCoverage.statementMap
+        : {},
+    fnMap:
+      fileCoverage.fnMap && typeof fileCoverage.fnMap === 'object'
+        ? fileCoverage.fnMap
+        : {},
+    branchMap:
+      fileCoverage.branchMap && typeof fileCoverage.branchMap === 'object'
+        ? fileCoverage.branchMap
+        : {},
+  };
 }
 
 /**
@@ -66,13 +101,13 @@ function mergeSourceMap(left, right) {
  */
 function mergeFileCoverage(left, right) {
   if (!left) {
-    return right ? { ...right } : undefined;
+    return right ? ensureCoverageMaps({ ...right }) : undefined;
   }
   if (!right) {
-    return { ...left };
+    return ensureCoverageMaps({ ...left });
   }
 
-  return {
+  return ensureCoverageMaps({
     ...left,
     ...right,
     s: mergeHitMap(
@@ -103,7 +138,7 @@ function mergeFileCoverage(left, right) {
       /** @type {Record<string, unknown>} */ (left.branchMap),
       /** @type {Record<string, unknown>} */ (right.branchMap)
     ),
-  };
+  });
 }
 
 /**
@@ -128,6 +163,7 @@ module.exports = {
   mergeHitMap,
   mergeBranchMap,
   mergeSourceMap,
+  ensureCoverageMaps,
   mergeFileCoverage,
   mergeIstanbulCoverageReports,
 };
