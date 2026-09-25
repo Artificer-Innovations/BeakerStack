@@ -134,17 +134,15 @@ function SignupPageContent() {
   const displayName =
     billingConfig.plans.find(p => p.id === searchParams.get('plan'))
       ?.displayName ?? 'this plan';
+  const showPlanCta = paidIntent && postAuthPath !== postLoginPath;
   const submitLabel = isLoading
     ? 'Creating account...'
-    : paidIntent && postAuthPath !== postLoginPath
+    : showPlanCta
       ? `Continue with ${displayName}`
       : 'Create account';
 
   const showPlanAside =
-    paidIntent &&
-    postAuthPath !== postLoginPath &&
-    !signupModeLoading &&
-    (isOpen || isWaitlist);
+    showPlanCta && !signupModeLoading && (isOpen || isWaitlist);
 
   const waitlistCaptureMetadata = useMemo(() => {
     if (!isWaitlist || !paidIntent) return undefined;
@@ -159,31 +157,11 @@ function SignupPageContent() {
 
   if (awaitingEmail) {
     return (
-      <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
-        <AppHeaderWithAdmin />
-        <ContentContainer className='py-12'>
-          <div className='mx-auto max-w-md rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-sm'>
-            <h2 className='text-xl font-semibold text-gray-900 dark:text-white'>
-              Check your email
-            </h2>
-            <p className='mt-3 text-sm text-gray-600 dark:text-gray-300'>
-              We sent a confirmation link to <strong>{email}</strong>. Click the
-              link in that email to finish creating your account.
-            </p>
-            {paidIntent && postAuthPath !== postLoginPath && (
-              <p className='mt-2 text-sm text-gray-600 dark:text-gray-300'>
-                We&apos;ll take you to billing to complete your plan when
-                you&apos;re signed in.
-              </p>
-            )}
-            <p className='mt-4 text-sm text-gray-500 dark:text-gray-400'>
-              <Link to={loginTo} className='font-medium text-primary-600'>
-                Already confirmed? Sign in
-              </Link>
-            </p>
-          </div>
-        </ContentContainer>
-      </div>
+      <AwaitingEmailView
+        email={email}
+        loginTo={loginTo}
+        showPlanCta={showPlanCta}
+      />
     );
   }
 
@@ -203,20 +181,11 @@ function SignupPageContent() {
               showPlanAside ? 'order-2 md:order-1 space-y-8' : 'space-y-8'
             }
           >
-            {!signupModeLoading && isOpen ? (
-              <div>
-                <h2 className='mt-0 text-center text-3xl font-extrabold text-gray-900 dark:text-white md:text-left'>
-                  {paidIntent && postAuthPath !== postLoginPath
-                    ? `Create your account to continue with ${displayName}`
-                    : 'Create your account'}
-                </h2>
-                {paidIntent && postAuthPath !== postLoginPath ? (
-                  <p className='mt-2 text-center text-sm text-gray-600 dark:text-gray-400 md:text-left'>
-                    No charge until you finish checkout on the next step.
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
+            <SignupHeading
+              visible={!signupModeLoading && isOpen}
+              showPlanCta={showPlanCta}
+              displayName={displayName}
+            />
 
             <SignupModeGate
               supabase={supabase}
@@ -328,6 +297,70 @@ function SignupPageContent() {
               <SignupPlanSummary />
             </div>
           ) : null}
+        </div>
+      </ContentContainer>
+    </div>
+  );
+}
+
+function SignupHeading({
+  visible,
+  showPlanCta,
+  displayName,
+}: {
+  visible: boolean;
+  showPlanCta: boolean;
+  displayName: string;
+}) {
+  if (!visible) return null;
+  return (
+    <div>
+      <h2 className='mt-0 text-center text-3xl font-extrabold text-gray-900 dark:text-white md:text-left'>
+        {showPlanCta
+          ? `Create your account to continue with ${displayName}`
+          : 'Create your account'}
+      </h2>
+      {showPlanCta ? (
+        <p className='mt-2 text-center text-sm text-gray-600 dark:text-gray-400 md:text-left'>
+          No charge until you finish checkout on the next step.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function AwaitingEmailView({
+  email,
+  loginTo,
+  showPlanCta,
+}: {
+  email: string;
+  loginTo: string;
+  showPlanCta: boolean;
+}) {
+  return (
+    <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
+      <AppHeaderWithAdmin />
+      <ContentContainer className='py-12'>
+        <div className='mx-auto max-w-md rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-sm'>
+          <h2 className='text-xl font-semibold text-gray-900 dark:text-white'>
+            Check your email
+          </h2>
+          <p className='mt-3 text-sm text-gray-600 dark:text-gray-300'>
+            We sent a confirmation link to <strong>{email}</strong>. Click the
+            link in that email to finish creating your account.
+          </p>
+          {showPlanCta && (
+            <p className='mt-2 text-sm text-gray-600 dark:text-gray-300'>
+              We&apos;ll take you to billing to complete your plan when
+              you&apos;re signed in.
+            </p>
+          )}
+          <p className='mt-4 text-sm text-gray-500 dark:text-gray-400'>
+            <Link to={loginTo} className='font-medium text-primary-600'>
+              Already confirmed? Sign in
+            </Link>
+          </p>
         </div>
       </ContentContainer>
     </div>

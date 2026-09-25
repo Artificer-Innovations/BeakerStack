@@ -85,16 +85,12 @@ export function CollectionsGrid({
               : `${collections.length} of ${limLabel(maxCollections)}`}
           </p>
         </div>
-        <button
-          type='button'
+        <AddButton
+          atCap={atCap}
           disabled={atCap || loading || featLoading || busy === 'add'}
-          title={atCap ? 'Collection limit reached for your plan' : undefined}
-          onClick={handleAdd}
-          className='inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-50'
-        >
-          <Plus className='h-3.5 w-3.5' aria-hidden />
-          {busy === 'add' ? '…' : atCap ? 'Limit reached' : 'New collection'}
-        </button>
+          adding={busy === 'add'}
+          onAdd={handleAdd}
+        />
       </div>
 
       {error && (
@@ -122,54 +118,98 @@ export function CollectionsGrid({
         </p>
       ) : (
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
-          {collections.map(col => {
-            const isSelected = col.id === selectedId;
-            const delKey = `del:${col.id}`;
-            return (
-              <div
-                key={col.id}
-                className={`relative rounded-lg border-2 bg-white dark:bg-gray-800 p-4 cursor-pointer transition-all hover:shadow-md ${
-                  isSelected
-                    ? 'border-indigo-500 ring-1 ring-indigo-500'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-700'
-                }`}
-                onClick={() => onSelect(col.id)}
-                role='button'
-                tabIndex={0}
-                aria-pressed={isSelected}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onSelect(col.id);
-                  }
-                }}
-              >
-                <p className='font-mono text-xs text-gray-400 dark:text-gray-500 truncate'>
-                  {col.id.slice(0, 8)}…
-                </p>
-                <p className='mt-1.5 text-sm font-medium text-gray-900 dark:text-white'>
-                  Collection
-                </p>
-                <p className='text-xs text-gray-500 dark:text-gray-400 mt-0.5'>
-                  {col.item_count} item{col.item_count !== 1 ? 's' : ''}
-                </p>
-                <button
-                  type='button'
-                  aria-label='Delete collection'
-                  disabled={busy === delKey}
-                  onClick={e => {
-                    e.stopPropagation();
-                    handleDelete(col.id);
-                  }}
-                  className='absolute top-2 right-2 rounded p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-50 transition-colors'
-                >
-                  <Trash2 className='h-3.5 w-3.5' aria-hidden />
-                </button>
-              </div>
-            );
-          })}
+          {collections.map(col => (
+            <CollectionCard
+              key={col.id}
+              col={col}
+              isSelected={col.id === selectedId}
+              deleteBusy={busy === `del:${col.id}`}
+              onSelect={onSelect}
+              onDelete={handleDelete}
+            />
+          ))}
         </div>
       )}
+    </div>
+  );
+}
+
+interface AddButtonProps {
+  atCap: boolean;
+  disabled: boolean;
+  adding: boolean;
+  onAdd: () => void;
+}
+
+function AddButton({ atCap, disabled, adding, onAdd }: AddButtonProps) {
+  return (
+    <button
+      type='button'
+      disabled={disabled}
+      title={atCap ? 'Collection limit reached for your plan' : undefined}
+      onClick={onAdd}
+      className='inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-50'
+    >
+      <Plus className='h-3.5 w-3.5' aria-hidden />
+      {adding ? '…' : atCap ? 'Limit reached' : 'New collection'}
+    </button>
+  );
+}
+
+interface CollectionCardProps {
+  col: DemoCollectionRow;
+  isSelected: boolean;
+  deleteBusy: boolean;
+  onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+function CollectionCard({
+  col,
+  isSelected,
+  deleteBusy,
+  onSelect,
+  onDelete,
+}: CollectionCardProps) {
+  return (
+    <div
+      className={`relative rounded-lg border-2 bg-white dark:bg-gray-800 p-4 cursor-pointer transition-all hover:shadow-md ${
+        isSelected
+          ? 'border-indigo-500 ring-1 ring-indigo-500'
+          : 'border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-700'
+      }`}
+      onClick={() => onSelect(col.id)}
+      role='button'
+      tabIndex={0}
+      aria-pressed={isSelected}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(col.id);
+        }
+      }}
+    >
+      <p className='font-mono text-xs text-gray-400 dark:text-gray-500 truncate'>
+        {col.id.slice(0, 8)}…
+      </p>
+      <p className='mt-1.5 text-sm font-medium text-gray-900 dark:text-white'>
+        Collection
+      </p>
+      <p className='text-xs text-gray-500 dark:text-gray-400 mt-0.5'>
+        {col.item_count} item{col.item_count !== 1 ? 's' : ''}
+      </p>
+      <button
+        type='button'
+        aria-label='Delete collection'
+        disabled={deleteBusy}
+        onClick={e => {
+          e.stopPropagation();
+          onDelete(col.id);
+        }}
+        className='absolute top-2 right-2 rounded p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-50 transition-colors'
+      >
+        <Trash2 className='h-3.5 w-3.5' aria-hidden />
+      </button>
     </div>
   );
 }

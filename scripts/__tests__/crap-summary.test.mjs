@@ -7,6 +7,7 @@ const {
   DEFAULT_THRESHOLD,
   flattenCrapReport,
   buildCrapSummary,
+  findCrapViolations,
   formatCrapCommentSection,
 } = require('../lib/crap-summary.js');
 
@@ -54,12 +55,37 @@ test('buildCrapSummary filters by threshold and caps top N', () => {
     topN: 1,
   });
 
-  assert.equal(summary.threshold, 30);
+  assert.equal(summary.threshold, 16);
   assert.equal(summary.totalFunctions, 3);
   assert.equal(summary.aboveThreshold, 2);
   assert.equal(summary.top.length, 1);
   assert.equal(summary.top[0].name, 'handleSubmit');
   assert.equal(summary.top[0].complexity, 12);
+});
+
+test('DEFAULT_THRESHOLD is 16', () => {
+  assert.equal(DEFAULT_THRESHOLD, 16);
+});
+
+test('findCrapViolations flags only functions strictly above the threshold', () => {
+  const entries = flattenCrapReport(sampleReport, { repoRoot: '/repo' });
+
+  // Default threshold (16): both risky functions violate; the cc=2 helper does not.
+  const atDefault = findCrapViolations(entries);
+  assert.deepEqual(atDefault.map(e => e.name).sort(), [
+    'charge',
+    'handleSubmit',
+  ]);
+
+  // Strict `>`: a function sitting exactly at the threshold is allowed.
+  const atCharge = findCrapViolations(entries, 45.5);
+  assert.deepEqual(
+    atCharge.map(e => e.name),
+    ['handleSubmit']
+  );
+
+  // Nothing above a very high ceiling.
+  assert.deepEqual(findCrapViolations(entries, 200), []);
 });
 
 test('buildCrapSummary with high threshold yields empty top list', () => {
