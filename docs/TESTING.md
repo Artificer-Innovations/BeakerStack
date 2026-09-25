@@ -1,6 +1,6 @@
 # Testing Guide
 
-This document provides a comprehensive guide to testing in this project, covering unit tests, integration tests, E2E tests, and database tests.
+This document provides a comprehensive guide to testing in this project, covering unit tests, integration tests, E2E tests, database tests, and local mutation testing.
 
 ## Table of Contents
 
@@ -10,6 +10,7 @@ This document provides a comprehensive guide to testing in this project, coverin
 - [Integration Tests](#integration-tests)
 - [E2E Tests](#e2e-tests)
 - [Database Tests](#database-tests)
+- [Mutation Testing](#mutation-testing)
 - [Running Tests](#running-tests)
 - [Writing Tests](#writing-tests)
 - [Best Practices](#best-practices)
@@ -434,6 +435,48 @@ ROLLBACK;
 - `rls_policies.test.sql` - Comprehensive RLS policy tests
 - `storage_policies.test.sql` - Storage bucket policy tests
 
+## Mutation Testing
+
+Mutation testing uses [Stryker](https://stryker-mutator.io/) to introduce small code changes (“mutants”) and check whether unit tests catch them. A high mutation score means tests assert behavior, not just that code runs.
+
+`packages/shared` (tested via `shared-tests`), integration, E2E, and pgTAP are out of scope. Scores are report-only (`break: null`).
+
+**In-scope Vitest packages:** `admin`, `articles`, `billing`, `connections`, `email`, `help`, `lifecycle-events`, `logger`, `marketing-email`, `observability`, `waitlist`, `waitlist-billing`
+
+**In-scope apps:** `apps/web` (Vitest, via `vite.config.ts`) and `apps/mobile` (Jest)
+
+Shared defaults live in `stryker.base.json`; each package has a `stryker.config.mjs` that sets `mutate` globs (generated content under `src/generated/` is excluded for help/articles). Config uses `inPlace: true` so Vitest path aliases (e.g. `react-native` → `react-native-web` at the monorepo root) keep resolving; Stryker restores originals after the run.
+
+```bash
+# One package or app (recommended while iterating)
+npm run test:mutation:logger
+npm run test:mutation:billing
+npm run test:mutation:web
+npm run test:mutation:mobile
+
+# All in-scope packages and apps (slow; sequential), then merge
+npm run test:mutation
+
+# Re-merge existing JSON reports without re-running mutants
+npm run test:mutation:merge
+```
+
+Each project writes `reports/mutation/mutation.html` and `mutation.json` under its workspace (`packages/<pkg>` or `apps/<app>`). Incremental results are stored in that workspace's `reports/stryker-incremental.json` to speed re-runs. Score thresholds are report-only (`break: null`) until a baseline is established.
+
+`npm run test:mutation:merge` combines whatever JSON reports exist (same idea as `npm run test:coverage:merge`):
+
+- `reports/mutation/mutation-summary.json` — overall score plus per-package killed/survived counts. The overall score is weighted by mutant count, so a large package outweighs a small one.
+- `reports/mutation/mutation.html` — one browsable report, grouped by package.
+
+Packages with no `mutation.json` are listed as skipped and left out of the total. Re-run a package after this change so it emits JSON; HTML-only reports from earlier runs are not merged.
+
+**CI (optional):** [`.github/workflows/mutation.yml`](../.github/workflows/mutation.yml) does not run on every pull request.
+
+- Actions tab → Mutation → Run workflow. Choose one package or `all`. Set a pull request number to post the summary as a comment.
+- Or label a pull request to `develop` with `run-mutation` (runs every in-scope package and comments on that pull request).
+
+The workflow uploads `reports/mutation/` as the `mutation-report` artifact. A low score does not fail the job.
+
 ## Running Tests
 
 ### All Tests
@@ -460,6 +503,10 @@ npm run test:db
 
 # E2E tests
 npm run test:e2e
+
+# Mutation testing (local; Vitest packages only)
+npm run test:mutation:logger
+npm run test:mutation
 ```
 
 ### Watch Mode
@@ -832,6 +879,7 @@ Tests are automatically run in CI/CD:
 - **On every PR:** Unit tests (parallel `unit-coverage-shard` matrix per workspace in `.github/workflows/test.yml`), integration tests, database tests
 - **When @ZappoMan approves a PR to `develop` or the PR is labeled `run-e2e`:** Playwright web E2E against the PR preview (`.github/workflows/e2e-web-pr-approval.yml`; manual re-runs via workflow_dispatch are also supported)
 - **On merge to develop / main:** Standard test workflows; staging/production smoke E2E are optional follow-ups
+- **Mutation testing:** Optional. Label a pull request to `develop` with `run-mutation`, or run the Mutation workflow manually (`.github/workflows/mutation.yml`). Report-only; not part of the required test suite or the develop → main release.
 
 See `.github/workflows/test.yml` and `.github/workflows/e2e-web-pr-approval.yml`.
 
@@ -845,3 +893,4 @@ See `.github/workflows/test.yml` and `.github/workflows/e2e-web-pr-approval.yml`
 - [Maestro Documentation](https://maestro.mobile.dev/) (mobile E2E)
 - [Supabase Testing](https://supabase.com/docs/guides/cli/local-development#testing)
 - [pgTAP Documentation](https://pgtap.org/)
+- [Stryker Mutator](https://stryker-mutator.io/) (mutation testing)

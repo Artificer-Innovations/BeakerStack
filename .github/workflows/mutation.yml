@@ -1,0 +1,130 @@
+name: Mutation
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Package or app to mutate, or all
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - admin
+          - articles
+          - billing
+          - connections
+          - email
+          - help
+          - lifecycle-events
+          - logger
+          - marketing-email
+          - observability
+          - waitlist
+          - waitlist-billing
+          - web
+          - mobile
+      pr_number:
+        description: Pull request number to comment on (optional)
+        required: false
+        type: string
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: mutation-${{ github.event.pull_request.number || github.event.inputs.pr_number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  mutation:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+       github.event.action == 'labeled' &&
+       github.event.label.name == 'run-mutation' &&
+       github.event.pull_request.base.ref == 'develop' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-node
+
+      - name: Run mutation tests
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            package="${{ github.event.inputs.package }}"
+          else
+            package="all"
+          fi
+          if [[ "$package" == "all" ]]; then
+            npm run test:mutation
+          else
+            npm run "test:mutation:${package}"
+            npm run test:mutation:merge
+          fi
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-report
+          if-no-files-found: warn
+          path: |
+            reports/mutation/
+            packages/*/reports/mutation/
+            apps/*/reports/mutation/
+
+      - name: Comment mutation summary on the pull request
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${PR_NUMBER}" ]]; then
+            echo "No pull request number; skipping comment."
+            exit 0
+          fi
+          if [[ ! -f reports/mutation/mutation-summary.json ]]; then
+            echo "No mutation summary; skipping comment."
+            exit 0
+          fi
+          node --input-type=module <<'EOF' > /tmp/mutation-comment.md
+          import fs from 'node:fs';
+          const summary = JSON.parse(
+            fs.readFileSync('reports/mutation/mutation-summary.json', 'utf8')
+          );
+          const fmt = (stats) => {
+            const score =
+              stats.mutationScore === null
+                ? 'n/a'
+                : `${stats.mutationScore.toFixed(2)}%`;
+            return `${stats.totalDetected}/${stats.totalValid} (${score})`;
+          };
+          const lines = [
+            '## Mutation report',
+            '',
+            'Report-only. A low score does not fail this workflow.',
+            '',
+            `**Overall:** ${fmt(summary.total)}`,
+            '',
+            '| Package | Detected |',
+            '| --- | --- |',
+          ];
+          for (const [name, stats] of Object.entries(summary.byPackage)) {
+            lines.push(`| ${name} | ${fmt(stats)} |`);
+          }
+          if (summary.missing?.length) {
+            lines.push('', `Skipped (no mutation.json): ${summary.missing.join(', ')}`);
+          }
+          lines.push('', 'Full HTML is in the `mutation-report` artifact.');
+          process.stdout.write(lines.join('\n') + '\n');
+          EOF
+          gh pr comment "$PR_NUMBER" --body-file /tmp/mutation-comment.md

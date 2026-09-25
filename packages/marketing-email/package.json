@@ -15,7 +15,8 @@
     "lint": "eslint src --ext ts --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc --noEmit",
     "test": "vitest --run",
-    "test:coverage": "vitest --coverage --run"
+    "test:coverage": "vitest --coverage --run",
+    "test:mutation": "stryker run"
   },
   "dependencies": {
     "@beakerstack/lifecycle-events": "^1.0.0"

@@ -18,7 +18,8 @@
     "type-check": "tsc --noEmit",
     "verify:generated": "tsx scripts/build-articles.ts",
     "test": "NODE_OPTIONS=--max-old-space-size=8192 vitest --run",
-    "test:coverage": "vitest --coverage --run"
+    "test:coverage": "vitest --coverage --run",
+    "test:mutation": "stryker run"
   },
   "dependencies": {
     "dompurify": "3.4.13",

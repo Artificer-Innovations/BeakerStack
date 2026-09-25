@@ -24,6 +24,7 @@
     "android:uninstall": "adb uninstall com.anonymous.beakerstack || echo 'App not installed or no device connected'",
     "ios:uninstall": "sh -c 'if command -v xcrun >/dev/null 2>&1; then booted=$(xcrun simctl list devices | grep -i \"booted\" | sed \"s/.*(\\([^)]*\\)).*/\\1/\" | head -1); if [ -n \"$booted\" ]; then xcrun simctl uninstall \"$booted\" com.anonymous.beakerstack && echo \"App uninstalled from simulator $booted\" || echo \"App not installed or uninstall failed\"; else echo \"No booted iOS simulator found\"; fi; else echo \"xcrun not available\"; fi'",
     "test": "jest --runInBand --detectOpenHandles --forceExit",
+    "test:mutation": "stryker run",
     "lint": "eslint --resolve-plugins-relative-to ../.. src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint --resolve-plugins-relative-to ../.. src --ext ts,tsx --fix",
     "type-check": "tsc --noEmit",

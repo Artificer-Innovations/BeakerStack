@@ -232,7 +232,7 @@ classify_path() {
       ;;
     docs/* | README.md | LICENSE | *.md)
       ;;
-    scripts/ci/* | scripts/ci-* | scripts/format-ci-summary.mjs | scripts/check-csp-hash.mjs | scripts/crap-report.mjs | scripts/merge-coverage.js | scripts/lib/crap-summary.js | scripts/lib/crap-analyze.js | scripts/lib/coverage-stats.js | scripts/lib/merge-istanbul-coverage.js | scripts/lib/normalize-istanbul-coverage.js)
+    scripts/ci/* | scripts/ci-* | scripts/format-ci-summary.mjs | scripts/check-csp-hash.mjs | scripts/crap-report.mjs | scripts/merge-coverage.js | scripts/merge-mutation-reports.js | scripts/lib/crap-summary.js | scripts/lib/crap-analyze.js | scripts/lib/coverage-stats.js | scripts/lib/merge-istanbul-coverage.js | scripts/lib/merge-mutation-reports.js | scripts/lib/normalize-istanbul-coverage.js)
       match_tested_scripts=true
       ;;
     scripts/*)
