@@ -7,4 +7,4 @@ index ec1981d..6b34f68 100644
  exports.minimatch.unescape = unescape_js_1.unescape;
  //# sourceMappingURL=index.js.map
 +// BeakerStack: callable CJS default for legacy require("minimatch")(path, pattern) consumers (e.g. test-exclude).
-+module.exports = Object.assign(exports.minimatch, exports);
++module.exports = exports.minimatch;

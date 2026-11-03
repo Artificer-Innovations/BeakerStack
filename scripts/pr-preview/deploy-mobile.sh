@@ -788,22 +788,30 @@ build_native_app() {
 
   if [[ -z "${ios_build_id}" ]]; then
     (
-      if submit_eas_build "ios" "${build_message}"; then
+      # Persist id/status even when submit_eas_build fast-fails on ERRORED so
+      # build_native_app can still emit status URLs / output vars.
+      submit_rc=0
+      submit_eas_build "ios" "${build_message}" || submit_rc=$?
+      if [[ -n "${PARSED_BUILD_ID}" && "${PARSED_BUILD_ID}" != "null" ]]; then
         printf '%s' "${PARSED_BUILD_ID}" >"${submit_tmp}/ios.id"
         printf '%s' "${PARSED_BUILD_STATUS}" >"${submit_tmp}/ios.status"
         printf '%s' "${PARSED_BUILD_OBJ}" >"${submit_tmp}/ios.info"
       fi
+      exit "${submit_rc}"
     ) &
     ios_submit_pid=$!
   fi
 
   if [[ -z "${android_build_id}" ]]; then
     (
-      if submit_eas_build "android" "${build_message}"; then
+      submit_rc=0
+      submit_eas_build "android" "${build_message}" || submit_rc=$?
+      if [[ -n "${PARSED_BUILD_ID}" && "${PARSED_BUILD_ID}" != "null" ]]; then
         printf '%s' "${PARSED_BUILD_ID}" >"${submit_tmp}/android.id"
         printf '%s' "${PARSED_BUILD_STATUS}" >"${submit_tmp}/android.status"
         printf '%s' "${PARSED_BUILD_OBJ}" >"${submit_tmp}/android.info"
       fi
+      exit "${submit_rc}"
     ) &
     android_submit_pid=$!
   fi
@@ -922,6 +930,8 @@ build_native_app() {
       write_output "PREVIEW_MOBILE_IOS_DOWNLOAD_URL" "${ios_status_url}"
       log "WARN" "iOS build ${ios_build_id} did not complete successfully or is still in progress. Check status at: ${ios_status_url}"
     fi
+  else
+    log "ERROR" "iOS build failed to start (no build ID returned from EAS)"
   fi
   
   if [[ -n "${android_build_id}" ]]; then
