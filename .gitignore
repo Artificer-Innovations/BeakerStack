@@ -259,9 +259,8 @@ coverage/
 # Build outputs
 build/
 dist/
-# Vendored image-size ships its published dist (Metro override).
-!vendor/image-size/dist/
-!vendor/image-size/dist/**
+# Vendored image-size lives under lib/ (not dist/) so EAS upload ignore
+# rules for dist/ cannot strip Metro's file: override package.
 *.tgz
 *.tar.gz
 
