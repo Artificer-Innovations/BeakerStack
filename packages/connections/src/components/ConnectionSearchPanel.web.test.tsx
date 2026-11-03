@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { ConnectionSearchPanel } from './ConnectionSearchPanel.web.js';
 import { createMockSupabase } from '../test/mockSupabase.js';
 
-const UUID_B = 'c1000000-0000-0000-0000-000000000002';
+const UUID_B = 'c1000000-0000-4000-8000-000000000002';
 
 describe('ConnectionSearchPanel', () => {
   it('clears results for short queries on Enter', async () => {
@@ -40,7 +40,7 @@ describe('ConnectionSearchPanel', () => {
         };
       }
       return {
-        data: [{ id: 'c1000000-0000-0000-0000-000000000099' }],
+        data: [{ id: 'c1000000-0000-4000-8000-000000000099' }],
         error: null,
       };
     });

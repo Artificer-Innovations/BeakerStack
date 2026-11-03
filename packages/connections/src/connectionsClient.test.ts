@@ -12,8 +12,8 @@ import {
 } from './connectionsClient.js';
 import { createMockSupabase } from './test/mockSupabase.js';
 
-const UUID_B = 'c1000000-0000-0000-0000-000000000002';
-const CONN_ID = 'c1000000-0000-0000-0000-000000000099';
+const UUID_B = 'c1000000-0000-4000-8000-000000000002';
+const CONN_ID = 'c1000000-0000-4000-8000-000000000099';
 
 describe('connectionsClient', () => {
   it('connectionsRequest returns first row or null', async () => {

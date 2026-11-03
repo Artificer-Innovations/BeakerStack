@@ -10,7 +10,7 @@ import {
 function expectParseFailure(
   result: {
     success: boolean;
-    error?: { errors: Array<{ message: string }> };
+    error?: { issues: Array<{ message: string }> };
   },
   messagePart: string
 ): void {
@@ -18,7 +18,7 @@ function expectParseFailure(
   if (result.success) {
     throw new Error('expected parse to fail');
   }
-  expect(result.error!.errors[0].message).toContain(messagePart);
+  expect(result.error!.issues[0].message).toContain(messagePart);
 }
 
 describe('profileInsertSchema', () => {

@@ -49,8 +49,8 @@ export const billingPlanConfigSchema = z.object({
   stripePriceIdMonthly: z.string().nullable().optional(),
   stripePriceIdAnnual: z.string().nullable().optional(),
   stripeProductId: z.string().nullable().optional(),
-  features: z.record(z.union([z.boolean(), z.number()])),
-  usageLimits: z.record(z.number()),
+  features: z.record(z.string(), z.union([z.boolean(), z.number()])),
+  usageLimits: z.record(z.string(), z.number()),
   trialPeriodDays: z.number().int().nonnegative().optional(),
   isPublic: z.boolean().optional(),
   displayOrder: z.number().int().optional(),
@@ -68,6 +68,7 @@ export const productBillingConfigSchema = z.object({
   /** Usage page meter labels keyed by meter id (e.g. `ai_summarize`). */
   usageMeterCopy: z
     .record(
+      z.string(),
       z.object({
         label: z.string(),
         description: z.string().optional(),
