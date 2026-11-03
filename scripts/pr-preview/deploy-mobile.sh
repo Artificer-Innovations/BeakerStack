@@ -463,19 +463,25 @@ wait_for_build() {
       continue
     fi
     
+    # EAS returns uppercase statuses (FINISHED/ERRORED); normalize for matching.
     local status
-    status="$(echo "${build_info}" | jq -r '.status // "unknown"' 2>/dev/null || echo "unknown")"
+    status="$(echo "${build_info}" | jq -r '.status // "unknown"' 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo "unknown")"
+    local error_message
+    error_message="$(echo "${build_info}" | jq -r '.error.message // empty' 2>/dev/null || true)"
     
     case "${status}" in
       "finished")
         log "INFO" "${platform} build ${build_id} completed successfully"
         return 0
         ;;
-      "errored"|"canceled")
+      "errored"|"canceled"|"cancelled")
         log "ERROR" "${platform} build ${build_id} failed with status: ${status}"
+        if [[ -n "${error_message}" ]]; then
+          log "ERROR" "${platform} build error: ${error_message}"
+        fi
         return 1
         ;;
-      "in-progress"|"in-queue"|"pending")
+      "in-progress"|"in-queue"|"pending"|"new")
         log "INFO" "${platform} build ${build_id} status: ${status} (${elapsed}s elapsed)"
         ;;
       *)
@@ -534,6 +540,17 @@ submit_eas_build() {
     return 1
   fi
   log "INFO" "${platform} build submitted: ${PARSED_BUILD_ID} (status: ${PARSED_BUILD_STATUS})"
+  local status_lc
+  status_lc="$(echo "${PARSED_BUILD_STATUS}" | tr '[:upper:]' '[:lower:]')"
+  if [[ "${status_lc}" == "errored" || "${status_lc}" == "canceled" || "${status_lc}" == "cancelled" ]]; then
+    local error_message
+    error_message="$(echo "${PARSED_BUILD_OBJ}" | jq -r '.error.message // empty' 2>/dev/null || true)"
+    log "ERROR" "${platform} build ${PARSED_BUILD_ID} ended with status ${PARSED_BUILD_STATUS}"
+    if [[ -n "${error_message}" ]]; then
+      log "ERROR" "${platform} build error: ${error_message}"
+    fi
+    return 1
+  fi
   return 0
 }
 
