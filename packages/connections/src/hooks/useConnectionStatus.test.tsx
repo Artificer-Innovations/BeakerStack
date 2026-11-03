@@ -3,8 +3,8 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { useConnectionStatus } from './useConnectionStatus.js';
 import { createMockSupabase } from '../test/mockSupabase.js';
 
-const UUID_A = 'c1000000-0000-0000-0000-000000000001';
-const UUID_B = 'c1000000-0000-0000-0000-000000000002';
+const UUID_A = 'c1000000-0000-4000-8000-000000000001';
+const UUID_B = 'c1000000-0000-4000-8000-000000000002';
 
 describe('useConnectionStatus', () => {
   it('returns null status without user ids', async () => {
@@ -31,7 +31,7 @@ describe('useConnectionStatus', () => {
           status: 'pending',
           effective_status: 'pending',
           is_initiator: false,
-          connection_id: 'c1000000-0000-0000-0000-000000000099',
+          connection_id: 'c1000000-0000-4000-8000-000000000099',
         },
       ],
       error: null,

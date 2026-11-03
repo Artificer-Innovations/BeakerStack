@@ -27,14 +27,14 @@ type ZodErrorItem = {
 };
 
 type ZodErrorShape = {
-  errors: ZodErrorItem[];
+  issues: ZodErrorItem[];
 };
 
 const isZodErrorShape = (error: unknown): error is ZodErrorShape => {
-  if (!error || typeof error !== 'object' || !('errors' in error)) {
+  if (!error || typeof error !== 'object' || !('issues' in error)) {
     return false;
   }
-  const candidate = (error as { errors?: unknown }).errors;
+  const candidate = (error as { issues?: unknown }).issues;
   if (!Array.isArray(candidate)) {
     return false;
   }
@@ -233,7 +233,7 @@ export function ProfileEditor({
       if (isZodErrorShape(err)) {
         // Map Zod errors to field errors
         const errors: Record<string, string> = {};
-        err.errors.forEach(error => {
+        err.issues.forEach(error => {
           const [fieldCandidate] = error.path;
           if (typeof fieldCandidate === 'string') {
             errors[fieldCandidate] = error.message;

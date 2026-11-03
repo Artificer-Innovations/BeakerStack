@@ -298,7 +298,7 @@ function profileToFormData(
  */
 function zodErrorsToFieldErrors(err: ZodError): Record<string, string> {
   const errors: Record<string, string> = {};
-  err.errors.forEach(error => {
+  err.issues.forEach(error => {
     const field = error.path[0] as string;
     if (field) {
       errors[field] = error.message;

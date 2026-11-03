@@ -144,7 +144,7 @@ describe('ProfileEditor.native — coverage gaps', () => {
 
   it('handles malformed zod error payloads during submit', async () => {
     jest.spyOn(profileFormSchema, 'parse').mockImplementationOnce(() => {
-      throw { errors: [null] };
+      throw { issues: [null] };
     });
 
     render(<ProfileEditor />);

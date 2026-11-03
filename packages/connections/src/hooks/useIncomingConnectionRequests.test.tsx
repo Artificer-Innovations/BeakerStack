@@ -3,15 +3,15 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { useIncomingConnectionRequests } from './useIncomingConnectionRequests.js';
 import { createMockSupabase } from '../test/mockSupabase.js';
 
-const UUID_ME = 'c1000000-0000-0000-0000-000000000001';
-const UUID_OTHER = 'c1000000-0000-0000-0000-000000000002';
+const UUID_ME = 'c1000000-0000-4000-8000-000000000001';
+const UUID_OTHER = 'c1000000-0000-4000-8000-000000000002';
 
 describe('useIncomingConnectionRequests', () => {
   it('filters pending rows where current user is recipient', async () => {
     const supabase = createMockSupabase(async () => ({
       data: [
         {
-          id: 'c1000000-0000-0000-0000-000000000099',
+          id: 'c1000000-0000-4000-8000-000000000099',
           status: 'pending',
           effective_status: 'pending',
           initiator_user_id: UUID_OTHER,
@@ -24,7 +24,7 @@ describe('useIncomingConnectionRequests', () => {
           accepted_at: null,
         },
         {
-          id: 'c1000000-0000-0000-0000-000000000098',
+          id: 'c1000000-0000-4000-8000-000000000098',
           status: 'pending',
           effective_status: 'pending',
           initiator_user_id: UUID_ME,

@@ -6,13 +6,13 @@ import {
   emitConnectionChange,
 } from '../test/mockSupabase.js';
 
-const UUID_A = 'c1000000-0000-0000-0000-000000000001';
+const UUID_A = 'c1000000-0000-4000-8000-000000000001';
 const row = {
-  id: 'c1000000-0000-0000-0000-000000000099',
+  id: 'c1000000-0000-4000-8000-000000000099',
   status: 'accepted' as const,
   effective_status: 'accepted' as const,
   initiator_user_id: UUID_A,
-  recipient_user_id: 'c1000000-0000-0000-0000-000000000002',
+  recipient_user_id: 'c1000000-0000-4000-8000-000000000002',
   is_initiator: true,
   username: 'alice',
   display_name: 'Alice',
@@ -96,7 +96,7 @@ describe('useConnections', () => {
   });
 
   it('ignores stale responses when userId changes during fetch', async () => {
-    const UUID_B = 'c1000000-0000-0000-0000-000000000002';
+    const UUID_B = 'c1000000-0000-4000-8000-000000000002';
     let resolveFirst: (value: {
       data: (typeof row)[];
       error: null;
@@ -124,7 +124,7 @@ describe('useConnections', () => {
   });
 
   it('ignores stale errors when userId changes during fetch', async () => {
-    const UUID_B = 'c1000000-0000-0000-0000-000000000002';
+    const UUID_B = 'c1000000-0000-4000-8000-000000000002';
     let resolveFirst: (value: {
       data: null;
       error: { message: string };

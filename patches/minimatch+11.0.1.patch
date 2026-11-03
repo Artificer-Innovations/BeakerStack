@@ -1,0 +1,10 @@
+diff --git a/node_modules/minimatch/dist/commonjs/index.js b/node_modules/minimatch/dist/commonjs/index.js
+index ec1981d..6b34f68 100644
+--- a/node_modules/minimatch/dist/commonjs/index.js
++++ b/node_modules/minimatch/dist/commonjs/index.js
+@@ -1510,3 +1510,5 @@ exports.minimatch.Minimatch = Minimatch;
+ exports.minimatch.escape = escape_js_1.escape;
+ exports.minimatch.unescape = unescape_js_1.unescape;
+ //# sourceMappingURL=index.js.map
++// BeakerStack: callable CJS default for legacy require("minimatch")(path, pattern) consumers (e.g. test-exclude).
++module.exports = exports.minimatch;

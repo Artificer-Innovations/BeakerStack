@@ -14,7 +14,10 @@ export const waitlistMetadataFieldSchema = z.object({
   required: z.boolean().optional(),
 });
 
-export const waitlistCopySchema = z.record(z.record(z.string()));
+export const waitlistCopySchema = z.record(
+  z.string(),
+  z.record(z.string(), z.string())
+);
 
 export const waitlistConfigSchema = z.object({
   productId: z.string().min(1),

@@ -18,7 +18,7 @@
     "@supabase/supabase-js": "^2.38.0",
     "buffer": "^6.0.3",
     "lucide-react": "^0.460.0",
-    "zod": "^3.22.0"
+    "zod": "4.6.6"
   },
   "peerDependencies": {
     "react": "19.2.8",
