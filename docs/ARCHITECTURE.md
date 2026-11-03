@@ -2080,7 +2080,10 @@ test-e2e-mobile:
   steps:
     - uses: actions/checkout@v4
     - name: Setup Maestro
-      run: curl -Ls "https://get.maestro.mobile.dev" | bash
+      run: |
+        # Install per https://docs.maestro.dev/getting-started/installing-maestro
+        # Ensure maestro is on PATH before running tests (do not pipe remote installers to a shell).
+        command -v maestro
     - run: maestro test tests/e2e/mobile/flows/
 ```
 
@@ -2152,7 +2155,7 @@ INSERT INTO user_profiles (id, full_name, bio) VALUES
 - Docker Desktop (for Supabase local)
 - Supabase CLI: `npm install -g supabase`
 - React Native development environment (Xcode for iOS, Android Studio for Android)
-- Maestro CLI: `curl -Ls https://get.maestro.mobile.dev | bash`
+- Maestro CLI: install from [Maestro docs](https://docs.maestro.dev/getting-started/installing-maestro) and ensure `maestro` is on `PATH`
 
 ### First-Time Setup
 

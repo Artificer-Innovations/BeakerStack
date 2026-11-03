@@ -340,12 +340,7 @@ Tests run against the deployed PR preview URL after verifying the preview deploy
 
 **Prerequisites:**
 
-1. **Install Maestro CLI:**
-
-   ```bash
-   curl -Ls "https://get.maestro.mobile.dev" | bash
-   export PATH="$HOME/.maestro/bin:$PATH"
-   ```
+1. **Install Maestro CLI** from the [official install guide](https://docs.maestro.dev/getting-started/installing-maestro), then ensure `maestro` is on your `PATH` (for example `export PATH="$HOME/.maestro/bin:$PATH"`).
 
 2. App built and installed on device/simulator; set `MOBILE_APP_ID` (defaults to `com.anonymous.beakerstack`).
 
@@ -767,7 +762,7 @@ test('signs in seeded user and lands on dashboard', async ({
 
 **Problem:** Maestro not found
 
-- **Solution:** Install Maestro: `curl -Ls "https://get.maestro.mobile.dev" | bash`
+- **Solution:** Install Maestro from the [official install guide](https://docs.maestro.dev/getting-started/installing-maestro) and ensure it is on your `PATH`
 
 **Problem:** Mobile tests fail — app not installed
 

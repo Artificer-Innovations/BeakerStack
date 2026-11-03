@@ -78,12 +78,12 @@ case "$ENVIRONMENT" in
     ;;
 esac
 
-# Check if Maestro is installed
+# Check if Maestro is installed (do not auto-install via remote pipe-to-shell)
 if ! command -v maestro &> /dev/null; then
-  echo "❌ Maestro is not installed"
-  echo "📦 Installing Maestro..."
-  curl -Ls "https://get.maestro.mobile.dev" | bash
-  export PATH="$HOME/.maestro/bin:$PATH"
+  echo "❌ Maestro is not installed or not on PATH"
+  echo "   Install from: https://docs.maestro.dev/getting-started/installing-maestro"
+  echo "   Then ensure maestro is on PATH (e.g. export PATH=\"\$HOME/.maestro/bin:\$PATH\")"
+  exit 1
 fi
 
 # Export environment variables for Maestro
