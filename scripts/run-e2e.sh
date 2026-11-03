@@ -78,19 +78,21 @@ case "$ENVIRONMENT" in
     ;;
 esac
 
-# Check if Maestro is installed
-if ! command -v maestro &> /dev/null; then
-  echo "❌ Maestro is not installed"
-  echo "📦 Installing Maestro..."
-  curl -Ls "https://get.maestro.mobile.dev" | bash
-  export PATH="$HOME/.maestro/bin:$PATH"
-fi
-
-# Export environment variables for Maestro
+# Export environment variables (Maestro check deferred until mobile tests are opted in)
 export WEB_URL="$WEB_URL"
 export MOBILE_APP_ID="$MOBILE_APP_ID"
 export TEST_EMAIL="e2e-test-${RANDOM}@example.com"
 export TEST_PASSWORD="${TEST_PASSWORD:-E2e_$(openssl rand -hex 16)_Aa1}"
+
+require_maestro() {
+  # Do not auto-install via remote pipe-to-shell
+  if ! command -v maestro &> /dev/null; then
+    echo "❌ Maestro is not installed or not on PATH"
+    echo "   Install from: https://docs.maestro.dev/getting-started/installing-maestro"
+    echo "   Then ensure maestro is on PATH (e.g. export PATH=\"\$HOME/.maestro/bin:\$PATH\")"
+    exit 1
+  fi
+}
 
 echo ""
 echo "📋 Test Configuration:"
@@ -168,6 +170,7 @@ if [ "$ENVIRONMENT" = "local" ]; then
   if [ "$mobile_confirm" != "yes" ]; then
     echo "⏭️  Skipping mobile tests"
   else
+    require_maestro
     maestro test tests/e2e/mobile/flows/ \
       --env MOBILE_APP_ID="$MOBILE_APP_ID" \
       --env TEST_EMAIL="$TEST_EMAIL" \
@@ -187,6 +190,7 @@ else
   if [ "$mobile_confirm" != "yes" ]; then
     echo "⏭️  Skipping mobile tests"
   else
+    require_maestro
     maestro test tests/e2e/mobile/flows/ \
       --env MOBILE_APP_ID="$MOBILE_APP_ID" \
       --env TEST_EMAIL="$TEST_EMAIL" \
