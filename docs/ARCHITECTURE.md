@@ -2081,9 +2081,11 @@ test-e2e-mobile:
     - uses: actions/checkout@v4
     - name: Setup Maestro
       run: |
-        # Install per https://docs.maestro.dev/getting-started/installing-maestro
-        # Ensure maestro is on PATH before running tests (do not pipe remote installers to a shell).
-        command -v maestro
+        # Install via Homebrew (avoid curl|bash). Use the fully qualified formula so
+        # Homebrew does not pick the unrelated "maestro" cask.
+        # See https://docs.maestro.dev/maestro-cli/how-to-install-maestro-cli
+        brew tap mobile-dev-inc/tap
+        brew install mobile-dev-inc/tap/maestro
     - run: maestro test tests/e2e/mobile/flows/
 ```
 
