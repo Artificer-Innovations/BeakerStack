@@ -4,6 +4,7 @@
  * This script is run during EAS builds to create the google-services.json file
  * from environment variables instead of committing secrets to git.
  */
+/* eslint-disable @typescript-eslint/no-var-requires, no-console -- EAS build CLI */
 
 const fs = require('fs');
 const path = require('path');
@@ -12,7 +13,7 @@ const mobileRoot = path.resolve(__dirname, '..');
 const outputPath = path.join(mobileRoot, 'google-services.json');
 
 // Required environment variables
-// EAS local builds use the same EAS-managed keystore as cloud builds
+// EAS local builds use the same EAS-managed Android signing credentials as cloud builds
 // So we use the same client ID and certificate hash for both
 const requiredVars = {
   GOOGLE_SERVICES_PROJECT_NUMBER: process.env.GOOGLE_SERVICES_PROJECT_NUMBER,
@@ -47,7 +48,7 @@ if (!isBuildEnv && !isEasBuildDir && fs.existsSync(outputPath)) {
 
 // Check for missing required variables
 const missingVars = Object.entries(requiredVars)
-  .filter(([key, value]) => !value)
+  .filter(([, value]) => !value)
   .map(([key]) => key);
 
 if (missingVars.length > 0) {

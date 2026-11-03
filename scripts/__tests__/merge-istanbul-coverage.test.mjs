@@ -51,6 +51,22 @@ test('mergeFileCoverage unions neutral file coverage across runs', () => {
   assert.deepEqual(merged.b, { 0: [1, 1] });
 });
 
+test('mergeFileCoverage fills missing fnMap/branchMap for empty stubs', () => {
+  const merged = mergeFileCoverage(undefined, {
+    path: '/repo/packages/shared/src/theme/colors.ts',
+    all: true,
+    statementMap: { 0: { start: { line: 1 } } },
+    s: { 0: 1 },
+    f: {},
+    b: {},
+    l: { 1: 1 },
+  });
+
+  assert.deepEqual(merged.fnMap, {});
+  assert.deepEqual(merged.branchMap, {});
+  assert.deepEqual(merged.statementMap, { 0: { start: { line: 1 } } });
+});
+
 test('mergeFileCoverage preserves source maps when only one side defines them', () => {
   const merged = mergeFileCoverage(
     {

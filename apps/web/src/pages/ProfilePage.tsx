@@ -25,9 +25,6 @@ function profileDiscoverability(
 
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
-  const [discoverabilityError, setDiscoverabilityError] = useState<
-    string | null
-  >(null);
   const auth = useAuthContext();
   const profile = useProfileContext();
 
@@ -82,67 +79,10 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {profile.profile && auth.user && (
-                <div className='bg-white dark:bg-gray-800 shadow rounded-lg p-6'>
-                  <h3 className='text-sm font-medium text-gray-900 dark:text-white mb-2'>
-                    Connections &amp; privacy
-                  </h3>
-                  <label
-                    htmlFor='connection-discoverability'
-                    className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'
-                  >
-                    Who can find and connect with you
-                  </label>
-                  <select
-                    id='connection-discoverability'
-                    className='w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100'
-                    value={profileDiscoverability(
-                      profile.profile.connection_discoverability
-                    )}
-                    onChange={async e => {
-                      const userId = auth.user?.id;
-                      if (!userId) return;
-                      const next = e.target.value;
-                      if (!isConnectionDiscoverability(next)) return;
-                      setDiscoverabilityError(null);
-                      try {
-                        await profile.updateProfile(userId, {
-                          connection_discoverability: next,
-                        });
-                        await profile.refreshProfile();
-                      } catch (err) {
-                        Logger.error('Discoverability update failed', err);
-                        setDiscoverabilityError(
-                          'Failed to update discoverability. Please try again.'
-                        );
-                      }
-                    }}
-                  >
-                    {CONNECTION_DISCOVERABILITY_VALUES.map(key => (
-                      <option key={key} value={key}>
-                        {CONNECTION_DISCOVERABILITY_LABELS[key].title}
-                      </option>
-                    ))}
-                  </select>
-                  <p className='mt-2 text-sm text-gray-600 dark:text-gray-400'>
-                    {
-                      CONNECTION_DISCOVERABILITY_LABELS[
-                        profileDiscoverability(
-                          profile.profile.connection_discoverability
-                        )
-                      ].description
-                    }
-                  </p>
-                  {discoverabilityError ? (
-                    <p
-                      className='mt-2 text-sm text-red-600 dark:text-red-400'
-                      role='alert'
-                    >
-                      {discoverabilityError}
-                    </p>
-                  ) : null}
-                </div>
-              )}
+              <ConnectionPrivacySection
+                profile={profile}
+                userId={auth.user?.id}
+              />
 
               {/* Profile Editor Section */}
               {!isEditing && (
@@ -174,6 +114,75 @@ export default function ProfilePage() {
           )}
         </div>
       </ContentContainer>
+    </div>
+  );
+}
+
+function ConnectionPrivacySection({
+  profile,
+  userId,
+}: {
+  profile: ReturnType<typeof useProfileContext>;
+  userId: string | undefined;
+}) {
+  const [discoverabilityError, setDiscoverabilityError] = useState<
+    string | null
+  >(null);
+
+  if (!profile.profile || !userId) return null;
+
+  return (
+    <div className='bg-white dark:bg-gray-800 shadow rounded-lg p-6'>
+      <h3 className='text-sm font-medium text-gray-900 dark:text-white mb-2'>
+        Connections &amp; privacy
+      </h3>
+      <label
+        htmlFor='connection-discoverability'
+        className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'
+      >
+        Who can find and connect with you
+      </label>
+      <select
+        id='connection-discoverability'
+        className='w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100'
+        value={profileDiscoverability(
+          profile.profile.connection_discoverability
+        )}
+        onChange={async e => {
+          const next = e.target.value;
+          if (!isConnectionDiscoverability(next)) return;
+          setDiscoverabilityError(null);
+          try {
+            await profile.updateProfile(userId, {
+              connection_discoverability: next,
+            });
+            await profile.refreshProfile();
+          } catch (err) {
+            Logger.error('Discoverability update failed', err);
+            setDiscoverabilityError(
+              'Failed to update discoverability. Please try again.'
+            );
+          }
+        }}
+      >
+        {CONNECTION_DISCOVERABILITY_VALUES.map(key => (
+          <option key={key} value={key}>
+            {CONNECTION_DISCOVERABILITY_LABELS[key].title}
+          </option>
+        ))}
+      </select>
+      <p className='mt-2 text-sm text-gray-600 dark:text-gray-400'>
+        {
+          CONNECTION_DISCOVERABILITY_LABELS[
+            profileDiscoverability(profile.profile.connection_discoverability)
+          ].description
+        }
+      </p>
+      {discoverabilityError ? (
+        <p className='mt-2 text-sm text-red-600 dark:text-red-400' role='alert'>
+          {discoverabilityError}
+        </p>
+      ) : null}
     </div>
   );
 }

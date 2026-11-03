@@ -205,282 +205,406 @@ export function AdminUserDetailDrawer({
       )}
       {!loading && !error && detail && (
         <div className='space-y-6 text-sm'>
-          <section>
-            <h3 className='font-semibold text-gray-900'>Account</h3>
-            <dl className='mt-2 space-y-1 text-gray-600'>
-              <div className='flex justify-between gap-4'>
-                <dt>Email</dt>
-                <dd className='text-gray-900'>{detail.auth.email ?? '—'}</dd>
-              </div>
-              <div className='flex justify-between gap-4'>
-                <dt>Signed up</dt>
-                <dd>{formatDate(detail.auth.created_at)}</dd>
-              </div>
-              <div className='flex justify-between gap-4'>
-                <dt>Last active</dt>
-                <dd>{formatDate(detail.auth.last_sign_in_at)}</dd>
-              </div>
-            </dl>
-          </section>
+          <AccountSection auth={detail.auth} />
 
-          <section>
-            <h3 className='font-semibold text-gray-900'>Operator access</h3>
-            <div className='mt-2 space-y-3'>
-              {detail.admin.is_admin ? (
-                <>
-                  <div className='flex flex-wrap items-center gap-2 text-gray-600'>
-                    <span className='inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20'>
-                      Admin
-                    </span>
-                    {detail.admin.granted_by_email && (
-                      <span className='text-xs text-gray-500'>
-                        granted by {detail.admin.granted_by_email}
-                      </span>
-                    )}
-                    {detail.admin.granted_at && (
-                      <span className='text-xs text-gray-400'>
-                        {formatDate(detail.admin.granted_at)}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    type='button'
-                    disabled={currentUserId == null || isSelf || actionLoading}
-                    title={
-                      isSelf
-                        ? "You can't revoke your own admin access"
-                        : undefined
-                    }
-                    className='rounded bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50'
-                    onClick={() => setActionPending('revoke')}
-                  >
-                    Revoke admin access
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p className='text-xs text-gray-500'>No admin access</p>
-                  <button
-                    type='button'
-                    disabled={actionLoading}
-                    className='rounded bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50'
-                    onClick={() => setActionPending('grant')}
-                  >
-                    Grant admin access
-                  </button>
-                </>
-              )}
-            </div>
-          </section>
+          <OperatorAccessSection
+            admin={detail.admin}
+            isSelf={isSelf}
+            actionLoading={actionLoading}
+            currentUserId={currentUserId}
+            onGrant={() => setActionPending('grant')}
+            onRevoke={() => setActionPending('revoke')}
+          />
 
-          <section>
-            <h3 className='font-semibold text-gray-900'>Billing</h3>
-            <dl className='mt-2 space-y-1 text-gray-600'>
-              <div className='flex justify-between gap-4'>
-                <dt>Plan</dt>
-                <dd className='text-gray-900'>
-                  {(detail.plan?.['display_name'] as string) ??
-                    detail.subscription?.['plan_id'] ??
-                    '—'}
-                </dd>
-              </div>
-              <div className='flex justify-between gap-4'>
-                <dt>Status</dt>
-                <dd>{(detail.subscription?.['status'] as string) ?? '—'}</dd>
-              </div>
-            </dl>
-            {detail.comp_grant ? (
-              <div className='mt-3 space-y-1 rounded-md bg-indigo-50/80 px-3 py-2 text-xs text-indigo-950'>
-                <p className='font-medium text-indigo-900'>
-                  Complimentary access
-                </p>
-                <p>
-                  <span className='text-indigo-700'>Reason:</span>{' '}
-                  {detail.comp_grant.comp_reason}
-                </p>
-                {detail.comp_grant.comped_by_email ? (
-                  <p>
-                    <span className='text-indigo-700'>Granted by:</span>{' '}
-                    {detail.comp_grant.comped_by_email}
-                  </p>
-                ) : null}
-                <p>
-                  <span className='text-indigo-700'>Granted:</span>{' '}
-                  {formatDate(detail.comp_grant.comped_at)}
-                </p>
-                {detail.comp_grant.comp_expires_at ? (
-                  <p>
-                    <span className='text-indigo-700'>Expires:</span>{' '}
-                    {formatDate(detail.comp_grant.comp_expires_at)}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-            <div className='mt-3 flex flex-wrap gap-2'>
-              {!hasCompAccess ? (
-                <button
-                  type='button'
-                  disabled={actionLoading}
-                  className='rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50'
-                  onClick={() => {
-                    setCompReason('');
-                    setActionPending('grant_comp');
-                  }}
-                >
-                  Grant complimentary VIP
-                </button>
-              ) : (
-                <button
-                  type='button'
-                  disabled={actionLoading}
-                  className='rounded bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50'
-                  onClick={() => setActionPending('revoke_comp')}
-                >
-                  Revoke complimentary access
-                </button>
-              )}
-            </div>
-            {actionError && actionPending === null ? (
-              <p className='mt-2 text-xs text-red-600' role='alert'>
-                {actionError}
-              </p>
-            ) : null}
-          </section>
+          <BillingSection
+            detail={detail}
+            hasCompAccess={hasCompAccess}
+            actionLoading={actionLoading}
+            actionError={actionError}
+            actionPending={actionPending}
+            onGrantComp={() => {
+              setCompReason('');
+              setActionPending('grant_comp');
+            }}
+            onRevokeComp={() => setActionPending('revoke_comp')}
+          />
 
-          {actionPending && (
-            <div
-              role='dialog'
-              aria-modal='true'
-              aria-labelledby='confirm-dialog-title'
-              className='fixed inset-0 z-50 flex items-center justify-center bg-black/40'
-              data-testid='confirm-dialog'
-            >
-              <div className='w-80 max-w-[calc(100vw-2rem)] rounded-lg bg-white p-6 shadow-xl'>
-                <h4
-                  id='confirm-dialog-title'
-                  className='text-sm font-semibold text-gray-900'
-                >
-                  {confirmTitle}
-                </h4>
-                <p className='mt-2 text-sm text-gray-600'>{confirmBody}</p>
-                {actionPending === 'grant_comp' ? (
-                  <label className='mt-3 block text-sm text-gray-700'>
-                    <span className='font-medium'>Reason (required)</span>
-                    <textarea
-                      className='mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm'
-                      rows={3}
-                      maxLength={500}
-                      value={compReason}
-                      onChange={e => setCompReason(e.target.value)}
-                      placeholder='e.g. design partner, press access'
-                      data-testid='comp-grant-reason'
-                    />
-                  </label>
-                ) : null}
-                {actionError ? (
-                  <p className='mt-2 text-xs text-red-600' role='alert'>
-                    {actionError}
-                  </p>
-                ) : null}
-                <div className='mt-4 flex justify-end gap-3'>
-                  <button
-                    type='button'
-                    disabled={actionLoading}
-                    className='rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50'
-                    onClick={dismissDialog}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type='button'
-                    disabled={confirmDisabled}
-                    className={`rounded px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 ${
-                      actionPending === 'grant' ||
-                      actionPending === 'grant_comp'
-                        ? 'bg-indigo-600 hover:bg-indigo-700'
-                        : 'bg-red-600 hover:bg-red-700'
-                    }`}
-                    onClick={() => void handleConfirmAction()}
-                  >
-                    {actionLoading ? 'Please wait…' : 'Confirm'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          <ConfirmDialog
+            actionPending={actionPending}
+            title={confirmTitle}
+            body={confirmBody}
+            compReason={compReason}
+            onCompReasonChange={setCompReason}
+            actionError={actionError}
+            actionLoading={actionLoading}
+            confirmDisabled={confirmDisabled}
+            onCancel={dismissDialog}
+            onConfirm={() => void handleConfirmAction()}
+          />
 
-          {detail.profile && (
-            <section>
-              <h3 className='font-semibold text-gray-900'>Profile</h3>
-              <dl className='mt-2 space-y-1 text-gray-600'>
-                <div className='flex justify-between gap-4'>
-                  <dt>Display name</dt>
-                  <dd className='text-gray-900'>
-                    {(detail.profile['display_name'] as string) ?? '—'}
-                  </dd>
-                </div>
-                <div className='flex justify-between gap-4'>
-                  <dt>Username</dt>
-                  <dd>{(detail.profile['username'] as string) ?? '—'}</dd>
-                </div>
-              </dl>
-            </section>
-          )}
+          <ProfileSection profile={detail.profile} />
 
-          {detail.usage_aggregates.length > 0 && (
-            <section>
-              <h3 className='font-semibold text-gray-900'>
-                Current period usage
-              </h3>
-              <ul className='mt-2 space-y-1 text-gray-600'>
-                {detail.usage_aggregates.map((row, i) => (
-                  <li key={i} className='flex justify-between gap-4'>
-                    <span>{String(row['event_type'] ?? '')}</span>
-                    <span className='font-medium text-gray-900'>
-                      {String(row['count'] ?? 0)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+          <UsageAggregatesSection rows={detail.usage_aggregates} />
 
-          {detail.usage_events.length > 0 && (
-            <section>
-              <h3 className='font-semibold text-gray-900'>
-                Recent usage events
-              </h3>
-              <ul className='mt-2 max-h-48 overflow-y-auto space-y-2 text-gray-600'>
-                {detail.usage_events.slice(0, 20).map((ev, i) => (
-                  <li key={i} className='border-b border-gray-100 pb-2'>
-                    <span className='font-medium text-gray-800'>
-                      {String(ev['event_type'] ?? '')}
-                    </span>
-                    <span className='ml-2'>×{String(ev['quantity'] ?? 1)}</span>
-                    <span className='block text-xs text-gray-400'>
-                      {formatDate(ev['created_at'] as string)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+          <UsageEventsSection events={detail.usage_events} />
 
-          {detail.invoices.length > 0 && (
-            <section>
-              <h3 className='font-semibold text-gray-900'>Invoices</h3>
-              <ul className='mt-2 space-y-1 text-gray-600'>
-                {detail.invoices.map((inv, i) => (
-                  <li key={i} className='flex justify-between gap-4'>
-                    <span>{String(inv['stripe_invoice_id'] ?? inv['id'])}</span>
-                    <span>{formatDate(inv['created_at'] as string)}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+          <InvoicesSection invoices={detail.invoices} />
         </div>
       )}
     </AdminDetailDrawer>
+  );
+}
+
+function AccountSection({ auth }: { auth: AdminUserDetail['auth'] }) {
+  return (
+    <section>
+      <h3 className='font-semibold text-gray-900'>Account</h3>
+      <dl className='mt-2 space-y-1 text-gray-600'>
+        <div className='flex justify-between gap-4'>
+          <dt>Email</dt>
+          <dd className='text-gray-900'>{auth.email ?? '—'}</dd>
+        </div>
+        <div className='flex justify-between gap-4'>
+          <dt>Signed up</dt>
+          <dd>{formatDate(auth.created_at)}</dd>
+        </div>
+        <div className='flex justify-between gap-4'>
+          <dt>Last active</dt>
+          <dd>{formatDate(auth.last_sign_in_at)}</dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
+
+function OperatorAccessSection({
+  admin,
+  isSelf,
+  actionLoading,
+  currentUserId,
+  onGrant,
+  onRevoke,
+}: {
+  admin: AdminUserDetail['admin'];
+  isSelf: boolean;
+  actionLoading: boolean;
+  currentUserId?: string | null;
+  onGrant: () => void;
+  onRevoke: () => void;
+}) {
+  return (
+    <section>
+      <h3 className='font-semibold text-gray-900'>Operator access</h3>
+      <div className='mt-2 space-y-3'>
+        {admin.is_admin ? (
+          <>
+            <div className='flex flex-wrap items-center gap-2 text-gray-600'>
+              <span className='inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20'>
+                Admin
+              </span>
+              {admin.granted_by_email && (
+                <span className='text-xs text-gray-500'>
+                  granted by {admin.granted_by_email}
+                </span>
+              )}
+              {admin.granted_at && (
+                <span className='text-xs text-gray-400'>
+                  {formatDate(admin.granted_at)}
+                </span>
+              )}
+            </div>
+            <button
+              type='button'
+              disabled={currentUserId == null || isSelf || actionLoading}
+              title={
+                isSelf ? "You can't revoke your own admin access" : undefined
+              }
+              className='rounded bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50'
+              onClick={onRevoke}
+            >
+              Revoke admin access
+            </button>
+          </>
+        ) : (
+          <>
+            <p className='text-xs text-gray-500'>No admin access</p>
+            <button
+              type='button'
+              disabled={actionLoading}
+              className='rounded bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50'
+              onClick={onGrant}
+            >
+              Grant admin access
+            </button>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function BillingSection({
+  detail,
+  hasCompAccess,
+  actionLoading,
+  actionError,
+  actionPending,
+  onGrantComp,
+  onRevokeComp,
+}: {
+  detail: AdminUserDetail;
+  hasCompAccess: boolean;
+  actionLoading: boolean;
+  actionError: string | null;
+  actionPending: PendingAction;
+  onGrantComp: () => void;
+  onRevokeComp: () => void;
+}) {
+  return (
+    <section>
+      <h3 className='font-semibold text-gray-900'>Billing</h3>
+      <dl className='mt-2 space-y-1 text-gray-600'>
+        <div className='flex justify-between gap-4'>
+          <dt>Plan</dt>
+          <dd className='text-gray-900'>
+            {(detail.plan?.['display_name'] as string) ??
+              detail.subscription?.['plan_id'] ??
+              '—'}
+          </dd>
+        </div>
+        <div className='flex justify-between gap-4'>
+          <dt>Status</dt>
+          <dd>{(detail.subscription?.['status'] as string) ?? '—'}</dd>
+        </div>
+      </dl>
+      {detail.comp_grant ? (
+        <div className='mt-3 space-y-1 rounded-md bg-indigo-50/80 px-3 py-2 text-xs text-indigo-950'>
+          <p className='font-medium text-indigo-900'>Complimentary access</p>
+          <p>
+            <span className='text-indigo-700'>Reason:</span>{' '}
+            {detail.comp_grant.comp_reason}
+          </p>
+          {detail.comp_grant.comped_by_email ? (
+            <p>
+              <span className='text-indigo-700'>Granted by:</span>{' '}
+              {detail.comp_grant.comped_by_email}
+            </p>
+          ) : null}
+          <p>
+            <span className='text-indigo-700'>Granted:</span>{' '}
+            {formatDate(detail.comp_grant.comped_at)}
+          </p>
+          {detail.comp_grant.comp_expires_at ? (
+            <p>
+              <span className='text-indigo-700'>Expires:</span>{' '}
+              {formatDate(detail.comp_grant.comp_expires_at)}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+      <div className='mt-3 flex flex-wrap gap-2'>
+        {!hasCompAccess ? (
+          <button
+            type='button'
+            disabled={actionLoading}
+            className='rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50'
+            onClick={onGrantComp}
+          >
+            Grant complimentary VIP
+          </button>
+        ) : (
+          <button
+            type='button'
+            disabled={actionLoading}
+            className='rounded bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50'
+            onClick={onRevokeComp}
+          >
+            Revoke complimentary access
+          </button>
+        )}
+      </div>
+      {actionError && actionPending === null ? (
+        <p className='mt-2 text-xs text-red-600' role='alert'>
+          {actionError}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+function ConfirmDialog({
+  actionPending,
+  title,
+  body,
+  compReason,
+  onCompReasonChange,
+  actionError,
+  actionLoading,
+  confirmDisabled,
+  onCancel,
+  onConfirm,
+}: {
+  actionPending: PendingAction;
+  title: string;
+  body: string;
+  compReason: string;
+  onCompReasonChange: (value: string) => void;
+  actionError: string | null;
+  actionLoading: boolean;
+  confirmDisabled: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  if (!actionPending) return null;
+  return (
+    <div
+      role='dialog'
+      aria-modal='true'
+      aria-labelledby='confirm-dialog-title'
+      className='fixed inset-0 z-50 flex items-center justify-center bg-black/40'
+      data-testid='confirm-dialog'
+    >
+      <div className='w-80 max-w-[calc(100vw-2rem)] rounded-lg bg-white p-6 shadow-xl'>
+        <h4
+          id='confirm-dialog-title'
+          className='text-sm font-semibold text-gray-900'
+        >
+          {title}
+        </h4>
+        <p className='mt-2 text-sm text-gray-600'>{body}</p>
+        {actionPending === 'grant_comp' ? (
+          <label className='mt-3 block text-sm text-gray-700'>
+            <span className='font-medium'>Reason (required)</span>
+            <textarea
+              className='mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm'
+              rows={3}
+              maxLength={500}
+              value={compReason}
+              onChange={e => onCompReasonChange(e.target.value)}
+              placeholder='e.g. design partner, press access'
+              data-testid='comp-grant-reason'
+            />
+          </label>
+        ) : null}
+        {actionError ? (
+          <p className='mt-2 text-xs text-red-600' role='alert'>
+            {actionError}
+          </p>
+        ) : null}
+        <div className='mt-4 flex justify-end gap-3'>
+          <button
+            type='button'
+            disabled={actionLoading}
+            className='rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50'
+            onClick={onCancel}
+          >
+            Cancel
+          </button>
+          <button
+            type='button'
+            disabled={confirmDisabled}
+            className={`rounded px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 ${
+              actionPending === 'grant' || actionPending === 'grant_comp'
+                ? 'bg-indigo-600 hover:bg-indigo-700'
+                : 'bg-red-600 hover:bg-red-700'
+            }`}
+            onClick={onConfirm}
+          >
+            {actionLoading ? 'Please wait…' : 'Confirm'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProfileSection({ profile }: { profile: AdminUserDetail['profile'] }) {
+  if (!profile) return null;
+  return (
+    <section>
+      <h3 className='font-semibold text-gray-900'>Profile</h3>
+      <dl className='mt-2 space-y-1 text-gray-600'>
+        <div className='flex justify-between gap-4'>
+          <dt>Display name</dt>
+          <dd className='text-gray-900'>
+            {(profile['display_name'] as string) ?? '—'}
+          </dd>
+        </div>
+        <div className='flex justify-between gap-4'>
+          <dt>Username</dt>
+          <dd>{(profile['username'] as string) ?? '—'}</dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
+
+function UsageAggregatesSection({
+  rows,
+}: {
+  rows: AdminUserDetail['usage_aggregates'];
+}) {
+  if (rows.length === 0) return null;
+  return (
+    <section>
+      <h3 className='font-semibold text-gray-900'>Current period usage</h3>
+      <ul className='mt-2 space-y-1 text-gray-600'>
+        {rows.map((row, i) => (
+          <li key={i} className='flex justify-between gap-4'>
+            <span>{String(row['event_type'] ?? '')}</span>
+            <span className='font-medium text-gray-900'>
+              {String(row['count'] ?? 0)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function UsageEventsSection({
+  events,
+}: {
+  events: AdminUserDetail['usage_events'];
+}) {
+  if (events.length === 0) return null;
+  return (
+    <section>
+      <h3 className='font-semibold text-gray-900'>Recent usage events</h3>
+      <ul className='mt-2 max-h-48 overflow-y-auto space-y-2 text-gray-600'>
+        {events.slice(0, 20).map((ev, i) => (
+          <li key={i} className='border-b border-gray-100 pb-2'>
+            <span className='font-medium text-gray-800'>
+              {String(ev['event_type'] ?? '')}
+            </span>
+            <span className='ml-2'>×{String(ev['quantity'] ?? 1)}</span>
+            <span className='block text-xs text-gray-400'>
+              {formatDate(ev['created_at'] as string)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function InvoicesSection({
+  invoices,
+}: {
+  invoices: AdminUserDetail['invoices'];
+}) {
+  if (invoices.length === 0) return null;
+  return (
+    <section>
+      <h3 className='font-semibold text-gray-900'>Invoices</h3>
+      <ul className='mt-2 space-y-1 text-gray-600'>
+        {invoices.map((inv, i) => (
+          <li key={i} className='flex justify-between gap-4'>
+            <span>{String(inv['stripe_invoice_id'] ?? inv['id'])}</span>
+            <span>{formatDate(inv['created_at'] as string)}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

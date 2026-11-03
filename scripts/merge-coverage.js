@@ -21,6 +21,9 @@
 const fs = require('fs');
 const path = require('path');
 const { aggregateCoverageStats, pct } = require('./lib/coverage-stats');
+const {
+  mergeIstanbulCoverageReports,
+} = require('./lib/merge-istanbul-coverage');
 
 const coverageDirs = [
   { name: 'web', path: 'apps/web/coverage' },
@@ -41,6 +44,7 @@ const coverageDirs = [
 
 const outputDir = path.join(__dirname, '..', 'coverage');
 const outputFile = path.join(outputDir, 'coverage-summary.json');
+const mergedFinalFile = path.join(outputDir, 'coverage-final.json');
 
 // Create output directory
 if (!fs.existsSync(outputDir)) {
@@ -123,6 +127,10 @@ Object.entries(coverageData).forEach(([name, data]) => {
 // Write summary
 fs.writeFileSync(outputFile, JSON.stringify(summary, null, 2));
 
+// Write merged Istanbul coverage-final.json for CRAP and other tools
+const mergedFinal = mergeIstanbulCoverageReports(Object.values(coverageData));
+fs.writeFileSync(mergedFinalFile, JSON.stringify(mergedFinal));
+
 // Print summary
 console.log('\n📊 Integrated Coverage Summary\n');
 console.log('Overall Coverage:');
@@ -157,6 +165,7 @@ Object.entries(summary.byPackage).forEach(([name, stats]) => {
 });
 
 console.log(`\n✅ Coverage summary saved to: ${outputFile}`);
+console.log(`✅ Merged coverage-final.json saved to: ${mergedFinalFile}`);
 console.log(`\n📄 Individual reports available at:`);
 coverageDirs.forEach(({ path: coveragePath }) => {
   const indexPath = path.join(coveragePath, 'index.html');

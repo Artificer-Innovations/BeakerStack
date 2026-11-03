@@ -106,42 +106,27 @@ export default function BillingPlansPage() {
   });
 
   const blockers = useCallback(
-    (target: Plan) => {
+    (target: Plan): DowngradeBlockersResult => {
       if (!current) return emptyBlockers();
       if (target.id === current.id) return emptyBlockers();
-      if (
+      const downgradesToFree =
         target.id === 'beakerstack_free' &&
-        (current.id !== 'beakerstack_free' || hasPaidStripe)
-      ) {
-        return computeDowngradeBlockers(
-          current,
-          target,
-          {
-            collectionCount: colCount ?? 0,
-            maxItemsInAnyCollection: maxItemsInAnyCollection ?? 0,
-            aiUsedThisPeriod: aiUsed ?? 0,
-          },
-          plans,
-          billingConfig
-        );
-      }
-      if (
+        (current.id !== 'beakerstack_free' || hasPaidStripe);
+      const downgradesToPaid =
         (target.display_order ?? 0) < (current.display_order ?? 0) &&
-        target.id !== 'beakerstack_free'
-      ) {
-        return computeDowngradeBlockers(
-          current,
-          target,
-          {
-            collectionCount: colCount ?? 0,
-            maxItemsInAnyCollection: maxItemsInAnyCollection ?? 0,
-            aiUsedThisPeriod: aiUsed ?? 0,
-          },
-          plans,
-          billingConfig
-        );
-      }
-      return emptyBlockers();
+        target.id !== 'beakerstack_free';
+      if (!downgradesToFree && !downgradesToPaid) return emptyBlockers();
+      return computeDowngradeBlockers(
+        current,
+        target,
+        {
+          collectionCount: colCount ?? 0,
+          maxItemsInAnyCollection: maxItemsInAnyCollection ?? 0,
+          aiUsedThisPeriod: aiUsed ?? 0,
+        },
+        plans,
+        billingConfig
+      );
     },
     [current, colCount, maxItemsInAnyCollection, aiUsed, hasPaidStripe, plans]
   );
@@ -150,7 +135,8 @@ export default function BillingPlansPage() {
 
   const getPrimary = useCallback(
     (p: Plan): Primary => {
-      if (!current) {
+      const currentPlan = current;
+      if (!currentPlan) {
         return {
           label: '…',
           disabled: true,
@@ -160,27 +146,22 @@ export default function BillingPlansPage() {
       if (isComped) {
         return {
           label:
-            p.id === current.id ? 'Current plan' : 'Included with your account',
+            p.id === currentPlan.id
+              ? 'Current plan'
+              : 'Included with your account',
           disabled: true,
           loading: false,
         };
       }
       const b = blockers(p);
       const hasHardBlock = b.hard.length > 0;
-      if (p.id === current.id) {
+
+      const currentPlanPrimary = (): Primary => {
         if (p.price_cents === 0 || p.id === 'beakerstack_free') {
-          return {
-            label: 'Current plan',
-            disabled: true,
-            loading: false,
-          };
+          return { label: 'Current plan', disabled: true, loading: false };
         }
         if (currentCadence === cadence) {
-          return {
-            label: 'Current plan',
-            disabled: true,
-            loading: false,
-          };
+          return { label: 'Current plan', disabled: true, loading: false };
         }
         return {
           label:
@@ -192,6 +173,37 @@ export default function BillingPlansPage() {
           disabled: false,
           loading: pending,
         };
+      };
+
+      const paidChangePrimary = (): Primary => {
+        if ((p.display_order ?? 0) > (currentPlan.display_order ?? 0)) {
+          return {
+            label: `Upgrade to ${p.display_name}`,
+            onClick: () =>
+              void updateSubscription(p.id, cadence).then(() =>
+                window.location.reload()
+              ),
+            disabled: false,
+            loading: pending,
+          };
+        }
+        if ((p.display_order ?? 0) < (currentPlan.display_order ?? 0)) {
+          return {
+            label: `Downgrade to ${p.display_name}`,
+            onClick: () =>
+              void updateSubscription(p.id, cadence).then(() =>
+                window.location.reload()
+              ),
+            disabled: hasHardBlock,
+            loading: pending,
+            variant: 'secondary',
+          };
+        }
+        return { label: 'Current plan', disabled: true, loading: false };
+      };
+
+      if (p.id === currentPlan.id) {
+        return currentPlanPrimary();
       }
       if (!hasPaidStripe && p.price_cents > 0) {
         const trialDays = p.trial_period_days ?? 0;
@@ -219,29 +231,7 @@ export default function BillingPlansPage() {
         };
       }
       if (hasPaidStripe && p.price_cents > 0) {
-        if ((p.display_order ?? 0) > (current.display_order ?? 0)) {
-          return {
-            label: `Upgrade to ${p.display_name}`,
-            onClick: () =>
-              void updateSubscription(p.id, cadence).then(() =>
-                window.location.reload()
-              ),
-            disabled: false,
-            loading: pending,
-          };
-        }
-        if ((p.display_order ?? 0) < (current.display_order ?? 0)) {
-          return {
-            label: `Downgrade to ${p.display_name}`,
-            onClick: () =>
-              void updateSubscription(p.id, cadence).then(() =>
-                window.location.reload()
-              ),
-            disabled: hasHardBlock,
-            loading: pending,
-            variant: 'secondary',
-          };
-        }
+        return paidChangePrimary();
       }
       return {
         label: 'Current plan',

@@ -84,20 +84,10 @@ export default function BillingOverviewPage() {
         <BillingTabs />
       </div>
       <div className='mt-6 space-y-6'>
-        {portalError ? (
-          <Banner variant='error' title='Could not open billing portal'>
-            {portalError.message} For hosted deploys, ensure the Edge secret{' '}
-            <code className='rounded bg-red-100 px-1 text-sm text-red-900'>
-              BILLING_ALLOWED_ORIGINS
-            </code>{' '}
-            includes this site&apos;s origin.
-          </Banner>
-        ) : null}
-        {stripeActionErr ? (
-          <Banner variant='error' title='Subscription action failed'>
-            {stripeActionErr.message}
-          </Banner>
-        ) : null}
+        <OverviewErrorBanners
+          portalError={portalError}
+          stripeActionErr={stripeActionErr}
+        />
         <OverviewBanners
           kind={kind}
           subscription={subscription}
@@ -120,40 +110,92 @@ export default function BillingOverviewPage() {
             periodSubcopy={periodSubcopy}
           />
         )}
-        <div className='grid grid-cols-1 gap-4 sm:grid-cols-3'>
-          <StatCard
-            label="This month's usage"
-            value={
-              usageLoad
-                ? '—'
-                : limit === null
-                  ? `${used} used (unlimited)`
-                  : `${used} of ${limit} AI summaries`
-            }
-          />
-          <StatCard
-            label='Collections'
-            value={
-              colLoad
-                ? '—'
-                : (() => {
-                    const cap = currentPlan?.features
-                      .containers_per_account_max as number;
-                    if (cap === -1) return `${colCount ?? 0} of unlimited`;
-                    return `${colCount ?? 0} of ${cap}`;
-                  })()
-            }
-          />
-          <StatCard
-            label='Member since'
-            value={user?.created_at ? formatMonthYear(user.created_at) : '—'}
-          />
-        </div>
+        <OverviewStatCards
+          usageLoad={usageLoad}
+          used={used}
+          limit={limit}
+          colLoad={colLoad}
+          colCount={colCount}
+          collectionsCap={
+            currentPlan?.features.containers_per_account_max as number
+          }
+          memberSince={user?.created_at ?? null}
+        />
         {!isFree && !invLoad && invoices.length > 0 && (
           <InvoiceList items={invoices} limit={3} />
         )}
       </div>
     </BillingPageShell>
+  );
+}
+
+function OverviewErrorBanners({
+  portalError,
+  stripeActionErr,
+}: {
+  portalError: { message: string } | null;
+  stripeActionErr: { message: string } | null;
+}): ReactElement {
+  return (
+    <>
+      {portalError ? (
+        <Banner variant='error' title='Could not open billing portal'>
+          {portalError.message} For hosted deploys, ensure the Edge secret{' '}
+          <code className='rounded bg-red-100 px-1 text-sm text-red-900'>
+            BILLING_ALLOWED_ORIGINS
+          </code>{' '}
+          includes this site&apos;s origin.
+        </Banner>
+      ) : null}
+      {stripeActionErr ? (
+        <Banner variant='error' title='Subscription action failed'>
+          {stripeActionErr.message}
+        </Banner>
+      ) : null}
+    </>
+  );
+}
+
+function OverviewStatCards({
+  usageLoad,
+  used,
+  limit,
+  colLoad,
+  colCount,
+  collectionsCap,
+  memberSince,
+}: {
+  usageLoad: boolean;
+  used: number;
+  limit: number | null;
+  colLoad: boolean;
+  colCount: number | null | undefined;
+  collectionsCap: number;
+  memberSince: string | null;
+}): ReactElement {
+  const collectionsValue = colLoad
+    ? '—'
+    : collectionsCap === -1
+      ? `${colCount ?? 0} of unlimited`
+      : `${colCount ?? 0} of ${collectionsCap}`;
+  return (
+    <div className='grid grid-cols-1 gap-4 sm:grid-cols-3'>
+      <StatCard
+        label="This month's usage"
+        value={
+          usageLoad
+            ? '—'
+            : limit === null
+              ? `${used} used (unlimited)`
+              : `${used} of ${limit} AI summaries`
+        }
+      />
+      <StatCard label='Collections' value={collectionsValue} />
+      <StatCard
+        label='Member since'
+        value={memberSince ? formatMonthYear(memberSince) : '—'}
+      />
+    </div>
   );
 }
 

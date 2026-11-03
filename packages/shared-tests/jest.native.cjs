@@ -33,7 +33,7 @@ module.exports = {
     ],
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|@react-native\\/js-polyfills|@react-navigation|expo|@expo|expo-status-bar|react-native-safe-area-context|react-native-screens)/)',
+    'node_modules/(?!(react-native|@react-native|@react-native\\/js-polyfills|@react-navigation|expo|@expo|expo-status-bar|react-native-safe-area-context|react-native-screens|decode-uri-component|query-string)/)',
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   collectCoverageFrom: [

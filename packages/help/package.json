@@ -21,7 +21,7 @@
     "test:coverage": "vitest --coverage --run"
   },
   "dependencies": {
-    "dompurify": "3.4.13",
+    "dompurify": "3.4.17",
     "jsdom": "^26.1.0"
   },
   "peerDependencies": {

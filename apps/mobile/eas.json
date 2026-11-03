@@ -7,6 +7,7 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "node": "22.22.0",
       "ios": {
         "simulator": true
       },
@@ -20,6 +21,7 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
+      "node": "22.22.0",
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "{{PREVIEW_SUPABASE_URL}}",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "{{PREVIEW_SUPABASE_ANON_KEY}}",
@@ -44,6 +46,7 @@
     "preview-device": {
       "distribution": "internal",
       "channel": "preview",
+      "node": "22.22.0",
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "{{PREVIEW_SUPABASE_URL}}",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "{{PREVIEW_SUPABASE_ANON_KEY}}",
@@ -68,6 +71,7 @@
     "preview-device-local": {
       "distribution": "internal",
       "channel": "preview",
+      "node": "22.22.0",
       "ios": {
         "simulator": false,
         "buildConfiguration": "Release"
@@ -79,6 +83,7 @@
     "staging": {
       "distribution": "internal",
       "channel": "staging",
+      "node": "22.22.0",
       "ios": {
         "simulator": false,
         "buildConfiguration": "Release"
@@ -90,6 +95,7 @@
     "production": {
       "distribution": "store",
       "channel": "production",
+      "node": "22.22.0",
       "ios": {
         "simulator": false,
         "buildConfiguration": "Release"

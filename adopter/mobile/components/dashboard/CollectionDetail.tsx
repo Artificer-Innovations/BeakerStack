@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 import {
   mapUnknownError,
   useBillingContext,
@@ -178,56 +179,24 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
           </Text>
         </View>
         <View style={styles.featureBtns}>
-          <Pressable
-            style={[
-              styles.featBtn,
-              featureA.enabled ? styles.featBtnAOn : styles.featBtnOff,
-            ]}
-            disabled={featureA.loading}
-            onPress={() => {
-              if (featureA.enabled) {
-                showToast('Feature A action triggered');
-              } else {
-                showToast(
-                  'Feature A is not enabled on your current plan (useFeature returns false).'
-                );
-              }
-            }}
-          >
-            <Text
-              style={[
-                styles.featBtnText,
-                !featureA.enabled && styles.featBtnTextOff,
-              ]}
-            >
-              Feature A
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[
-              styles.featBtn,
-              featureB.enabled ? styles.featBtnBOn : styles.featBtnOff,
-            ]}
-            disabled={featureB.loading}
-            onPress={() => {
-              if (featureB.enabled) {
-                showToast('Feature B action triggered');
-              } else {
-                showToast(
-                  'Feature B is not enabled on your current plan (useFeature returns false).'
-                );
-              }
-            }}
-          >
-            <Text
-              style={[
-                styles.featBtnText,
-                !featureB.enabled && styles.featBtnTextOff,
-              ]}
-            >
-              Feature B
-            </Text>
-          </Pressable>
+          <FeatureButton
+            label='Feature A'
+            enabled={featureA.enabled}
+            loading={featureA.loading}
+            onStyle={styles.featBtnAOn}
+            enabledMsg='Feature A action triggered'
+            disabledMsg='Feature A is not enabled on your current plan (useFeature returns false).'
+            showToast={showToast}
+          />
+          <FeatureButton
+            label='Feature B'
+            enabled={featureB.enabled}
+            loading={featureB.loading}
+            onStyle={styles.featBtnBOn}
+            enabledMsg='Feature B action triggered'
+            disabledMsg='Feature B is not enabled on your current plan (useFeature returns false).'
+            showToast={showToast}
+          />
         </View>
       </View>
 
@@ -247,68 +216,142 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
         <Text style={styles.emptyItems}>No items yet. Add one below.</Text>
       ) : (
         <View style={styles.itemList}>
-          {itemRows.map(i => {
-            const isBusy = summarizeBusy.has(i);
-            const summary = summaries.get(i);
-            const err = summarizeErrors.get(i);
-            const summarizeDisabled =
-              anySummarizeBusy || usageExceeded || usageLoading;
-            return (
-              <View key={i} style={styles.itemCard}>
-                <View style={styles.itemRow}>
-                  <Text style={styles.itemLabel}>Item {i + 1}</Text>
-                  <Pressable
-                    style={[
-                      styles.summarizeBtn,
-                      summarizeDisabled &&
-                        !isBusy &&
-                        styles.summarizeBtnDisabled,
-                    ]}
-                    disabled={summarizeDisabled && !isBusy}
-                    onPress={() => void onSummarize(i)}
-                    accessibilityLabel={
-                      usageExceeded
-                        ? 'AI summarize limit reached'
-                        : anySummarizeBusy && !isBusy
-                          ? 'Another item is being summarized'
-                          : 'Summarize'
-                    }
-                  >
-                    <Text style={styles.summarizeBtnText}>
-                      {isBusy
-                        ? '…'
-                        : usageExceeded
-                          ? 'Limit reached'
-                          : 'Summarize'}
-                    </Text>
-                  </Pressable>
-                </View>
-                {err ? (
-                  <Text style={styles.itemErr} accessibilityRole='alert'>
-                    {err.message}
-                  </Text>
-                ) : null}
-                {summary ? (
-                  <Text style={styles.summaryText}>{summary}</Text>
-                ) : null}
-              </View>
-            );
-          })}
+          {itemRows.map(i => (
+            <ItemCard
+              key={i}
+              index={i}
+              isBusy={summarizeBusy.has(i)}
+              summary={summaries.get(i)}
+              err={summarizeErrors.get(i)}
+              usageExceeded={usageExceeded}
+              anySummarizeBusy={anySummarizeBusy}
+              usageLoading={usageLoading}
+              onSummarize={onSummarize}
+            />
+          ))}
         </View>
       )}
 
-      <Pressable
-        style={[
-          styles.addItemBtn,
-          (atItemCap || featLoading || addBusy) && styles.btnDisabled,
-        ]}
+      <AddItemButton
+        atItemCap={atItemCap}
         disabled={atItemCap || featLoading || addBusy}
-        onPress={() => void onAddItem()}
-      >
-        <Text style={styles.addItemBtnText}>
-          {addBusy ? '…' : atItemCap ? 'Item limit reached' : '+ Add item'}
+        addBusy={addBusy}
+        onAddItem={onAddItem}
+      />
+    </View>
+  );
+}
+
+interface FeatureButtonProps {
+  label: string;
+  enabled: boolean;
+  loading: boolean;
+  onStyle: StyleProp<ViewStyle>;
+  enabledMsg: string;
+  disabledMsg: string;
+  showToast: (msg: string) => void;
+}
+
+function FeatureButton({
+  label,
+  enabled,
+  loading,
+  onStyle,
+  enabledMsg,
+  disabledMsg,
+  showToast,
+}: FeatureButtonProps) {
+  return (
+    <Pressable
+      style={[styles.featBtn, enabled ? onStyle : styles.featBtnOff]}
+      disabled={loading}
+      onPress={() => showToast(enabled ? enabledMsg : disabledMsg)}
+    >
+      <Text style={[styles.featBtnText, !enabled && styles.featBtnTextOff]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+interface AddItemButtonProps {
+  atItemCap: boolean;
+  disabled: boolean;
+  addBusy: boolean;
+  onAddItem: () => Promise<void>;
+}
+
+function AddItemButton({
+  atItemCap,
+  disabled,
+  addBusy,
+  onAddItem,
+}: AddItemButtonProps) {
+  return (
+    <Pressable
+      style={[styles.addItemBtn, disabled && styles.btnDisabled]}
+      disabled={disabled}
+      onPress={() => void onAddItem()}
+    >
+      <Text style={styles.addItemBtnText}>
+        {addBusy ? '…' : atItemCap ? 'Item limit reached' : '+ Add item'}
+      </Text>
+    </Pressable>
+  );
+}
+
+interface ItemCardProps {
+  index: number;
+  isBusy: boolean;
+  summary: string | undefined;
+  err: BillingError | undefined;
+  usageExceeded: boolean;
+  anySummarizeBusy: boolean;
+  usageLoading: boolean;
+  onSummarize: (index: number) => void;
+}
+
+function ItemCard({
+  index,
+  isBusy,
+  summary,
+  err,
+  usageExceeded,
+  anySummarizeBusy,
+  usageLoading,
+  onSummarize,
+}: ItemCardProps) {
+  const summarizeDisabled = anySummarizeBusy || usageExceeded || usageLoading;
+  return (
+    <View style={styles.itemCard}>
+      <View style={styles.itemRow}>
+        <Text style={styles.itemLabel}>Item {index + 1}</Text>
+        <Pressable
+          style={[
+            styles.summarizeBtn,
+            summarizeDisabled && !isBusy && styles.summarizeBtnDisabled,
+          ]}
+          disabled={summarizeDisabled && !isBusy}
+          onPress={() => void onSummarize(index)}
+          accessibilityLabel={
+            usageExceeded
+              ? 'AI summarize limit reached'
+              : anySummarizeBusy && !isBusy
+                ? 'Another item is being summarized'
+                : 'Summarize'
+          }
+        >
+          <Text style={styles.summarizeBtnText}>
+            {isBusy ? '…' : usageExceeded ? 'Limit reached' : 'Summarize'}
+          </Text>
+        </Pressable>
+      </View>
+      {err ? (
+        <Text style={styles.itemErr} accessibilityRole='alert'>
+          {err.message}
         </Text>
-      </Pressable>
+      ) : null}
+      {summary ? <Text style={styles.summaryText}>{summary}</Text> : null}
     </View>
   );
 }

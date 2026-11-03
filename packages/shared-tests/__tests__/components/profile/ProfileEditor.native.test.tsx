@@ -430,7 +430,7 @@ describe('ProfileEditor (Native)', () => {
     const parseSpy = jest
       .spyOn(profileSchema.profileFormSchema, 'parse')
       .mockImplementation(() => {
-        throw { errors: 'not-an-array' };
+        throw { issues: 'not-an-array' };
       });
     const mockOnError = jest.fn();
     mockUseProfileContext.mockReturnValue(createContextValue());
@@ -450,7 +450,7 @@ describe('ProfileEditor (Native)', () => {
       .spyOn(profileSchema.profileFormSchema, 'parse')
       .mockImplementation(() => {
         throw {
-          errors: [{ path: 'username', message: 'Bad username' }],
+          issues: [{ path: 'username', message: 'Bad username' }],
         };
       });
     const mockOnError = jest.fn();
@@ -472,7 +472,7 @@ describe('ProfileEditor (Native)', () => {
       .spyOn(profileSchema.profileFormSchema, 'parse')
       .mockImplementation(() => {
         throw {
-          errors: [
+          issues: [
             { path: ['bio'], message: 'Bio is invalid' },
             { path: [0], message: 'Ignored numeric path' },
           ],

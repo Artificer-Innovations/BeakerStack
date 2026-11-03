@@ -185,44 +185,24 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
         </div>
         {/* Feature A / Feature B header actions */}
         <div className='flex flex-wrap gap-2'>
-          <button
-            type='button'
-            disabled={featureA.loading}
-            onClick={() => {
-              if (featureA.enabled) {
-                showToast('Feature A action triggered');
-              } else {
-                showToast(
-                  'Feature A requires Pro or higher. Upgrade at /billing.'
-                );
-              }
-            }}
-            className={`rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors ${
-              featureA.enabled
-                ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/60'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-default'
-            }`}
-          >
-            Feature A
-          </button>
-          <button
-            type='button'
-            disabled={featureB.loading}
-            onClick={() => {
-              if (featureB.enabled) {
-                showToast('Feature B action triggered');
-              } else {
-                showToast('Feature B requires Max plan. Upgrade at /billing.');
-              }
-            }}
-            className={`rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors ${
-              featureB.enabled
-                ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/60'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-default'
-            }`}
-          >
-            Feature B
-          </button>
+          <FeatureButton
+            label='Feature A'
+            enabled={featureA.enabled}
+            loading={featureA.loading}
+            enabledMsg='Feature A action triggered'
+            disabledMsg='Feature A requires Pro or higher. Upgrade at /billing.'
+            onClassName='bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/60'
+            showToast={showToast}
+          />
+          <FeatureButton
+            label='Feature B'
+            enabled={featureB.enabled}
+            loading={featureB.loading}
+            enabledMsg='Feature B action triggered'
+            disabledMsg='Feature B requires Max plan. Upgrade at /billing.'
+            onClassName='bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/60'
+            showToast={showToast}
+          />
         </div>
       </div>
 
@@ -249,69 +229,19 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
         </p>
       ) : (
         <ul className='space-y-2 mb-3'>
-          {itemRows.map(i => {
-            const isBusy = summarizeBusy.has(i);
-            const summary = summaries.get(i);
-            const err = summarizeErrors.get(i);
-            return (
-              <li
-                key={i}
-                className='rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-4 py-3'
-              >
-                <div className='flex flex-wrap items-start justify-between gap-2'>
-                  <span className='text-sm font-medium text-gray-800 dark:text-gray-200'>
-                    Item {i + 1}
-                  </span>
-                  {/* Wrapper span carries the tooltip so it's visible even when the button is disabled */}
-                  <span
-                    title={
-                      usageExceeded
-                        ? 'AI summarize limit reached'
-                        : anySummarizeBusy && !isBusy
-                          ? 'Another item is being summarized'
-                          : undefined
-                    }
-                  >
-                    <button
-                      type='button'
-                      disabled={
-                        anySummarizeBusy || usageExceeded || usageLoading
-                      }
-                      aria-describedby={
-                        anySummarizeBusy && !isBusy
-                          ? `summarize-wait-${i}`
-                          : undefined
-                      }
-                      onClick={() => void onSummarize(i)}
-                      className='inline-flex items-center gap-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50'
-                    >
-                      <Sparkles className='h-3 w-3' aria-hidden />
-                      {isBusy
-                        ? '…'
-                        : usageExceeded
-                          ? 'Limit reached'
-                          : 'Summarize'}
-                    </button>
-                    {anySummarizeBusy && !isBusy && (
-                      <span id={`summarize-wait-${i}`} className='sr-only'>
-                        Another item is being summarized. Please wait.
-                      </span>
-                    )}
-                  </span>
-                </div>
-                {err && (
-                  <p className='mt-1 text-xs text-red-600' role='alert'>
-                    {err.message}
-                  </p>
-                )}
-                {summary && (
-                  <p className='mt-2 text-xs text-gray-600 dark:text-gray-400 leading-relaxed'>
-                    {summary}
-                  </p>
-                )}
-              </li>
-            );
-          })}
+          {itemRows.map(i => (
+            <ItemRow
+              key={i}
+              index={i}
+              isBusy={summarizeBusy.has(i)}
+              summary={summaries.get(i)}
+              err={summarizeErrors.get(i)}
+              usageExceeded={usageExceeded}
+              anySummarizeBusy={anySummarizeBusy}
+              usageLoading={usageLoading}
+              onSummarize={onSummarize}
+            />
+          ))}
         </ul>
       )}
 
@@ -327,5 +257,112 @@ export function CollectionDetail({ collection, addItem, onActivity }: Props) {
         {addBusy ? '…' : atItemCap ? 'Item limit reached' : 'Add item'}
       </button>
     </div>
+  );
+}
+
+interface FeatureButtonProps {
+  label: string;
+  enabled: boolean;
+  loading: boolean;
+  enabledMsg: string;
+  disabledMsg: string;
+  onClassName: string;
+  showToast: (msg: string) => void;
+}
+
+function FeatureButton({
+  label,
+  enabled,
+  loading,
+  enabledMsg,
+  disabledMsg,
+  onClassName,
+  showToast,
+}: FeatureButtonProps) {
+  return (
+    <button
+      type='button'
+      disabled={loading}
+      onClick={() => showToast(enabled ? enabledMsg : disabledMsg)}
+      className={`rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors ${
+        enabled
+          ? onClassName
+          : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-default'
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+interface ItemRowProps {
+  index: number;
+  isBusy: boolean;
+  summary: string | undefined;
+  err: BillingError | undefined;
+  usageExceeded: boolean;
+  anySummarizeBusy: boolean;
+  usageLoading: boolean;
+  onSummarize: (index: number) => void;
+}
+
+function ItemRow({
+  index,
+  isBusy,
+  summary,
+  err,
+  usageExceeded,
+  anySummarizeBusy,
+  usageLoading,
+  onSummarize,
+}: ItemRowProps) {
+  return (
+    <li className='rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-4 py-3'>
+      <div className='flex flex-wrap items-start justify-between gap-2'>
+        <span className='text-sm font-medium text-gray-800 dark:text-gray-200'>
+          Item {index + 1}
+        </span>
+        {/* Wrapper span carries the tooltip so it's visible even when the button is disabled */}
+        <span
+          title={
+            usageExceeded
+              ? 'AI summarize limit reached'
+              : anySummarizeBusy && !isBusy
+                ? 'Another item is being summarized'
+                : undefined
+          }
+        >
+          <button
+            type='button'
+            disabled={anySummarizeBusy || usageExceeded || usageLoading}
+            aria-describedby={
+              anySummarizeBusy && !isBusy
+                ? `summarize-wait-${index}`
+                : undefined
+            }
+            onClick={() => void onSummarize(index)}
+            className='inline-flex items-center gap-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50'
+          >
+            <Sparkles className='h-3 w-3' aria-hidden />
+            {isBusy ? '…' : usageExceeded ? 'Limit reached' : 'Summarize'}
+          </button>
+          {anySummarizeBusy && !isBusy && (
+            <span id={`summarize-wait-${index}`} className='sr-only'>
+              Another item is being summarized. Please wait.
+            </span>
+          )}
+        </span>
+      </div>
+      {err && (
+        <p className='mt-1 text-xs text-red-600' role='alert'>
+          {err.message}
+        </p>
+      )}
+      {summary && (
+        <p className='mt-2 text-xs text-gray-600 dark:text-gray-400 leading-relaxed'>
+          {summary}
+        </p>
+      )}
+    </li>
   );
 }

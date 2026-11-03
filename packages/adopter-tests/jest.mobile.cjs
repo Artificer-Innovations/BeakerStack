@@ -54,7 +54,7 @@ module.exports = {
       require.resolve('@react-native/jest-preset/jest/assetFileTransformer.js'),
   },
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)/)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|decode-uri-component|query-string)/)',
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   testMatch: ['**/__tests__/**/*.[jt]s?(x)'],

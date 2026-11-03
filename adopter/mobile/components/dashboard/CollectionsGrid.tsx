@@ -83,26 +83,12 @@ export function CollectionsGrid({
               : `${collections.length} of ${limLabel(maxCollections)}`}
           </Text>
         </View>
-        <Pressable
-          style={[
-            styles.addBtn,
-            (atCap || loading || featLoading || busy === 'add') &&
-              styles.btnDisabled,
-          ]}
+        <AddButton
+          atCap={atCap}
           disabled={atCap || loading || featLoading || busy === 'add'}
-          onPress={handleAdd}
-          accessibilityLabel={
-            atCap ? 'Collection limit reached for your plan' : 'New collection'
-          }
-        >
-          <Text style={styles.addBtnText}>
-            {busy === 'add'
-              ? '…'
-              : atCap
-                ? 'Limit reached'
-                : '+ New collection'}
-          </Text>
-        </Pressable>
+          adding={busy === 'add'}
+          onAdd={handleAdd}
+        />
       </View>
 
       {error ? (
@@ -127,38 +113,84 @@ export function CollectionsGrid({
         </Text>
       ) : (
         <View style={styles.grid}>
-          {collections.map(col => {
-            const isSelected = col.id === selectedId;
-            const delKey = `del:${col.id}`;
-            return (
-              <Pressable
-                key={col.id}
-                style={[styles.card, isSelected && styles.cardSelected]}
-                onPress={() => onSelect(col.id)}
-                accessibilityRole='button'
-                accessibilityState={{ selected: isSelected }}
-              >
-                <Pressable
-                  style={styles.deleteBtn}
-                  accessibilityLabel='Delete collection'
-                  disabled={busy === delKey}
-                  onPress={() => handleDelete(col.id)}
-                >
-                  <Text style={styles.deleteBtnText}>Del</Text>
-                </Pressable>
-                <Text style={styles.monoId} numberOfLines={1}>
-                  {col.id.slice(0, 8)}…
-                </Text>
-                <Text style={styles.cardTitle}>Collection</Text>
-                <Text style={styles.cardMeta}>
-                  {col.item_count} item{col.item_count !== 1 ? 's' : ''}
-                </Text>
-              </Pressable>
-            );
-          })}
+          {collections.map(col => (
+            <CollectionCard
+              key={col.id}
+              col={col}
+              isSelected={col.id === selectedId}
+              deleteBusy={busy === `del:${col.id}`}
+              onSelect={onSelect}
+              onDelete={handleDelete}
+            />
+          ))}
         </View>
       )}
     </View>
+  );
+}
+
+interface AddButtonProps {
+  atCap: boolean;
+  disabled: boolean;
+  adding: boolean;
+  onAdd: () => void;
+}
+
+function AddButton({ atCap, disabled, adding, onAdd }: AddButtonProps) {
+  return (
+    <Pressable
+      style={[styles.addBtn, disabled && styles.btnDisabled]}
+      disabled={disabled}
+      onPress={onAdd}
+      accessibilityLabel={
+        atCap ? 'Collection limit reached for your plan' : 'New collection'
+      }
+    >
+      <Text style={styles.addBtnText}>
+        {adding ? '…' : atCap ? 'Limit reached' : '+ New collection'}
+      </Text>
+    </Pressable>
+  );
+}
+
+interface CollectionCardProps {
+  col: DemoCollectionRow;
+  isSelected: boolean;
+  deleteBusy: boolean;
+  onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+function CollectionCard({
+  col,
+  isSelected,
+  deleteBusy,
+  onSelect,
+  onDelete,
+}: CollectionCardProps) {
+  return (
+    <Pressable
+      style={[styles.card, isSelected && styles.cardSelected]}
+      onPress={() => onSelect(col.id)}
+      accessibilityRole='button'
+      accessibilityState={{ selected: isSelected }}
+    >
+      <Pressable
+        style={styles.deleteBtn}
+        accessibilityLabel='Delete collection'
+        disabled={deleteBusy}
+        onPress={() => onDelete(col.id)}
+      >
+        <Text style={styles.deleteBtnText}>Del</Text>
+      </Pressable>
+      <Text style={styles.monoId} numberOfLines={1}>
+        {col.id.slice(0, 8)}…
+      </Text>
+      <Text style={styles.cardTitle}>Collection</Text>
+      <Text style={styles.cardMeta}>
+        {col.item_count} item{col.item_count !== 1 ? 's' : ''}
+      </Text>
+    </Pressable>
   );
 }
 

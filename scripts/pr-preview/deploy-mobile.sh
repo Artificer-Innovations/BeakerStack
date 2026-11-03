@@ -463,19 +463,25 @@ wait_for_build() {
       continue
     fi
     
+    # EAS returns uppercase statuses (FINISHED/ERRORED); normalize for matching.
     local status
-    status="$(echo "${build_info}" | jq -r '.status // "unknown"' 2>/dev/null || echo "unknown")"
+    status="$(echo "${build_info}" | jq -r '.status // "unknown"' 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo "unknown")"
+    local error_message
+    error_message="$(echo "${build_info}" | jq -r '.error.message // empty' 2>/dev/null || true)"
     
     case "${status}" in
       "finished")
         log "INFO" "${platform} build ${build_id} completed successfully"
         return 0
         ;;
-      "errored"|"canceled")
+      "errored"|"canceled"|"cancelled")
         log "ERROR" "${platform} build ${build_id} failed with status: ${status}"
+        if [[ -n "${error_message}" ]]; then
+          log "ERROR" "${platform} build error: ${error_message}"
+        fi
         return 1
         ;;
-      "in-progress"|"in-queue"|"pending")
+      "in-progress"|"in-queue"|"pending"|"new")
         log "INFO" "${platform} build ${build_id} status: ${status} (${elapsed}s elapsed)"
         ;;
       *)
@@ -534,6 +540,17 @@ submit_eas_build() {
     return 1
   fi
   log "INFO" "${platform} build submitted: ${PARSED_BUILD_ID} (status: ${PARSED_BUILD_STATUS})"
+  local status_lc
+  status_lc="$(echo "${PARSED_BUILD_STATUS}" | tr '[:upper:]' '[:lower:]')"
+  if [[ "${status_lc}" == "errored" || "${status_lc}" == "canceled" || "${status_lc}" == "cancelled" ]]; then
+    local error_message
+    error_message="$(echo "${PARSED_BUILD_OBJ}" | jq -r '.error.message // empty' 2>/dev/null || true)"
+    log "ERROR" "${platform} build ${PARSED_BUILD_ID} ended with status ${PARSED_BUILD_STATUS}"
+    if [[ -n "${error_message}" ]]; then
+      log "ERROR" "${platform} build error: ${error_message}"
+    fi
+    return 1
+  fi
   return 0
 }
 
@@ -771,22 +788,30 @@ build_native_app() {
 
   if [[ -z "${ios_build_id}" ]]; then
     (
-      if submit_eas_build "ios" "${build_message}"; then
+      # Persist id/status even when submit_eas_build fast-fails on ERRORED so
+      # build_native_app can still emit status URLs / output vars.
+      submit_rc=0
+      submit_eas_build "ios" "${build_message}" || submit_rc=$?
+      if [[ -n "${PARSED_BUILD_ID}" && "${PARSED_BUILD_ID}" != "null" ]]; then
         printf '%s' "${PARSED_BUILD_ID}" >"${submit_tmp}/ios.id"
         printf '%s' "${PARSED_BUILD_STATUS}" >"${submit_tmp}/ios.status"
         printf '%s' "${PARSED_BUILD_OBJ}" >"${submit_tmp}/ios.info"
       fi
+      exit "${submit_rc}"
     ) &
     ios_submit_pid=$!
   fi
 
   if [[ -z "${android_build_id}" ]]; then
     (
-      if submit_eas_build "android" "${build_message}"; then
+      submit_rc=0
+      submit_eas_build "android" "${build_message}" || submit_rc=$?
+      if [[ -n "${PARSED_BUILD_ID}" && "${PARSED_BUILD_ID}" != "null" ]]; then
         printf '%s' "${PARSED_BUILD_ID}" >"${submit_tmp}/android.id"
         printf '%s' "${PARSED_BUILD_STATUS}" >"${submit_tmp}/android.status"
         printf '%s' "${PARSED_BUILD_OBJ}" >"${submit_tmp}/android.info"
       fi
+      exit "${submit_rc}"
     ) &
     android_submit_pid=$!
   fi
@@ -905,6 +930,8 @@ build_native_app() {
       write_output "PREVIEW_MOBILE_IOS_DOWNLOAD_URL" "${ios_status_url}"
       log "WARN" "iOS build ${ios_build_id} did not complete successfully or is still in progress. Check status at: ${ios_status_url}"
     fi
+  else
+    log "ERROR" "iOS build failed to start (no build ID returned from EAS)"
   fi
   
   if [[ -n "${android_build_id}" ]]; then

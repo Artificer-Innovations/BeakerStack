@@ -20,27 +20,34 @@ export function billingError(
   return { kind, message, cause };
 }
 
+function nonEmptyString(v: unknown): string | null {
+  return typeof v === 'string' && v.trim() ? v : null;
+}
+
+function messageFromObject(o: Record<string, unknown>): string | null {
+  return (
+    nonEmptyString(o['message']) ??
+    nonEmptyString(o['error_description']) ??
+    nonEmptyString(o['msg']) ??
+    messageFromCode(o)
+  );
+}
+
+function messageFromCode(o: Record<string, unknown>): string | null {
+  if (typeof o['code'] !== 'string') return null;
+  const parts = [o['code']];
+  const details = nonEmptyString(o['details']);
+  if (details) parts.push(details);
+  const hint = nonEmptyString(o['hint']);
+  if (hint) parts.push(hint);
+  return parts.join(' · ');
+}
+
 function messageFromUnknown(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (err && typeof err === 'object') {
-    const o = err as Record<string, unknown>;
-    if (typeof o['message'] === 'string' && o['message'].trim())
-      return o['message'];
-    if (
-      typeof o['error_description'] === 'string' &&
-      o['error_description'].trim()
-    ) {
-      return o['error_description'];
-    }
-    if (typeof o['msg'] === 'string' && o['msg'].trim()) return o['msg'];
-    if (typeof o['code'] === 'string') {
-      const parts = [o['code']];
-      if (typeof o['details'] === 'string' && o['details'].trim())
-        parts.push(o['details']);
-      if (typeof o['hint'] === 'string' && o['hint'].trim())
-        parts.push(o['hint']);
-      return parts.join(' · ');
-    }
+    const fromObject = messageFromObject(err as Record<string, unknown>);
+    if (fromObject != null) return fromObject;
   }
   if (typeof err === 'string') return err;
   if (typeof err === 'bigint') return err.toString();

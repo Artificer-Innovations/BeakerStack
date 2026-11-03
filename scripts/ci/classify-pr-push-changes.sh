@@ -224,6 +224,11 @@ classify_path() {
       match_dependencies=true
       match_app_code=true
       ;;
+    patches/*)
+      # patch-package patches change installed dependency behavior at postinstall
+      match_dependencies=true
+      match_app_code=true
+      ;;
     .eslintrc.js | .github/workflows/test.yml | .github/actions/*)
       match_app_code=true
       ;;
@@ -232,7 +237,7 @@ classify_path() {
       ;;
     docs/* | README.md | LICENSE | *.md)
       ;;
-    scripts/ci/* | scripts/ci-* | scripts/format-ci-summary.mjs | scripts/check-csp-hash.mjs)
+    scripts/ci/* | scripts/ci-* | scripts/format-ci-summary.mjs | scripts/check-csp-hash.mjs | scripts/crap-report.mjs | scripts/merge-coverage.js | scripts/lib/crap-summary.js | scripts/lib/crap-analyze.js | scripts/lib/coverage-stats.js | scripts/lib/merge-istanbul-coverage.js | scripts/lib/normalize-istanbul-coverage.js)
       match_tested_scripts=true
       ;;
     scripts/*)
@@ -526,6 +531,8 @@ self_test() {
   assert_classify infra/aws/pr-preview-stack.yml deploy_infra true
   assert_classify package.json dependencies true
   assert_classify package.json app_code true
+  assert_classify patches/minimatch+11.0.1.patch dependencies true
+  assert_classify patches/minimatch+11.0.1.patch app_code true
   assert_classify .github/workflows/test.yml app_code true
   assert_classify .github/workflows/pr-preview-environment.yml deploy_infra true
   assert_classify packages/shared/src/hooks/useAuth.ts web_deploy true

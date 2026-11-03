@@ -12,13 +12,10 @@ const imageSize = require('../../vendor/image-size');
 const vendorDir = fileURLToPath(
   new URL('../../vendor/image-size/', import.meta.url)
 );
-const vendorEntry = path.join(vendorDir, 'dist/index.js');
-const icnsSrc = readFileSync(
-  path.join(vendorDir, 'dist/types/icns.js'),
-  'utf8'
-);
+const vendorEntry = path.join(vendorDir, 'lib/index.js');
+const icnsSrc = readFileSync(path.join(vendorDir, 'lib/types/icns.js'), 'utf8');
 const utilsSrc = readFileSync(
-  path.join(vendorDir, 'dist/types/utils.js'),
+  path.join(vendorDir, 'lib/types/utils.js'),
   'utf8'
 );
 
