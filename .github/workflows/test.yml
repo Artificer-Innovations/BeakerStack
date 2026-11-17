@@ -89,8 +89,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-node
-      - name: npm audit (zero vulnerabilities)
-        run: npm audit --audit-level=low
+      - name: npm audit (zero vulnerabilities, allowlisted exceptions in SECURITY.md)
+        run: node scripts/ci/npm-audit-allowlist.mjs
 
   lint:
     needs: test-scope
