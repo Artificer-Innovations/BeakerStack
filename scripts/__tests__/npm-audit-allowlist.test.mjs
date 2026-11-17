@@ -437,6 +437,73 @@ test('advisories are checked even when their entry is marked info', () => {
   );
 });
 
+test('regression: an info-only advisory cannot attribute a vulnerable entry', () => {
+  // Directly: a high entry whose only advisory is info.
+  const direct = evaluateAudit(
+    report({
+      x: {
+        severity: 'high',
+        via: [
+          advisory(
+            'x',
+            'https://github.com/advisories/GHSA-nnnn-oooo-pppp',
+            'info'
+          ),
+        ],
+      },
+    }),
+    allow,
+    NOW
+  );
+  assert.equal(direct.ok, false);
+  assert.match(direct.failures[0], /x \(high\): no advisory reachable/);
+  assert.deepEqual(direct.allowed, []);
+
+  // Transitively: a high dependent whose chain ends only in an info advisory.
+  const transitive = evaluateAudit(
+    report({
+      leaf: {
+        severity: 'info',
+        via: [
+          advisory(
+            'leaf',
+            'https://github.com/advisories/GHSA-nnnn-oooo-pppp',
+            'info'
+          ),
+        ],
+      },
+      dependent: { severity: 'high', via: ['leaf'] },
+    }),
+    allow,
+    NOW
+  );
+  assert.equal(transitive.ok, false);
+  assert.match(
+    transitive.failures[0],
+    /dependent \(high\): no advisory reachable/
+  );
+
+  // An info advisory alongside an actionable allowlisted one still passes.
+  const mixed = evaluateAudit(
+    report({
+      picomatch: {
+        severity: 'high',
+        via: [
+          advisory(
+            'picomatch',
+            'https://github.com/advisories/GHSA-nnnn-oooo-pppp',
+            'info'
+          ),
+          advisory('picomatch', PICO_URL),
+        ],
+      },
+    }),
+    allow,
+    NOW
+  );
+  assert.equal(mixed.ok, true, mixed.failures.join('\n'));
+});
+
 test('allowed log lines include the advisory title', () => {
   const r = evaluateAudit(
     report({

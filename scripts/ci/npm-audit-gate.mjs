@@ -8,7 +8,7 @@
  * The gate fails unless every advisory `npm audit --json` reports is listed in
  * ALLOWLIST (matched by GHSA id AND package name) and not past its `expires`
  * date. Advisory objects are checked directly wherever they appear, and every
- * vulnerable entry must reach at least one advisory through its `via` chain,
+ * vulnerable entry must reach at least one non-info advisory through its `via` chain,
  * so dependency cycles (vitest <-> @vitest/coverage-v8, metro <-> metro-config)
  * can neither hide an advisory nor pass without one.
  *
@@ -18,8 +18,9 @@
  *   - the report has no `vulnerabilities` map, or the map is empty while
  *     `metadata.vulnerabilities.total` says there are findings
  *   - an entry or advisory has a missing or unrecognized severity
- *   - a vulnerable entry reaches no advisory (no `via`, a `via` naming a package
- *     missing from the report, or an advisory-free cycle)
+ *   - a vulnerable entry reaches no non-info advisory (no `via`, a `via` naming
+ *     a package missing from the report, an advisory-free cycle, or a chain
+ *     whose only advisories are info)
  *   - an advisory is not allowlisted, or its allowlist entry has expired
  *
  * Every exception must also be documented in SECURITY.md.
@@ -150,7 +151,7 @@ export function evaluateAudit(report, allowlist, now = new Date()) {
   const allowed = new Set();
   const used = new Set();
   const today = now.toISOString().slice(0, 10);
-  /** Packages whose own `via` holds at least one advisory object. */
+  /** Packages whose own `via` holds at least one non-info advisory. */
   const hasAdvisory = new Set();
   /** Non-info entries that must reach an advisory. */
   const vulnerable = [];
@@ -180,7 +181,6 @@ export function evaluateAudit(report, allowlist, now = new Date()) {
         failures.push(`${name}: unrecognized via entry ${JSON.stringify(v)}`);
         continue;
       }
-      hasAdvisory.add(name);
       const pkg = v.name || name;
       if (!SEVERITIES.has(v.severity)) {
         failures.push(
@@ -189,6 +189,9 @@ export function evaluateAudit(report, allowlist, now = new Date()) {
         continue;
       }
       if (v.severity === 'info') continue;
+      // Only an actionable (non-info) advisory attributes an entry; an
+      // info-only chain must not satisfy a vulnerable entry's reachability.
+      hasAdvisory.add(name);
       const id = ghsaIdFromUrl(v.url);
       const title = v.title ? ` — ${v.title}` : '';
       const label = `${pkg} ${id ?? v.url ?? v.source ?? '(unknown advisory)'} (${v.severity})`;
@@ -227,7 +230,7 @@ export function evaluateAudit(report, allowlist, now = new Date()) {
   for (const name of vulnerable) {
     if (!reachesAdvisory(name)) {
       failures.push(
-        `${name} (${vulns[name].severity}): no advisory reachable through its dependency chain, so it can't be attributed`
+        `${name} (${vulns[name].severity}): no advisory reachable through its dependency chain (info-only advisories don't count), so it can't be attributed`
       );
     }
   }
