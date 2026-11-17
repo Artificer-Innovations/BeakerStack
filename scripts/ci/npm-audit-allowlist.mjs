@@ -11,7 +11,11 @@
  * can't hide or invent a root cause.
  *
  * Fails closed when:
- *   - npm audit returns an error payload or unparseable output
+ *   - npm could not be run, was killed, or exited with an unexpected status
+ *   - npm audit printed nothing, unparseable output, or an error payload
+ *   - the report has no `vulnerabilities` map, or the map is empty while
+ *     `metadata.vulnerabilities.total` says there are findings
+ *   - an entry or advisory has a missing or unrecognized severity
  *   - an entry has no advisory and no `via` (no way to attribute it)
  *   - an entry's `via` names a package missing from the report
  *   - an advisory is not allowlisted, or its allowlist entry has expired
@@ -42,6 +46,7 @@ export const ALLOWLIST = [
 ];
 
 const FAILING_SEVERITIES = new Set(['low', 'moderate', 'high', 'critical']);
+const KNOWN_SEVERITIES = new Set([...FAILING_SEVERITIES, 'info']);
 
 /** GHSA id from an advisory URL such as https://github.com/advisories/GHSA-xxxx-xxxx-xxxx */
 export function ghsaIdFromUrl(url) {
@@ -53,6 +58,55 @@ export function ghsaIdFromUrl(url) {
 }
 
 /**
+ * Turn a `spawnSync('npm', ['audit', '--json'])` result into a parsed report,
+ * failing closed on anything other than a JSON object printed by an npm that
+ * exited normally. npm audit exits 1 whenever it finds vulnerabilities, so 0
+ * and 1 are both expected; any other status, a signal, or a spawn error is not.
+ *
+ * @param {{ error?: Error, signal?: string | null, status?: number | null, stdout?: string | null, stderr?: string | null }} res
+ * @returns {{ ok: true, report: any } | { ok: false, failure: string }}
+ */
+export function readAuditReport(res) {
+  const stderr = res?.stderr ? `\n${String(res.stderr).slice(0, 2000)}` : '';
+  if (!res) return { ok: false, failure: 'npm audit did not run' };
+  if (res.error) {
+    return {
+      ok: false,
+      failure: `Failed to run npm audit: ${res.error.message}${stderr}`,
+    };
+  }
+  if (res.signal) {
+    return {
+      ok: false,
+      failure: `npm audit was killed by ${res.signal}${stderr}`,
+    };
+  }
+  if (res.status !== 0 && res.status !== 1) {
+    return {
+      ok: false,
+      failure: `npm audit exited with unexpected status ${res.status}${stderr}`,
+    };
+  }
+  const stdout = typeof res.stdout === 'string' ? res.stdout.trim() : '';
+  if (stdout === '') {
+    return { ok: false, failure: `npm audit printed no output${stderr}` };
+  }
+  let report;
+  try {
+    report = JSON.parse(stdout);
+  } catch {
+    return {
+      ok: false,
+      failure: `Could not parse npm audit --json output:\n${stdout.slice(0, 2000)}${stderr}`,
+    };
+  }
+  if (!report || typeof report !== 'object' || Array.isArray(report)) {
+    return { ok: false, failure: 'npm audit output is not a JSON object' };
+  }
+  return { ok: true, report };
+}
+
+/**
  * Evaluate an `npm audit --json` report against an allowlist.
  * @param {any} report
  * @param {AllowEntry[]} allowlist
@@ -60,42 +114,53 @@ export function ghsaIdFromUrl(url) {
  * @returns {{ ok: boolean, failures: string[], allowed: string[], unused: string[] }}
  */
 export function evaluateAudit(report, allowlist, now = new Date()) {
-  const failures = [];
-  const allowed = new Set();
-  const used = new Set();
+  const fail = message => ({
+    ok: false,
+    failures: [message],
+    allowed: [],
+    unused: [],
+  });
 
   if (!report || typeof report !== 'object' || Array.isArray(report)) {
-    return {
-      ok: false,
-      failures: ['npm audit output is not a JSON object'],
-      allowed: [],
-      unused: [],
-    };
+    return fail('npm audit output is not a JSON object');
   }
   if (report.error) {
     const detail =
       report.error.summary || report.error.code || JSON.stringify(report.error);
-    return {
-      ok: false,
-      failures: [`npm audit reported an error: ${detail}`],
-      allowed: [],
-      unused: [],
-    };
+    return fail(`npm audit reported an error: ${detail}`);
   }
   const vulns = report.vulnerabilities;
-  if (!vulns || typeof vulns !== 'object') {
-    return {
-      ok: false,
-      failures: ['npm audit output has no "vulnerabilities" map'],
-      allowed: [],
-      unused: [],
-    };
+  if (!vulns || typeof vulns !== 'object' || Array.isArray(vulns)) {
+    return fail('npm audit output has no "vulnerabilities" map');
+  }
+  const total = report.metadata?.vulnerabilities?.total;
+  if (
+    typeof total === 'number' &&
+    total > 0 &&
+    Object.keys(vulns).length === 0
+  ) {
+    return fail(
+      `npm audit metadata reports ${total} vulnerabilities but the "vulnerabilities" map is empty`
+    );
   }
 
+  const failures = [];
+  const allowed = new Set();
+  const used = new Set();
   const today = now.toISOString().slice(0, 10);
 
   for (const [name, entry] of Object.entries(vulns)) {
-    if (!FAILING_SEVERITIES.has(entry?.severity)) continue;
+    if (!entry || typeof entry !== 'object') {
+      failures.push(`${name}: unrecognized entry ${JSON.stringify(entry)}`);
+      continue;
+    }
+    if (!KNOWN_SEVERITIES.has(entry.severity)) {
+      failures.push(
+        `${name}: missing or unrecognized severity ${JSON.stringify(entry.severity)}`
+      );
+      continue;
+    }
+    if (entry.severity === 'info') continue;
     const via = Array.isArray(entry.via) ? entry.via : [];
     if (via.length === 0) {
       failures.push(
@@ -115,9 +180,15 @@ export function evaluateAudit(report, allowlist, now = new Date()) {
         failures.push(`${name}: unrecognized via entry ${JSON.stringify(v)}`);
         continue;
       }
-      if (!FAILING_SEVERITIES.has(v.severity)) continue;
-      const id = ghsaIdFromUrl(v.url);
       const pkg = v.name || name;
+      if (!KNOWN_SEVERITIES.has(v.severity)) {
+        failures.push(
+          `${pkg} ${v.url ?? v.source ?? '(unknown advisory)'}: missing or unrecognized severity ${JSON.stringify(v.severity)}`
+        );
+        continue;
+      }
+      if (v.severity === 'info') continue;
+      const id = ghsaIdFromUrl(v.url);
       const label = `${pkg} ${id ?? v.url ?? v.source ?? '(unknown advisory)'} (${v.severity})`;
       const match = id && allowlist.find(a => a.id === id && a.package === pkg);
       if (!match) {
@@ -152,21 +223,15 @@ function main() {
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
   });
-  if (res.error) {
-    console.error(`Failed to run npm audit: ${res.error.message}`);
+  const read = readAuditReport(res);
+  if (!read.ok) {
+    console.error(`::error::${read.failure}`);
     process.exit(1);
   }
-  let report;
-  try {
-    report = JSON.parse(res.stdout);
-  } catch {
-    console.error('Could not parse npm audit --json output:');
-    console.error(res.stdout?.slice(0, 2000) || res.stderr);
-    process.exit(1);
-  }
+  const { report } = read;
 
   const { ok, failures, allowed, unused } = evaluateAudit(report, ALLOWLIST);
-  const counts = report?.metadata?.vulnerabilities;
+  const counts = report.metadata?.vulnerabilities;
   if (counts) console.log(`npm audit totals: ${JSON.stringify(counts)}`);
   for (const a of allowed) console.log(`allowed: ${a}`);
   for (const u of unused) {

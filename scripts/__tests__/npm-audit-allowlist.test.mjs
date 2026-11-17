@@ -5,6 +5,7 @@ import {
   ALLOWLIST,
   evaluateAudit,
   ghsaIdFromUrl,
+  readAuditReport,
 } from '../ci/npm-audit-allowlist.mjs';
 
 const NOW = new Date('2026-11-17T12:00:00Z');
@@ -27,10 +28,101 @@ const advisory = (name, url, severity = 'high') => ({
   severity,
   range: '*',
 });
-const report = vulnerabilities => ({
+const report = (vulnerabilities, total = 0) => ({
   vulnerabilities,
-  metadata: { vulnerabilities: {} },
+  metadata: { vulnerabilities: { total } },
 });
+
+// ---------------------------------------------------------------------------
+// readAuditReport: running npm and parsing its output must fail closed.
+// ---------------------------------------------------------------------------
+
+const spawnResult = overrides => ({
+  error: undefined,
+  signal: null,
+  status: 0,
+  stdout: JSON.stringify(report({})),
+  stderr: '',
+  ...overrides,
+});
+
+test('readAuditReport accepts a JSON report with exit status 0 or 1', () => {
+  assert.equal(readAuditReport(spawnResult({ status: 0 })).ok, true);
+  // npm audit exits 1 whenever it finds vulnerabilities.
+  const r = readAuditReport(
+    spawnResult({
+      status: 1,
+      stdout: JSON.stringify(
+        report({ picomatch: { severity: 'high', via: [] } }, 1)
+      ),
+    })
+  );
+  assert.equal(r.ok, true);
+  assert.ok(r.report.vulnerabilities.picomatch);
+});
+
+test('regression: empty npm audit output fails closed (was treated as 0 vulnerabilities)', () => {
+  for (const stdout of ['', '   \n', null, undefined]) {
+    const r = readAuditReport(spawnResult({ stdout }));
+    assert.equal(r.ok, false, `stdout=${JSON.stringify(stdout)}`);
+    assert.match(r.failure, /printed no output/);
+  }
+});
+
+test('regression: spawn error fails closed (npm missing or not runnable)', () => {
+  const r = readAuditReport(
+    spawnResult({
+      error: new Error('spawnSync npm ENOENT'),
+      stdout: '',
+      status: null,
+    })
+  );
+  assert.equal(r.ok, false);
+  assert.match(r.failure, /Failed to run npm audit: spawnSync npm ENOENT/);
+});
+
+test('killed npm fails closed even if partial JSON was printed', () => {
+  const r = readAuditReport(
+    spawnResult({ signal: 'SIGTERM', status: null, stdout: '{}' })
+  );
+  assert.equal(r.ok, false);
+  assert.match(r.failure, /killed by SIGTERM/);
+});
+
+test('unexpected exit status fails closed even with parseable JSON', () => {
+  const r = readAuditReport(spawnResult({ status: 2, stdout: '{}' }));
+  assert.equal(r.ok, false);
+  assert.match(r.failure, /unexpected status 2/);
+});
+
+test('unparseable or non-object output fails closed', () => {
+  assert.match(
+    readAuditReport(spawnResult({ stdout: 'npm ERR! network' })).failure,
+    /Could not parse/
+  );
+  for (const stdout of ['null', '[]', '42', '"x"']) {
+    const r = readAuditReport(spawnResult({ stdout }));
+    assert.equal(r.ok, false, `stdout=${stdout}`);
+  }
+});
+
+test('stderr is included in failures to aid debugging', () => {
+  const r = readAuditReport(
+    spawnResult({ stdout: '', stderr: 'npm ERR! code ENOLOCK' })
+  );
+  assert.match(r.failure, /ENOLOCK/);
+});
+
+test('regression: empty output never reaches a passing evaluation', () => {
+  // End-to-end shape of the old bug: `JSON.parse(stdout || '{}')` + `?? {}`.
+  const r = readAuditReport(spawnResult({ stdout: '' }));
+  assert.equal(r.ok, false);
+  assert.equal(evaluateAudit({}, allow, NOW).ok, false);
+});
+
+// ---------------------------------------------------------------------------
+// evaluateAudit
+// ---------------------------------------------------------------------------
 
 test('ghsaIdFromUrl normalizes case and rejects non-GHSA input', () => {
   assert.equal(ghsaIdFromUrl(PICO_URL), 'GHSA-fc5q-39xc-vjpf');
@@ -50,11 +142,14 @@ test('clean report passes', () => {
 
 test('allowlisted advisory passes, including transitive dependents', () => {
   const r = evaluateAudit(
-    report({
-      picomatch: { severity: 'high', via: [advisory('picomatch', PICO_URL)] },
-      micromatch: { severity: 'high', via: ['picomatch'] },
-      jest: { severity: 'high', via: ['micromatch'] },
-    }),
+    report(
+      {
+        picomatch: { severity: 'high', via: [advisory('picomatch', PICO_URL)] },
+        micromatch: { severity: 'high', via: ['picomatch'] },
+        jest: { severity: 'high', via: ['micromatch'] },
+      },
+      3
+    ),
     allow,
     NOW
   );
@@ -126,6 +221,27 @@ test('non-allowlisted advisory fails even alongside an allowlisted one', () => {
   assert.match(r.failures[0], /node-forge GHSA-j8rw-jp99-435v/);
 });
 
+test('a new advisory on an allowlisted package still fails', () => {
+  const r = evaluateAudit(
+    report({
+      picomatch: {
+        severity: 'high',
+        via: [
+          advisory('picomatch', PICO_URL),
+          advisory(
+            'picomatch',
+            'https://github.com/advisories/GHSA-dddd-eeee-ffff'
+          ),
+        ],
+      },
+    }),
+    allow,
+    NOW
+  );
+  assert.equal(r.ok, false);
+  assert.match(r.failures.join('\n'), /picomatch GHSA-dddd-eeee-ffff/);
+});
+
 test('allowlist matches on package as well as GHSA id', () => {
   const r = evaluateAudit(
     report({
@@ -163,6 +279,13 @@ test('fails closed on missing vulnerabilities map or non-object input', () => {
   assert.equal(evaluateAudit({}, allow, NOW).ok, false);
   assert.equal(evaluateAudit(null, allow, NOW).ok, false);
   assert.equal(evaluateAudit([], allow, NOW).ok, false);
+  assert.equal(evaluateAudit({ vulnerabilities: [] }, allow, NOW).ok, false);
+});
+
+test('fails closed when metadata reports findings but the map is empty', () => {
+  const r = evaluateAudit(report({}, 5), allow, NOW);
+  assert.equal(r.ok, false);
+  assert.match(r.failures[0], /reports 5 vulnerabilities/);
 });
 
 test('fails closed on an entry with no via info', () => {
@@ -183,6 +306,45 @@ test('fails closed when via names a package missing from the report', () => {
   );
   assert.equal(r.ok, false);
   assert.match(r.failures[0], /ghost-pkg/);
+});
+
+test('regression: missing or unknown severity fails closed (was silently skipped)', () => {
+  for (const severity of [undefined, null, '', 'severe', 'HIGH']) {
+    const r = evaluateAudit(
+      report({
+        x: {
+          severity,
+          via: [
+            advisory('x', 'https://github.com/advisories/GHSA-zzzz-zzzz-zzzz'),
+          ],
+        },
+      }),
+      allow,
+      NOW
+    );
+    assert.equal(r.ok, false, `entry severity=${JSON.stringify(severity)}`);
+    assert.match(r.failures[0], /unrecognized severity/);
+  }
+  const r = evaluateAudit(
+    report({
+      x: {
+        severity: 'high',
+        via: [
+          {
+            ...advisory(
+              'x',
+              'https://github.com/advisories/GHSA-zzzz-zzzz-zzzz'
+            ),
+            severity: undefined,
+          },
+        ],
+      },
+    }),
+    allow,
+    NOW
+  );
+  assert.equal(r.ok, false, 'advisory with no severity');
+  assert.match(r.failures[0], /unrecognized severity/);
 });
 
 test('info-severity entries do not fail the gate', () => {
