@@ -6,7 +6,8 @@ import {
   evaluateAudit,
   ghsaIdFromUrl,
   readAuditReport,
-} from '../ci/npm-audit-allowlist.mjs';
+  runGate,
+} from '../ci/npm-audit-gate.mjs';
 
 const NOW = new Date('2026-11-17T12:00:00Z');
 const PICO_URL = 'https://github.com/advisories/GHSA-fc5q-39xc-vjpf';
@@ -164,7 +165,8 @@ test('regression: dependency cycles do not block an allowlisted root cause', () 
       picomatch: { severity: 'high', via: [advisory('picomatch', PICO_URL)] },
       vitest: { severity: 'high', via: ['@vitest/coverage-v8', 'picomatch'] },
       '@vitest/coverage-v8': { severity: 'high', via: ['vitest'] },
-      metro: { severity: 'high', via: ['metro-config'] },
+      metro: { severity: 'high', via: ['metro-config', 'micromatch'] },
+      micromatch: { severity: 'high', via: ['picomatch'] },
       'metro-config': { severity: 'high', via: ['metro'] },
     }),
     allow,
@@ -374,4 +376,173 @@ test('every shipped allowlist entry is well formed and time-boxed', () => {
     assert.match(a.expires, /^\d{4}-\d{2}-\d{2}$/);
     assert.ok(a.reason.length > 20);
   }
+});
+
+test('regression: an advisory-free cycle fails closed (was passing with an empty allowlist)', () => {
+  for (const allowlist of [[], allow]) {
+    const r = evaluateAudit(
+      report(
+        {
+          metro: { severity: 'high', via: ['metro-config'] },
+          'metro-config': { severity: 'high', via: ['metro'] },
+        },
+        2
+      ),
+      allowlist,
+      NOW
+    );
+    assert.equal(r.ok, false);
+    assert.match(
+      r.failures.join('\n'),
+      /metro \(high\): no advisory reachable/
+    );
+    assert.match(
+      r.failures.join('\n'),
+      /metro-config \(high\): no advisory reachable/
+    );
+  }
+});
+
+test('an advisory-free cycle fails even when another chain is allowlisted', () => {
+  const r = evaluateAudit(
+    report({
+      picomatch: { severity: 'high', via: [advisory('picomatch', PICO_URL)] },
+      a: { severity: 'high', via: ['b'] },
+      b: { severity: 'high', via: ['a'] },
+    }),
+    allow,
+    NOW
+  );
+  assert.equal(r.ok, false);
+  assert.deepEqual(r.failures.map(f => f.split(' ')[0]).sort(), ['a', 'b']);
+});
+
+test('advisories are checked even when their entry is marked info', () => {
+  const r = evaluateAudit(
+    report({
+      x: {
+        severity: 'info',
+        via: [
+          advisory('x', 'https://github.com/advisories/GHSA-hhhh-iiii-jjjj'),
+        ],
+      },
+    }),
+    allow,
+    NOW
+  );
+  assert.equal(r.ok, false);
+  assert.match(
+    r.failures[0],
+    /x GHSA-hhhh-iiii-jjjj \(high\): not allowlisted/
+  );
+});
+
+test('allowed log lines include the advisory title', () => {
+  const r = evaluateAudit(
+    report({
+      picomatch: { severity: 'high', via: [advisory('picomatch', PICO_URL)] },
+    }),
+    allow,
+    NOW
+  );
+  assert.match(r.allowed[0], /picomatch bug — allowlisted until 2027-02-17/);
+});
+
+// ---------------------------------------------------------------------------
+// runGate: spawn -> parse -> evaluate -> exit code wiring.
+// ---------------------------------------------------------------------------
+
+const gate = (spawnResultOrThrow, allowlist = allow) => {
+  const out = [];
+  const err = [];
+  const calls = [];
+  const code = runGate({
+    allowlist,
+    now: NOW,
+    log: m => out.push(m),
+    error: m => err.push(m),
+    spawn: (cmd, args) => {
+      calls.push([cmd, ...args]);
+      if (spawnResultOrThrow instanceof Error) throw spawnResultOrThrow;
+      return spawnResultOrThrow;
+    },
+  });
+  return { code, out: out.join('\n'), err: err.join('\n'), calls };
+};
+
+test('runGate runs npm audit --json and exits 0 on a clean report', () => {
+  const g = gate(spawnResult({}));
+  assert.equal(g.code, 0);
+  assert.deepEqual(g.calls, [['npm', 'audit', '--json']]);
+  assert.match(g.out, /npm audit gate passed/);
+});
+
+test('runGate exits 0 when only allowlisted advisories remain', () => {
+  const g = gate(
+    spawnResult({
+      status: 1,
+      stdout: JSON.stringify(
+        report(
+          {
+            picomatch: {
+              severity: 'high',
+              via: [advisory('picomatch', PICO_URL)],
+            },
+          },
+          1
+        )
+      ),
+    })
+  );
+  assert.equal(g.code, 0, g.err);
+  assert.match(g.out, /allowed: picomatch GHSA-fc5q-39xc-vjpf/);
+});
+
+test('regression: runGate exits 1 on empty npm output', () => {
+  const g = gate(spawnResult({ stdout: '' }));
+  assert.equal(g.code, 1);
+  assert.match(g.err, /printed no output/);
+  assert.doesNotMatch(g.out, /passed/);
+});
+
+test('runGate exits 1 on spawn errors, thrown or returned', () => {
+  assert.equal(
+    gate(spawnResult({ error: new Error('ENOENT'), stdout: '', status: null }))
+      .code,
+    1
+  );
+  const thrown = gate(new Error('boom'));
+  assert.equal(thrown.code, 1);
+  assert.match(thrown.err, /Failed to run npm audit: boom/);
+});
+
+test('runGate exits 1 on an unallowlisted advisory', () => {
+  const g = gate(
+    spawnResult({
+      status: 1,
+      stdout: JSON.stringify(
+        report({
+          x: {
+            severity: 'high',
+            via: [
+              advisory(
+                'x',
+                'https://github.com/advisories/GHSA-kkkk-llll-mmmm'
+              ),
+            ],
+          },
+        })
+      ),
+    })
+  );
+  assert.equal(g.code, 1);
+  assert.match(g.err, /GHSA-kkkk-llll-mmmm/);
+});
+
+test('runGate warns about unused allowlist entries', () => {
+  const g = gate(spawnResult({}));
+  assert.match(
+    g.out,
+    /::warning::Allowlist entry picomatch GHSA-fc5q-39xc-vjpf/
+  );
 });
